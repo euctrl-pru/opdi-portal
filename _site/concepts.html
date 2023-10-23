@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 
-<title>OPDI - Open Performance Data Initiative</title>
+<title>OPDI - Concepts</title>
 <style>
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
@@ -20,7 +20,26 @@ ul.task-list li input[type="checkbox"] {
   margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
   vertical-align: middle;
 }
-</style>
+/* CSS for citations */
+div.csl-bib-body { }
+div.csl-entry {
+  clear: both;
+}
+.hanging-indent div.csl-entry {
+  margin-left:2em;
+  text-indent:-2em;
+}
+div.csl-left-margin {
+  min-width:2em;
+  float:left;
+}
+div.csl-right-inline {
+  margin-left:2em;
+  padding-left:1em;
+}
+div.csl-indent {
+  margin-left: 2em;
+}</style>
 
 
 <script src="site_libs/quarto-nav/quarto-nav.js"></script>
@@ -59,6 +78,9 @@ ul.task-list li input[type="checkbox"] {
     "search-label": "Search"
   }
 }</script>
+<script src="site_libs/quarto-diagram/mermaid.min.js"></script>
+<script src="site_libs/quarto-diagram/mermaid-init.js"></script>
+<link href="site_libs/quarto-diagram/mermaid.css" rel="stylesheet">
 
 
 <link rel="stylesheet" href="styles.css">
@@ -82,11 +104,11 @@ ul.task-list li input[type="checkbox"] {
           <div class="collapse navbar-collapse" id="navbarCollapse">
             <ul class="navbar-nav navbar-nav-scroll me-auto">
   <li class="nav-item">
-    <a class="nav-link active" href="./index.html" rel="" target="" aria-current="page">
+    <a class="nav-link" href="./index.html" rel="" target="">
  <span class="menu-text">Home</span></a>
   </li>  
   <li class="nav-item">
-    <a class="nav-link" href="./concepts.html" rel="" target="">
+    <a class="nav-link active" href="./concepts.html" rel="" target="" aria-current="page">
  <span class="menu-text">Concepts</span></a>
   </li>  
   <li class="nav-item">
@@ -105,14 +127,29 @@ ul.task-list li input[type="checkbox"] {
 <!-- sidebar -->
 <!-- margin-sidebar -->
     <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
-        
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#phases-of-a-flight" id="toc-phases-of-a-flight" class="nav-link active" data-scroll-target="#phases-of-a-flight">Phases of a Flight</a></li>
+  <li><a href="#sec-milestones" id="toc-sec-milestones" class="nav-link" data-scroll-target="#sec-milestones">Milestone</a></li>
+  <li><a href="#use-cases" id="toc-use-cases" class="nav-link" data-scroll-target="#use-cases">Use Cases</a>
+  <ul class="collapse">
+  <li><a href="#fuel-consumption-environmental-emissions" id="toc-fuel-consumption-environmental-emissions" class="nav-link" data-scroll-target="#fuel-consumption-environmental-emissions">Fuel consumption / Environmental emissions</a></li>
+  <li><a href="#operational-performance" id="toc-operational-performance" class="nav-link" data-scroll-target="#operational-performance">Operational performance</a></li>
+  <li><a href="#airspace-profile" id="toc-airspace-profile" class="nav-link" data-scroll-target="#airspace-profile">Airspace profile</a></li>
+  </ul></li>
+  <li><a href="#milestones-definition" id="toc-milestones-definition" class="nav-link" data-scroll-target="#milestones-definition">Milestones Definition</a></li>
+  <li><a href="#acronyms_HEADER_LOA" id="toc-acronyms_HEADER_LOA" class="nav-link" data-scroll-target="#acronyms_HEADER_LOA">List of Acronyms</a></li>
+  </ul>
+</nav>
     </div>
 <!-- main -->
 <main class="content" id="quarto-document-content">
 
 <header id="title-block-header" class="quarto-title-block default">
 <div class="quarto-title">
-<h1 class="title">Open Performance Data Initiative</h1>
+<h1 class="title">Concepts</h1>
 </div>
 
 
@@ -127,12 +164,197 @@ ul.task-list li input[type="checkbox"] {
 
 </header>
 
-<p>This site is going to be the portal for the Open Performance Data Initiative (OPDI).</p>
-<p>We will describe the datasets and provide example of usage of the data.</p>
+<section id="phases-of-a-flight" class="level2">
+<h2 class="anchored" data-anchor-id="phases-of-a-flight">Phases of a Flight</h2>
+<p>In a flight we can identify <em>events</em> that can help to monitor its evolution from a gate-to-gate perspective. <a href="#fig-flight-phases">Figure&nbsp;1</a> shows a simplified diagram of a possible set of flight phases (white square boxes) and relevant events (<code>Txy</code> labels).</p>
+<div id="fig-flight-phases" class="quarto-figure quarto-figure-center anchored">
+<figure class="figure">
+<p><img src="media/flight_states.png" class="img-fluid figure-img" style="width:100.0%"></p>
+<figcaption class="figure-caption">Figure&nbsp;1: Flight phases and events.</figcaption>
+</figure>
+</div>
+<p>In general we are interested in analyzing performance at gate-to-gate level so as to cover both the airborne and the ground phases of flights. To this extent we summarize a flight down to some of its fundamental milestones as in the following list (from departure to arrival):</p>
+<ol class="example" type="1">
+<li>Off-block (<strong>T06</strong>)</li>
+<li>End of push back (<strong>T07</strong>)</li>
+<li>Enter runway for take-off (<strong>T09</strong>)</li>
+<li>Lift-off (<strong>T12</strong>), a.k.a. take-off</li>
+<li>40-nautical-miles intersection (<strong>T14</strong> ?)</li>
+<li>top-of-climb (<strong>T15</strong>)</li>
+<li>top-of-descent (<strong>T18</strong>)</li>
+<li>40-nautical-miles intersection (<strong>T19</strong> ?)</li>
+<li>Touch-down (<strong>T22</strong>)</li>
+<li>Runway vacated (<strong>T24</strong>)</li>
+<li>Enter parking spot (<strong>T26</strong>)</li>
+<li>on-block (<strong>T27</strong>)</li>
+</ol>
+<p>Other interesting milestones could be</p>
+<ol start="13" class="example" type="1">
+<li>Holding start</li>
+<li>Holding end</li>
+<li>Leveled segment start</li>
+<li>Leveled segment end</li>
+<li>FIR crossing</li>
+</ol>
+<p>Subsets of these milestones allow for the calculation of taxi-in (<code>T24</code>, <code>T27</code>) and taxi-out (<code>T06</code>, <code>T09</code>) times, runway utilization and sequencing (<code>T12</code>, <code>T22</code>), inefficiencies in the <a href="#acronyms_TMA">Terminal Maneuvering Area (TMA)</a> (via holding patterns and leveled portions of the descent) … Additional ad-hoc milestones can be defined for specific needs, for example <a href="#acronyms_FIR">Flight Information Region (FIR)</a> crossing milestones would be usefult to count <a href="#acronyms_DAIO">Departure, Arrival, Internal, Overflight (DAIO)</a> statistics.</p>
+</section>
+<section id="sec-milestones" class="level2">
+<h2 class="anchored" data-anchor-id="sec-milestones">Milestone</h2>
+<p>A flight milestone is conceptually defined by</p>
+<ul>
+<li>flight ID it belongs to</li>
+<li>3D location (decimal degrees of longitude, latitude [in WSG84] and altitude [in feet]), i.e. <code>17.933996,59.653410,-203</code></li>
+<li>UTC timestamp, i.e.&nbsp;<code>2021-09-27 10:43:11.234 UTC</code></li>
+<li>milestone type, i.e.&nbsp;<code>top-of-climb</code> or <code>off-block</code></li>
+</ul>
+<p>Further useful attributes for business processing of the information are:</p>
+<ul>
+<li>the source of extraction of the milestone, i.e.&nbsp;<code>apdf</code> (when data provided by airport), <code>osn</code> (extracted by <a href="#acronyms_OSN">OpenSky Network (OSN)</a>’s <a href="#acronyms_ADS-B">Automatic Dependent Surveillance–Broadcast (ADS-B)</a> data), <code>nm</code> (as calculated by EUROCONTROL’s <a href="#acronyms_NM">Network Manager (NM)</a>)</li>
+<li>contextual information, i.e.&nbsp;<code>F33R</code> as the relevant parking position for an <code>off-block</code> milestone or <code>26</code> as the runway ID for a <code>take-off</code> milestone. This field can be also useful to define a custom fomat for airspace crossing, for example for a milestone like <code>x-fir</code> we could have the <code>info</code> contain something like <code>from:LFFF, to:LFRR</code> to provide info about the transition order of airspace penetration.</li>
+</ul>
+</section>
+<section id="use-cases" class="level2">
+<h2 class="anchored" data-anchor-id="use-cases">Use Cases</h2>
+<p>A milestone-based representation of a flight is a way to reduce complexity for its representation and hence allow some (still useful) statistical analysis for performance monitoring.</p>
+<section id="fuel-consumption-environmental-emissions" class="level3">
+<h3 class="anchored" data-anchor-id="fuel-consumption-environmental-emissions">Fuel consumption / Environmental emissions</h3>
+<p>Environmental emissions and climate impact are indicators more and more in news headlines and on the political agendas. With a milestone-based representation of a flight we can <em>segment</em> the phases of interest and calculated the relevant cumulative emissions.</p>
+<p>For example we can split a flight in the following phases:</p>
+<ul>
+<li>cruise</li>
+<li><a href="#acronyms_LTO">Landing and TakeOff (LTO)</a> cycle</li>
+</ul>
+<p>and calculate the fuel-burnt emissions by further splitting them.</p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="media/lto-cycle_eea.png" class="img-fluid figure-img"></p>
+<figcaption class="figure-caption">LTO phases (<span class="citation" data-cites="doi/10.2822/385503"><a href="#ref-doi/10.2822/385503" role="doc-biblioref">[1]</a></span> Figure 2.5).</figcaption>
+</figure>
+</div>
+<p>For LTO we have four sub-phases:</p>
+<ul>
+<li>approach</li>
+<li>taxi-in</li>
+<li>taxi-out</li>
+<li>take-off</li>
+<li>climb-out</li>
+</ul>
+<p>For example taxi-out sub-phase can be framed by the ground portion from <code>off-block</code> to <code>rwy-entry</code> milestones which with defined assumptions in term of aircraft &amp; engine type, full thrust percentage and number of engines in use can be handled to an emission calculator to compute CO2, NOx, … emissions.</p>
+<p>The selection of milestones to model the flight and the further assumptions of how the aircraft is operated between those milestones will produce results with different levels of <a href="https://en.wikipedia.org/wiki/Accuracy_and_precision">accuracy and precision</a>.</p>
+<p><strong>NOTE</strong>: add ER diagram for use case</p>
+</section>
+<section id="operational-performance" class="level3">
+<h3 class="anchored" data-anchor-id="operational-performance">Operational performance</h3>
+<p>A milestone-based modelling of a flight provides practical ways to extract operational indicators for the analysis of the operation performance at network, state, airport or airline level.</p>
+<p>For example using the <code>touch-down</code> (<strong>T22</strong> in <a href="#fig-flight-phases">Figure&nbsp;1</a>) with the contextual information we can calculate RWY utilization at each airport or inter-arrival times, etc.</p>
+</section>
+<section id="airspace-profile" class="level3">
+<h3 class="anchored" data-anchor-id="airspace-profile">Airspace profile</h3>
+<p><strong>TODO</strong>: milestones line FIR crossing (<code>x-fir</code>) could be used to extract an flight airspace profile. For example we could have AUA crossing (<code>x-aua</code>) or even elementary airspace (<code>x-esa</code>) ones. The tricky thing is obviously having a non-overlapping airspaces (of the same type)</p>
+</section>
+</section>
+<section id="milestones-definition" class="level2">
+<h2 class="anchored" data-anchor-id="milestones-definition">Milestones Definition</h2>
+<p>The milestone concept can be modeled in entity-relationship fashion as in <strong>?@fig-er-milestones</strong>.</p>
+<div class="cell">
+<div class="cell-output-display">
+<div id="fig-er-diagram" class="quarto-figure quarto-figure-center anchored">
+<figure class="figure">
+<div>
+<pre class="mermaid mermaid-js" data-label="fig-er-diagram">erDiagram
+    MILESTONE {
+        int id PK
+        int flight_id FK
+        string type
+        datetime timestamp
+        float longitude
+        float latitude
+        float altitude
+        string source
+        string info
+    }
+    FLIGHT {
+        int id PK
+        int ADEP FK
+        int ADES FK
+        int aircraft FK
+        string FLT_ID
+    }
+    AIRPORT {
+        int id PK
+        string ICAO
+        string IATA
+        float longitude
+        float latitude
+        float elevation
+        string name
+    }
+    RUNWAY {
+        int id PK
+        string name
+    }
+    AIRCRAFT {
+        int id PK
+        int icao24
+    }
+    PROFILE {
+        int id PK
+    }
+
+    MILESTONE }|--|| FLIGHT : has
+    FLIGHT    }o--|{ AIRPORT : has
+    AIRPORT   }|--|{ RUNWAY : has
+
+</pre>
+</div>
+<figcaption class="figure-caption">Figure&nbsp;2: Entity-Relationship diagram for Milestone and relevant concepts.</figcaption>
+</figure>
+</div>
+</div>
+</div>
 
 
+</section>
+<section id="acronyms_HEADER_LOA" class="level1 loa">
+<h1 class="loa">List of Acronyms</h1>
+<dl>
+<dt><span id="acronyms_ADS-B">ADS-B</span></dt>
+<dd>
+Automatic Dependent Surveillance–Broadcast
+</dd>
+<dt><span id="acronyms_DAIO">DAIO</span></dt>
+<dd>
+Departure, Arrival, Internal, Overflight
+</dd>
+<dt><span id="acronyms_FIR">FIR</span></dt>
+<dd>
+Flight Information Region
+</dd>
+<dt><span id="acronyms_LTO">LTO</span></dt>
+<dd>
+Landing and TakeOff
+</dd>
+<dt><span id="acronyms_NM">NM</span></dt>
+<dd>
+Network Manager
+</dd>
+<dt><span id="acronyms_OSN">OSN</span></dt>
+<dd>
+OpenSky Network
+</dd>
+<dt><span id="acronyms_TMA">TMA</span></dt>
+<dd>
+Terminal Maneuvering Area
+</dd>
+</dl>
 
-</main> <!-- /main -->
+</section>
+
+<div id="quarto-appendix" class="default"><section class="quarto-appendix-contents" role="doc-bibliography"><h2 class="anchored quarto-appendix-heading">References</h2><div id="refs" class="references csl-bib-body" role="list">
+<div id="ref-doi/10.2822/385503" class="csl-entry" role="listitem">
+<div class="csl-left-margin">[1] </div><div class="csl-right-inline">E. E. Agency and E. U. A. S. Agency, <em><a href="https://data.europa.eu/doi/10.2822/385503">European aviation environmental report 2016</a></em>. <span>Publications Office of the European Union</span>, 2016. </div>
+</div>
+</div></section></div></main> <!-- /main -->
 <script id="quarto-html-after-body" type="application/javascript">
 window.document.addEventListener("DOMContentLoaded", function (event) {
   const toggleBodyColorMode = (bsSheetEl) => {
