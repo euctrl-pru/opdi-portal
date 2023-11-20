@@ -2,5 +2,94 @@
 title: "Data"
 ---
 
-This site describes the Open Performance Data Initiative as sponsored by
-the [Performance Review Commission](https://ansperformance.eu/about/prc/).
+The flight data made available is published under the **Open Performance Data Initiative (OPDI)** as sponsored by
+the **[Performance Review Commission](https://ansperformance.eu/about/prc/)**.
+
+# Introduction
+
+To monitor performance indicators of a flight, trajectories must be broken down into discrete events represent key milestones in the flight to allow for statistical analysis. These flight events represent the location and time of occurrence of the event (e.g., a flight level crossing). In case of a longer event duration (e.g., a level segment), the start and end of this flight phase are captured in two separate events. 
+
+::: columns
+::: {.column width="70%"}
+
+Any statistical performance analysis on flight data thus starts with identifying these events in flight trajectories. To promote performance analysis on publicly available flight trajectory data, the Open Performance Data Initiative constructed a flight list, a flight event table and an associated measurements table. These tables are based on ADS-B trajectory data from [OpenSky Network](https://opensky-network.org/) and are made freely available to support open source performance analysis on publicly available data. Later releases of the data sets will include validations and corrections using data from third party sources where possible.
+
+:::
+
+::: {.column width="30%"}
+
+![](media/opensky-network-logo.jpg)
+
+:::
+:::
+
+# Use Cases
+
+An event-based representation of a flight is a way to reduce complexity
+for its representation and allow statistical analysis for performance monitoring. 
+
+One of the use cases could be to monitor the [ICAO Global Air Navigation Plan (GANP) KPIs](https://www4.icao.int/ganpportal/ASBU/KPI) using events extracted from the publicly available ADS-B trajectories. 
+
+Not all data necessary for  some indicators can be extracted from ADS-B trajectories. An example hereof would be scheduled off-block times. 
+
+# Data Sets
+
+The first data release contains limited flight events from `start-date` until `end-date`. Download the data here: 
+
+- [Flight list](https://en.wikipedia.org/wiki/HTTP_404)
+- [Flight events](https://en.wikipedia.org/wiki/HTTP_404)
+- [Event measurements](https://en.wikipedia.org/wiki/HTTP_404)
+- [Readme.txt](https://en.wikipedia.org/wiki/HTTP_404)
+
+::: {.callout-note appearance="simple"}
+
+## Future releases
+
+Further data will be made available in upcoming iterations. These updates will cover an extended time frame and additional milestones and measurements. 
+
+:::
+
+# Relational Model
+
+```{mermaid}
+%%| label: fig-er-diagram
+%%| fig-cap: "Entity-Relationship diagram for Milestone and relevant concepts."
+%%| theme: forest
+
+erDiagram
+    EVENT {
+        int id PK
+        int flight_id FK
+        string type
+        timestamp event_time
+        float longitude
+        float latitude
+        float altitude
+        string source
+        string version
+        string info
+    }
+    MEASUREMENT {
+        int id PK
+        int milestone_id FK
+        string type
+        float value
+        string version
+    }
+    FLIGHT {
+        int id PK
+        int ADEP FK
+        int ADES FK
+        int aircraft FK
+        string profile_id FK
+        timestamp DOF
+    }
+    
+    FLIGHT }|--|| EVENT : has
+    MEASUREMENT ||--|{ EVENT : has
+
+```
+
+
+
+
