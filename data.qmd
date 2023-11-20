@@ -2,59 +2,33 @@
 title: "Data"
 ---
 
-The flight data made available is published under the **Open Performance Data Initiative (OPDI)** as sponsored by
-the **[Performance Review Commission](https://ansperformance.eu/about/prc/)**.
-
-# Introduction
-
-To monitor performance indicators of a flight, trajectories must be broken down into discrete events represent key milestones in the flight to allow for statistical analysis. These flight events represent the location and time of occurrence of the event (e.g., a flight level crossing). In case of a longer event duration (e.g., a level segment), the start and end of this flight phase are captured in two separate events. 
-
-::: columns
-::: {.column width="70%"}
-
-Any statistical performance analysis on flight data thus starts with identifying these events in flight trajectories. To promote performance analysis on publicly available flight trajectory data, the Open Performance Data Initiative constructed a flight list, a flight event table and an associated measurements table. These tables are based on ADS-B trajectory data from [OpenSky Network](https://opensky-network.org/) and are made freely available to support open source performance analysis on publicly available data. Later releases of the data sets will include validations and corrections using data from third party sources where possible.
-
-:::
-
-::: {.column width="30%"}
-
-![](media/opensky-network-logo.jpg)
-
-:::
-:::
-
-# Use Cases
-
-An event-based representation of a flight is a way to reduce complexity
-for its representation and allow statistical analysis for performance monitoring. 
-
-One of the use cases could be to monitor the [ICAO Global Air Navigation Plan (GANP) KPIs](https://www4.icao.int/ganpportal/ASBU/KPI) using events extracted from the publicly available ADS-B trajectories. 
-
-Not all data necessary for  some indicators can be extracted from ADS-B trajectories. An example hereof would be scheduled off-block times. 
-
-# Data Sets
+The flight data made available (i.e.,`FLIGHT`, `EVENT` and `MEASUREMENT` tables) is published under the **[Open Performance Data Initiative (OPDI)](https://www.opdi.aero/)** as sponsored by
+the **[Performance Review Commission](https://ansperformance.eu/about/prc/)** and in collaboration with the **[OpenSky Network (OSN)](https://opensky-network.org/)**. 
 
 The first data release contains limited flight events from `start-date` until `end-date`. Download the data here: 
 
-- [Flight list](https://en.wikipedia.org/wiki/HTTP_404)
-- [Flight events](https://en.wikipedia.org/wiki/HTTP_404)
-- [Event measurements](https://en.wikipedia.org/wiki/HTTP_404)
-- [Readme.txt](https://en.wikipedia.org/wiki/HTTP_404)
+| Table Reference | Description | Data Source(s) | Download Link |
+|-----------------|-------------|-------------|---------------|
+| `FLIGHT` | Flight list | [OSN](https://opensky-network.org/) / [PRC](https://ansperformance.eu/about/prc/) | [Link](https://en.wikipedia.org/wiki/HTTP_404) |
+| `EVENT` | Flight events | [OSN](https://opensky-network.org/) / [PRC](https://ansperformance.eu/about/prc/) | [Link](https://en.wikipedia.org/wiki/HTTP_404) |
+| `MEASUREMENT` | Measurements associated to flight events | [OSN](https://opensky-network.org/) / [PRC](https://ansperformance.eu/about/prc/) | [Link](https://en.wikipedia.org/wiki/HTTP_404) |
+| `AIRPORT` | Airports | [OurAirports](https://ourairports.com/) | [Link](https://davidmegginson.github.io/ourairports-data/airports.csv) |
+| `RUNWAY` | Runways | [OurAirports](https://ourairports.com/) | [Link](https://davidmegginson.github.io/ourairports-data/navaids.csv) |
+
+To find all info: [Readme.txt](https://en.wikipedia.org/wiki/HTTP_404)
 
 ::: {.callout-note appearance="simple"}
 
 ## Future releases
 
-Further data will be made available in upcoming iterations. These updates will cover an extended time frame and additional milestones and measurements. 
-
+Further data will be made available in upcoming iterations. These updates will cover an extended time frame, additional flight event and measurement types, and additional flight events and measurements from different trajectory sources.
 :::
 
-# Relational Model
+## Relational Model
 
 ```{mermaid}
 %%| label: fig-er-diagram
 %%| fig-cap: "Entity-Relationship diagram for Milestone and relevant concepts."
-%%| theme: forest
 
 erDiagram
     EVENT {
@@ -71,7 +45,7 @@ erDiagram
     }
     MEASUREMENT {
         int id PK
-        int milestone_id FK
+        int event_id FK
         string type
         float value
         string version
@@ -80,16 +54,66 @@ erDiagram
         int id PK
         int ADEP FK
         int ADES FK
-        int aircraft FK
-        string profile_id FK
+        string icao24
+        string callsign
+        int first_seen
+        int last_seen
         timestamp DOF
     }
+    AIRPORT {
+        int id PK
+        string ident
+        string type
+        string name
+        double latitude_deg
+        double longitude_deg
+        int elevation_ft
+        string continent
+        string iso_country
+        string iso_region
+        string municipality
+        string scheduled_service
+        string gps_code
+        string iata_code
+        string local_code
+        string home_link
+        string wikipedia_link
+        string keywords
+    }
+    RUNWAY {
+        int id PK
+        int airport_ref FK
+        string airport_ident
+        int length_ft
+        int width_ft
+        string surface
+        boolean lighted
+        boolean closed
+        string le_ident
+        double le_latitude_deg
+        double le_longitude_deg
+        int le_elevation_ft
+        double le_heading_degt
+        int le_displaced_threshold_ft
+        string he_ident
+        double he_latitude_deg
+        double he_longitude_deg
+        int he_elevation_ft
+        double he_heading_degt
+        int he_displaced_threshold_ft
+    }
+
     
-    FLIGHT }|--|| EVENT : has
+    EVENT }|--|| FLIGHT : has
+    FLIGHT    }o--|{ AIRPORT : has
+    AIRPORT   }|--|{ RUNWAY : has
+    FLIGHT ||--|| TRAJECTORY : has 
     MEASUREMENT ||--|{ EVENT : has
 
 ```
 
+## Retrieving Data on Trajectories
 
+Given the `FLIGHT` table, one can, when the data `source` is `OpenSky Network (OSN)` fetch the trajectory from the publicly available OpenSky Network history database if needed. Based on the available `icao24` or `callsign`, `first_seen` and `last_seen` one can perform a query to fetch the data. 
 
-
+The following tools are available for such queries: [https://opensky-network.org/data/data-tools](https://opensky-network.org/data/data-tools). 
