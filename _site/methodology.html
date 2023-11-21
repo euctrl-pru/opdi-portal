@@ -119,7 +119,15 @@ ul.task-list li input[type="checkbox"] {
 <!-- sidebar -->
 <!-- margin-sidebar -->
     <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
-        
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#flight-list" id="toc-flight-list" class="nav-link active" data-scroll-target="#flight-list">Flight List</a></li>
+  <li><a href="#flight-events" id="toc-flight-events" class="nav-link" data-scroll-target="#flight-events">Flight Events</a></li>
+  <li><a href="#measurements" id="toc-measurements" class="nav-link" data-scroll-target="#measurements">Measurements</a></li>
+  </ul>
+</nav>
     </div>
 <!-- main -->
 <main class="content" id="quarto-document-content">
@@ -143,8 +151,142 @@ ul.task-list li input[type="checkbox"] {
 </header>
 
 
+<p>The various methodologies used to extract <strong>flight lists</strong>, <strong>flight events</strong> and <strong>measurements</strong> from trajectory state vectors.</p>
+<section id="flight-list" class="level2">
+<h2 class="anchored" data-anchor-id="flight-list">Flight List</h2>
+<p>To construct the flight list the trajectory needs to be identified from the state vectors. In addition, one needs to assign the aerodromes of departure (<code>ADEP</code>) and destination (<code>ADES</code>). Based on the state vector source, the trajectory might already contain an identifier <code>id</code> and an <code>ADEP</code> and <code>ADES</code>. The various subsequent algorithms are considered iterative improvements.</p>
+<table class="table">
+<thead>
+<tr class="header">
+<th>Version</th>
+<th>Improvements</th>
+<th>Release date</th>
+<th>Methodology</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>v0.0.1</td>
+<td>Initial flight, ADEP and ADES identification algorithm.</td>
+<td>1 November 2023</td>
+<td><a href="https://www.opdi.aero/methodology#flight-list-methodology">Link</a></td>
+</tr>
+</tbody>
+</table>
+<section id="flight-list-methodology" class="level4">
+<h4 class="anchored" data-anchor-id="flight-list-methodology">Flight List Methodology</h4>
+<div class="callout callout-style-default callout-note no-icon callout-titled">
+<div class="callout-header d-flex align-content-center" data-bs-toggle="collapse" data-bs-target=".callout-1-contents" aria-controls="callout-1" aria-expanded="false" aria-label="Toggle callout">
+<div class="callout-icon-container">
+<i class="callout-icon no-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Flight List v0.0.1
+</div>
+<div class="callout-btn-toggle d-inline-block border-0 py-1 ps-1 pe-0 float-end"><i class="callout-toggle"></i></div>
+</div>
+<div id="callout-1" class="callout-1-contents callout-collapse collapse">
+<div class="callout-body-container callout-body">
+<p><strong>Object</strong>: Flight list</p>
+<p><strong>Version tag</strong>: <code>flight_list_v0.0.1</code></p>
+<p><strong>Flight identification algorithm(s):</strong></p>
+<p><strong>ADEP/ADES identification algorithm(s):</strong></p>
+</div>
+</div>
+</div>
+</section>
+</section>
+<section id="flight-events" class="level2">
+<h2 class="anchored" data-anchor-id="flight-events">Flight Events</h2>
+<p>The flight events are extracted from the identified trajectories using different methods for the different <code>type</code>s of flight events.</p>
+<table class="table">
+<thead>
+<tr class="header">
+<th>Version</th>
+<th>Improvements</th>
+<th>Release date</th>
+<th>Methodology</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>v0.0.1</td>
+<td>Initial flight event extraction algorithm.</td>
+<td>1 November 2023</td>
+<td><a href="https://www.opdi.aero/methodology#flight-event-methodology">Link</a></td>
+</tr>
+</tbody>
+</table>
+<section id="flight-events-methodology" class="level4">
+<h4 class="anchored" data-anchor-id="flight-events-methodology">Flight Events Methodology</h4>
+<div class="callout callout-style-default callout-note no-icon callout-titled">
+<div class="callout-header d-flex align-content-center" data-bs-toggle="collapse" data-bs-target=".callout-2-contents" aria-controls="callout-2" aria-expanded="false" aria-label="Toggle callout">
+<div class="callout-icon-container">
+<i class="callout-icon no-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Flight Events v0.0.1
+</div>
+<div class="callout-btn-toggle d-inline-block border-0 py-1 ps-1 pe-0 float-end"><i class="callout-toggle"></i></div>
+</div>
+<div id="callout-2" class="callout-2-contents callout-collapse collapse">
+<div class="callout-body-container callout-body">
+<p><strong>Object</strong>: Flight Events</p>
+<p><strong>Version tag</strong>: <code>flight_events_v0.0.1</code></p>
+<p><strong>Flight event type(s)</strong>:</p>
+<p>Currently the following flight event types are extracted:</p>
+<p><strong>Flight event algorithm(s):</strong></p>
+</div>
+</div>
+</div>
+</section>
+</section>
+<section id="measurements" class="level2">
+<h2 class="anchored" data-anchor-id="measurements">Measurements</h2>
+<table class="table">
+<thead>
+<tr class="header">
+<th>Version</th>
+<th>Improvements</th>
+<th>Release date</th>
+<th>Methodology</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>v0.0.1</td>
+<td>Initial measurement calculation algorithm.</td>
+<td>1 November 2023</td>
+<td><a href="https://www.opdi.aero/methodology#measurements-methodology">Link</a></td>
+</tr>
+</tbody>
+</table>
+<section id="measurement-methodology" class="level4">
+<h4 class="anchored" data-anchor-id="measurement-methodology">Measurement Methodology</h4>
+<div class="callout callout-style-default callout-note no-icon callout-titled">
+<div class="callout-header d-flex align-content-center" data-bs-toggle="collapse" data-bs-target=".callout-3-contents" aria-controls="callout-3" aria-expanded="false" aria-label="Toggle callout">
+<div class="callout-icon-container">
+<i class="callout-icon no-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Measurements v0.0.1
+</div>
+<div class="callout-btn-toggle d-inline-block border-0 py-1 ps-1 pe-0 float-end"><i class="callout-toggle"></i></div>
+</div>
+<div id="callout-3" class="callout-3-contents callout-collapse collapse">
+<div class="callout-body-container callout-body">
+<p><strong>Object</strong>: Measurements</p>
+<p><strong>Version tag</strong>: <code>measurements_v0.0.1</code></p>
+<p><strong>Measurement type(s)</strong>:</p>
+<p>Currently the following flight event types are extracted:</p>
+<p><strong>Measurement algorithm(s):</strong></p>
+</div>
+</div>
+</div>
 
 
+</section>
+</section>
 
 </main> <!-- /main -->
 <script id="quarto-html-after-body" type="application/javascript">
