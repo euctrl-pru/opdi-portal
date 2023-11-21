@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 
-<title>OPDI - Data</title>
+<title>OPDI - Roadmap</title>
 <style>
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
@@ -65,9 +65,6 @@ ul.task-list li input[type="checkbox"] {
     "search-label": "Search"
   }
 }</script>
-<script src="site_libs/quarto-diagram/mermaid.min.js"></script>
-<script src="site_libs/quarto-diagram/mermaid-init.js"></script>
-<link href="site_libs/quarto-diagram/mermaid.css" rel="stylesheet">
 
 
 <link rel="stylesheet" href="styles.css">
@@ -95,7 +92,7 @@ ul.task-list li input[type="checkbox"] {
 <span class="menu-text">Home</span></a>
   </li>  
   <li class="nav-item">
-    <a class="nav-link active" href="./data.html" aria-current="page"> 
+    <a class="nav-link" href="./data.html"> 
 <span class="menu-text">Data</span></a>
   </li>  
   <li class="nav-item">
@@ -107,7 +104,7 @@ ul.task-list li input[type="checkbox"] {
 <span class="menu-text">Methodology</span></a>
   </li>  
   <li class="nav-item">
-    <a class="nav-link" href="./roadmap.html"> 
+    <a class="nav-link active" href="./roadmap.html" aria-current="page"> 
 <span class="menu-text">Roadmap</span></a>
   </li>  
   <li class="nav-item">
@@ -126,21 +123,14 @@ ul.task-list li input[type="checkbox"] {
 <!-- sidebar -->
 <!-- margin-sidebar -->
     <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
-        <nav id="TOC" role="doc-toc" class="toc-active">
-    <h2 id="toc-title">On this page</h2>
-   
-  <ul>
-  <li><a href="#relational-model" id="toc-relational-model" class="nav-link active" data-scroll-target="#relational-model">Relational Model</a></li>
-  <li><a href="#retrieving-data-on-trajectories" id="toc-retrieving-data-on-trajectories" class="nav-link" data-scroll-target="#retrieving-data-on-trajectories">Retrieving Data on Trajectories</a></li>
-  </ul>
-</nav>
+        
     </div>
 <!-- main -->
 <main class="content" id="quarto-document-content">
 
 <header id="title-block-header" class="quarto-title-block default">
 <div class="quarto-title">
-<h1 class="title">Data</h1>
+<h1 class="title">Roadmap</h1>
 </div>
 
 
@@ -157,170 +147,8 @@ ul.task-list li input[type="checkbox"] {
 </header>
 
 
-<p>The flight data made available (i.e.,<code>FLIGHT</code>, <code>EVENT</code> and <code>MEASUREMENT</code> tables) is published under the <strong><a href="https://www.opdi.aero/">Open Performance Data Initiative (OPDI)</a></strong> as sponsored by the <strong><a href="https://ansperformance.eu/about/prc/">Performance Review Commission</a></strong> and in collaboration with the <strong><a href="https://opensky-network.org/">OpenSky Network (OSN)</a></strong>.</p>
-<p>The first data release contains limited flight events from <code>start-date</code> until <code>end-date</code>. Download the data here:</p>
-<table class="table">
-<thead>
-<tr class="header">
-<th>Table Reference</th>
-<th>Description</th>
-<th>Data Source(s)</th>
-<th>Download Link</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td><code>FLIGHT</code></td>
-<td>Flight list</td>
-<td><a href="https://opensky-network.org/">OSN</a> / <a href="https://ansperformance.eu/about/prc/">PRC</a></td>
-<td><a href="https://en.wikipedia.org/wiki/HTTP_404">Link</a></td>
-</tr>
-<tr class="even">
-<td><code>EVENT</code></td>
-<td>Flight events</td>
-<td><a href="https://opensky-network.org/">OSN</a> / <a href="https://ansperformance.eu/about/prc/">PRC</a></td>
-<td><a href="https://en.wikipedia.org/wiki/HTTP_404">Link</a></td>
-</tr>
-<tr class="odd">
-<td><code>MEASUREMENT</code></td>
-<td>Measurements associated to flight events</td>
-<td><a href="https://opensky-network.org/">OSN</a> / <a href="https://ansperformance.eu/about/prc/">PRC</a></td>
-<td><a href="https://en.wikipedia.org/wiki/HTTP_404">Link</a></td>
-</tr>
-<tr class="even">
-<td><code>AIRPORT</code></td>
-<td>Airports</td>
-<td><a href="https://ourairports.com/">OurAirports</a></td>
-<td><a href="https://davidmegginson.github.io/ourairports-data/airports.csv">Link</a></td>
-</tr>
-<tr class="odd">
-<td><code>RUNWAY</code></td>
-<td>Runways</td>
-<td><a href="https://ourairports.com/">OurAirports</a></td>
-<td><a href="https://davidmegginson.github.io/ourairports-data/navaids.csv">Link</a></td>
-</tr>
-</tbody>
-</table>
-<p>To find all info: <a href="https://en.wikipedia.org/wiki/HTTP_404">Readme.txt</a></p>
-<div class="callout callout-style-simple callout-note callout-titled">
-<div class="callout-header d-flex align-content-center">
-<div class="callout-icon-container">
-<i class="callout-icon"></i>
-</div>
-<div class="callout-title-container flex-fill">
-Future releases
-</div>
-</div>
-<div class="callout-body-container callout-body">
-<p>Further data will be made available in upcoming iterations. These updates will cover an extended time frame, additional flight event and measurement types, and additional flight events and measurements from different trajectory sources.</p>
-</div>
-</div>
-<section id="relational-model" class="level2">
-<h2 class="anchored" data-anchor-id="relational-model">Relational Model</h2>
-<div class="cell">
-<div class="cell-output-display">
-<div id="fig-er-diagram" class="quarto-figure quarto-figure-center anchored">
-<figure class="quarto-float quarto-float-fig figure">
-<div aria-describedby="fig-er-diagram-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<div>
-<pre class="mermaid mermaid-js" data-label="fig-er-diagram">erDiagram
-    EVENT {
-        int id PK
-        int flight_id FK
-        string type
-        timestamp event_time
-        float longitude
-        float latitude
-        float altitude
-        string source
-        string version
-        string info
-    }
-    MEASUREMENT {
-        int id PK
-        int event_id FK
-        string type
-        float value
-        string version
-    }
-    FLIGHT {
-        int id PK
-        int ADEP FK
-        int ADES FK
-        string icao24
-        string callsign
-        int first_seen
-        int last_seen
-        timestamp DOF
-    }
-    AIRPORT {
-        int id PK
-        string ident
-        string type
-        string name
-        double latitude_deg
-        double longitude_deg
-        int elevation_ft
-        string continent
-        string iso_country
-        string iso_region
-        string municipality
-        string scheduled_service
-        string gps_code
-        string iata_code
-        string local_code
-        string home_link
-        string wikipedia_link
-        string keywords
-    }
-    RUNWAY {
-        int id PK
-        int airport_ref FK
-        string airport_ident
-        int length_ft
-        int width_ft
-        string surface
-        boolean lighted
-        boolean closed
-        string le_ident
-        double le_latitude_deg
-        double le_longitude_deg
-        int le_elevation_ft
-        double le_heading_degt
-        int le_displaced_threshold_ft
-        string he_ident
-        double he_latitude_deg
-        double he_longitude_deg
-        int he_elevation_ft
-        double he_heading_degt
-        int he_displaced_threshold_ft
-    }
-
-    
-    EVENT }|--|| FLIGHT : has
-    FLIGHT    }o--|{ AIRPORT : has
-    AIRPORT   }|--|{ RUNWAY : has
-    FLIGHT ||--|| TRAJECTORY : has 
-    MEASUREMENT ||--|{ EVENT : has
-
-</pre>
-</div>
-</div>
-<figcaption class="figure quarto-float-caption quarto-float-fig" id="fig-er-diagram-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;1: Entity-Relationship diagram for Milestone and relevant concepts.
-</figcaption>
-</figure>
-</div>
-</div>
-</div>
-</section>
-<section id="retrieving-data-on-trajectories" class="level2">
-<h2 class="anchored" data-anchor-id="retrieving-data-on-trajectories">Retrieving Data on Trajectories</h2>
-<p>Given the <code>FLIGHT</code> table, one can, when the data <code>source</code> is <code>OpenSky Network (OSN)</code> fetch the trajectory from the publicly available OpenSky Network history database if needed. Based on the available <code>icao24</code> or <code>callsign</code>, <code>first_seen</code> and <code>last_seen</code> one can perform a query to fetch the data.</p>
-<p>The following tools are available for such queries: <a href="https://opensky-network.org/data/data-tools">https://opensky-network.org/data/data-tools</a>.</p>
 
 
-</section>
 
 </main> <!-- /main -->
 <script id="quarto-html-after-body" type="application/javascript">
