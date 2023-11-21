@@ -2,7 +2,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
 
 <meta charset="utf-8">
-<meta name="generator" content="quarto-1.3.353">
+<meta name="generator" content="quarto-1.4.507">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
@@ -24,6 +24,7 @@ ul.task-list li input[type="checkbox"] {
 div.csl-bib-body { }
 div.csl-entry {
   clear: both;
+  margin-bottom: 0em;
 }
 .hanging-indent div.csl-entry {
   margin-left:2em;
@@ -64,7 +65,13 @@ div.csl-indent {
   "collapse-after": 3,
   "panel-placement": "end",
   "type": "overlay",
-  "limit": 20,
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
   "language": {
     "search-no-results-text": "No results",
     "search-matching-documents-text": "matching documents",
@@ -74,7 +81,8 @@ div.csl-indent {
     "search-more-matches-text": "more matches in this document",
     "search-clear-button-title": "Clear",
     "search-detached-cancel-button-title": "Cancel",
-    "search-submit-button-title": "Submit"
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
   }
 }</script>
 
@@ -86,9 +94,9 @@ div.csl-indent {
 
 <div id="quarto-search-results"></div>
   <header id="quarto-header" class="headroom fixed-top">
-    <nav class="navbar navbar-expand-lg navbar-dark ">
+    <nav class="navbar navbar-expand-lg " data-bs-theme="dark">
       <div class="navbar-container container-fluid">
-      <div class="navbar-brand-container">
+      <div class="navbar-brand-container mx-auto">
     <a class="navbar-brand" href="./index.html">
     <span class="navbar-title">OPDI</span>
     </a>
@@ -100,29 +108,29 @@ div.csl-indent {
           <div class="collapse navbar-collapse" id="navbarCollapse">
             <ul class="navbar-nav navbar-nav-scroll me-auto">
   <li class="nav-item">
-    <a class="nav-link" href="./index.html" rel="" target="">
- <span class="menu-text">Home</span></a>
+    <a class="nav-link" href="./index.html"> 
+<span class="menu-text">Home</span></a>
   </li>  
   <li class="nav-item">
-    <a class="nav-link" href="./data.html" rel="" target="">
- <span class="menu-text">Data</span></a>
+    <a class="nav-link" href="./data.html"> 
+<span class="menu-text">Data</span></a>
   </li>  
   <li class="nav-item">
-    <a class="nav-link active" href="./concepts.html" rel="" target="" aria-current="page">
- <span class="menu-text">Concepts</span></a>
+    <a class="nav-link active" href="./concepts.html" aria-current="page"> 
+<span class="menu-text">Concepts</span></a>
   </li>  
   <li class="nav-item">
-    <a class="nav-link" href="./methodology.html" rel="" target="">
- <span class="menu-text">Methodology</span></a>
+    <a class="nav-link" href="./methodology.html"> 
+<span class="menu-text">Methodology</span></a>
   </li>  
   <li class="nav-item">
-    <a class="nav-link" href="./about.html" rel="" target="">
- <span class="menu-text">About</span></a>
+    <a class="nav-link" href="./about.html"> 
+<span class="menu-text">About</span></a>
   </li>  
 </ul>
-            <div class="quarto-navbar-tools ms-auto">
-</div>
           </div> <!-- /navcollapse -->
+          <div class="quarto-navbar-tools">
+</div>
       </div> <!-- /container-fluid -->
     </nav>
 </header>
@@ -137,10 +145,11 @@ div.csl-indent {
   <ul>
   <li><a href="#flight-list" id="toc-flight-list" class="nav-link active" data-scroll-target="#flight-list">Flight List</a></li>
   <li><a href="#flight-events-and-phases" id="toc-flight-events-and-phases" class="nav-link" data-scroll-target="#flight-events-and-phases">Flight Events and Phases</a></li>
+  <li><a href="#measurements" id="toc-measurements" class="nav-link" data-scroll-target="#measurements">Measurements</a></li>
   <li><a href="#use-cases" id="toc-use-cases" class="nav-link" data-scroll-target="#use-cases">Use Cases</a>
   <ul class="collapse">
-  <li><a href="#fuel-consumption-environmental-emissions" id="toc-fuel-consumption-environmental-emissions" class="nav-link" data-scroll-target="#fuel-consumption-environmental-emissions">Fuel consumption / Environmental emissions</a></li>
-  <li><a href="#operational-performance" id="toc-operational-performance" class="nav-link" data-scroll-target="#operational-performance">Operational performance</a></li>
+  <li><a href="#operational-performance-monitoring" id="toc-operational-performance-monitoring" class="nav-link" data-scroll-target="#operational-performance-monitoring">Operational Performance Monitoring</a></li>
+  <li><a href="#fuel-consumption-and-environmental-emissions" id="toc-fuel-consumption-and-environmental-emissions" class="nav-link" data-scroll-target="#fuel-consumption-and-environmental-emissions">Fuel Consumption and Environmental Emissions</a></li>
   <li><a href="#airspace-profile" id="toc-airspace-profile" class="nav-link" data-scroll-target="#airspace-profile">Airspace profile</a></li>
   </ul></li>
   <li><a href="#acronyms_HEADER_LOA" id="toc-acronyms_HEADER_LOA" class="nav-link" data-scroll-target="#acronyms_HEADER_LOA">List of Acronyms</a></li>
@@ -165,7 +174,9 @@ div.csl-indent {
   </div>
   
 
+
 </header>
+
 
 <p>To monitor performance of a flight, trajectories must be identified and broken down into discrete events represent key milestones in the flight to allow for statistical analysis. These flight events or milestones represent the location and time of occurrence of the event (e.g., a flight level crossing). In case of a longer event duration (e.g., a level segment), the start and end of this flight phase are captured in two separate events. Associated to each flight event one can assign values to indicate measurements such as flown distance or emitted CO₂.</p>
 <div class="columns">
@@ -197,11 +208,15 @@ div.csl-indent {
 <li>The <code>version</code> indicates the algorithm version used to detect the flight event. For more info, see <a href="https://www.opdi.aero/methodology">Methodology</a>.</li>
 <li>Additional <code>info</code> is captured at last. This can be contextual information, i.e.&nbsp;<code>F33R</code> as the relevant parking position for an <code>off-block</code> milestone or <code>26</code> as the runway ID for a <code>take-off</code> milestone.</li>
 </ul>
-<p>A <strong>Flight phase</strong> is a prolonged event which can be broken down into a <em>start event</em> and an <em>end event</em> of the phase. <a href="#fig-flight-phases">Figure&nbsp;1</a> shows a simplified diagram of a possible set of <strong>flight phases</strong> (white square boxes) and relevant <strong>flight events</strong> (<code>Txy</code> labels).</p>
-<div id="fig-flight-phases" class="quarto-figure quarto-figure-center anchored">
-<figure class="figure">
-<p><img src="media/flight_states.png" class="img-fluid figure-img" style="width:100.0%"></p>
-<figcaption class="figure-caption">Figure&nbsp;1: Flight phases and events.</figcaption>
+<p>A <strong>Flight phase</strong> is a prolonged event which can be broken down into a <em>start event</em> and an <em>end event</em> of the phase. <a href="#fig-flight-phases" class="quarto-xref">Figure&nbsp;1</a> shows a simplified diagram of a possible set of <strong>flight phases</strong> (white square boxes) and relevant <strong>flight events</strong> (<code>Txy</code> labels).</p>
+<div id="fig-flight-phases" class="quarto-figure quarto-figure-center anchored" width="100%">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-flight-phases-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="media/flight_states.png" class="img-fluid figure-img" style="width:100.0%">
+</div>
+<figcaption class="figure quarto-float-caption quarto-float-fig" id="fig-flight-phases-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;1: Flight phases and events.
+</figcaption>
 </figure>
 </div>
 <p>In general we are interested in analyzing performance at gate-to-gate level so as to cover both the airborne and the ground phases of flights. To this extent we summarize a flight down to some of its fundamental flight events as in the following list (from departure to arrival):</p>
@@ -236,51 +251,60 @@ div.csl-indent {
 </ul>
 <p>Additional ad-hoc milestones can be defined for specific needs. For example <a href="#acronyms_FIR">Flight Information Region (FIR)</a> crossing flight events could be useful to count <a href="#acronyms_DAIO">Departure, Arrival, Internal, Overflight (DAIO)</a> statistics.</p>
 </section>
+<section id="measurements" class="level2">
+<h2 class="anchored" data-anchor-id="measurements">Measurements</h2>
+<p>Once the flight events available, it is informative to see associated values or <strong>measurements</strong> for each flight event. An example of this is the cumulative flown distance until this flight event or the emitted CO₂. A measurement is thus identified by:</p>
+<ul>
+<li>A link to the event, by an <code>event_id</code>.</li>
+<li>The <code>type</code> of measurement (e.g., distance flown (NM) or emitted CO₂).</li>
+<li>The <code>value</code> of the measurement (e.g., 400 NM or 5000 kg).</li>
+<li>The <code>version</code> indicates the specific algorithm used.</li>
+</ul>
+</section>
 <section id="use-cases" class="level2">
 <h2 class="anchored" data-anchor-id="use-cases">Use Cases</h2>
 <p>An event-based representation of a flight is a way to reduce complexity for its representation and allow statistical analysis for performance monitoring.</p>
+<section id="operational-performance-monitoring" class="level3">
+<h3 class="anchored" data-anchor-id="operational-performance-monitoring">Operational Performance Monitoring</h3>
 <p>One of the use cases could be to monitor the <a href="https://www4.icao.int/ganpportal/ASBU/KPI">ICAO Global Air Navigation Plan (GANP) KPIs</a> using events extracted from the publicly available ADS-B trajectories. Not all data necessary for some indicators can be extracted from ADS-B trajectories. An example hereof would be scheduled off-block times.</p>
+<p>A event-based modelling of a flight provides practical ways to extract operational indicators for the analysis of the operation performance at network, state, airport or airline level.</p>
+<p>For example using the <code>touch-down</code> (<strong>T22</strong> in <a href="#fig-flight-phases" class="quarto-xref">Figure&nbsp;1</a>) with the contextual information we can calculate runway utilization at each airport or inter-arrival times, etc.</p>
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
 <p><img src="media/milestones-usage.png" class="img-fluid figure-img"></p>
-<figcaption class="figure-caption">Milestones and their use.</figcaption>
+<figcaption>Milestones and their use.</figcaption>
 </figure>
 </div>
-<section id="fuel-consumption-environmental-emissions" class="level3">
-<h3 class="anchored" data-anchor-id="fuel-consumption-environmental-emissions">Fuel consumption / Environmental emissions</h3>
-<p>Environmental emissions and climate impact are indicators more and more in news headlines and on the political agendas. With a milestone-based representation of a flight we can <em>segment</em> the phases of interest and calculated the relevant cumulative emissions.</p>
+</section>
+<section id="fuel-consumption-and-environmental-emissions" class="level3">
+<h3 class="anchored" data-anchor-id="fuel-consumption-and-environmental-emissions">Fuel Consumption and Environmental Emissions</h3>
+<p>Environmental emissions and climate impact are indicators more and more in news headlines and on the political agendas. With a event-based representation of a flight we can <strong>segment</strong> the phases of interest and calculated the relevant cumulative emissions.</p>
 <p>For example we can split a flight in the following phases:</p>
 <ul>
-<li>cruise</li>
+<li>Cruise</li>
 <li><a href="#acronyms_LTO">Landing and TakeOff (LTO)</a> cycle</li>
 </ul>
 <p>and calculate the fuel-burnt emissions by further splitting them.</p>
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
 <p><img src="media/lto-cycle_eea.png" class="img-fluid figure-img"></p>
-<figcaption class="figure-caption">LTO phases (<span class="citation" data-cites="doi/10.2822/385503"><a href="#ref-doi/10.2822/385503" role="doc-biblioref">[1]</a></span> Figure 2.5).</figcaption>
+<figcaption>LTO phases (<span class="citation" data-cites="doi/10.2822/385503"><a href="#ref-doi/10.2822/385503" role="doc-biblioref">[1]</a></span> Figure 2.5).</figcaption>
 </figure>
 </div>
 <p>For LTO we have four sub-phases:</p>
 <ul>
-<li>approach</li>
-<li>taxi-in</li>
-<li>taxi-out</li>
-<li>take-off</li>
-<li>climb-out</li>
+<li>Approach</li>
+<li>Taxi-in</li>
+<li>Taxi-out</li>
+<li>Take-off</li>
+<li>Climb-out</li>
 </ul>
-<p>For example taxi-out sub-phase can be framed by the ground portion from <code>off-block</code> to <code>rwy-entry</code> milestones which with defined assumptions in term of aircraft &amp; engine type, full thrust percentage and number of engines in use can be handled to an emission calculator to compute CO2, NOx, … emissions.</p>
-<p>The selection of milestones to model the flight and the further assumptions of how the aircraft is operated between those milestones will produce results with different levels of <a href="https://en.wikipedia.org/wiki/Accuracy_and_precision">accuracy and precision</a>.</p>
-<p><strong>NOTE</strong>: add ER diagram for use case</p>
-</section>
-<section id="operational-performance" class="level3">
-<h3 class="anchored" data-anchor-id="operational-performance">Operational performance</h3>
-<p>A milestone-based modelling of a flight provides practical ways to extract operational indicators for the analysis of the operation performance at network, state, airport or airline level.</p>
-<p>For example using the <code>touch-down</code> (<strong>T22</strong> in <a href="#fig-flight-phases">Figure&nbsp;1</a>) with the contextual information we can calculate RWY utilization at each airport or inter-arrival times, etc.</p>
+<p>The taxi-out sub-phase can be framed by the ground portion from <code>off-block</code> to <code>rwy-entry</code> event which with defined assumptions in term of aircraft &amp; engine type, full thrust percentage and number of engines in use can be handled to an emission calculator to compute CO2, NOx, … emissions.</p>
+<p>The selection of flight events to model the flight and the further assumptions of how the aircraft is operated between those milestones will produce results with different levels of <a href="https://en.wikipedia.org/wiki/Accuracy_and_precision">accuracy and precision</a>.</p>
 </section>
 <section id="airspace-profile" class="level3">
 <h3 class="anchored" data-anchor-id="airspace-profile">Airspace profile</h3>
-<p><strong>TODO</strong>: milestones line FIR crossing (<code>x-fir</code>) could be used to extract an flight airspace profile. For example we could have AUA crossing (<code>x-aua</code>) or even elementary airspace (<code>x-esa</code>) ones. The tricky thing is obviously having a non-overlapping airspaces (of the same type)</p>
+<p>Milestones line FIR crossing (<code>x-fir</code>) could be used to extract a flight airspace profile. For example we could have AUA crossing (<code>x-aua</code>) or even elementary airspace (<code>x-esa</code>) ones. The tricky thing is obviously having a non-overlapping airspaces (of the same type)</p>
 
 
 </section>
@@ -308,7 +332,7 @@ Terminal Maneuvering Area
 
 </section>
 
-<div id="quarto-appendix" class="default"><section class="quarto-appendix-contents" role="doc-bibliography"><h2 class="anchored quarto-appendix-heading">References</h2><div id="refs" class="references csl-bib-body" role="list">
+<div id="quarto-appendix" class="default"><section class="quarto-appendix-contents" role="doc-bibliography"><h2 class="anchored quarto-appendix-heading">References</h2><div id="refs" class="references csl-bib-body" data-entry-spacing="0" role="list">
 <div id="ref-doi/10.2822/385503" class="csl-entry" role="listitem">
 <div class="csl-left-margin">[1] </div><div class="csl-right-inline">E. E. Agency and E. U. A. S. Agency, <em><a href="https://data.europa.eu/doi/10.2822/385503">European aviation environmental report 2016</a></em>. <span>Publications Office of the European Union</span>, 2016. </div>
 </div>
@@ -392,10 +416,9 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
     // clear code selection
     e.clearSelection();
   });
-  function tippyHover(el, contentFn) {
+  function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
     const config = {
       allowHTML: true,
-      content: contentFn,
       maxWidth: 500,
       delay: 100,
       arrow: false,
@@ -405,8 +428,17 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
       interactive: true,
       interactiveBorder: 10,
       theme: 'quarto',
-      placement: 'bottom-start'
+      placement: 'bottom-start',
     };
+    if (contentFn) {
+      config.content = contentFn;
+    }
+    if (onTriggerFn) {
+      config.onTrigger = onTriggerFn;
+    }
+    if (onUntriggerFn) {
+      config.onUntrigger = onUntriggerFn;
+    }
     window.tippy(el, config); 
   }
   const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
@@ -419,6 +451,135 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
       const id = href.replace(/^#\/?/, "");
       const note = window.document.getElementById(id);
       return note.innerHTML;
+    });
+  }
+  const xrefs = window.document.querySelectorAll('a.quarto-xref');
+  const processXRef = (id, note) => {
+    // Strip column container classes
+    const stripColumnClz = (el) => {
+      el.classList.remove("page-full", "page-columns");
+      if (el.children) {
+        for (const child of el.children) {
+          stripColumnClz(child);
+        }
+      }
+    }
+    stripColumnClz(note)
+    const typesetMath = (el) => {
+      if (window.MathJax) {
+        // MathJax Typeset
+        window.MathJax.typeset([el]);
+      } else if (window.katex) {
+        // KaTeX Render
+        var mathElements = el.getElementsByClassName("math");
+        var macros = [];
+        for (var i = 0; i < mathElements.length; i++) {
+          var texText = mathElements[i].firstChild;
+          if (mathElements[i].tagName == "SPAN") {
+            window.katex.render(texText.data, mathElements[i], {
+              displayMode: mathElements[i].classList.contains('display'),
+              throwOnError: false,
+              macros: macros,
+              fleqn: false
+            });
+          }
+        }
+      }
+    }
+    if (id === null || id.startsWith('sec-')) {
+      // Special case sections, only their first couple elements
+      const container = document.createElement("div");
+      if (note.children && note.children.length > 2) {
+        container.appendChild(note.children[0].cloneNode(true));
+        for (let i = 1; i < note.children.length; i++) {
+          const child = note.children[i];
+          if (child.tagName === "P" && child.innerText === "") {
+            continue;
+          } else {
+            container.appendChild(child.cloneNode(true));
+            break;
+          }
+        }
+        typesetMath(container);
+        return container.innerHTML
+      } else {
+        typesetMath(note);
+        return note.innerHTML;
+      }
+    } else {
+      // Remove any anchor links if they are present
+      const anchorLink = note.querySelector('a.anchorjs-link');
+      if (anchorLink) {
+        anchorLink.remove();
+      }
+      typesetMath(note);
+      return note.innerHTML;
+    }
+  }
+  for (var i=0; i<xrefs.length; i++) {
+    const xref = xrefs[i];
+    tippyHover(xref, undefined, function(instance) {
+      instance.disable();
+      let url = xref.getAttribute('href');
+      let hash = undefined; 
+      if (url.startsWith('#')) {
+        hash = url;
+      } else {
+        try { hash = new URL(url).hash; } catch {}
+      }
+      if (hash) {
+        const id = hash.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note !== null) {
+          try {
+            const html = processXRef(id, note.cloneNode(true));
+            instance.setContent(html);
+          } finally {
+            instance.enable();
+            instance.show();
+          }
+        } else {
+          // See if we can fetch this
+          fetch(url.split('#')[0])
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.getElementById(id);
+            if (note !== null) {
+              const html = processXRef(id, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      } else {
+        // See if we can fetch a full url (with no hash to target)
+        // This is a special case and we should probably do some content thinning / targeting
+        fetch(url)
+        .then(res => res.text())
+        .then(html => {
+          const parser = new DOMParser();
+          const htmlDoc = parser.parseFromString(html, "text/html");
+          const note = htmlDoc.querySelector('main.content');
+          if (note !== null) {
+            // This should only happen for chapter cross references
+            // (since there is no id in the URL)
+            // remove the first header
+            if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+              note.children[0].remove();
+            }
+            const html = processXRef(null, note);
+            instance.setContent(html);
+          } 
+        }).finally(() => {
+          instance.enable();
+          instance.show();
+        });
+      }
+    }, function(instance) {
     });
   }
       let selectedAnnoteEl;
@@ -462,6 +623,7 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
             }
             div.style.top = top - 2 + "px";
             div.style.height = height + 4 + "px";
+            div.style.left = 0;
             let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
             if (gutterDiv === null) {
               gutterDiv = window.document.createElement("div");
@@ -487,6 +649,32 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
         });
         selectedAnnoteEl = undefined;
       };
+        // Handle positioning of the toggle
+    window.addEventListener(
+      "resize",
+      throttle(() => {
+        elRect = undefined;
+        if (selectedAnnoteEl) {
+          selectCodeLines(selectedAnnoteEl);
+        }
+      }, 10)
+    );
+    function throttle(fn, ms) {
+    let throttle = false;
+    let timer;
+      return (...args) => {
+        if(!throttle) { // first call gets through
+            fn.apply(this, args);
+            throttle = true;
+        } else { // all the others get throttled
+            if(timer) clearTimeout(timer); // cancel #2
+            timer = setTimeout(() => {
+              fn.apply(this, args);
+              timer = throttle = false;
+            }, ms);
+        }
+      };
+    }
       // Attach click handler to the DT
       const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
       for (const annoteDlNode of annoteDls) {
@@ -547,6 +735,7 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
 });
 </script>
 </div> <!-- /content -->
+
 
 
 

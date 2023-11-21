@@ -96,28 +96,38 @@ flight events could be useful to count \acr{DAIO} statistics.
 
 ## Measurements
 
-If one has the flight events, it would be helpful to see associated values to each flight event. An example of this would be the flown distance until this flight event or the emitted CO₂. 
+Once the flight events available, it is informative to see associated values or **measurements** for each flight event. An example of this is the cumulative flown distance until this flight event or the emitted CO₂. A measurement is thus identified by: 
+
+* A link to the event, by an `event_id`. 
+* The `type` of measurement (e.g., distance flown (NM) or emitted CO₂).
+* The `value` of the measurement (e.g., 400 NM or 5000 kg).
+* The `version` indicates the specific algorithm used.
 
 ## Use Cases
 
-An event-based representation of a flight is a way to reduce complexity
-for its representation and allow statistical analysis for performance monitoring. 
+An event-based representation of a flight is a way to reduce complexity for its representation and allow statistical analysis for performance monitoring. 
+
+### Operational Performance Monitoring
 
 One of the use cases could be to monitor the [ICAO Global Air Navigation Plan (GANP) KPIs](https://www4.icao.int/ganpportal/ASBU/KPI) using events extracted from the publicly available ADS-B trajectories. Not all data necessary for  some indicators can be extracted from ADS-B trajectories. An example hereof would be scheduled off-block times. 
 
+A event-based modelling of a flight provides practical ways to extract operational
+indicators for the analysis of the operation performance at network, state, airport or
+airline level.
+
+For example using the `touch-down` (**T22** in @fig-flight-phases) with the contextual information
+we can calculate runway utilization at each airport or inter-arrival times, etc.
 
 ![Milestones and their use.](media/milestones-usage.png)
 
-### Fuel consumption / Environmental emissions
+### Fuel Consumption and Environmental Emissions
 
 Environmental emissions and climate impact are indicators more and more in news headlines and
-on the political agendas.
-With a milestone-based representation of a flight we can *segment* the phases of interest
-and calculated the relevant cumulative emissions.
+on the political agendas. With a event-based representation of a flight we can **segment** the phases of interest and calculated the relevant cumulative emissions.
 
 For example we can split a flight in the following phases:
 
-* cruise
+* Cruise
 * \acr{LTO} cycle
 
 and calculate the fuel-burnt emissions by further splitting them.
@@ -126,37 +136,23 @@ and calculate the fuel-burnt emissions by further splitting them.
 
 For LTO we have four sub-phases:
 
-* approach
-* taxi-in
-* taxi-out
-* take-off
-* climb-out
+* Approach
+* Taxi-in
+* Taxi-out
+* Take-off
+* Climb-out
 
-For example taxi-out sub-phase can be framed by the ground portion from `off-block` to
-`rwy-entry` milestones which with defined assumptions in term of aircraft & engine type,
+The taxi-out sub-phase can be framed by the ground portion from `off-block` to
+`rwy-entry` event which with defined assumptions in term of aircraft & engine type,
 full thrust percentage and number of engines in use can be handled to an emission calculator
 to compute CO2, NOx, ... emissions.
 
-The selection of milestones to model the flight and the further assumptions of how the aircraft
+The selection of flight events to model the flight and the further assumptions of how the aircraft
 is operated between those milestones will produce results with different levels of
 [accuracy and precision](https://en.wikipedia.org/wiki/Accuracy_and_precision).
 
-
-**NOTE**: add ER diagram for use case
-
-### Operational performance
-
-
-A milestone-based modelling of a flight provides practical ways to extract operational
-indicators for the analysis of the operation performance at network, state, airport or
-airline level.
-
-For example using the `touch-down` (**T22** in @fig-flight-phases) with the contextual information
-we can calculate RWY utilization at each airport or inter-arrival times, etc.
-
-
 ### Airspace profile
 
-**TODO**: milestones line FIR crossing (`x-fir`) could be used to extract an flight airspace profile.
+Milestones line FIR crossing (`x-fir`) could be used to extract a flight airspace profile.
 For example we could have AUA crossing (`x-aua`) or even elementary airspace (`x-esa`) ones.
 The tricky thing is obviously having a non-overlapping airspaces (of the same type)
