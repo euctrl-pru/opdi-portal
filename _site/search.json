@@ -257,5 +257,47 @@
     "title": "Methodology",
     "section": "Flight Events",
     "text": "Flight Events\nThe flight events are extracted from the identified trajectories using different methods for the different types of flight events.\n\n\n\nVersion\nImprovements\nRelease date\nMethodology\n\n\n\n\nv0.0.1\nInitial flight event extraction algorithm.\n1 November 2023\nLink\n\n\n\n\nFlight Events Methodology\n\n\n\n\n\n\nFlight Events v0.0.1\n\n\n\n\n\nObject: Flight Events\nVersion tag: flight_events_v0.0.1\nData source(s): OpenSky Network (OSN)\nFlight event type(s):\nCurrently the following flight event types are extracted:\n\n\n\n\n\n\n\nEvent type\nDescription\n\n\n\n\nStart of Level Segment #\nThe start of the numbered # level segment.\n\n\nEnd of Level Segment #\nThe end of the numbered # level segment.\n\n\nTOD\nThe top-of-descent.\n\n\nTOC\nThe top-of-climb.\n\n\nTake-Off\nThe take-off.\n\n\nLanding\nThe landing.\n\n\nFirst Crossing FL50/70/100/245\nThe first crossing of the flight level (FL) 50/70/100/245 during flight.\n\n\nLast Crossing FL50/70/100/245\nThe last crossing of the flight level (FL) 50/70/100/245 during flight.\n\n\n\nFlight event algorithm(s):\nPhase derivations\nUsing OpenAP - The Open Model for Aircraft Performance and Emissions by Dr. Junzi Sun of the TU Delft, the state vectors of each flight were assessed and classified into various phases (GR = Ground phase, LVL = Level segment phase, CR = Cruise phase, DE = Descent phase, CL = Climb phase). Using this the events are identified in each flight as follows:\n\nStart of Level Segment #: The first state vector in each numbered # level segment phase (LVL).\nEnd of Level Segment #: The last state vector in each numbered # level segment phase (LVL).\nTOC: The first state vector of the first cruise phase (CR).\nTOD: The last state vector of the last cruise phase (CR).\nTake-Off: The first state vector of the climb phase (CL) after a ground phase (GND).\nLanding: The first state vector of the ground phase (GND) after a descent phase (DE).\n\nCrossings\nFor each crossing of the respective flight levels (FL50/70/100/245) the algorithm is as follows:\n\nA smooth average flight level is calculated for each state vector.\n\nThe flight values are compared between each subsequent state vector.\n\nThe first time it crosses a flight level of interest, the crossing state vector is recorded as a First Crossing event. The last time it crosses a flight level of interest, the crossing state vector is recorded as a Last Crossing event."
+  },
+  {
+    "objectID": "roadmap.html",
+    "href": "roadmap.html",
+    "title": "Roadmap",
+    "section": "",
+    "text": "The plan is to release subsequent improvements of the Open Performance Data Initiative (OPDI) data sets every two months."
+  },
+  {
+    "objectID": "roadmap.html#releases",
+    "href": "roadmap.html#releases",
+    "title": "Roadmap",
+    "section": "",
+    "text": "OPDI version\nRelease date\nFlight List\nFlight Event\nMeasurements\n\n\n\n\nOPDI v0.0.1\n1/12/2023\nFlight List v0.0.1\nFlight Event v0.0.1\nMeasurements v0.0.1\n\n\n\nIf you notice any bugs, or if you have any feature requests, please contact us."
+  },
+  {
+    "objectID": "roadmap.html#release-overview",
+    "href": "roadmap.html#release-overview",
+    "title": "Roadmap",
+    "section": "",
+    "text": "OPDI version\nRelease date\nFlight List\nFlight Event\nMeasurements\n\n\n\n\nOPDI v0.0.1\n1/12/2023\nFlight List v0.0.1\nFlight Event v0.0.1\nMeasurements v0.0.1\n\n\n\nIf you notice any bugs, or if you have any feature requests, please contact us."
+  },
+  {
+    "objectID": "roadmap.html#past-releases",
+    "href": "roadmap.html#past-releases",
+    "title": "Roadmap",
+    "section": "Past Releases",
+    "text": "Past Releases\nAn overview of past releases and the various versions were used in each OPDI version can be seen below.\n\n\n\n\n\n\n\n\n\n\n\nOPDI version\nRelease date\nFlight List\nFlight Event\nMeasurements\nPeriod\n\n\n\n\nOPDI v0.0.1\n1/12/2023\nFlight List v0.0.1\nFlight Event v0.0.1\nMeasurements v0.0.1\n2 Months"
+  },
+  {
+    "objectID": "roadmap.html#future-releases",
+    "href": "roadmap.html#future-releases",
+    "title": "Roadmap",
+    "section": "Future Releases",
+    "text": "Future Releases\nNext release\nThe next release (February 2024) aims to include the following improvements:\n\nLarger time frame for the available data sets (initial goal: 1 year).\nImproving the initial flight event extractions by fine tuning parameters and algorithms.\nImprovement in flight list ADEP / ADES approximations using H3 geospatial indexing system.\nInclusion of off-block, in-block, runway entry and exit flight events.\n\nLong term release vision\nLong term the OPDI aims to include the following improvements:\n\nInclude more milestones (FIR crossing, start and stop of holdings patters).\nUse third party trajectory data (aside from the available OpenSky Network trajectory data).\nUse third party data for validations of flight events and measurements."
+  },
+  {
+    "objectID": "roadmap.html#contact",
+    "href": "roadmap.html#contact",
+    "title": "Roadmap",
+    "section": "Contact",
+    "text": "Contact\nIf you notice any bugs, or if you have any feature requests, please contact us."
   }
 ]
