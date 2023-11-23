@@ -1,28 +1,41 @@
 ---
 title: "Concepts"
-filters:
-  - acronyms
-acronyms:
-  loa_title: "List of Acronyms"
-  include_unused: false
-  insert_loa: "end"
-  insert_links: true
-  id_prefix: "acronyms_"
-  sorting: "alphabetical"
-  non_existing: "key"
-  style: "long-short"
-  fromfile:
-    - media/acronyms.yml
 ---
 
-To monitor performance of a flight, trajectories must be identified and broken down into discrete events represent key milestones in the flight to allow for statistical analysis. These flight events or milestones represent the location and time of occurrence of the event (e.g., a flight level crossing). In case of a longer event duration (e.g., a level segment), the start and end of this flight phase are captured in two separate events. Associated to each flight event one can assign values to indicate measurements such as flown distance or emitted CO₂. 
+For the sake of statistical analysis a flight trajectory can be broken down to a
+discrete set of `EVENT`s that represent key milestones useful for a specific study.
+
+These events are characterized by a location and a time of occurrence, e.g., 
+in the case of a flight level crossing event the longitude, latitude, altitude and timestamp
+of where/when it occurs.
+
+Certain phenomena cannot be modeled by single 4D[^1] *instants*, i.e.
+flown level segment or holding segments.
+In these cases the `EVENT` concept can still be used, we can capture the start and
+the end of this phenomenon as two separate event types and process them as a pair 
+during the analysis.
+
+[^1]: 3-dimensional information (longitude, latitude, altitude) plus timestamp.
+
+The concept of `MEASUREMENT` is then used when associating specific metrics to the
+events of interest.
+Example of measurements for flight trajectories are (cumulative) flown distance or
+emitted CO2. 
+
 
 ::: columns
 ::: {.column width="80%"}
 
-Any statistical performance analysis on flight data thus starts with identifying these events in flight trajectories. To promote performance analysis on publicly available flight trajectory data, the Open Performance Data Initiative constructed a flight list, a flight event table and an associated measurements table. 
+The Open Performance Data Initiative and the relevant data sets are made openly
+available in order to promote transparent and reproducible performance analysis.
 
-Currently these tables are based on ADS-B trajectory data from [OpenSky Network](https://opensky-network.org/) (OSN). They are made freely available to support open source performance analysis on publicly available data. Later releases of the data sets will include validations and corrections using data from other trajectory sources where possible.
+These tables are currently derived from ADS-B trajectory data kindly made available
+by [\acr{OSN}](https://opensky-network.org/).
+
+Later releases of the OPDI data sets will be integrated and complemented
+by information from other data sources in order to either include validations and
+corrections or extend the data sets.
+See our [Roadmap](roadmap.html) page for planned enhancements.
 
 :::
 

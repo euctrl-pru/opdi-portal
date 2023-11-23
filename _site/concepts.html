@@ -182,11 +182,15 @@ div.csl-indent {
 </header>
 
 
-<p>To monitor performance of a flight, trajectories must be identified and broken down into discrete events represent key milestones in the flight to allow for statistical analysis. These flight events or milestones represent the location and time of occurrence of the event (e.g., a flight level crossing). In case of a longer event duration (e.g., a level segment), the start and end of this flight phase are captured in two separate events. Associated to each flight event one can assign values to indicate measurements such as flown distance or emitted CO₂.</p>
+<p>For the sake of statistical analysis a flight trajectory can be broken down to a discrete set of <code>EVENT</code>s that represent key milestones useful for a specific study.</p>
+<p>These events are characterized by a location and a time of occurrence, e.g., in the case of a flight level crossing event the longitude, latitude, altitude and timestamp of where/when it occurs.</p>
+<p>Certain phenomena cannot be modeled by single 4D<a href="#fn1" class="footnote-ref" id="fnref1" role="doc-noteref"><sup>1</sup></a> <em>instants</em>, i.e. flown level segment or holding segments. In these cases the <code>EVENT</code> concept can still be used, we can capture the start and the end of this phenomenon as two separate event types and process them as a pair during the analysis.</p>
+<p>The concept of <code>MEASUREMENT</code> is then used when associating specific metrics to the events of interest. Example of measurements for flight trajectories are (cumulative) flown distance or emitted CO2.</p>
 <div class="columns">
 <div class="column" style="width:80%;">
-<p>Any statistical performance analysis on flight data thus starts with identifying these events in flight trajectories. To promote performance analysis on publicly available flight trajectory data, the Open Performance Data Initiative constructed a flight list, a flight event table and an associated measurements table.</p>
-<p>Currently these tables are based on ADS-B trajectory data from <a href="https://opensky-network.org/">OpenSky Network</a> (OSN). They are made freely available to support open source performance analysis on publicly available data. Later releases of the data sets will include validations and corrections using data from other trajectory sources where possible.</p>
+<p>The Open Performance Data Initiative and the relevant data sets are made openly available in order to promote transparent and reproducible performance analysis.</p>
+<p>These tables are currently derived from ADS-B trajectory data kindly made available by <a href="https://opensky-network.org/">OpenSky Network (OSN)</a>.</p>
+<p>Later releases of the OPDI data sets will be integrated and complemented by information from other data sources in order to either include validations and corrections or extend the data sets. See our <a href="roadmap.html">Roadmap</a> page for planned enhancements.</p>
 </div><div class="column" style="width:20%;">
 <p><img src="media/opensky-network-logo.jpg" class="img-fluid"></p>
 </div>
@@ -252,10 +256,10 @@ Figure&nbsp;1: Flight phases and events.
 <ul>
 <li>Taxi-in (<code>T24</code>, <code>T27</code>) time and taxi-out (<code>T06</code>, <code>T09</code>) times for the taxi phase.</li>
 <li>Runway utilization and sequencing (<code>T12</code>, <code>T22</code>).</li>
-<li>Inefficiencies in the <a href="#acronyms_TMA">Terminal Maneuvering Area (TMA)</a> (via holding patterns and leveled portions of the descent).</li>
+<li>Inefficiencies in the Terminal Maneuvering Area (TMA) (via holding patterns and leveled portions of the descent).</li>
 <li>…</li>
 </ul>
-<p>Additional ad-hoc milestones can be defined for specific needs. For example <a href="#acronyms_FIR">Flight Information Region (FIR)</a> crossing flight events could be useful to count <a href="#acronyms_DAIO">Departure, Arrival, Internal, Overflight (DAIO)</a> statistics.</p>
+<p>Additional ad-hoc milestones can be defined for specific needs. For example Flight Information Region (FIR) crossing flight events could be useful to count Departure, Arrival, Internal, Overflight (DAIO) statistics.</p>
 </section>
 <section id="measurements" class="level2">
 <h2 class="anchored" data-anchor-id="measurements">Measurements</h2>
@@ -288,7 +292,7 @@ Figure&nbsp;1: Flight phases and events.
 <p>For example we can split a flight in the following phases:</p>
 <ul>
 <li>Cruise</li>
-<li><a href="#acronyms_LTO">Landing and TakeOff (LTO)</a> cycle</li>
+<li>Landing and TakeOff (LTO) cycle</li>
 </ul>
 <p>and calculate the fuel-burnt emissions by further splitting them.</p>
 <div class="quarto-figure quarto-figure-center">
@@ -330,6 +334,10 @@ Flight Information Region
 <dd>
 Landing and TakeOff
 </dd>
+<dt><span id="acronyms_OSN">OSN</span></dt>
+<dd>
+OpenSky Network
+</dd>
 <dt><span id="acronyms_TMA">TMA</span></dt>
 <dd>
 Terminal Maneuvering Area
@@ -338,11 +346,17 @@ Terminal Maneuvering Area
 
 </section>
 
+
 <div id="quarto-appendix" class="default"><section class="quarto-appendix-contents" role="doc-bibliography"><h2 class="anchored quarto-appendix-heading">References</h2><div id="refs" class="references csl-bib-body" data-entry-spacing="0" role="list">
 <div id="ref-doi/10.2822/385503" class="csl-entry" role="listitem">
 <div class="csl-left-margin">[1] </div><div class="csl-right-inline">E. E. Agency and E. U. A. S. Agency, <em><a href="https://data.europa.eu/doi/10.2822/385503">European aviation environmental report 2016</a></em>. <span>Publications Office of the European Union</span>, 2016. </div>
 </div>
-</div></section></div></main> <!-- /main -->
+</div></section><aside id="footnotes" class="footnotes footnotes-end-of-document" role="doc-endnotes"><h2 class="anchored quarto-appendix-heading">Footnotes</h2>
+
+<ol>
+<li id="fn1"><p>3-dimensional information (longitude, latitude, altitude) plus timestamp.<a href="#fnref1" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+</ol>
+</aside></div></main> <!-- /main -->
 <script id="quarto-html-after-body" type="application/javascript">
 window.document.addEventListener("DOMContentLoaded", function (event) {
   const toggleBodyColorMode = (bsSheetEl) => {
