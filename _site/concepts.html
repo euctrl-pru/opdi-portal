@@ -2,7 +2,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
 
 <meta charset="utf-8">
-<meta name="generator" content="quarto-1.4.507">
+<meta name="generator" content="quarto-1.4.484">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
@@ -223,6 +223,8 @@ Figure&nbsp;1: Flight phases and events.
 </figcaption>
 </figure>
 </div>
+<p>The events in <a href="#fig-flight-phases" class="quarto-xref">Figure&nbsp;1</a> are:</p>
+<p>t00 = time of maintenance completion t01 = time aircraft servicing begins t02 = time aircraft loading begins t03 = time aircraft is ready for pushback t04 = time off-blocks t05 = pushback complete - parking position vacated - start taxi t06 = start taxi onto take-off runway t07 = start take-off roll t08 = start rotationt09 = positive rate of climb establishedt10 = time aircraft reaches safety altitude and leaves traffic circuitt11 = time aircraft enters en-route airspacet12 = time of Top of Climbt13 = time of Top of Descentt14 = aircraft enters terminal airspace and starts approacht15 = aircraft established on final approacht16 = aircraft over runway thresholdt17 = time of touchdownt18 = time aircraft starts turn-offt19 = time runway is vacatedt20 = aircraft starts manoeuvring into parking positiont21 = on-blockst22 = time unloading beginst23 = unloading completedt24 = arrival servicing completedt25 = start of maintenance</p>
 <p>In general we are interested in analyzing performance at gate-to-gate level so as to cover both the airborne and the ground phases of flights. To this extent we summarize a flight down to some of its fundamental flight events as in the following list (from departure to arrival):</p>
 <ol class="example" type="1">
 <li>Off-block (<strong>T06</strong>)</li>
@@ -494,15 +496,8 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
       // Special case sections, only their first couple elements
       const container = document.createElement("div");
       if (note.children && note.children.length > 2) {
-        container.appendChild(note.children[0].cloneNode(true));
-        for (let i = 1; i < note.children.length; i++) {
-          const child = note.children[i];
-          if (child.tagName === "P" && child.innerText === "") {
-            continue;
-          } else {
-            container.appendChild(child.cloneNode(true));
-            break;
-          }
+        for (let i = 0; i < 2; i++) {
+          container.appendChild(note.children[i].cloneNode(true));
         }
         typesetMath(container);
         return container.innerHTML

@@ -2,20 +2,36 @@
 title: "Data"
 ---
 
-The flight data made available (i.e.,`FLIGHT`, `EVENT` and `MEASUREMENT` tables) is published under the **[Open Performance Data Initiative (OPDI)](https://www.opdi.aero/)** as sponsored by
-the **[Performance Review Commission](https://ansperformance.eu/about/prc/)** and in collaboration with the **[OpenSky Network (OSN)](https://opensky-network.org/)**. 
 
-The first data release contains limited flight events from `start-date` until `end-date`. Download the data here: 
+The data is modeled according to the [ER diagram][ERm] in @sec-ER-model.
 
-| Table Reference | Description | Data Source(s) | Download Link |
-|-----------------|-------------|-------------|---------------|
-| `FLIGHT` | Flight list | [OSN](https://opensky-network.org/) / [PRC](https://ansperformance.eu/about/prc/) | [Link](https://en.wikipedia.org/wiki/HTTP_404) |
-| `EVENT` | Flight events | [OSN](https://opensky-network.org/) / [PRC](https://ansperformance.eu/about/prc/) | [Link](https://en.wikipedia.org/wiki/HTTP_404) |
-| `MEASUREMENT` | Measurements associated to flight events | [OSN](https://opensky-network.org/) / [PRC](https://ansperformance.eu/about/prc/) | [Link](https://en.wikipedia.org/wiki/HTTP_404) |
-| `AIRPORT` | Airports | [OurAirports](https://ourairports.com/) | [Link](https://davidmegginson.github.io/ourairports-data/airports.csv) |
-| `RUNWAY` | Runways | [OurAirports](https://ourairports.com/) | [Link](https://davidmegginson.github.io/ourairports-data/navaids.csv) |
+The `FLIGHT`, `EVENT` and `MEASUREMENT` tables are published under the **\acr{OPDI}**
+in collaboration with the **[\acr{OSN}](https://opensky-network.org/)**. 
+The `TRAJECTORY` data comes from \acr{OSN}'s State Vector data.
 
-To find all info: [Readme.txt](https://en.wikipedia.org/wiki/HTTP_404)
+The first data release contains limited flight events from `start-date` until `end-date`,
+further enhancements are planned according to our [Roadmap](roadmap.html) page. 
+
+Download the data here: 
+
+| Table Reference | Description   | Data Source(s)     | Download Link |
+|-----------------|---------------|--------------------|---------------|
+| `FLIGHT`        | Flight list   | [OSN]/[PRC]        | [Link][404]   |
+| `EVENT`         | Flight events | [OSN]/[PRC]        | [Link][404]   |
+| `MEASUREMENT`   | Measurements  | [OSN]/[PRC]        | [Link][404]   |
+| `AIRPORT`       | Airports      | [OurAirports][OA]  | [Link][OAapt] |
+| `RUNWAY`        | Runways       | [OurAirports][OA]  | [Link][OArwy] |
+
+
+[OSN]: <https://opensky-network.org/> "OpsnSky Network"
+[PRC]: <https://ansperformance.eu/about/prc/> "Performance Review Commission"
+[OA]: <https://ourairports.com/>
+[OAapt]: <https://davidmegginson.github.io/ourairports-data/airports.csv>
+[OArwy]: <https://davidmegginson.github.io/ourairports-data/runways.csv>
+[ERm]: <https://en.wikipedia.org/wiki/Entity%E2%80%93relationship_model>
+
+[404]: <https://en.wikipedia.org/wiki/HTTP_404>
+
 
 ::: {.callout-note appearance="simple"}
 
@@ -24,7 +40,31 @@ To find all info: [Readme.txt](https://en.wikipedia.org/wiki/HTTP_404)
 Further data will be made available in upcoming iterations. These updates will cover an extended time frame, additional flight event and measurement types, and additional flight events and measurements from different trajectory sources.
 :::
 
-## Relational Model
+
+## Retrieving Data on Trajectories
+
+Given the `FLIGHT` table, one can, when the data `source` is `OpenSky Network (OSN)` fetch the trajectory from the publicly available OpenSky Network history database if needed. Based on the available `icao24` or `callsign`, `first_seen` and `last_seen` one can perform a query to fetch the data. 
+
+The following tools are available for such queries: [https://opensky-network.org/data/data-tools](https://opensky-network.org/data/data-tools). 
+
+
+::: {.callout-note appearance="simple"}
+
+## Future releases
+
+\acr{OSN} kindly provided State Vector data at 5-sec granularity for a bounding box covering (wider) Europe.
+
+![Bounding box for OPDI state vector coverage, SW=[-25.86653, 26.74617] NE=[49.65699, 70.25976] ](media/bbox-opdi.png "Title: a map of the bounding box for OPDI state vector coverage"){width="80%" fig-alt="Bounding box for OPDI state vector coverage."}
+
+
+We intend to make it available for easy download, see [Roadmap](roadmap.html) page.
+:::
+
+
+# Relational Model {#sec-ER-model}
+
+The diagram below describes the relationship between the different tables/entities
+in the OPDI dataset.
 
 ```{mermaid}
 %%| label: fig-er-diagram
@@ -104,16 +144,56 @@ erDiagram
     }
 
     
-    EVENT }|--|| FLIGHT : has
-    FLIGHT    }o--|{ AIRPORT : has
-    AIRPORT   }|--|{ RUNWAY : has
-    FLIGHT ||--|| TRAJECTORY : has 
-    MEASUREMENT ||--|{ EVENT : has
+    EVENT        }|--|| FLIGHT : has
+    FLIGHT       }o--|{ AIRPORT : has
+    AIRPORT      }|--|{ RUNWAY : has
+    FLIGHT      ||--||  TRAJECTORY : has 
+    MEASUREMENT ||--|{  EVENT : has
 
 ```
 
-## Retrieving Data on Trajectories
 
-Given the `FLIGHT` table, one can, when the data `source` is `OpenSky Network (OSN)` fetch the trajectory from the publicly available OpenSky Network history database if needed. Based on the available `icao24` or `callsign`, `first_seen` and `last_seen` one can perform a query to fetch the data. 
 
-The following tools are available for such queries: [https://opensky-network.org/data/data-tools](https://opensky-network.org/data/data-tools). 
+### `FLIGHT`
+
+The `FLIGHT` table models a flight list. It provides high level information about
+a flight such as origin/destination airports, day of flight, callsign and
+\acr{ICAO} 24-bit address.
+
+This table is useful to reduce the scope of your analysis to a certain airport,
+and/or country and/or time period.
+
+
+
+### `AIRPORT`
+
+The `AIRPORT` table contains details about an airport such as \acr{ICAO}/\acr{IATA}
+identification code, the coordinated of the 
+[\acr{ARP}](https://en.wikipedia.org/wiki/Airport_reference_point),
+ISO contry and region...
+
+
+### `RUNWAY`
+
+The `RUNWAY` table provides details about each available \acr{RWY} at an aerodrome, i.e.
+their orientations, width, length, the threshold locations, ...
+
+
+### `EVENT`
+
+The `EVENT` table provide 4D milestones that characterize a flight.
+Events allow to condense a full trajectory into a reduced set of milestones
+that are still useful for a specific analysis.
+For example a flight could be (simplistically) summarized by take-off,
+top-of-climb, top-of-descent and landing.
+
+For more on Events see the [Concepts](concepts.html) page.
+
+
+### `MEASUREMENT`
+
+The `MEASUREMENT` table provides measurements associated to events.
+Some examples of measurements are cumulative distance flown or 
+cumulative CO2 emissions.
+
+For more on Measurements see the [Concepts](concepts.html) page.

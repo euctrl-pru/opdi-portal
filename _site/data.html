@@ -2,7 +2,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
 
 <meta charset="utf-8">
-<meta name="generator" content="quarto-1.4.507">
+<meta name="generator" content="quarto-1.4.484">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
@@ -130,8 +130,16 @@ ul.task-list li input[type="checkbox"] {
     <h2 id="toc-title">On this page</h2>
    
   <ul>
-  <li><a href="#relational-model" id="toc-relational-model" class="nav-link active" data-scroll-target="#relational-model">Relational Model</a></li>
-  <li><a href="#retrieving-data-on-trajectories" id="toc-retrieving-data-on-trajectories" class="nav-link" data-scroll-target="#retrieving-data-on-trajectories">Retrieving Data on Trajectories</a></li>
+  <li><a href="#retrieving-data-on-trajectories" id="toc-retrieving-data-on-trajectories" class="nav-link active" data-scroll-target="#retrieving-data-on-trajectories">Retrieving Data on Trajectories</a></li>
+  <li><a href="#sec-ER-model" id="toc-sec-ER-model" class="nav-link" data-scroll-target="#sec-ER-model">Relational Model</a>
+  <ul class="collapse">
+  <li><a href="#flight" id="toc-flight" class="nav-link" data-scroll-target="#flight"><code>FLIGHT</code></a></li>
+  <li><a href="#airport" id="toc-airport" class="nav-link" data-scroll-target="#airport"><code>AIRPORT</code></a></li>
+  <li><a href="#runway" id="toc-runway" class="nav-link" data-scroll-target="#runway"><code>RUNWAY</code></a></li>
+  <li><a href="#event" id="toc-event" class="nav-link" data-scroll-target="#event"><code>EVENT</code></a></li>
+  <li><a href="#measurement" id="toc-measurement" class="nav-link" data-scroll-target="#measurement"><code>MEASUREMENT</code></a></li>
+  </ul></li>
+  <li><a href="#acronyms_HEADER_LOA" id="toc-acronyms_HEADER_LOA" class="nav-link" data-scroll-target="#acronyms_HEADER_LOA">List of Acronyms</a></li>
   </ul>
 </nav>
     </div>
@@ -157,8 +165,10 @@ ul.task-list li input[type="checkbox"] {
 </header>
 
 
-<p>The flight data made available (i.e.,<code>FLIGHT</code>, <code>EVENT</code> and <code>MEASUREMENT</code> tables) is published under the <strong><a href="https://www.opdi.aero/">Open Performance Data Initiative (OPDI)</a></strong> as sponsored by the <strong><a href="https://ansperformance.eu/about/prc/">Performance Review Commission</a></strong> and in collaboration with the <strong><a href="https://opensky-network.org/">OpenSky Network (OSN)</a></strong>.</p>
-<p>The first data release contains limited flight events from <code>start-date</code> until <code>end-date</code>. Download the data here:</p>
+<p>The data is modeled according to the <a href="https://en.wikipedia.org/wiki/Entity%E2%80%93relationship_model">ER diagram</a> in <a href="#sec-ER-model" class="quarto-xref">Section&nbsp;1</a>.</p>
+<p>The <code>FLIGHT</code>, <code>EVENT</code> and <code>MEASUREMENT</code> tables are published under the <strong>Open Performance Data Initiative (OPDI)</strong> in collaboration with the <strong><a href="https://opensky-network.org/">OpenSky Network (OSN)</a></strong>. The <code>TRAJECTORY</code> data comes from OSN’s State Vector data.</p>
+<p>The first data release contains limited flight events from <code>start-date</code> until <code>end-date</code>, further enhancements are planned according to our <a href="roadmap.html">Roadmap</a> page.</p>
+<p>Download the data here:</p>
 <table class="table">
 <thead>
 <tr class="header">
@@ -172,19 +182,19 @@ ul.task-list li input[type="checkbox"] {
 <tr class="odd">
 <td><code>FLIGHT</code></td>
 <td>Flight list</td>
-<td><a href="https://opensky-network.org/">OSN</a> / <a href="https://ansperformance.eu/about/prc/">PRC</a></td>
+<td><a href="https://opensky-network.org/" title="OpsnSky Network">OSN</a>/<a href="https://ansperformance.eu/about/prc/" title="Performance Review Commission">PRC</a></td>
 <td><a href="https://en.wikipedia.org/wiki/HTTP_404">Link</a></td>
 </tr>
 <tr class="even">
 <td><code>EVENT</code></td>
 <td>Flight events</td>
-<td><a href="https://opensky-network.org/">OSN</a> / <a href="https://ansperformance.eu/about/prc/">PRC</a></td>
+<td><a href="https://opensky-network.org/" title="OpsnSky Network">OSN</a>/<a href="https://ansperformance.eu/about/prc/" title="Performance Review Commission">PRC</a></td>
 <td><a href="https://en.wikipedia.org/wiki/HTTP_404">Link</a></td>
 </tr>
 <tr class="odd">
 <td><code>MEASUREMENT</code></td>
-<td>Measurements associated to flight events</td>
-<td><a href="https://opensky-network.org/">OSN</a> / <a href="https://ansperformance.eu/about/prc/">PRC</a></td>
+<td>Measurements</td>
+<td><a href="https://opensky-network.org/" title="OpsnSky Network">OSN</a>/<a href="https://ansperformance.eu/about/prc/" title="Performance Review Commission">PRC</a></td>
 <td><a href="https://en.wikipedia.org/wiki/HTTP_404">Link</a></td>
 </tr>
 <tr class="even">
@@ -197,11 +207,10 @@ ul.task-list li input[type="checkbox"] {
 <td><code>RUNWAY</code></td>
 <td>Runways</td>
 <td><a href="https://ourairports.com/">OurAirports</a></td>
-<td><a href="https://davidmegginson.github.io/ourairports-data/navaids.csv">Link</a></td>
+<td><a href="https://davidmegginson.github.io/ourairports-data/runways.csv">Link</a></td>
 </tr>
 </tbody>
 </table>
-<p>To find all info: <a href="https://en.wikipedia.org/wiki/HTTP_404">Readme.txt</a></p>
 <div class="callout callout-style-simple callout-note callout-titled">
 <div class="callout-header d-flex align-content-center">
 <div class="callout-icon-container">
@@ -215,8 +224,34 @@ Future releases
 <p>Further data will be made available in upcoming iterations. These updates will cover an extended time frame, additional flight event and measurement types, and additional flight events and measurements from different trajectory sources.</p>
 </div>
 </div>
-<section id="relational-model" class="level2">
-<h2 class="anchored" data-anchor-id="relational-model">Relational Model</h2>
+<section id="retrieving-data-on-trajectories" class="level2">
+<h2 class="anchored" data-anchor-id="retrieving-data-on-trajectories">Retrieving Data on Trajectories</h2>
+<p>Given the <code>FLIGHT</code> table, one can, when the data <code>source</code> is <code>OpenSky Network (OSN)</code> fetch the trajectory from the publicly available OpenSky Network history database if needed. Based on the available <code>icao24</code> or <code>callsign</code>, <code>first_seen</code> and <code>last_seen</code> one can perform a query to fetch the data.</p>
+<p>The following tools are available for such queries: <a href="https://opensky-network.org/data/data-tools">https://opensky-network.org/data/data-tools</a>.</p>
+<div class="callout callout-style-simple callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Future releases
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>OSN kindly provided State Vector data at 5-sec granularity for a bounding box covering (wider) Europe.</p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="media/bbox-opdi.png" title="Title: a map of the bounding box for OPDI state vector coverage" class="img-fluid figure-img" style="width:80.0%"></p>
+<figcaption>Bounding box for OPDI state vector coverage, SW=[-25.86653, 26.74617] NE=[49.65699, 70.25976]</figcaption>
+</figure>
+</div>
+<p>We intend to make it available for easy download, see <a href="roadmap.html">Roadmap</a> page.</p>
+</div>
+</div>
+</section>
+<section id="sec-ER-model" class="level1">
+<h1>Relational Model</h1>
+<p>The diagram below describes the relationship between the different tables/entities in the OPDI dataset.</p>
 <div class="cell">
 <div class="cell-output-display">
 <div id="fig-er-diagram" class="quarto-figure quarto-figure-center anchored">
@@ -297,11 +332,11 @@ Future releases
     }
 
     
-    EVENT }|--|| FLIGHT : has
-    FLIGHT    }o--|{ AIRPORT : has
-    AIRPORT   }|--|{ RUNWAY : has
-    FLIGHT ||--|| TRAJECTORY : has 
-    MEASUREMENT ||--|{ EVENT : has
+    EVENT        }|--|| FLIGHT : has
+    FLIGHT       }o--|{ AIRPORT : has
+    AIRPORT      }|--|{ RUNWAY : has
+    FLIGHT      ||--||  TRAJECTORY : has 
+    MEASUREMENT ||--|{  EVENT : has
 
 </pre>
 </div>
@@ -313,13 +348,60 @@ Figure&nbsp;1: Entity-Relationship diagram for Milestone and relevant concepts.
 </div>
 </div>
 </div>
+<section id="flight" class="level3">
+<h3 class="anchored" data-anchor-id="flight"><code>FLIGHT</code></h3>
+<p>The <code>FLIGHT</code> table models a flight list. It provides high level information about a flight such as origin/destination airports, day of flight, callsign and International Civil Aviation Organization (ICAO) 24-bit address.</p>
+<p>This table is useful to reduce the scope of your analysis to a certain airport, and/or country and/or time period.</p>
 </section>
-<section id="retrieving-data-on-trajectories" class="level2">
-<h2 class="anchored" data-anchor-id="retrieving-data-on-trajectories">Retrieving Data on Trajectories</h2>
-<p>Given the <code>FLIGHT</code> table, one can, when the data <code>source</code> is <code>OpenSky Network (OSN)</code> fetch the trajectory from the publicly available OpenSky Network history database if needed. Based on the available <code>icao24</code> or <code>callsign</code>, <code>first_seen</code> and <code>last_seen</code> one can perform a query to fetch the data.</p>
-<p>The following tools are available for such queries: <a href="https://opensky-network.org/data/data-tools">https://opensky-network.org/data/data-tools</a>.</p>
+<section id="airport" class="level3">
+<h3 class="anchored" data-anchor-id="airport"><code>AIRPORT</code></h3>
+<p>The <code>AIRPORT</code> table contains details about an airport such as ICAO/International Air Transport Association (IATA) identification code, the coordinated of the <a href="https://en.wikipedia.org/wiki/Airport_reference_point">Aerodrome Reference Point (ARP)</a>, ISO contry and region…</p>
+</section>
+<section id="runway" class="level3">
+<h3 class="anchored" data-anchor-id="runway"><code>RUNWAY</code></h3>
+<p>The <code>RUNWAY</code> table provides details about each available Runway (RWY) at an aerodrome, i.e. their orientations, width, length, the threshold locations, …</p>
+</section>
+<section id="event" class="level3">
+<h3 class="anchored" data-anchor-id="event"><code>EVENT</code></h3>
+<p>The <code>EVENT</code> table provide 4D milestones that characterize a flight. Events allow to condense a full trajectory into a reduced set of milestones that are still useful for a specific analysis. For example a flight could be (simplistically) summarized by take-off, top-of-climb, top-of-descent and landing.</p>
+<p>For more on Events see the <a href="concepts.html">Concepts</a> page.</p>
+</section>
+<section id="measurement" class="level3">
+<h3 class="anchored" data-anchor-id="measurement"><code>MEASUREMENT</code></h3>
+<p>The <code>MEASUREMENT</code> table provides measurements associated to events. Some examples of measurements are cumulative distance flown or cumulative CO2 emissions.</p>
+<p>For more on Measurements see the <a href="concepts.html">Concepts</a> page.</p>
 
 
+</section>
+</section>
+<section id="acronyms_HEADER_LOA" class="level1 loa">
+<h1 class="loa">List of Acronyms</h1>
+<dl>
+<dt><span id="acronyms_ARP">ARP</span></dt>
+<dd>
+Aerodrome Reference Point
+</dd>
+<dt><span id="acronyms_IATA">IATA</span></dt>
+<dd>
+International Air Transport Association
+</dd>
+<dt><span id="acronyms_ICAO">ICAO</span></dt>
+<dd>
+International Civil Aviation Organization
+</dd>
+<dt><span id="acronyms_OPDI">OPDI</span></dt>
+<dd>
+Open Performance Data Initiative
+</dd>
+<dt><span id="acronyms_OSN">OSN</span></dt>
+<dd>
+OpenSky Network
+</dd>
+<dt><span id="acronyms_RWY">RWY</span></dt>
+<dd>
+Runway
+</dd>
+</dl>
 </section>
 
 </main> <!-- /main -->
@@ -476,15 +558,8 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
       // Special case sections, only their first couple elements
       const container = document.createElement("div");
       if (note.children && note.children.length > 2) {
-        container.appendChild(note.children[0].cloneNode(true));
-        for (let i = 1; i < note.children.length; i++) {
-          const child = note.children[i];
-          if (child.tagName === "P" && child.innerText === "") {
-            continue;
-          } else {
-            container.appendChild(child.cloneNode(true));
-            break;
-          }
+        for (let i = 0; i < 2; i++) {
+          container.appendChild(note.children[i].cloneNode(true));
         }
         typesetMath(container);
         return container.innerHTML
