@@ -186,13 +186,28 @@ div.csl-indent {
 <p>These events are characterized by a location and a time of occurrence, e.g., in the case of a flight level crossing event the longitude, latitude, altitude and timestamp of where/when it occurs.</p>
 <p>Certain phenomena cannot be modeled by single 4D<a href="#fn1" class="footnote-ref" id="fnref1" role="doc-noteref"><sup>1</sup></a> <em>instants</em>, i.e. flown level segment or holding segments. In these cases the <code>EVENT</code> concept can still be used, we can capture the start and the end of this phenomenon as two separate event types and process them as a pair during the analysis.</p>
 <p>The concept of <code>MEASUREMENT</code> is then used when associating specific metrics to the events of interest. Example of measurements for flight trajectories are (cumulative) flown distance or emitted CO2.</p>
+<div class="callout callout-style-default callout-note no-icon callout-titled">
+<div class="callout-header d-flex align-content-center" data-bs-toggle="collapse" data-bs-target=".callout-1-contents" aria-controls="callout-1" aria-expanded="false" aria-label="Toggle callout">
+<div class="callout-icon-container">
+<i class="callout-icon no-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Note
+</div>
+<div class="callout-btn-toggle d-inline-block border-0 py-1 ps-1 pe-0 float-end"><i class="callout-toggle"></i></div>
+</div>
+<div id="callout-1" class="callout-1-contents callout-collapse collapse">
+<div class="callout-body-container callout-body">
 <div class="columns">
 <div class="column" style="width:80%;">
 <p>The Open Performance Data Initiative and the relevant data sets are made openly available in order to promote transparent and reproducible performance analysis.</p>
 <p>These tables are currently derived from ADS-B trajectory data kindly made available by <a href="https://opensky-network.org/">OpenSky Network (OSN)</a>.</p>
 <p>Later releases of the OPDI data sets will be integrated and complemented by information from other data sources in order to either include validations and corrections or extend the data sets. See our <a href="roadmap.html">Roadmap</a> page for planned enhancements.</p>
 </div><div class="column" style="width:20%;">
-<p><img src="media/opensky-network-logo.jpg" class="img-fluid"></p>
+<p><img src="media/opensky-network-logo_compact.jpg" class="img-fluid"></p>
+</div>
+</div>
+</div>
 </div>
 </div>
 <section id="flight-list" class="level2">
@@ -228,20 +243,47 @@ Figure&nbsp;1: Flight phases and events.
 </figure>
 </div>
 <p>The events in <a href="#fig-flight-phases" class="quarto-xref">Figure&nbsp;1</a> are:</p>
-<p>t00 = time of maintenance completion t01 = time aircraft servicing begins t02 = time aircraft loading begins t03 = time aircraft is ready for pushback t04 = time off-blocks t05 = pushback complete - parking position vacated - start taxi t06 = start taxi onto take-off runway t07 = start take-off roll t08 = start rotationt09 = positive rate of climb establishedt10 = time aircraft reaches safety altitude and leaves traffic circuitt11 = time aircraft enters en-route airspacet12 = time of Top of Climbt13 = time of Top of Descentt14 = aircraft enters terminal airspace and starts approacht15 = aircraft established on final approacht16 = aircraft over runway thresholdt17 = time of touchdownt18 = time aircraft starts turn-offt19 = time runway is vacatedt20 = aircraft starts manoeuvring into parking positiont21 = on-blockst22 = time unloading beginst23 = unloading completedt24 = arrival servicing completedt25 = start of maintenance</p>
+<ul>
+<li><strong>T01</strong> = time of maintenance completion</li>
+<li><strong>T02</strong> = time aircraft servicing begins</li>
+<li><strong>T03</strong> = time aircraft loading begins</li>
+<li><strong>T04</strong> = time aircraft is ready for pushback</li>
+<li><strong>T06</strong> = time off-blocks</li>
+<li><strong>T08</strong> = pushback complete - parking position vacated - start taxi</li>
+<li><strong>T09</strong> = start taxi onto take-off runway</li>
+<li><strong>T10</strong> = start take-off roll</li>
+<li><strong>T11</strong> = start rotation</li>
+<li><strong>T12</strong> = positive rate of climb established</li>
+<li><strong>T13</strong> = time aircraft reaches safety altitude and leaves traffic circuit</li>
+<li><strong>T14</strong> = time aircraft enters en-route airspace</li>
+<li><strong>T15</strong> = time of Top of Climb</li>
+<li><strong>T18</strong> = time of Top of Descent</li>
+<li><strong>T19</strong> = aircraft enters terminal airspace and starts approach</li>
+<li><strong>T20</strong> = aircraft established on final approach</li>
+<li><strong>T21</strong> = aircraft over runway threshold</li>
+<li><strong>T22</strong> = time of touchdown</li>
+<li><strong>T23</strong> = time aircraft starts turn-off</li>
+<li><strong>T24</strong> = time runway is vacated</li>
+<li><strong>T25</strong> = aircraft starts manoeuvring into parking position</li>
+<li><strong>T27</strong> = on-blocks</li>
+<li><strong>T29</strong> = time unloading begins</li>
+<li><strong>T30</strong> = unloading completed</li>
+<li><strong>T31</strong> = arrival servicing completed</li>
+<li><strong>T32</strong> = start of maintenance</li>
+</ul>
 <p>In general we are interested in analyzing performance at gate-to-gate level so as to cover both the airborne and the ground phases of flights. To this extent we summarize a flight down to some of its fundamental flight events as in the following list (from departure to arrival):</p>
 <ol class="example" type="1">
 <li>Off-block (<strong>T06</strong>)</li>
-<li>End of push back (<strong>T07</strong>)</li>
+<li>End of push back (<strong>T08</strong>)</li>
 <li>Enter runway for take-off (<strong>T09</strong>)</li>
-<li>Lift-off (<strong>T12</strong>), a.k.a. take-off</li>
-<li>40-nautical-miles intersection (<strong>T14</strong>)</li>
+<li>Lift-off (<strong>T11</strong>), a.k.a. take-off</li>
+<li>40-nautical-miles intersection (sort of <strong>T14</strong>)</li>
 <li>Top-of-climb (<strong>T15</strong>)</li>
 <li>Top-of-descent (<strong>T18</strong>)</li>
-<li>40-nautical-miles intersection (<strong>T19</strong>)</li>
+<li>40-nautical-miles intersection (sort of <strong>T19</strong>)</li>
 <li>Touch-down (<strong>T22</strong>)</li>
 <li>Runway vacated (<strong>T24</strong>)</li>
-<li>Enter parking spot (<strong>T26</strong>)</li>
+<li>Enter parking spot (<strong>T25</strong>)</li>
 <li>On-block (<strong>T27</strong>)</li>
 </ol>
 <p>Other interesting flight events are:</p>
@@ -254,8 +296,8 @@ Figure&nbsp;1: Flight phases and events.
 </ol>
 <p><strong>Subsets of flight events</strong> allow for the monitoring of <strong>performance of flight events and phases</strong>. Examples hereof are:</p>
 <ul>
-<li>Taxi-in (<code>T24</code>, <code>T27</code>) time and taxi-out (<code>T06</code>, <code>T09</code>) times for the taxi phase.</li>
-<li>Runway utilization and sequencing (<code>T12</code>, <code>T22</code>).</li>
+<li>Taxi-in (<code>T24</code>, <code>T27</code>) time and taxi-out (<code>T06</code>, <code>T09</code>): duration of the taxi phase.</li>
+<li>Runway (RWY) utilization (<code>T09</code>–<code>T11</code> and <code>T22</code>–<code>T24</code>) and sequencing.</li>
 <li>Inefficiencies in the Terminal Maneuvering Area (TMA) (via holding patterns and leveled portions of the descent).</li>
 <li>…</li>
 </ul>
@@ -263,7 +305,8 @@ Figure&nbsp;1: Flight phases and events.
 </section>
 <section id="measurements" class="level2">
 <h2 class="anchored" data-anchor-id="measurements">Measurements</h2>
-<p>Once the flight events available, it is informative to see associated values or <strong>measurements</strong> for each flight event. An example of this is the cumulative flown distance until this flight event or the emitted CO₂. A measurement is thus identified by:</p>
+<p>Once the flight <code>EVENT</code>s are available, it is informative to see associated metrics or <code>MEASUREMENT</code>s for each flight event. An example of this is the cumulative flown distance or the emitted CO2.</p>
+<p>A <code>MEASUREMENT</code> is thus identified by:</p>
 <ul>
 <li>A link to the event, by an <code>event_id</code>.</li>
 <li>The <code>type</code> of measurement (e.g., distance flown (NM) or emitted CO₂).</li>
@@ -337,6 +380,10 @@ Landing and TakeOff
 <dt><span id="acronyms_OSN">OSN</span></dt>
 <dd>
 OpenSky Network
+</dd>
+<dt><span id="acronyms_RWY">RWY</span></dt>
+<dd>
+Runway
 </dd>
 <dt><span id="acronyms_TMA">TMA</span></dt>
 <dd>
