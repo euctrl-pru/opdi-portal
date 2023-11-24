@@ -2,7 +2,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
 
 <meta charset="utf-8">
-<meta name="generator" content="quarto-1.4.484">
+<meta name="generator" content="quarto-1.4.507">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
@@ -212,7 +212,7 @@ Note
 </div>
 <section id="flight-list" class="level2">
 <h2 class="anchored" data-anchor-id="flight-list">Flight List</h2>
-<p>A <strong>flight list</strong> contains basic information about each trajectory. It captures the Aerodrome of Departure (ADEP) where it is first seen (<code>first_seen</code>) usually at the off-block time and the Aerodrome of Destination (ADES) where it last seen (<code>last_seen</code>) before in-block time. The flight is usually identified by an <code>id</code> or its <code>callsign</code> and <code>icao24</code>. The date of flight (<code>DOF</code>) indicates the date on which is is first seen.</p>
+<p>A <strong>flight list</strong> contains basic information about each trajectory. It captures the Aerodrome of Departure (ADEP) where it is first seen (<code>first_seen</code>) usually at the off-block time and the Aerodrome of Destination (ADES) where it last seen (<code>last_seen</code>) before in-block time. The flight is usually identified by an <code>id</code> or its <code>FLT_ID</code> (i.e., the callsign) and <code>ICAO24</code>. The date of flight (<code>DOF</code>) indicates the date on which is is first seen.</p>
 <p>This flight list is constructed to give a general overview of the flights which happen each day.</p>
 </section>
 <section id="flight-events-and-phases" class="level2">
@@ -598,8 +598,15 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
       // Special case sections, only their first couple elements
       const container = document.createElement("div");
       if (note.children && note.children.length > 2) {
-        for (let i = 0; i < 2; i++) {
-          container.appendChild(note.children[i].cloneNode(true));
+        container.appendChild(note.children[0].cloneNode(true));
+        for (let i = 1; i < note.children.length; i++) {
+          const child = note.children[i];
+          if (child.tagName === "P" && child.innerText === "") {
+            continue;
+          } else {
+            container.appendChild(child.cloneNode(true));
+            break;
+          }
         }
         typesetMath(container);
         return container.innerHTML

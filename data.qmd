@@ -14,13 +14,13 @@ further enhancements are planned according to our [Roadmap](roadmap.html) page.
 
 Download the data here: 
 
-| Table Reference | Description   | Data Source(s)     | Download Link |
-|-----------------|---------------|--------------------|---------------|
-| `FLIGHT`        | Flight list   | [OSN]/[PRC]        | [Link][404]   |
-| `EVENT`         | Flight events | [OSN]/[PRC]        | [Link][404]   |
-| `MEASUREMENT`   | Measurements  | [OSN]/[PRC]        | [Link][404]   |
-| `AIRPORT`       | Airports      | [OurAirports][OA]  | [Link][OAapt] |
-| `RUNWAY`        | Runways       | [OurAirports][OA]  | [Link][OArwy] |
+| Table Reference | Description   | Data Source(s)     | Download Link                           |
+|-----------------|---------------|--------------------|-----------------------------------------|
+| `FLIGHT`        | Flight list   | [OSN]/[PRC]        | [Parquet][FListpq], [CSV][FListcsv]   |
+| `EVENT`         | Flight events | [OSN]/[PRC]        | [Parquet][Eventspq], [CSV][Eventscsv] |
+| `MEASUREMENT`   | Measurements  | [OSN]/[PRC]        | [Parquet][Measpq], [CSV][Meascsv]     |
+| `AIRPORT`       | Airports      | [OurAirports][OA]  | [CSV][OAapt] |
+| `RUNWAY`        | Runways       | [OurAirports][OA]  | [CSV][OArwy] |
 
 
 [OSN]: <https://opensky-network.org/> "OpsnSky Network"
@@ -29,6 +29,13 @@ Download the data here:
 [OAapt]: <https://davidmegginson.github.io/ourairports-data/airports.csv>
 [OArwy]: <https://davidmegginson.github.io/ourairports-data/runways.csv>
 [ERm]: <https://en.wikipedia.org/wiki/Entity%E2%80%93relationship_model>
+[FListpq]: <https://ansperformance.eu/data/download/OPDI/flight_table_v001.parquet>
+[FListcsv]: <https://ansperformance.eu/data/download/OPDI/flight_table_v001.csv.gz>
+[Eventspq]: <https://ansperformance.eu/data/download/OPDI/flight_events_v001.parquet>
+[Eventscsv]: <https://ansperformance.eu/data/download/OPDI/flight_events_v001.csv.gz>
+[Measpq]: <https://ansperformance.eu/data/download/OPDI/measurements_v001.parquet>
+[Meascsv]: <https://ansperformance.eu/data/download/OPDI/measurements_v001.csv.gz>
+
 
 [404]: <https://en.wikipedia.org/wiki/HTTP_404>
 
@@ -100,11 +107,12 @@ erDiagram
         int id PK
         int ADEP FK
         int ADES FK
-        string icao24
-        string callsign
-        int first_seen
-        int last_seen
-        timestamp DOF
+        string ICAO24
+        string FLT_ID
+        timestamp first_seen
+        timestamp last_seen
+        date DOF
+        str version
     }
     AIRPORT {
         int id PK
