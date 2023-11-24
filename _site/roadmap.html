@@ -127,7 +127,11 @@ ul.task-list li input[type="checkbox"] {
     <h2 id="toc-title">On this page</h2>
    
   <ul>
-  <li><a href="#future-releases" id="toc-future-releases" class="nav-link active" data-scroll-target="#future-releases">Future Releases</a></li>
+  <li><a href="#future-releases" id="toc-future-releases" class="nav-link active" data-scroll-target="#future-releases">Future Releases</a>
+  <ul class="collapse">
+  <li><a href="#february-2024" id="toc-february-2024" class="nav-link" data-scroll-target="#february-2024">February 2024</a></li>
+  <li><a href="#candidate-topics-for-future-releases" id="toc-candidate-topics-for-future-releases" class="nav-link" data-scroll-target="#candidate-topics-for-future-releases">Candidate topics for future releases</a></li>
+  </ul></li>
   <li><a href="#past-releases" id="toc-past-releases" class="nav-link" data-scroll-target="#past-releases">Past Releases</a></li>
   <li><a href="#contact" id="toc-contact" class="nav-link" data-scroll-target="#contact">Contact</a></li>
   <li><a href="#acronyms_HEADER_LOA" id="toc-acronyms_HEADER_LOA" class="nav-link" data-scroll-target="#acronyms_HEADER_LOA">List of Acronyms</a></li>
@@ -159,23 +163,37 @@ ul.task-list li input[type="checkbox"] {
 <p>The plan is to release subsequent improvements of the Open Performance Data Initiative (OPDI) data sets every two months.</p>
 <section id="future-releases" class="level2">
 <h2 class="anchored" data-anchor-id="future-releases">Future Releases</h2>
-<p><strong>Next release</strong></p>
-<p>The next release (February 2024) aims to include the following improvements:</p>
+<section id="february-2024" class="level3">
+<h3 class="anchored" data-anchor-id="february-2024">February 2024</h3>
+<p>This release aims to include the following improvements:</p>
 <ul>
-<li>Larger time frame for the available data sets (initial goal: 1 year).</li>
+<li>Larger time frame for the available data sets (goal: 1 year).</li>
 <li>Improving the initial flight event extractions by fine tuning parameters and algorithms.</li>
 <li>Improvement in flight list Aerodrome of Departure (ADEP) / Aerodrome of Destination (ADES) approximations using <a href="https://h3geo.org/">H3 geospatial indexing system</a>.</li>
-<li>Inclusion of off-block, in-block, runway entry and exit flight events.</li>
-</ul>
-<p><strong>Long term release vision</strong></p>
-<p>Long term the OPDI aims to include the following improvements:</p>
+<li>Inclusion of new event types and occurrences:
 <ul>
-<li>Include more milestones (Flight Information Region (FIR) crossing, start and stop of holdings patters).</li>
-<li>Use third party trajectory data (aside from the available OpenSky Network (OSN) trajectory data).</li>
-<li>Use third party data for validations of flight events and measurements.</li>
-<li>Provide easy access to OSN state vector trajectories at 5-sec granularity</li>
-<li>Provide cleaned up</li>
+<li>off-block</li>
+<li>in-block</li>
+<li>runway entry</li>
+<li>runway exit</li>
+</ul></li>
 </ul>
+</section>
+<section id="candidate-topics-for-future-releases" class="level3">
+<h3 class="anchored" data-anchor-id="candidate-topics-for-future-releases">Candidate topics for future releases</h3>
+<p>In the longer term the OPDI aims to include the following improvements:</p>
+<ul>
+<li>Include more events
+<ul>
+<li>Flight Information Region (FIR) crossing</li>
+<li>start and stop of holdings</li>
+</ul></li>
+<li>Use third party trajectory data (aside from the available via OpenSky Network (OSN)).</li>
+<li>Validate flight events and measurements using third party data.</li>
+<li>Provide easy access to OSN state vector trajectories at 5-sec granularity</li>
+<li>Provide cleaned up state vector based trajectories, i.e.&nbsp;remove vertical glitches (via <code>filter()</code> in <a href="https://traffic-viz.github.io/index.html"><code>traffic</code></a> library), associate meteorological information (via <a href="https://github.com/junzis/fastmeteo"><code>fastmeteo</code></a> library), remove dirty trajectories (too small/short), …</li>
+</ul>
+</section>
 </section>
 <section id="past-releases" class="level2">
 <h2 class="anchored" data-anchor-id="past-releases">Past Releases</h2>
