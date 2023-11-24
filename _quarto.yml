@@ -2,13 +2,21 @@ project:
   type: website
 bibliography: bibliography.bib
 csl: media/ieee-with-url.csl
+# number-sections: true
+
+execute:
+  echo: false
+  warning: false
+
+
 filters:
   - acronyms
+
 acronyms:
   loa_title: "List of Acronyms"
   include_unused: false
   insert_loa: "end"
-  insert_links: true
+  insert_links: false
   id_prefix: "acronyms_"
   sorting: "alphabetical"
   non_existing: "key"
@@ -19,11 +27,17 @@ acronyms:
 
 website:
   title: "OPDI"
+  google-analytics: "UA-61343306-1"
+
   navbar:
     left:
       - href: index.qmd
         text: Home
+      - data.qmd
       - concepts.qmd
+      - methodology.qmd
+      - roadmap.qmd
+
       - about.qmd
 
 format:

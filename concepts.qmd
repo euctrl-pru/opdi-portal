@@ -2,87 +2,212 @@
 title: "Concepts"
 ---
 
-## Phases of a Flight
+For the sake of statistical analysis a flight trajectory can be broken down to a
+discrete set of `EVENT`s that represent key milestones useful for a specific study.
 
-In a flight we can identify _events_ that can help to monitor its evolution from a gate-to-gate
-perspective.
-@fig-flight-phases shows a simplified diagram of a possible set of flight phases (white square boxes) and relevant events (`Txy` labels).
+These events are characterized by a location and a time of occurrence, e.g., 
+in the case of a flight level crossing event the longitude, latitude, altitude and timestamp
+of where/when it occurs.
 
-![Flight phases and events.](media/flight_states.png){#fig-flight-phases width="100%"}
+Certain phenomena cannot be modeled by single 4D[^1] *instants*, i.e.
+flown level segment or holding segments.
+In these cases the `EVENT` concept can still be used, we can capture the start and
+the end of this phenomenon as two separate event types and process them as a pair 
+during the analysis.
 
-In general we are interested in analyzing performance at gate-to-gate level so
+[^1]: 3-dimensional information (longitude, latitude, altitude) plus timestamp.
+
+The concept of `MEASUREMENT` is then used when associating specific metrics to the
+events of interest.
+Example of measurements for flight trajectories are (cumulative) flown distance or
+emitted CO2. 
+
+
+::::{.callout-note icon=false collapse=true}
+
+::: columns
+::: {.column width="80%"}
+
+The Open Performance Data Initiative and the relevant data sets are made openly
+available in order to promote transparent and reproducible performance analysis.
+
+These tables are currently derived from ADS-B trajectory data kindly made available
+by [\acr{OSN}](https://opensky-network.org/).
+
+Later releases of the OPDI data sets will be integrated and complemented
+by information from other data sources in order to either include validations and
+corrections or extend the data sets.
+See our [Roadmap](roadmap.html) page for planned enhancements.
+
+:::
+
+::: {.column width="20%"}
+
+![](media/opensky-network-logo_compact.jpg)
+
+:::
+:::
+
+::::
+
+## Flight List
+
+A **flight list** contains basic information about each trajectory. It captures the \acr{ADEP} where it is first seen (`first_seen`) usually at the off-block time and the \acr{ADES} where it last seen (`last_seen`) before in-block time. The flight is usually identified by an `id` or its `FLT_ID` (i.e., the callsign) and `ICAO24`. The date of flight (`DOF`) indicates the date on which is is first seen.
+
+This flight list is constructed to give a general overview of the flights which happen each day. 
+
+## Flight Events and Phases
+
+As mentioned, in a flight we can identify _events_ that can help to monitor its evolution from a gate-to-gate
+perspective. A **flight event** or milestone is conceptually defined by
+
+* The flight trajectory `id` it belongs to.
+* The 3D location: 
+  * `longitude` and `latitude` (in [WSG84](https://en.wikipedia.org/wiki/World_Geodetic_System)),
+  * `altitude` (in feet), e.g., `32000 ft`.
+* The `event_time` when the event took place (UTC). E.g., `2021-09-27 10:43:11.234 UTC`.
+* The event `type`, i.e. `top-of-climb` or `off-block`.
+* The `source` indicates the origin of the flight trajectory used to determine the event (e.g., `OSN`).
+* The `version` indicates the algorithm version used to detect the flight event. For more info, see [Methodology](https://www.opdi.aero/methodology).
+* Additional `info` is captured at last. This can be contextual information, i.e. `F33R` as the relevant parking position for an `off-block` milestone or `26` as the \acr{RWY} ID for a `take-off` milestone.
+
+A **Flight phase** is a prolonged event which can be broken down into a _start event_ and an _end event_ of the phase. @fig-flight-phases shows a simplified diagram of a possible set of **flight phases** (white square boxes) and relevant **flight events** (`Txy` labels). 
+
+![(Simplified) Flight phases and events. For a more complete/complex representation, see @fig-flight-phases_complex in the collapsable block](media/aircraft_state_diagram.png){#fig-flight-phases width="100%"}
+
+::: {.callout-note appearance="simple" title="Flight phases and events (more complete/complex diagram) (click to open/close)" collapse=true}
+
+![Flight phases and events, a more complete/complex diagram.](media/aircraft_state_diagram_complex.png){#fig-flight-phases_complex width="100%"}
+
+:::
+
+The events in @fig-flight-phases are:
+
+* **`T00`** = time of maintenance completion
+* **`T01`** = time aircraft servicing begins
+* **`T02`** = time aircraft loading begins
+* **`T03`** = time aircraft is ready for pushback
+* **`T04`** = time off-blocks
+* **`T05`** = pushback complete - parking position vacated - start taxi
+* **`T06`** = start taxi onto take-off runway
+* **`T07`** = start take-off roll
+* **`T08`** = start rotation
+* **`T09`** = positive rate of climb established
+* **`T10`** = time aircraft reaches safety altitude and leaves traffic circuit
+* **`T11`** = time aircraft enters en-route airspace
+* **`T12`** = time of Top of Climb
+* **`T13`** = time of Top of Descent
+* **`T14`** = aircraft enters terminal airspace and starts approach
+* **`T15`** = aircraft established on final approach
+* **`T16`** = aircraft over runway threshold
+* **`T17`** = time of touchdown
+* **`T18`** = time aircraft starts turn-off
+* **`T19`** = time runway is vacated
+* **`T20`** = aircraft starts manoeuvring into parking position
+* **`T21`** = on-blocks
+* **`T22`** = time unloading begins
+* **`T23`** = unloading completed
+* **`T24`** = arrival servicing completed
+* **`T25`** = start of maintenance
+
+
+Examples of usage:
+
+* **`T04`**--**`T06`** = Taxi-out
+* **`T19`**--**`T21`** = Taxi-in
+* **`T08`**--**`T17`** = Airborne time
+* **`T04`**--**`T21`** = block-to-block time
+* **`T06`**--**`T08`** = Runway occupancy time (departure)
+* **`T04`**--**`T05`** = Pushback delay
+* **`T03`**--**`T22`** = Turnaround time
+
+
+
+In general, we are interested in analyzing performance at gate-to-gate level so
 as to cover both the airborne and the ground phases of flights. To this extent
-we summarize a flight down to some of its fundamental milestones as in the
+we summarize a flight down to some of its fundamental flight events as in the
 following list (from departure to arrival):
 
-(@) Off-block (**T06**)
-(@) End of push back (**T07**)
-(@) Enter runway for take-off (**T09**)
-(@) Lift-off (**T12**), a.k.a. take-off
-(@) 40-nautical-miles intersection (**T14** ?)
-(@) top-of-climb (**T15**)
-(@) top-of-descent (**T18**)
-(@) 40-nautical-miles intersection (**T19** ?)
-(@) Touch-down (**T22**)
-(@) Runway vacated (**T24**)
-(@) Enter parking spot (**T26**)
-(@) on-block (**T27**)
+(@) Off-block (**T04**)
+(@) End of push back (**T05**)
+(@) Enter runway for take-off (**T06**)
+(@) Lift-off (**T08**), a.k.a. take-off
+(@) 40-nautical-miles intersection (sort of **T11**)
+(@) Top-of-climb (**T12**)
+(@) Top-of-descent (**T13**)
+(@) 40-nautical-miles intersection (sort of **T14**)
+(@) Touch-down (**T17**)
+(@) Runway vacated (**T19**)
+(@) Enter parking spot (**T20**)
+(@) On-block (**T21**)
 
 
-Other interesting milestones could be
+Other interesting flight events are:
 
 (@) Holding start
 (@) Holding end
 (@) Leveled segment start
 (@) Leveled segment end
-(@) FIR crossing
+(@) Flight Information Region (FIR) crossing
 
 
-Subsets of these milestones allow for the calculation of taxi-in (`T24`, `T27`) and
-taxi-out (`T06`, `T09`) times, runway utilization and
-sequencing (`T12`, `T22`), inefficiencies in the \acr{TMA} (via
-holding patterns and leveled portions of the descent)  ...
-Additional ad-hoc milestones can be defined for specific needs, for example \acr{FIR} crossing
-milestones would be usefult to count \acr{DAIO} statistics.
+These additional ad hoc milestones can be used for specific reports,
+for example \acr{FIR} crossings could be useful to count \acr{DAIO} statistics.
 
 
-## Milestone {#sec-milestones}
 
-A flight milestone is conceptually defined by
 
-* flight ID it belongs to
-* 3D location (decimal degrees of longitude, latitude [in WSG84] and altitude [in feet]), i.e.
-  `17.933996,59.653410,-203`
-* UTC timestamp, i.e. `2021-09-27 10:43:11.234 UTC`
-* milestone type, i.e. `top-of-climb` or `off-block`
 
-Further useful attributes for business processing of the information are:
+## Measurements
 
-* the source of extraction of the milestone, i.e. `apdf` (when data provided by airport),
-  `osn` (extracted by \acr{OSN}'s \acr{ADS-B} data), `nm` (as calculated by EUROCONTROL's \acr{NM})
-* contextual information, i.e. `F33R` as the relevant parking position for an `off-block` milestone
-  or `26` as the runway ID for a `take-off` milestone.
-  This field can be also useful to define a custom fomat for airspace crossing, for example for
-  a milestone like `x-fir` we could have the `info` contain something like `from:LFFF, to:LFRR` to
-  provide info about the transition order of airspace penetration.
+Once the flight `EVENT`s are available, it is informative to see associated metrics or
+`MEASUREMENT`s for each flight event.
+An example of this is the cumulative distance flown or the (cumulative) CO2 emitted.
+
+A `MEASUREMENT` is thus identified by: 
+
+* A link to the event, by an `event_id`. 
+* The `type` of measurement (e.g., distance flown (NM) or emitted CO2).
+* The `value` of the measurement (e.g., 400 NM or 5000 kg).
+* The `version` indicates the specific algorithm used.
 
 
 ## Use Cases
 
-A milestone-based representation of a flight is a way to reduce complexity
-for its representation and hence allow some (still useful) statistical analysis for
-performance monitoring.
+An event-based representation of a flight is a way to reduce complexity for its representation and allow statistical analysis for performance monitoring. 
 
-### Fuel consumption / Environmental emissions
+### Operational Performance Monitoring
+
+One of the possible use cases for an event-based representation of a flight,
+could be the monitoring of the \acr{ICAO} [\acr{GANP} \acr{KPI}s][ICAOgamp].
+Thus operational indicators could be extracted for the analysis of the operations
+performance at network, state, airport or airline level.
+
+[ICAOgamp]: <https://www4.icao.int/ganpportal/ASBU/KPI> "ICAO GAMP KPIs website"
+
+For example using the `touch-down` (**T17** in @fig-flight-phases) with
+the contextual information (\acr{RWY} identification)
+we can calculate \acr{RWY} utilization at each airport or inter-arrival times, etc.
+
+
+![Milestones for gate to gate.](media/milestones_3d.png)
+Possible monitoring usages are:
+
+* Airport performance (Throughput, RWY utilization, …)
+* Fuel efficiency & CO2/NOx Emissions
+* Airline profiling
+* Safety: separation, …
+* Influence/resilience to Meteo events
+
+
+### Fuel Consumption and Environmental Emissions
 
 Environmental emissions and climate impact are indicators more and more in news headlines and
-on the political agendas.
-With a milestone-based representation of a flight we can *segment* the phases of interest
-and calculated the relevant cumulative emissions.
+on the political agendas. With a event-based representation of a flight we can **segment** the phases of interest and calculated the relevant cumulative emissions.
 
 For example we can split a flight in the following phases:
 
-* cruise
+* Cruise
 * \acr{LTO} cycle
 
 and calculate the fuel-burnt emissions by further splitting them.
@@ -91,91 +216,23 @@ and calculate the fuel-burnt emissions by further splitting them.
 
 For LTO we have four sub-phases:
 
-* approach
-* taxi-in
-* taxi-out
-* take-off
-* climb-out
+* Approach
+* Taxi-in
+* Taxi-out
+* Take-off
+* Climb-out
 
-For example taxi-out sub-phase can be framed by the ground portion from `off-block` to
-`rwy-entry` milestones which with defined assumptions in term of aircraft & engine type,
+The taxi-out sub-phase can be framed by the ground portion from `off-block` to
+`rwy-entry` event which with defined assumptions in term of aircraft & engine type,
 full thrust percentage and number of engines in use can be handled to an emission calculator
 to compute CO2, NOx, ... emissions.
 
-The selection of milestones to model the flight and the further assumptions of how the aircraft
+The selection of flight events to model the flight and the further assumptions of how the aircraft
 is operated between those milestones will produce results with different levels of
 [accuracy and precision](https://en.wikipedia.org/wiki/Accuracy_and_precision).
 
-
-**NOTE**: add ER diagram for use case
-
-### Operational performance
-
-
-A milestone-based modelling of a flight provides practical ways to extract operational
-indicators for the analysis of the operation performance at network, state, airport or
-airline level.
-
-For example using the `touch-down` (**T22** in @fig-flight-phases) with the contextual information
-we can calculate RWY utilization at each airport or inter-arrival times, etc.
-
-
 ### Airspace profile
 
-**TODO**: milestones line FIR crossing (`x-fir`) could be used to extract an flight airspace profile.
+Milestones line FIR crossing (`x-fir`) could be used to extract a flight airspace profile.
 For example we could have AUA crossing (`x-aua`) or even elementary airspace (`x-esa`) ones.
 The tricky thing is obviously having a non-overlapping airspaces (of the same type)
-
-## Milestones Definition
-
-The milestone concept can be modeled in entity-relationship fashion as in @fig-er-milestones.
-
-```{mermaid}
-%%| label: fig-er-diagram
-%%| fig-cap: "Entity-Relationship diagram for Milestone and relevant concepts."
-
-erDiagram
-    MILESTONE {
-        int id PK
-        int flight_id FK
-        string type
-        datetime timestamp
-        float longitude
-        float latitude
-        float altitude
-        string source
-        string info
-    }
-    FLIGHT {
-        int id PK
-        int ADEP FK
-        int ADES FK
-        int aircraft FK
-        string FLT_ID
-    }
-    AIRPORT {
-        int id PK
-        string ICAO
-        string IATA
-        float longitude
-        float latitude
-        float elevation
-        string name
-    }
-    RUNWAY {
-        int id PK
-        string name
-    }
-    AIRCRAFT {
-        int id PK
-        int icao24
-    }
-    PROFILE {
-        int id PK
-    }
-
-    MILESTONE }|--|| FLIGHT : has
-    FLIGHT    }o--|{ AIRPORT : has
-    AIRPORT   }|--|{ RUNWAY : has
-
-```

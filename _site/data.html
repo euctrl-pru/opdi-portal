@@ -1,0 +1,825 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.4.484">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>OPDI - Data</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+</style>
+
+
+<script src="site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="site_libs/quarto-nav/headroom.min.js"></script>
+<script src="site_libs/clipboard/clipboard.min.js"></script>
+<script src="site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="site_libs/quarto-search/fuse.min.js"></script>
+<script src="site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="./">
+<script src="site_libs/quarto-html/quarto.js"></script>
+<script src="site_libs/quarto-html/popper.min.js"></script>
+<script src="site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="site_libs/quarto-html/anchor.min.js"></script>
+<link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="site_libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "navbar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "end",
+  "type": "overlay",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+
+<script type="text/javascript">
+
+(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+  })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+ga('create', 'UA-61343306-1', 'auto');
+
+ga('send', {
+  hitType: 'pageview',
+  'anonymizeIp': true,
+});
+</script>
+<script src="site_libs/quarto-diagram/mermaid.min.js"></script>
+<script src="site_libs/quarto-diagram/mermaid-init.js"></script>
+<link href="site_libs/quarto-diagram/mermaid.css" rel="stylesheet">
+
+
+<link rel="stylesheet" href="styles.css">
+</head>
+
+<body class="nav-fixed">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+    <nav class="navbar navbar-expand-lg " data-bs-theme="dark">
+      <div class="navbar-container container-fluid">
+      <div class="navbar-brand-container mx-auto">
+    <a class="navbar-brand" href="./index.html">
+    <span class="navbar-title">OPDI</span>
+    </a>
+  </div>
+            <div id="quarto-search" class="" title="Search"></div>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" aria-expanded="false" aria-label="Toggle navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+  <span class="navbar-toggler-icon"></span>
+</button>
+          <div class="collapse navbar-collapse" id="navbarCollapse">
+            <ul class="navbar-nav navbar-nav-scroll me-auto">
+  <li class="nav-item">
+    <a class="nav-link" href="./index.html"> 
+<span class="menu-text">Home</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link active" href="./data.html" aria-current="page"> 
+<span class="menu-text">Data</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="./concepts.html"> 
+<span class="menu-text">Concepts</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="./methodology.html"> 
+<span class="menu-text">Methodology</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="./roadmap.html"> 
+<span class="menu-text">Roadmap</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="./about.html"> 
+<span class="menu-text">About</span></a>
+  </li>  
+</ul>
+          </div> <!-- /navcollapse -->
+          <div class="quarto-navbar-tools">
+</div>
+      </div> <!-- /container-fluid -->
+    </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
+<!-- sidebar -->
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#retrieving-data-on-trajectories" id="toc-retrieving-data-on-trajectories" class="nav-link active" data-scroll-target="#retrieving-data-on-trajectories">Retrieving Data on Trajectories</a></li>
+  <li><a href="#sec-ER-model" id="toc-sec-ER-model" class="nav-link" data-scroll-target="#sec-ER-model">Relational Model</a>
+  <ul class="collapse">
+  <li><a href="#flight" id="toc-flight" class="nav-link" data-scroll-target="#flight"><code>FLIGHT</code></a></li>
+  <li><a href="#airport" id="toc-airport" class="nav-link" data-scroll-target="#airport"><code>AIRPORT</code></a></li>
+  <li><a href="#runway" id="toc-runway" class="nav-link" data-scroll-target="#runway"><code>RUNWAY</code></a></li>
+  <li><a href="#event" id="toc-event" class="nav-link" data-scroll-target="#event"><code>EVENT</code></a></li>
+  <li><a href="#measurement" id="toc-measurement" class="nav-link" data-scroll-target="#measurement"><code>MEASUREMENT</code></a></li>
+  </ul></li>
+  <li><a href="#acronyms_HEADER_LOA" id="toc-acronyms_HEADER_LOA" class="nav-link" data-scroll-target="#acronyms_HEADER_LOA">List of Acronyms</a></li>
+  </ul>
+</nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Data</h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<p>The data is modeled according to the <a href="https://en.wikipedia.org/wiki/Entity%E2%80%93relationship_model">ER diagram</a> in <a href="#sec-ER-model" class="quarto-xref">Section&nbsp;1</a>.</p>
+<p>The <code>FLIGHT</code>, <code>EVENT</code> and <code>MEASUREMENT</code> tables are published under the <strong>Open Performance Data Initiative (OPDI)</strong> in collaboration with the <strong><a href="https://opensky-network.org/">OpenSky Network (OSN)</a></strong>. The <code>TRAJECTORY</code> data comes from OSN’s State Vector data.</p>
+<p>The first data release contains limited flight events from <code>start-date</code> until <code>end-date</code>, further enhancements are planned according to our <a href="roadmap.html">Roadmap</a> page.</p>
+<p>Download the data here:</p>
+<table class="table">
+<thead>
+<tr class="header">
+<th>Table Reference</th>
+<th>Description</th>
+<th>Data Source(s)</th>
+<th>Download Link</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>FLIGHT</code></td>
+<td>Flight list</td>
+<td><a href="https://opensky-network.org/" title="OpsnSky Network">OSN</a>/<a href="https://ansperformance.eu/about/prc/" title="Performance Review Commission">PRC</a></td>
+<td><a href="https://ansperformance.eu/data/download/OPDI/flight_table_v001.parquet">Parquet</a>, <a href="https://ansperformance.eu/data/download/OPDI/flight_table_v001.csv.gz">CSV</a></td>
+</tr>
+<tr class="even">
+<td><code>EVENT</code></td>
+<td>Flight events</td>
+<td><a href="https://opensky-network.org/" title="OpsnSky Network">OSN</a>/<a href="https://ansperformance.eu/about/prc/" title="Performance Review Commission">PRC</a></td>
+<td><a href="https://ansperformance.eu/data/download/OPDI/flight_events_v001.parquet">Parquet</a>, <a href="https://ansperformance.eu/data/download/OPDI/flight_events_v001.csv.gz">CSV</a></td>
+</tr>
+<tr class="odd">
+<td><code>MEASUREMENT</code></td>
+<td>Measurements</td>
+<td><a href="https://opensky-network.org/" title="OpsnSky Network">OSN</a>/<a href="https://ansperformance.eu/about/prc/" title="Performance Review Commission">PRC</a></td>
+<td><a href="https://ansperformance.eu/data/download/OPDI/measurements_v001.parquet">Parquet</a>, <a href="https://ansperformance.eu/data/download/OPDI/measurements_v001.csv.gz">CSV</a></td>
+</tr>
+<tr class="even">
+<td><code>AIRPORT</code></td>
+<td>Airports</td>
+<td><a href="https://ourairports.com/">OurAirports</a></td>
+<td><a href="https://davidmegginson.github.io/ourairports-data/airports.csv">CSV</a></td>
+</tr>
+<tr class="odd">
+<td><code>RUNWAY</code></td>
+<td>Runways</td>
+<td><a href="https://ourairports.com/">OurAirports</a></td>
+<td><a href="https://davidmegginson.github.io/ourairports-data/runways.csv">CSV</a></td>
+</tr>
+</tbody>
+</table>
+<div class="callout callout-style-simple callout-note callout-titled">
+<div class="callout-header d-flex align-content-center" data-bs-toggle="collapse" data-bs-target=".callout-1-contents" aria-controls="callout-1" aria-expanded="false" aria-label="Toggle callout">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Future releases (click to open/close)
+</div>
+<div class="callout-btn-toggle d-inline-block border-0 py-1 ps-1 pe-0 float-end"><i class="callout-toggle"></i></div>
+</div>
+<div id="callout-1" class="callout-1-contents callout-collapse collapse">
+<div class="callout-body-container callout-body">
+<p>Further data will be made available in upcoming iterations. These updates will cover an extended time frame, additional flight event and measurement types, and additional flight events and measurements from different trajectory sources.</p>
+<p>See the <a href="roadmap.html">Roadmap</a> page for our plans.</p>
+</div>
+</div>
+</div>
+<section id="retrieving-data-on-trajectories" class="level2">
+<h2 class="anchored" data-anchor-id="retrieving-data-on-trajectories">Retrieving Data on Trajectories</h2>
+<p>Given the <code>FLIGHT</code> table, one can, when the data <code>source</code> is <code>OpenSky Network (OSN)</code> fetch the trajectory from the publicly available OpenSky Network history database if needed. Based on the available <code>icao24</code> or <code>callsign</code>, <code>first_seen</code> and <code>last_seen</code> one can perform a query to fetch the data.</p>
+<p>The following tools are available for such queries: <a href="https://opensky-network.org/data/data-tools">https://opensky-network.org/data/data-tools</a>.</p>
+<div class="callout callout-style-simple callout-note callout-titled">
+<div class="callout-header d-flex align-content-center" data-bs-toggle="collapse" data-bs-target=".callout-2-contents" aria-controls="callout-2" aria-expanded="false" aria-label="Toggle callout">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Future releases (click to open/close)
+</div>
+<div class="callout-btn-toggle d-inline-block border-0 py-1 ps-1 pe-0 float-end"><i class="callout-toggle"></i></div>
+</div>
+<div id="callout-2" class="callout-2-contents callout-collapse collapse">
+<div class="callout-body-container callout-body">
+<p>OSN kindly provided State Vector data at 5-sec granularity for a bounding box covering (wider) Europe.</p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="media/bbox-opdi.png" title="Title: a map of the bounding box for OPDI state vector coverage" class="img-fluid figure-img" style="width:80.0%"></p>
+<figcaption>Bounding box for OPDI state vector coverage, SW=[-25.86653, 26.74617] NE=[49.65699, 70.25976]</figcaption>
+</figure>
+</div>
+<p>We intend to make these trajectories available for easy download, see <a href="roadmap.html">Roadmap</a> page.</p>
+</div>
+</div>
+</div>
+</section>
+<section id="sec-ER-model" class="level1">
+<h1>Relational Model</h1>
+<p>The diagram below describes the relationship between the different tables/entities in the OPDI dataset.</p>
+<div class="cell">
+<div class="cell-output-display">
+<div id="fig-er-diagram" class="quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-er-diagram-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<div>
+<pre class="mermaid mermaid-js" data-label="fig-er-diagram">erDiagram
+    EVENT {
+        int id PK
+        int flight_id FK
+        string type
+        timestamp event_time
+        float longitude
+        float latitude
+        float altitude
+        string source
+        string version
+        string info
+    }
+    MEASUREMENT {
+        int id PK
+        int event_id FK
+        string type
+        float value
+        string version
+    }
+    FLIGHT {
+        int id PK
+        int ADEP FK
+        int ADES FK
+        string ICAO24
+        string FLT_ID
+        timestamp first_seen
+        timestamp last_seen
+        date DOF
+        str version
+    }
+    AIRPORT {
+        int id PK
+        string ident
+        string type
+        string name
+        double latitude_deg
+        double longitude_deg
+        int elevation_ft
+        string continent
+        string iso_country
+        string iso_region
+        string municipality
+        string scheduled_service
+        string gps_code
+        string iata_code
+        string local_code
+        string home_link
+        string wikipedia_link
+        string keywords
+    }
+    RUNWAY {
+        int id PK
+        int airport_ref FK
+        string airport_ident
+        int length_ft
+        int width_ft
+        string surface
+        boolean lighted
+        boolean closed
+        string le_ident
+        double le_latitude_deg
+        double le_longitude_deg
+        int le_elevation_ft
+        double le_heading_degt
+        int le_displaced_threshold_ft
+        string he_ident
+        double he_latitude_deg
+        double he_longitude_deg
+        int he_elevation_ft
+        double he_heading_degt
+        int he_displaced_threshold_ft
+    }
+
+    
+    EVENT        }|--|| FLIGHT : has
+    FLIGHT       }o--|{ AIRPORT : has
+    AIRPORT      }|--|{ RUNWAY : has
+    FLIGHT      ||--||  TRAJECTORY : has 
+    MEASUREMENT ||--|{  EVENT : has
+
+</pre>
+</div>
+</div>
+<figcaption class="figure quarto-float-caption quarto-float-fig" id="fig-er-diagram-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;1: Entity-Relationship diagram for Milestone and relevant concepts.
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<section id="flight" class="level3">
+<h3 class="anchored" data-anchor-id="flight"><code>FLIGHT</code></h3>
+<p>The <code>FLIGHT</code> table models a flight list. It provides high level information about a flight such as origin/destination airports, day of flight, callsign and International Civil Aviation Organization (ICAO) 24-bit address.</p>
+<p>This table is useful to reduce the scope of your analysis to a certain airport, and/or country and/or time period.</p>
+</section>
+<section id="airport" class="level3">
+<h3 class="anchored" data-anchor-id="airport"><code>AIRPORT</code></h3>
+<p>The <code>AIRPORT</code> table contains details about an airport such as ICAO/International Air Transport Association (IATA) identification code, the coordinated of the <a href="https://en.wikipedia.org/wiki/Airport_reference_point">Aerodrome Reference Point (ARP)</a>, ISO contry and region…</p>
+</section>
+<section id="runway" class="level3">
+<h3 class="anchored" data-anchor-id="runway"><code>RUNWAY</code></h3>
+<p>The <code>RUNWAY</code> table provides details about each available Runway (RWY) at an aerodrome, i.e. their orientations, width, length, the threshold locations, …</p>
+</section>
+<section id="event" class="level3">
+<h3 class="anchored" data-anchor-id="event"><code>EVENT</code></h3>
+<p>The <code>EVENT</code> table provide 4D milestones that characterize a flight. Events allow to condense a full trajectory into a reduced set of milestones that are still useful for a specific analysis. For example a flight could be (simplistically) summarized by take-off, top-of-climb, top-of-descent and landing.</p>
+<p>For more on Events see the <a href="concepts.html">Concepts</a> page.</p>
+</section>
+<section id="measurement" class="level3">
+<h3 class="anchored" data-anchor-id="measurement"><code>MEASUREMENT</code></h3>
+<p>The <code>MEASUREMENT</code> table provides measurements associated to events. Some examples of measurements are cumulative distance flown or cumulative CO2 emissions.</p>
+<p>For more on Measurements see the <a href="concepts.html">Concepts</a> page.</p>
+
+
+</section>
+</section>
+<section id="acronyms_HEADER_LOA" class="level1 loa">
+<h1 class="loa">List of Acronyms</h1>
+<dl>
+<dt><span id="acronyms_ARP">ARP</span></dt>
+<dd>
+Aerodrome Reference Point
+</dd>
+<dt><span id="acronyms_IATA">IATA</span></dt>
+<dd>
+International Air Transport Association
+</dd>
+<dt><span id="acronyms_ICAO">ICAO</span></dt>
+<dd>
+International Civil Aviation Organization
+</dd>
+<dt><span id="acronyms_OPDI">OPDI</span></dt>
+<dd>
+Open Performance Data Initiative
+</dd>
+<dt><span id="acronyms_OSN">OSN</span></dt>
+<dd>
+OpenSky Network
+</dd>
+<dt><span id="acronyms_RWY">RWY</span></dt>
+<dd>
+Runway
+</dd>
+</dl>
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const isCodeAnnotation = (el) => {
+    for (const clz of el.classList) {
+      if (clz.startsWith('code-annotation-')) {                     
+        return true;
+      }
+    }
+    return false;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button', {
+    text: function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+  });
+  clipboard.on('success', function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  });
+  function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+    const config = {
+      allowHTML: true,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start',
+    };
+    if (contentFn) {
+      config.content = contentFn;
+    }
+    if (onTriggerFn) {
+      config.onTrigger = onTriggerFn;
+    }
+    if (onUntriggerFn) {
+      config.onUntrigger = onUntriggerFn;
+    }
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      return note.innerHTML;
+    });
+  }
+  const xrefs = window.document.querySelectorAll('a.quarto-xref');
+  const processXRef = (id, note) => {
+    // Strip column container classes
+    const stripColumnClz = (el) => {
+      el.classList.remove("page-full", "page-columns");
+      if (el.children) {
+        for (const child of el.children) {
+          stripColumnClz(child);
+        }
+      }
+    }
+    stripColumnClz(note)
+    const typesetMath = (el) => {
+      if (window.MathJax) {
+        // MathJax Typeset
+        window.MathJax.typeset([el]);
+      } else if (window.katex) {
+        // KaTeX Render
+        var mathElements = el.getElementsByClassName("math");
+        var macros = [];
+        for (var i = 0; i < mathElements.length; i++) {
+          var texText = mathElements[i].firstChild;
+          if (mathElements[i].tagName == "SPAN") {
+            window.katex.render(texText.data, mathElements[i], {
+              displayMode: mathElements[i].classList.contains('display'),
+              throwOnError: false,
+              macros: macros,
+              fleqn: false
+            });
+          }
+        }
+      }
+    }
+    if (id === null || id.startsWith('sec-')) {
+      // Special case sections, only their first couple elements
+      const container = document.createElement("div");
+      if (note.children && note.children.length > 2) {
+        for (let i = 0; i < 2; i++) {
+          container.appendChild(note.children[i].cloneNode(true));
+        }
+        typesetMath(container);
+        return container.innerHTML
+      } else {
+        typesetMath(note);
+        return note.innerHTML;
+      }
+    } else {
+      // Remove any anchor links if they are present
+      const anchorLink = note.querySelector('a.anchorjs-link');
+      if (anchorLink) {
+        anchorLink.remove();
+      }
+      typesetMath(note);
+      return note.innerHTML;
+    }
+  }
+  for (var i=0; i<xrefs.length; i++) {
+    const xref = xrefs[i];
+    tippyHover(xref, undefined, function(instance) {
+      instance.disable();
+      let url = xref.getAttribute('href');
+      let hash = undefined; 
+      if (url.startsWith('#')) {
+        hash = url;
+      } else {
+        try { hash = new URL(url).hash; } catch {}
+      }
+      if (hash) {
+        const id = hash.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note !== null) {
+          try {
+            const html = processXRef(id, note.cloneNode(true));
+            instance.setContent(html);
+          } finally {
+            instance.enable();
+            instance.show();
+          }
+        } else {
+          // See if we can fetch this
+          fetch(url.split('#')[0])
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.getElementById(id);
+            if (note !== null) {
+              const html = processXRef(id, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      } else {
+        // See if we can fetch a full url (with no hash to target)
+        // This is a special case and we should probably do some content thinning / targeting
+        fetch(url)
+        .then(res => res.text())
+        .then(html => {
+          const parser = new DOMParser();
+          const htmlDoc = parser.parseFromString(html, "text/html");
+          const note = htmlDoc.querySelector('main.content');
+          if (note !== null) {
+            // This should only happen for chapter cross references
+            // (since there is no id in the URL)
+            // remove the first header
+            if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+              note.children[0].remove();
+            }
+            const html = processXRef(null, note);
+            instance.setContent(html);
+          } 
+        }).finally(() => {
+          instance.enable();
+          instance.show();
+        });
+      }
+    }, function(instance) {
+    });
+  }
+      let selectedAnnoteEl;
+      const selectorForAnnotation = ( cell, annotation) => {
+        let cellAttr = 'data-code-cell="' + cell + '"';
+        let lineAttr = 'data-code-annotation="' +  annotation + '"';
+        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+        return selector;
+      }
+      const selectCodeLines = (annoteEl) => {
+        const doc = window.document;
+        const targetCell = annoteEl.getAttribute("data-target-cell");
+        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+        const lineIds = lines.map((line) => {
+          return targetCell + "-" + line;
+        })
+        let top = null;
+        let height = null;
+        let parent = null;
+        if (lineIds.length > 0) {
+            //compute the position of the single el (top and bottom and make a div)
+            const el = window.document.getElementById(lineIds[0]);
+            top = el.offsetTop;
+            height = el.offsetHeight;
+            parent = el.parentElement.parentElement;
+          if (lineIds.length > 1) {
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+            height = bottom - top;
+          }
+          if (top !== null && height !== null && parent !== null) {
+            // cook up a div (if necessary) and position it 
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
+            }
+            div.style.top = top - 2 + "px";
+            div.style.height = height + 4 + "px";
+            div.style.left = 0;
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
+            }
+            gutterDiv.style.top = top - 2 + "px";
+            gutterDiv.style.height = height + 4 + "px";
+          }
+          selectedAnnoteEl = annoteEl;
+        }
+      };
+      const unselectCodeLines = () => {
+        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+        elementsIds.forEach((elId) => {
+          const div = window.document.getElementById(elId);
+          if (div) {
+            div.remove();
+          }
+        });
+        selectedAnnoteEl = undefined;
+      };
+        // Handle positioning of the toggle
+    window.addEventListener(
+      "resize",
+      throttle(() => {
+        elRect = undefined;
+        if (selectedAnnoteEl) {
+          selectCodeLines(selectedAnnoteEl);
+        }
+      }, 10)
+    );
+    function throttle(fn, ms) {
+    let throttle = false;
+    let timer;
+      return (...args) => {
+        if(!throttle) { // first call gets through
+            fn.apply(this, args);
+            throttle = true;
+        } else { // all the others get throttled
+            if(timer) clearTimeout(timer); // cancel #2
+            timer = setTimeout(() => {
+              fn.apply(this, args);
+              timer = throttle = false;
+            }, ms);
+        }
+      };
+    }
+      // Attach click handler to the DT
+      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+      for (const annoteDlNode of annoteDls) {
+        annoteDlNode.addEventListener('click', (event) => {
+          const clickedEl = event.target;
+          if (clickedEl !== selectedAnnoteEl) {
+            unselectCodeLines();
+            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+            if (activeEl) {
+              activeEl.classList.remove('code-annotation-active');
+            }
+            selectCodeLines(clickedEl);
+            clickedEl.classList.add('code-annotation-active');
+          } else {
+            // Unselect the line
+            unselectCodeLines();
+            clickedEl.classList.remove('code-annotation-active');
+          }
+        });
+      }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+</div> <!-- /content -->
+
+
+
+
+</body></html>

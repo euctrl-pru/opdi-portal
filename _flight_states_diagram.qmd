@@ -1,0 +1,146 @@
+Draft/incomplete diagram in `dot`
+
+```{dot}
+digraph G {
+  # default node shape is box
+  node [shape="box" width = 2.0, height = .75];
+  newrank=true;
+  rankdir="BT";
+  splines=ortho;
+
+  subgraph AiMS {
+    cluster=true;
+    label="Aircraft in\lmaintenance shop\l";
+    labeljust="l";
+    width=5.0;
+
+		rank=same;
+		ordering=in;
+
+		style=filled;
+		color=lightgrey;
+
+		node [style=filled,color=white];
+
+    OoS[label="Out of Service\nDue to Maintenance"];
+
+    // gost_AiMS1[label = "", style=invis];
+    // gost_AiMS2[label = "", style=invis];
+    // gost_AiMS1 -> OoS -> gost_AiMS2[style=invis];
+
+  };
+
+  subgraph AU {
+    cluster=true;
+    label="Aircraft unused\l(parked / stored)\l";
+    labeljust="l";
+
+		style=filled;
+		color=lightgrey;
+
+		node [style=filled,color=white];
+
+    WfA[label="Waiting for\nnext Assignment"];
+  }
+
+  subgraph AT {
+    cluster=true;
+    label="Aircraft\lturnaround\l";
+    labeljust="l";
+    ordering=out;
+    width=5.0;
+
+		style=filled;
+		color=lightgrey;
+
+		node [style=filled,color=white];
+
+		rank=same;
+		ordering=in;
+    ASiD[label="Aircraft servicing\nincluding de-icing"];
+    LE[label="Loading /\nEmbarking"];
+    uLdE[label="Unloading /\nDisembarking"];
+
+    ASiD -> LE;
+    uLdE -> ASiD;
+
+
+  }
+
+  subgraph WaG {
+    cluster=true;
+    label="Waiting at the\lgate/stand\l";
+    labeljust="l";
+    rank=same;
+    width=5.0;
+    nodesep=2;
+
+		style=filled;
+		color=lightgrey;
+
+		node [style=filled,color=white];
+
+    WfD[label="Waiting for\ndoors open"];
+    RfS[label="Ready for\nStartup"];
+
+    gost_WaG[label = "", style=invis];
+    RfS -> gost_WaG[style=invis ];
+    gost_WaG -> WfD[style=invis ];
+  }
+
+  subgraph OtA {
+    cluster=true;
+    label="On the\lapron/stand\l";
+    labeljust="l";
+    rank=same;
+    width=5.0;
+
+		style=filled;
+		color=lightgrey;
+
+		node [style=filled,color=white];
+
+    SaP[label="Start-up &\nPush-back"];
+    PaS[label="Park and\nShutdown"];
+
+    gost_OtA[label = "", style=invis];
+    PaS -> gost_OtA -> SaP[style=invis];
+  }
+
+  subgraph OtTdI {
+    cluster=true;
+    label="On the taxiway\lor de-icing pad\l";
+    labeljust="l";
+    rank=same;
+    width=5.0;
+
+		style=filled;
+		color=lightgrey;
+
+		node [style=filled,color=white];
+
+    DTa[label="Deaprture\ntaxi"];
+    ATa[label="Arrival\nTaxy"];
+
+    gost_OtTdI[label = "", style=invis];
+    ATa -> gost_OtTdI -> DTa[style=invis];
+  }
+
+
+  OoS -> WfA [label=A];
+  WfA -> OoS [label=B];
+
+  WfA -> ASiD;
+  ASiD -> WfA;
+  ASiD -> gost_WaG[style=invis];
+
+  LE -> RfS;
+  WfD -> uLdE;
+
+  RfS -> SaP;
+  PaS -> WfD;
+
+  ATa -> PaS;
+  SaP -> DTa;
+}
+```
