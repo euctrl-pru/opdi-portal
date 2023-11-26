@@ -4,5 +4,10 @@
 <!-- badges: start -->
 <!-- badges: end -->
 
-TThis repos is about the source code for the OPDI portal.
+This repo contains the Quarto for the OPDI portal.
+
+You need to install the following Quarto extension(s):
+* `quarto add rchaput/acronyms@master`
+
+
 

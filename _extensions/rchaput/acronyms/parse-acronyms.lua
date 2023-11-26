@@ -34,19 +34,6 @@ to register the order in which acronyms appear.
 local current_order = 0
 
 
--- A helper function to print warnings
-function warn(...)
-    -- Handle variadic args: use `tostring` to avoid errors
-    -- (in particular for table or nil values)
-    local t = table.pack(...)
-    for i=1, t.n do
-        t[i] = tostring(t[i])
-    end
-    local msg = table.concat(t, "")
-    io.stderr:write("[WARNING][acronymsdown] ", msg, "\n")
-end
-
-
 function Meta(m)
     Options:parseOptionsFromMetadata(m)
 
@@ -97,9 +84,11 @@ function generateLoA()
 
     -- Create the Header (only if the title is not empty)
     local header = nil
-    local loa_extra_classes = {}
     if Options["loa_title"] ~= "" then
-        local loa_classes = {"loa"}
+        local extra_classes = Options["loa_header_classes"]
+        -- Create a table specifically for this LoA, and copy all "extra classes"
+        -- (from the Options) to this table. The table will also contain `"loa"`.
+        local loa_classes = table.move(extra_classes, 1, #extra_classes, 2, {"loa"})
         header = pandoc.Header(1,
             { table.unpack(Options["loa_title"]) },
             pandoc.Attr(Helpers.key_to_id("HEADER_LOA"), loa_classes, {})
@@ -125,8 +114,12 @@ function appendLoA(doc)
         -- Insert at the last block in the document
         pos = #doc.blocks + 1
     else
-        error("Unrecognized option insert_loa="
-                .. tostring(Options["insert_loa"]))
+        quarto.log.error(
+            "[acronyms] Unrecognized option `insert_loa`=`",
+            tostring(Options["insert_loa"]),
+            "` in `appendLoA`."
+        )
+        assert(false)
     end
 
     local header, definition_list = generateLoA()
@@ -175,17 +168,25 @@ function replaceNonExistingAcronym(acr_key)
     -- TODO: adding the source line to warnings would be useful.
     --  But maybe not doable in Pandoc?
     if Options["non_existing"] == "key" then
-        warn("Acronym key ", acr_key, " not recognized")
+        quarto.log.warning("[acronyms] Acronym key", acr_key, "not recognized")
         return pandoc.Str(acr_key)
     elseif Options["non_existing"] == "??" then
-        warn("Acronym key ", acr_key, " not recognized")
+        quarto.log.warning("[acronyms] Acronym key", acr_key, "not recognized")
         return pandoc.Str("??")
     elseif Options["non_existing"] == "error" then
-        error("Acronym key " .. tostring(acr_key)
-                .. " not recognized, stopping!")
+        quarto.log.error(
+            "[acronyms] Acronym key",
+            tostring(acr_key),
+            "not recognized, stopping!"
+        )
+        assert(false)
     else
-        error("Unrecognized option non_existing="
-                .. tostring(Options["non_existing"]))
+        quarto.log.error(
+            "[acronyms] Unrecognized option `non_existing`=`",
+            tostring(Options["non_existing"]),
+            "` when replacing acronyms."
+        )
+        assert(false)
     end
 end
 
