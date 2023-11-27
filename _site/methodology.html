@@ -210,7 +210,7 @@ Flight List v0.0.1
 <p><strong>Version tag</strong>: <code>flight_list_v0.0.1</code></p>
 <p><strong>Data source(s)</strong>: OpenSky Network (OSN)</p>
 <p><strong>Flight identification algorithm(s):</strong></p>
-<p>Given the {OSN} state vectors, identifiers or <code>id</code>s are assigned in monthly batches. The statevectors are grouped per <code>icao24</code> and <code>callsign</code> value. Each group is subsequently split and assigned a <code>splitnumber</code> if it is detected that there is a gap in between subsequent state vectors larger than 30 minutes or if there is a gap of 10 minutes whilst the altitude is below 1km.</p>
+<p>Given the OSN state vectors, identifiers or <code>id</code>s are assigned in monthly batches. The statevectors are grouped per <code>icao24</code> and <code>callsign</code> value. Each group is subsequently split and assigned a <code>splitnumber</code> if it is detected that there is a gap in between subsequent state vectors larger than 30 minutes or if there is a gap of 10 minutes whilst the altitude is below 1km.</p>
 <p>The resulting trajectories are given <code>id</code>s which consist of the SHA256 value of the <code>icao24</code> and <code>callsign</code> followed by the <code>splitnumber</code> and the <code>year</code> and <code>month</code> of the <code>event_time</code>. This is done to ensure uniqueness of the <code>id</code>.</p>
 <p><strong>ADEP/ADES identification algorithm(s):</strong></p>
 <p>To approximate the ADEP or ADES of a departing or arriving flight, coordinate grids are calculated for each airport with a radius of 10 km and a latitude/longitude step of 0.0001 degrees. For each point in the circular grid surrounding the airport, the distance to the Aerodrome Reference Point (ARP) is calculated.</p>
@@ -273,35 +273,35 @@ Flight Events v0.0.1
 </thead>
 <tbody>
 <tr class="odd">
-<td><code>Start of Level Segment #</code></td>
-<td>The start of the numbered # level segment.</td>
+<td><code>level-start</code></td>
+<td>The start of a level segment.</td>
 </tr>
 <tr class="even">
-<td><code>End of Level Segment #</code></td>
-<td>The end of the numbered # level segment.</td>
+<td><code>level-end</code></td>
+<td>The end of a level segment.</td>
 </tr>
 <tr class="odd">
-<td><code>TOD</code></td>
+<td><code>top-of-descent</code></td>
 <td>The top-of-descent.</td>
 </tr>
 <tr class="even">
-<td><code>TOC</code></td>
+<td><code>top-of-climb</code></td>
 <td>The top-of-climb.</td>
 </tr>
 <tr class="odd">
-<td><code>Take-Off</code></td>
+<td><code>take-off</code></td>
 <td>The take-off.</td>
 </tr>
 <tr class="even">
-<td><code>Landing</code></td>
+<td><code>landing</code></td>
 <td>The landing.</td>
 </tr>
 <tr class="odd">
-<td><code>First Crossing FL50/70/100/245</code></td>
+<td><code>first-xing-fl50/70/100/245</code></td>
 <td>The first crossing of the flight level (FL) 50/70/100/245 during flight.</td>
 </tr>
 <tr class="even">
-<td><code>Last Crossing FL50/70/100/245</code></td>
+<td><code>last-xing-fl50/70/100/245</code></td>
 <td>The last crossing of the flight level (FL) 50/70/100/245 during flight.</td>
 </tr>
 </tbody>
@@ -310,12 +310,12 @@ Flight Events v0.0.1
 <p><em>Phase derivations</em></p>
 <p>Using <a href="https://openap.dev/">OpenAP - The Open Model for Aircraft Performance and Emissions</a> by <a href="https://junzis.com/">Dr.&nbsp;Junzi Sun</a> of the TU Delft, the state vectors of each flight were assessed and classified into various phases (<code>GR</code> = Ground phase, <code>LVL</code> = Level segment phase, <code>CR</code> = Cruise phase, <code>DE</code> = Descent phase, <code>CL</code> = Climb phase). Using this the events are identified in each flight as follows:</p>
 <ul>
-<li><code>Start of Level Segment #</code>: The first state vector in each numbered # level segment phase (<code>LVL</code>).</li>
-<li><code>End of Level Segment #</code>: The last state vector in each numbered # level segment phase (<code>LVL</code>).</li>
-<li><code>TOC</code>: The first state vector of the first cruise phase (<code>CR</code>).</li>
-<li><code>TOD</code>: The last state vector of the last cruise phase (<code>CR</code>).</li>
-<li><code>Take-Off</code>: The first state vector of the climb phase (<code>CL</code>) after a ground phase (<code>GND</code>).</li>
-<li><code>Landing</code>: The first state vector of the ground phase (<code>GND</code>) after a descent phase (<code>DE</code>).</li>
+<li><code>level-start</code>: The first state vector in each level segment phase (<code>LVL</code>).</li>
+<li><code>level-end</code>: The last state vector in each level segment phase (<code>LVL</code>).</li>
+<li><code>top-of-climb</code>: The first state vector of the first cruise phase (<code>CR</code>).</li>
+<li><code>top-of-descent</code>: The last state vector of the last cruise phase (<code>CR</code>).</li>
+<li><code>take-off</code>: The first state vector of the climb phase (<code>CL</code>) after a ground phase (<code>GND</code>).</li>
+<li><code>landing</code>: The first state vector of the ground phase (<code>GND</code>) after a descent phase (<code>DE</code>).</li>
 </ul>
 <p><em>Crossings</em></p>
 <p>For each crossing of the respective flight levels (FL50/70/100/245) the algorithm is as follows:</p>
@@ -324,7 +324,7 @@ Flight Events v0.0.1
 </li>
 <li>The flight values are compared between each subsequent state vector.</li>
 </ol>
-<p>The first time it crosses a flight level of interest, the crossing state vector is recorded as a <code>First Crossing</code> event. The last time it crosses a flight level of interest, the crossing state vector is recorded as a <code>Last Crossing</code> event.</p>
+<p>The first time it crosses a flight level of interest, the crossing state vector is recorded as a <code>first-xing</code> event. The last time it crosses a flight level of interest, the crossing state vector is recorded as a <code>last-xing</code> event.</p>
 </div>
 </div>
 </div>

@@ -26,7 +26,7 @@ To construct the flight list the trajectory needs to be identified from the stat
 
 **Flight identification algorithm(s):**
 
-Given the \{OSN} state vectors, identifiers or `id`s are assigned in monthly batches. The statevectors are grouped per `icao24` and `callsign` value. Each group is subsequently split and assigned a `splitnumber` if it is detected that there is a gap in between subsequent state vectors larger than 30 minutes or if there is a gap of 10 minutes whilst the altitude is below 1km. 
+Given the \acr{OSN} state vectors, identifiers or `id`s are assigned in monthly batches. The statevectors are grouped per `icao24` and `callsign` value. Each group is subsequently split and assigned a `splitnumber` if it is detected that there is a gap in between subsequent state vectors larger than 30 minutes or if there is a gap of 10 minutes whilst the altitude is below 1km. 
 
 
 The resulting trajectories are given `id`s which consist of the SHA256 value of the `icao24` and `callsign` followed by the `splitnumber` and the `year` and `month` of the `event_time`. This is done to ensure uniqueness of the `id`.
@@ -68,14 +68,14 @@ Currently the following flight event types are extracted:
 
 | Event type            | Description                                                                 |
 |------------------------------|-------------------------------------------------------------------------|
-| `Start of Level Segment #`    | The start of the numbered # level segment.                                         |
-| `End of Level Segment #`       | The end of the numbered # level segment.                                           |
-| `TOD`                          | The top-of-descent.                                                     |
-| `TOC`                          | The top-of-climb.                                                       |
-| `Take-Off`                     | The take-off.                                                           |
-| `Landing`                      | The landing.                                                            |
-| `First Crossing FL50/70/100/245`         | The first crossing of the flight level (FL) 50/70/100/245 during flight.|
-| `Last Crossing FL50/70/100/245`          | The last crossing of the flight level (FL) 50/70/100/245 during flight. |
+| `level-start`    | The start of a level segment.                                         |
+| `level-end`       | The end of a level segment.                                           |
+| `top-of-descent`                          | The top-of-descent.                                                     |
+| `top-of-climb`                          | The top-of-climb.                                                       |
+| `take-off`                     | The take-off.                                                           |
+| `landing`                      | The landing.                                                            |
+| `first-xing-fl50/70/100/245`         | The first crossing of the flight level (FL) 50/70/100/245 during flight.|
+| `last-xing-fl50/70/100/245`          | The last crossing of the flight level (FL) 50/70/100/245 during flight. |
 
 
 **Flight event algorithm(s):**
@@ -84,12 +84,12 @@ Currently the following flight event types are extracted:
 
 Using [OpenAP - The Open Model for Aircraft Performance and Emissions](https://openap.dev/) by [Dr. Junzi Sun](https://junzis.com/) of the TU Delft, the state vectors of each flight were assessed and classified into various phases (`GR` = Ground phase, `LVL` = Level segment phase, `CR` = Cruise phase, `DE` = Descent phase, `CL` = Climb phase). Using this the events are identified in each flight as follows:
 
-* `Start of Level Segment #`: The first state vector in each numbered # level segment phase (`LVL`). 
-* `End of Level Segment #`: The last state vector in each numbered # level segment phase (`LVL`).
-* `TOC`: The first state vector of the first cruise phase (`CR`). 
-* `TOD`: The last state vector of the last cruise phase (`CR`). 
-* `Take-Off`: The first state vector of the climb phase (`CL`) after a ground phase (`GND`).
-* `Landing`: The first state vector of the ground phase (`GND`) after a descent phase (`DE`).
+* `level-start`: The first state vector in each level segment phase (`LVL`). 
+* `level-end`: The last state vector in each level segment phase (`LVL`).
+* `top-of-climb`: The first state vector of the first cruise phase (`CR`). 
+* `top-of-descent`: The last state vector of the last cruise phase (`CR`). 
+* `take-off`: The first state vector of the climb phase (`CL`) after a ground phase (`GND`).
+* `landing`: The first state vector of the ground phase (`GND`) after a descent phase (`DE`).
 
 
 *Crossings*
@@ -99,7 +99,7 @@ For each crossing of the respective flight levels (FL50/70/100/245) the algorith
 1. A smooth average flight level is calculated for each state vector.  
 2. The flight values are compared between each subsequent state vector. 
 
-The first time it crosses a flight level of interest, the crossing state vector is recorded as a `First Crossing` event. The last time it crosses a flight level of interest, the crossing state vector is recorded as a `Last Crossing` event. 
+The first time it crosses a flight level of interest, the crossing state vector is recorded as a `first-xing` event. The last time it crosses a flight level of interest, the crossing state vector is recorded as a `last-xing` event. 
 
 :::
 
