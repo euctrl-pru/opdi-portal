@@ -2,7 +2,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
 
 <meta charset="utf-8">
-<meta name="generator" content="quarto-1.4.507">
+<meta name="generator" content="quarto-1.4.484">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
@@ -143,7 +143,7 @@ ga('send', {
   <ul>
   <li><a href="#future-releases" id="toc-future-releases" class="nav-link active" data-scroll-target="#future-releases">Future Releases</a>
   <ul class="collapse">
-  <li><a href="#february-2024" id="toc-february-2024" class="nav-link" data-scroll-target="#february-2024">February 2024</a></li>
+  <li><a href="#q2-2024" id="toc-q2-2024" class="nav-link" data-scroll-target="#q2-2024">Q2 2024</a></li>
   <li><a href="#candidate-topics-for-future-releases" id="toc-candidate-topics-for-future-releases" class="nav-link" data-scroll-target="#candidate-topics-for-future-releases">Candidate topics for future releases</a></li>
   </ul></li>
   <li><a href="#past-releases" id="toc-past-releases" class="nav-link" data-scroll-target="#past-releases">Past Releases</a></li>
@@ -177,10 +177,11 @@ ga('send', {
 <p>The plan is to release subsequent improvements of the Open Performance Data Initiative (OPDI) data sets every two months.</p>
 <section id="future-releases" class="level2">
 <h2 class="anchored" data-anchor-id="future-releases">Future Releases</h2>
-<section id="february-2024" class="level3">
-<h3 class="anchored" data-anchor-id="february-2024">February 2024</h3>
+<section id="q2-2024" class="level3">
+<h3 class="anchored" data-anchor-id="q2-2024">Q2 2024</h3>
 <p>This release aims to include the following improvements:</p>
 <ul>
+<li>Use 5-sec resolution trajectories</li>
 <li>Larger time frame for the available data sets (goal: 1 year).</li>
 <li>Improving the initial flight event extractions by fine tuning parameters and algorithms.</li>
 <li>Improvement in flight list Aerodrome of Departure (ADEP) / Aerodrome of Destination (ADES) approximations using <a href="https://h3geo.org/">H3 geospatial indexing system</a>.</li>
@@ -429,15 +430,8 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
       // Special case sections, only their first couple elements
       const container = document.createElement("div");
       if (note.children && note.children.length > 2) {
-        container.appendChild(note.children[0].cloneNode(true));
-        for (let i = 1; i < note.children.length; i++) {
-          const child = note.children[i];
-          if (child.tagName === "P" && child.innerText === "") {
-            continue;
-          } else {
-            container.appendChild(child.cloneNode(true));
-            break;
-          }
+        for (let i = 0; i < 2; i++) {
+          container.appendChild(note.children[i].cloneNode(true));
         }
         typesetMath(container);
         return container.innerHTML
