@@ -1,0 +1,224 @@
+---
+title: "Data Preview"
+format: html
+---
+
+The various data sets (flight list, flight events, and measurements) can be used to provide insights on topics such as traffic counts, runway/taxi-way/parking position usage at airports.
+
+::: {.callout-caution}
+## Disclaimer
+
+Please note that due to occasional system maintenance and technical issues experienced by our data provider, OpenSky Network, some of the datasets may have incomplete data for certain months. We are continuously working with OpenSky to ensure data quality and integrity and will resolve this in the upcoming release. 
+
+Affected months include **December 2023**, **January 2024**, **February 2024**, **March 2024** and **April 2024**. Please take this into consideration when viewing the data in this data preview.
+
+In addition, please also note that any numbers are influenced by the availability of ADS-B coverage. To view the history of ADS-B coverage by OSN, see [here](https://opensky-network.org/network/facts). 
+:::
+
+<script>
+    function resizeIframe(obj) {
+      obj.style.height = obj.contentWindow.document.documentElement.scrollHeight + 'px';
+    }
+  </script>
+  
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        var graphDiv = document.querySelector('.plotly-container1');
+        graphDiv.addEventListener('wheel', function (event) {
+            event.preventDefault();
+            event.stopPropagation();
+        }, { passive: false });
+    });
+</script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        var graphDiv = document.querySelector('.plotly-container2');
+        graphDiv.addEventListener('wheel', function (event) {
+            event.preventDefault();
+            event.stopPropagation();
+        }, { passive: false });
+    });
+</script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        var graphDiv = document.querySelector('.plotly-container3');
+        graphDiv.addEventListener('wheel', function (event) {
+            event.preventDefault();
+            event.stopPropagation();
+        }, { passive: false });
+    });
+</script>
+
+### Traffic at top 20 European airports
+Below you see the traffic at the major top 20 European airports (i.e., most observed flights during 2022 and 2024). This data is extracted from the **OPDI flight list** available for download [here](/data.html).
+
+<div class="plotly-container1">
+```{r}
+library(tidyverse)
+library(arrow)
+library(ggplot2)
+library(plotly)
+library(purrr)
+library(lubridate)
+
+# Read data
+combined_flight_counts <- read_parquet('data/02_analytic_data/total_flights_per_airport_pm.parquet')
+combined_flight_counts <- combined_flight_counts %>% filter(!is.na(APT))
+
+# Calculate total flights per airport and select top 20
+top_20_airports <- combined_flight_counts %>%
+  group_by(APT) %>%
+  summarize(total_flights = sum(detected_flights, na.rm = TRUE)) %>%
+  arrange(desc(total_flights)) %>%
+  slice_head(n = 20) %>%
+  pull(APT)
+
+# Filter data for top 20 airports
+top_20_data <- combined_flight_counts %>%
+  filter(APT %in% top_20_airports)
+
+# Assign different colors for each airport
+airport_colors <- colorRampPalette(RColorBrewer::brewer.pal(9, "Set2"))(length(top_20_airports))
+
+# Create Plotly stacked bar chart for top 20 airports
+p <- plot_ly(data = top_20_data) %>%
+  add_trace(
+    x = ~month, 
+    y = ~detected_flights, 
+    type = 'bar', 
+    color = ~APT, 
+    colors = airport_colors, 
+    text = ~APT,
+    hoverinfo = 'text'
+  ) %>%
+  layout(
+    title = 'Monthly observed flights for top 20 Airports',
+    yaxis = list(title = 'Monthly detected flights'),
+    xaxis = list(title = 'Month'),
+    barmode = 'stack'
+  )
+
+# Show plot
+p
+```
+</div>
+
+### Traffic at all medium and large European airports (1121 airports)
+
+Below you can see the detected traffic for all European medium and large airports. Use the dropdown menu to select an airport of choice (alphabetically ordered). There are 1121 airports in the dropdown menu. This data is extracted from the **OPDI flight list** available for download [here](/data.html).
+
+<div class="plotly-container2">
+```{r}
+library(tidyverse)
+library(arrow)
+library(ggplot2)
+library(plotly)
+library(purrr)
+library(lubridate)
+
+combined_flight_counts <- read_parquet('data/02_analytic_data/total_flights_per_airport_pm.parquet')
+
+combined_flight_counts <- combined_flight_counts %>% filter(!is.na(APT))
+
+# Create Plotly stacked bar chart with dropdown for airports
+p <- plot_ly(data = combined_flight_counts) %>%
+  add_bars(x = ~month, y = ~detected_flights, name = 'Flights', marker = list(color = 'blue')) %>%
+  layout(
+    title = list(text = 'Monthly observed flights for all airports'),  # Initial title
+    yaxis = list(title = 'Monthly observed flights'),
+    xaxis = list(title = 'Month'),
+    barmode = 'stack',
+    updatemenus = list(
+      list(
+        type = 'dropdown',
+        active = 0,
+        buttons = lapply(
+          sort(unique(combined_flight_counts$APT)), function(airport) {
+            list(
+              method = "update",
+              args = list(
+                list(
+                  x = list(
+                    combined_flight_counts$month[combined_flight_counts$APT == airport]
+                  ),
+                  y = list(
+                    combined_flight_counts$detected_flights[combined_flight_counts$APT == airport]
+                  )
+                ),
+                list(
+                  title = paste("Monthly observed flights for", airport)  # Update title with selected airport
+                )
+              ),
+              label = airport
+            )
+          }
+        ),
+        direction = "down",
+        showactive = TRUE
+      )
+    )
+  )
+
+# Show plot
+p
+```
+</div>
+
+### Flight events for airport monitoring
+
+Also airport event monitoring is possible using the **OPDI flight events**. An example of random set of flights is given below. Note that the availability of runway, taxiway and parking position events is dependent on the OpenSky Network ADS-B coverage and the availability of OpenStreetMap geographical data. This data is extracted from the **OPDI flight events** available for download [here](/data.html).
+
+<div class="plotly-container3">
+::: {include-file}
+<iframe src="resources/plotly-airport-gantt.html" width="120%" height="800" frameborder="0"></iframe>
+:::
+</div>
+
+### Flight events in function of the measurement distance flown (NM)
+Analyse your flight using the predefined **OPDI flight events** and **OPDI measurements**. An example can be seen below with the included measurements. This data is extracted from the **OPDI flight events** and **OPDI measurements** available for download [here](/data.html).
+
+```{r}
+# Load required libraries
+library(dplyr)
+library(arrow)  # for reading parquet files
+library(plotly)
+
+tmp <- read_parquet('data/02_analytic_data/example_events.parquet')
+tmp <- tmp %>% filter(type.y == 'Distance flown (NM)')
+
+# Create scatter plot
+fig <- plot_ly(tmp, x = ~value, y = ~altitude, color = ~type.x, type = 'scatter', mode = 'markers') %>%
+  layout(
+    xaxis = list(title = "Measurement: Distance flown (NM)"),
+    yaxis = list(title = "Altitude (ft)"),
+    legend = list(title = list(text = "Flight event")),
+    title = "Flight events in function of the measurement distance flown (NM)"
+  )
+
+# Display plot
+fig
+```
+<br>
+```{r}
+# Load required libraries
+library(dplyr)
+library(arrow)  # for reading parquet files
+library(plotly)
+
+tmp <- read_parquet('data/02_analytic_data/example_events.parquet')
+tmp <- tmp %>% filter(type.y == 'Time Passed (s)')
+
+# Create scatter plot
+fig <- plot_ly(tmp, x = ~value, y = ~altitude, color = ~type.x, type = 'scatter', mode = 'markers') %>%
+  layout(
+    xaxis = list(title = "Measurement: Time Passed (s)"),
+    yaxis = list(title = "Altitude (ft)"),
+    legend = list(title = list(text = "Flight event")),
+    title = "Flight events in function of the measurement time passed (s)"
+  )
+
+# Display plot
+fig
+```

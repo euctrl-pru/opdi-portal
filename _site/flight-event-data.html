@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.2.335">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>OPDI - Download Flight Events v0.0.2 Datasets</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1.6em;
+  vertical-align: middle;
+}
+</style>
+
+
+<script src="site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="site_libs/quarto-nav/headroom.min.js"></script>
+<script src="site_libs/clipboard/clipboard.min.js"></script>
+<script src="site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="site_libs/quarto-search/fuse.min.js"></script>
+<script src="site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="./">
+<script src="site_libs/quarto-html/quarto.js"></script>
+<script src="site_libs/quarto-html/popper.min.js"></script>
+<script src="site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="site_libs/quarto-html/anchor.min.js"></script>
+<link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="site_libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "navbar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "end",
+  "type": "overlay",
+  "limit": 20,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit"
+  }
+}</script>
+
+<script type="text/javascript">
+
+(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+  })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+ga('create', 'UA-61343306-1', 'auto');
+
+ga('send', {
+  hitType: 'pageview',
+  'anonymizeIp': true,
+});
+</script>
+
+
+<link rel="stylesheet" href="styles.css">
+</head>
+
+<body class="nav-fixed">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+    <nav class="navbar navbar-expand-lg navbar-dark ">
+      <div class="navbar-container container-fluid">
+      <div class="navbar-brand-container">
+    <a class="navbar-brand" href="./index.html">
+    <span class="navbar-title">OPDI</span>
+    </a>
+  </div>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" aria-expanded="false" aria-label="Toggle navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+  <span class="navbar-toggler-icon"></span>
+</button>
+          <div class="collapse navbar-collapse" id="navbarCollapse">
+            <ul class="navbar-nav navbar-nav-scroll me-auto">
+  <li class="nav-item">
+    <a class="nav-link" href="./index.html">
+ <span class="menu-text">Home</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="./data.html">
+ <span class="menu-text">Data</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="./concepts.html">
+ <span class="menu-text">Concepts</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="./methodology.html">
+ <span class="menu-text">Methodology</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="./roadmap.html">
+ <span class="menu-text">Roadmap</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="./data-preview.html">
+ <span class="menu-text">Data Preview</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="./about.html">
+ <span class="menu-text">About</span></a>
+  </li>  
+</ul>
+              <div id="quarto-search" class="" title="Search"></div>
+          </div> <!-- /navcollapse -->
+      </div> <!-- /container-fluid -->
+    </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
+<!-- sidebar -->
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#available-datasets" id="toc-available-datasets" class="nav-link active" data-scroll-target="#available-datasets">Available Datasets</a>
+  <ul class="collapse">
+  <li><a href="#section" id="toc-section" class="nav-link" data-scroll-target="#section">2022</a></li>
+  <li><a href="#section-1" id="toc-section-1" class="nav-link" data-scroll-target="#section-1">2023</a></li>
+  <li><a href="#section-2" id="toc-section-2" class="nav-link" data-scroll-target="#section-2">2024</a></li>
+  </ul></li>
+  <li><a href="#acronyms_HEADER_LOA" id="toc-acronyms_HEADER_LOA" class="nav-link" data-scroll-target="#acronyms_HEADER_LOA">List of Acronyms</a></li>
+  </ul>
+</nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Download Flight Events v0.0.2 Datasets</h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+</header>
+
+<p>Below you will find links to download flight events v0.0.2 data files from January 1, 2022, to July 9, 2024. Each file is in Parquet format, providing a highly efficient way to store and manage large datasets. The datasets are separated into 10-day intervals. Please note that each dataset covers data up to, but not including, the last day listed in its name.</p>
+<div class="callout-caution callout callout-style-default callout-captioned">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-caption-container flex-fill">
+Disclaimer
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>Please note that due to occasional system maintenance and technical issues experienced by our data provider, OpenSky Network, some of the datasets may have incomplete data for certain periods. We are continuously working with OpenSky to ensure data quality and integrity and will resolve this in the upcoming release.</p>
+<p>Affected periods include <strong>December 2023</strong>, <strong>January 2024</strong>, <strong>February 2024</strong>, <strong>March 2024</strong>, and <strong>April 2024</strong>. Please review the data carefully before use and, if possible, exclude these periods in your analysis.</p>
+</div>
+</div>
+<section id="available-datasets" class="level2">
+<h2 class="anchored" data-anchor-id="available-datasets">Available Datasets</h2>
+<p>Each dataset corresponds to a specific 10-day period and is listed below for easy access.</p>
+<div class="callout-tip callout callout-style-default callout-captioned">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-caption-container flex-fill">
+Automated Download
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>If you want to automate your downloads, you can generate the link for downloading using the following format where <code>YYYYMMDD</code> is the start date of the 10-day period: <code>https://ansperformance.eu/data/download/OPDI/v002/flight_events/flight_events_{YYYYMMDD}_{YYYYMMDD_next10}.parquet</code></p>
+<p>The first date to start generating intervals for is 1 January 2022. As an example, for January 1, 2022, to January 10, 2022, the link would be:<br>
+<code>https://ansperformance.eu/data/download/OPDI/v002/flight_events/flight_events_20220101_20220111.parquet</code></p>
+</div>
+</div>
+<section id="section" class="level3">
+<h3 class="anchored" data-anchor-id="section">2022</h3>
+<ul>
+<li><p><strong>January 1 - 10, 2022</strong><br>
+<a href="https://ansperformance.eu/data/download/OPDI/v002/flight_events/flight_events_20220101_20220111.parquet">Download flight_events_20220101_20220111.parquet</a></p></li>
+<li><p><strong>January 11 - 20, 2022</strong><br>
+<a href="https://ansperformance.eu/data/download/OPDI/v002/flight_events/flight_events_20220111_20220121.parquet">Download flight_events_20220111_20220121.parquet</a></p></li>
+<li><p><strong>January 21 - 30, 2022</strong><br>
+<a href="https://ansperformance.eu/data/download/OPDI/v002/flight_events/flight_events_20220121_20220131.parquet">Download flight_events_20220121_20220131.parquet</a></p></li>
+<li><p><strong>January 31 - February 9, 2022</strong><br>
+<a href="https://ansperformance.eu/data/download/OPDI/v002/flight_events/flight_events_20220131_20220210.parquet">Download flight_events_20220131_20220210.parquet</a></p></li>
+<li><p><strong>February 10 - 19, 2022</strong><br>
+<a href="https://ansperformance.eu/data/download/OPDI/v002/flight_events/flight_events_20220210_20220220.parquet">Download flight_events_20220210_20220220.parquet</a></p></li>
+<li><p><strong>February 20 - March 1, 2022</strong><br>
+<a href="https://ansperformance.eu/data/download/OPDI/v002/flight_events/flight_events_20220220_20220302.parquet">Download flight_events_20220220_20220302.parquet</a></p></li>
+<li><p><strong>March 2 - 11, 2022</strong><br>
+<a href="https://ansperformance.eu/data/download/OPDI/v002/flight_events/flight_events_20220302_20220312.parquet">Download flight_events_20220302_20220312.parquet</a></p></li>
+<li><p><strong>March 12 - 21, 2022</strong><br>
+<a href="https://ansperformance.eu/data/download/OPDI/v002/flight_events/flight_events_20220312_20220322.parquet">Download flight_events_20220312_20220322.parquet</a></p></li>
+<li><p><strong>March 22 - 31, 2022</strong><br>
+<a href="https://ansperformance.eu/data/download/OPDI/v002/flight_events/flight_events_20220322_20220401.parquet">Download flight_events_20220322_20220401.parquet</a></p></li>
+<li><p><strong>April 1 - 10, 2022</strong><br>
+<a href="https://ansperformance.eu/data/download/OPDI/v002/flight_events/flight_events_20220401_20220411.parquet">Download flight_events_20220401_20220411.parquet</a></p></li>
+<li><p><strong>April 11 - 20, 2022</strong><br>
+<a href="https://ansperformance.eu/data/download/OPDI/v002/flight_events/flight_events_20220411_20220421.parquet">Download flight_events_20220411_20220421.parquet</a></p></li>
+<li><p><strong>April 21 - 30, 2022</strong><br>
+<a href="https://ansperformance.eu/data/download/OPDI/v002/flight_events/flight_events_20220421_20220501.parquet">Download flight_events_20220421_20220501.parquet</a></p></li>
+<li><p><strong>May 1 - 10, 2022</strong><br>
+<a href="https://ansperformance.eu/data/download/OPDI/v002/flight_events/flight_events_20220501_20220511.parquet">Download flight_events_20220501_20220511.parquet</a></p></li>
+<li><p><strong>May 11 - 20, 2022</strong><br>
+<a href="https://ansperformance.eu/data/download/OPDI/v002/flight_events/flight_events_20220511_20220521.parquet">Download flight_events_20220511_20220521.parquet</a></p></li>
+<li><p><strong>May 21 - 30, 2022</strong><br>
+<a href="https://ansperformance.eu/data/download/OPDI/v002/flight_events/flight_events_20220521_20220531.parquet">Download flight_events_20220521_20220531.parquet</a></p></li>
+<li><p><strong>May 31 - June 9, 2022</strong><br>
+<a href="https://ansperformance.eu/data/download/OPDI/v002/flight_events/flight_events_20220531_20220610.parquet">Download flight_events_20220531_20220610.parquet</a></p></li>
+<li><p><strong>June 10 - 19, 2022</strong><br>
+<a href="https://ansperformance.eu/data/download/OPDI/v002/flight_events/flight_events_20220610_20220620.parquet">Download flight_events_20220610_20220620.parquet</a></p></li>
+<li><p><strong>June 20 - 29, 2022</strong><br>
+<a href="https://ansperformance.eu/data/download/OPDI/v002/flight_events/flight_events_20220620_20220630.parquet">Download flight_events_20220620_20220630.parquet</a></p></li>
+<li><p><strong>June 30 - July 9, 2022</strong><br>
+<a href="https://ansperformance.eu/data/download/OPDI/v002/flight_events/flight_events_20220630_20220710.parquet">Download flight_events_20220630_20220710.parquet</a></p></li>
+<li><p><strong>July 10 - 19, 2022</strong><br>
+<a href="https://ansperformance.eu/data/download/OPDI/v002/flight_events/flight_events_20220710_20220720.parquet">Download flight_events_20220710_20220720.parquet</a></p></li>
+<li><p><strong>July 20 - 29, 2022</strong><br>
+<a href="https://ansperformance.eu/data/download/OPDI/v002/flight_events/flight_events_20220720_20220730.parquet">Download flight_events_20220720_20220730.parquet</a></p></li>
+<li><p><strong>July 30 - August 8, 2022</strong><br>
+<a href="https://ansperformance.eu/data/download/OPDI/v002/flight_events/flight_events_20220730_20220809.parquet">Download flight_events_20220730_20220809.parquet</a></p></li>
+<li><p><strong>August 9 - 18, 2022</strong><br>
+<a href="https://ansperformance.eu/data/download/OPDI/v002/flight_events/flight_events_20220809_20220819.parquet">Download flight_events_20220809_20220819.parquet</a></p></li>
+<li><p><strong>August 19 - 28, 2022</strong><br>
+<a href="https://ansperformance.eu/data/download/OPDI/v002/flight_events/flight_events_20220819_20220829.parquet">Download flight_events_20220819_20220829.parquet</a></p></li>
+<li><p><strong>August 29 - September 7, 2022</strong><br>
+<a href="https://ansperformance.eu/data/download/OPDI/v002/flight_events/flight_events_20220829_20220908.parquet">Download flight_events_20220829_20220908.parquet</a></p></li>
+<li><p><strong>September 8 - 17, 2022</strong><br>
+<a href="https://ansperformance.eu/data/download/OPDI/v002/flight_events/flight_events_20220908_20220918.parquet">Download flight_events_20220908_20220918.parquet</a></p></li>
+<li><p><strong>September 18 - 27, 2022</strong><br>
+<a href="https://ansperformance.eu/data/download/OPDI/v002/flight_events/flight_events_20220918_20220928.parquet">Download flight_events_20220918_20220928.parquet</a></p></li>
+<li><p><strong>September 28 - October 7, 2022</strong><br>
+<a href="https://ansperformance.eu/data/download/OPDI/v002/flight_events/flight_events_20220928_20221008.parquet">Download flight_events_20220928_20221008.parquet</a></p></li>
+<li><p><strong>October 8 - 17, 2022</strong><br>
+<a href="https://ansperformance.eu/data/download/OPDI/v002/flight_events/flight_events_20221008_20221018.parquet">Download flight_events_20221008_20221018.parquet</a></p></li>
+<li><p><strong>October 18 - 27, 2022</strong><br>
+<a href="https://ansperformance.eu/data/download/OPDI/v002/flight_events/flight_events_20221018_20221028.parquet">Download flight_events_20221018_20221028.parquet</a></p></li>
+<li><p><strong>October 28 - November 6, 2022</strong><br>
+<a href="https://ansperformance.eu/data/download/OPDI/v002/flight_events/flight_events_20221028_20221107.parquet">Download flight_events_20221028_20221107.parquet</a></p></li>
+<li><p><strong>November 7 - 16, 2022</strong><br>
+<a href="https://ansperformance.eu/data/download/OPDI/v002/flight_events/flight_events_20221107_20221117.parquet">Download flight_events_20221107_20221117.parquet</a></p></li>
+<li><p><strong>November 17 - 26, 2022</strong><br>
+<a href="https://ansperformance.eu/data/download/OPDI/v002/flight_events/flight_events_20221117_20221127.parquet">Download flight_events_20221117_20221127.parquet</a></p></li>
+<li><p><strong>November 27 - December 6, 2022</strong><br>
+<a href="https://ansperformance.eu/data/download/OPDI/v002/flight_events/flight_events_20221127_20221207.parquet">Download flight_events_20221127_20221207.parquet</a></p></li>
+<li><p><strong>December 7 - 16, 2022</strong><br>
+<a href="https://ansperformance.eu/data/download/OPDI/v002/flight_events/flight_events_20221207_20221217.parquet">Download flight_events_20221207_20221217.parquet</a></p></li>
+<li><p><strong>December 17 - 26, 2022</strong><br>
+<a href="https://ansperformance.eu/data/download/OPDI/v002/flight_events/flight_events_20221217_20221227.parquet">Download flight_events_20221217_20221227.parquet</a></p></li>
+<li><p><strong>December 27, 2022 - January 5, 2023</strong><br>
+<a href="https://ansperformance.eu/data/download/OPDI/v002/flight_events/flight_events_20221227_20230106.parquet">Download flight_events_20221227_20230106.parquet</a></p></li>
+</ul>
+</section>
+<section id="section-1" class="level3">
+<h3 class="anchored" data-anchor-id="section-1">2023</h3>
+<ul>
+<li><p><strong>January 6 - 15, 2023</strong><br>
+<a href="https://ansperformance.eu/data/download/OPDI/v002/flight_events/flight_events_20230106_20230116.parquet">Download flight_events_20230106_20230116.parquet</a></p></li>
+<li><p><strong>January 16 - 25, 2023</strong><br>
+<a href="https://ansperformance.eu/data/download/OPDI/v002/flight_events/flight_events_20230116_20230126.parquet">Download flight_events_20230116_20230126.parquet</a></p></li>
+<li><p><strong>January 26 - February 4, 2023</strong><br>
+<a href="https://ansperformance.eu/data/download/OPDI/v002/flight_events/flight_events_20230126_20230205.parquet">Download flight_events_20230126_20230205.parquet</a></p></li>
+<li><p><strong>February 5 - 14, 2023</strong><br>
+<a href="https://ansperformance.eu/data/download/OPDI/v002/flight_events/flight_events_20230205_20230215.parquet">Download flight_events_20230205_20230215.parquet</a></p></li>
+<li><p><strong>February 15 - 24, 2023</strong><br>
+<a href="https://ansperformance.eu/data/download/OPDI/v002/flight_events/flight_events_20230215_20230225.parquet">Download flight_events_20230215_20230225.parquet</a></p></li>
+<li><p><strong>February 25 - March 6, 2023</strong><br>
+<a href="https://ansperformance.eu/data/download/OPDI/v002/flight_events/flight_events_20230225_20230307.parquet">Download flight_events_20230225_20230307.parquet</a></p></li>
+<li><p><strong>March 7 - 16, 2023</strong><br>
+<a href="https://ansperformance.eu/data/download/OPDI/v002/flight_events/flight_events_20230307_20230317.parquet">Download flight_events_20230307_20230317.parquet</a></p></li>
+<li><p><strong>March 17 - 26, 2023</strong><br>
+<a href="https://ansperformance.eu/data/download/OPDI/v002/flight_events/flight_events_20230317_20230327.parquet">Download flight_events_20230317_20230327.parquet</a></p></li>
+<li><p><strong>March 27 - April 5, 2023</strong><br>
+<a href="https://ansperformance.eu/data/download/OPDI/v002/flight_events/flight_events_20230327_20230406.parquet">Download flight_events_20230327_20230406.parquet</a></p></li>
+<li><p><strong>April 6 - 15, 2023</strong><br>
+<a href="https://ansperformance.eu/data/download/OPDI/v002/flight_events/flight_events_20230406_20230416.parquet">Download flight_events_20230406_20230416.parquet</a></p></li>
+<li><p><strong>April 16 - 25, 2023</strong><br>
+<a href="https://ansperformance.eu/data/download/OPDI/v002/flight_events/flight_events_20230416_20230426.parquet">Download flight_events_20230416_20230426.parquet</a></p></li>
+<li><p><strong>April 26 - May 5, 2023</strong><br>
+<a href="https://ansperformance.eu/data/download/OPDI/v002/flight_events/flight_events_20230426_20230506.parquet">Download flight_events_20230426_20230506.parquet</a></p></li>
+<li><p><strong>May 6 - 15, 2023</strong><br>
+<a href="https://ansperformance.eu/data/download/OPDI/v002/flight_events/flight_events_20230506_20230516.parquet">Download flight_events_20230506_20230516.parquet</a></p></li>
+<li><p><strong>May 16 - 25, 2023</strong><br>
+<a href="https://ansperformance.eu/data/download/OPDI/v002/flight_events/flight_events_20230516_20230526.parquet">Download flight_events_20230516_20230526.parquet</a></p></li>
+<li><p><strong>May 26 - June 4, 2023</strong><br>
+<a href="https://ansperformance.eu/data/download/OPDI/v002/flight_events/flight_events_20230526_20230605.parquet">Download flight_events_20230526_20230605.parquet</a></p></li>
+<li><p><strong>June 5 - 14, 2023</strong><br>
+<a href="https://ansperformance.eu/data/download/OPDI/v002/flight_events/flight_events_20230605_20230615.parquet">Download flight_events_20230605_20230615.parquet</a></p></li>
+<li><p><strong>June 15 - 24, 2023</strong><br>
+<a href="https://ansperformance.eu/data/download/OPDI/v002/flight_events/flight_events_20230615_20230625.parquet">Download flight_events_20230615_20230625.parquet</a></p></li>
+<li><p><strong>June 25 - July 4, 2023</strong><br>
+<a href="https://ansperformance.eu/data/download/OPDI/v002/flight_events/flight_events_20230625_20230705.parquet">Download flight_events_20230625_20230705.parquet</a></p></li>
+<li><p><strong>July 5 - 14, 2023</strong><br>
+<a href="https://ansperformance.eu/data/download/OPDI/v002/flight_events/flight_events_20230705_20230715.parquet">Download flight_events_20230705_20230715.parquet</a></p></li>
+<li><p><strong>July 15 - 24, 2023</strong><br>
+<a href="https://ansperformance.eu/data/download/OPDI/v002/flight_events/flight_events_20230715_20230725.parquet">Download flight_events_20230715_20230725.parquet</a></p></li>
+<li><p><strong>July 25 - August 3, 2023</strong><br>
+<a href="https://ansperformance.eu/data/download/OPDI/v002/flight_events/flight_events_20230725_20230804.parquet">Download flight_events_20230725_20230804.parquet</a></p></li>
+<li><p><strong>August 4 - 13, 2023</strong><br>
+<a href="https://ansperformance.eu/data/download/OPDI/v002/flight_events/flight_events_20230804_20230814.parquet">Download flight_events_20230804_20230814.parquet</a></p></li>
+<li><p><strong>August 14 - 23, 2023</strong><br>
+<a href="https://ansperformance.eu/data/download/OPDI/v002/flight_events/flight_events_20230814_20230824.parquet">Download flight_events_20230814_20230824.parquet</a></p></li>
+<li><p><strong>August 24 - September 2, 2023</strong><br>
+<a href="https://ansperformance.eu/data/download/OPDI/v002/flight_events/flight_events_20230824_20230903.parquet">Download flight_events_20230824_20230903.parquet</a></p></li>
+<li><p><strong>September 3 - 12, 2023</strong><br>
+<a href="https://ansperformance.eu/data/download/OPDI/v002/flight_events/flight_events_20230903_20230913.parquet">Download flight_events_20230903_20230913.parquet</a></p></li>
+<li><p><strong>September 13 - 22, 2023</strong><br>
+<a href="https://ansperformance.eu/data/download/OPDI/v002/flight_events/flight_events_20230913_20230923.parquet">Download flight_events_20230913_20230923.parquet</a></p></li>
+<li><p><strong>September 23 - October 2, 2023</strong><br>
+<a href="https://ansperformance.eu/data/download/OPDI/v002/flight_events/flight_events_20230923_20231003.parquet">Download flight_events_20230923_20231003.parquet</a></p></li>
+<li><p><strong>October 3 - 12, 2023</strong><br>
+<a href="https://ansperformance.eu/data/download/OPDI/v002/flight_events/flight_events_20231003_20231013.parquet">Download flight_events_20231003_20231013.parquet</a></p></li>
+<li><p><strong>October 13 - 22, 2023</strong><br>
+<a href="https://ansperformance.eu/data/download/OPDI/v002/flight_events/flight_events_20231013_20231023.parquet">Download flight_events_20231013_20231023.parquet</a></p></li>
+<li><p><strong>October 23 - November 1, 2023</strong><br>
+<a href="https://ansperformance.eu/data/download/OPDI/v002/flight_events/flight_events_20231023_20231102.parquet">Download flight_events_20231023_20231102.parquet</a></p></li>
+<li><p><strong>November 2 - 11, 2023</strong><br>
+<a href="https://ansperformance.eu/data/download/OPDI/v002/flight_events/flight_events_20231102_20231112.parquet">Download flight_events_20231102_20231112.parquet</a></p></li>
+<li><p><strong>November 12 - 21, 2023</strong><br>
+<a href="https://ansperformance.eu/data/download/OPDI/v002/flight_events/flight_events_20231112_20231122.parquet">Download flight_events_20231112_20231122.parquet</a></p></li>
+<li><p><strong>November 22 - December 1, 2023</strong><br>
+<a href="https://ansperformance.eu/data/download/OPDI/v002/flight_events/flight_events_20231122_20231202.parquet">Download flight_events_20231122_20231202.parquet</a></p></li>
+<li><p><strong>December 2 - 11, 2023</strong><br>
+<a href="https://ansperformance.eu/data/download/OPDI/v002/flight_events/flight_events_20231202_20231212.parquet">Download flight_events_20231202_20231212.parquet</a></p></li>
+<li><p><strong>December 12 - 21, 2023</strong><br>
+<a href="https://ansperformance.eu/data/download/OPDI/v002/flight_events/flight_events_20231212_20231222.parquet">Download flight_events_20231212_20231222.parquet</a></p></li>
+<li><p><strong>December 22 - 31, 2023</strong><br>
+<a href="https://ansperformance.eu/data/download/OPDI/v002/flight_events/flight_events_20231222_20240101.parquet">Download flight_events_20231222_20240101.parquet</a></p></li>
+</ul>
+</section>
+<section id="section-2" class="level3">
+<h3 class="anchored" data-anchor-id="section-2">2024</h3>
+<ul>
+<li><p><strong>January 1 - 10, 2024</strong><br>
+<a href="https://ansperformance.eu/data/download/OPDI/v002/flight_events/flight_events_20240101_20240111.parquet">Download flight_events_20240101_20240111.parquet</a></p></li>
+<li><p><strong>January 11 - 20, 2024</strong><br>
+<a href="https://ansperformance.eu/data/download/OPDI/v002/flight_events/flight_events_20240111_20240121.parquet">Download flight_events_20240111_20240121.parquet</a></p></li>
+<li><p><strong>January 21 - 30, 2024</strong><br>
+<a href="https://ansperformance.eu/data/download/OPDI/v002/flight_events/flight_events_20240121_20240131.parquet">Download flight_events_20240121_20240131.parquet</a></p></li>
+<li><p><strong>January 31 - February 9, 2024</strong><br>
+<a href="https://ansperformance.eu/data/download/OPDI/v002/flight_events/flight_events_20240131_20240210.parquet">Download flight_events_20240131_20240210.parquet</a></p></li>
+<li><p><strong>February 10 - 19, 2024</strong><br>
+<a href="https://ansperformance.eu/data/download/OPDI/v002/flight_events/flight_events_20240210_20240220.parquet">Download flight_events_20240210_20240220.parquet</a></p></li>
+<li><p><strong>February 20 - 29, 2024</strong><br>
+<a href="https://ansperformance.eu/data/download/OPDI/v002/flight_events/flight_events_20240220_20240301.parquet">Download flight_events_20240220_20240301.parquet</a></p></li>
+<li><p><strong>March 1 - 10, 2024</strong><br>
+<a href="https://ansperformance.eu/data/download/OPDI/v002/flight_events/flight_events_20240301_20240311.parquet">Download flight_events_20240301_20240311.parquet</a></p></li>
+<li><p><strong>March 11 - 20, 2024</strong><br>
+<a href="https://ansperformance.eu/data/download/OPDI/v002/flight_events/flight_events_20240311_20240321.parquet">Download flight_events_20240311_20240321.parquet</a></p></li>
+<li><p><strong>March 21 - 30, 2024</strong><br>
+<a href="https://ansperformance.eu/data/download/OPDI/v002/flight_events/flight_events_20240321_20240331.parquet">Download flight_events_20240321_20240331.parquet</a></p></li>
+<li><p><strong>March 31 - April 9, 2024</strong><br>
+<a href="https://ansperformance.eu/data/download/OPDI/v002/flight_events/flight_events_20240331_20240410.parquet">Download flight_events_20240331_20240410.parquet</a></p></li>
+<li><p><strong>April 10 - 19, 2024</strong><br>
+<a href="https://ansperformance.eu/data/download/OPDI/v002/flight_events/flight_events_20240410_20240420.parquet">Download flight_events_20240410_20240420.parquet</a></p></li>
+<li><p><strong>April 20 - 29, 2024</strong><br>
+<a href="https://ansperformance.eu/data/download/OPDI/v002/flight_events/flight_events_20240420_20240430.parquet">Download flight_events_20240420_20240430.parquet</a></p></li>
+<li><p><strong>April 30 - May 9, 2024</strong><br>
+<a href="https://ansperformance.eu/data/download/OPDI/v002/flight_events/flight_events_20240430_20240510.parquet">Download flight_events_20240430_20240510.parquet</a></p></li>
+<li><p><strong>May 10 - 19, 2024</strong><br>
+<a href="https://ansperformance.eu/data/download/OPDI/v002/flight_events/flight_events_20240510_20240520.parquet">Download flight_events_20240510_20240520.parquet</a></p></li>
+<li><p><strong>May 20 - 29, 2024</strong><br>
+<a href="https://ansperformance.eu/data/download/OPDI/v002/flight_events/flight_events_20240520_20240530.parquet">Download flight_events_20240520_20240530.parquet</a></p></li>
+<li><p><strong>May 30 - June 8, 2024</strong><br>
+<a href="https://ansperformance.eu/data/download/OPDI/v002/flight_events/flight_events_20240530_20240609.parquet">Download flight_events_20240530_20240609.parquet</a></p></li>
+<li><p><strong>June 9 - 18, 2024</strong><br>
+<a href="https://ansperformance.eu/data/download/OPDI/v002/flight_events/flight_events_20240609_20240619.parquet">Download flight_events_20240609_20240619.parquet</a></p></li>
+<li><p><strong>June 19 - 28, 2024</strong><br>
+<a href="https://ansperformance.eu/data/download/OPDI/v002/flight_events/flight_events_20240619_20240629.parquet">Download flight_events_20240619_20240629.parquet</a></p></li>
+<li><p><strong>June 29 - July 8, 2024</strong><br>
+<a href="https://ansperformance.eu/data/download/OPDI/v002/flight_events/flight_events_20240629_20240709.parquet">Download flight_events_20240629_20240709.parquet</a></p></li>
+</ul>
+<hr>
+<p>We hope you find these datasets useful for your analysis and research. If you have any questions or require further assistance, please contact us at <a href="mailto:support@ansperformance.eu">support@ansperformance.eu</a>.</p>
+
+
+</section>
+</section>
+<section id="acronyms_HEADER_LOA" class="level1 loa">
+<h1 class="loa">List of Acronyms</h1>
+<dl>
+</dl>
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const clipboard = new window.ClipboardJS('.code-copy-button', {
+    target: function(trigger) {
+      return trigger.previousElementSibling;
+    }
+  });
+  clipboard.on('success', function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  });
+  function tippyHover(el, contentFn) {
+    const config = {
+      allowHTML: true,
+      content: contentFn,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start'
+    };
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      return note.innerHTML;
+    });
+  }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+</div> <!-- /content -->
+
+
+
+</body></html>

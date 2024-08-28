@@ -2,7 +2,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
 
 <meta charset="utf-8">
-<meta name="generator" content="quarto-1.4.484">
+<meta name="generator" content="quarto-1.2.335">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
@@ -17,7 +17,7 @@ div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
 ul.task-list{list-style: none;}
 ul.task-list li input[type="checkbox"] {
   width: 0.8em;
-  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  margin: 0 0.8em 0.2em -1.6em;
   vertical-align: middle;
 }
 </style>
@@ -45,13 +45,7 @@ ul.task-list li input[type="checkbox"] {
   "collapse-after": 3,
   "panel-placement": "end",
   "type": "overlay",
-  "limit": 50,
-  "keyboard-shortcut": [
-    "f",
-    "/",
-    "s"
-  ],
-  "show-item-context": false,
+  "limit": 20,
   "language": {
     "search-no-results-text": "No results",
     "search-matching-documents-text": "matching documents",
@@ -61,8 +55,7 @@ ul.task-list li input[type="checkbox"] {
     "search-more-matches-text": "more matches in this document",
     "search-clear-button-title": "Clear",
     "search-detached-cancel-button-title": "Cancel",
-    "search-submit-button-title": "Submit",
-    "search-label": "Search"
+    "search-submit-button-title": "Submit"
   }
 }</script>
 
@@ -88,47 +81,49 @@ ga('send', {
 
 <div id="quarto-search-results"></div>
   <header id="quarto-header" class="headroom fixed-top">
-    <nav class="navbar navbar-expand-lg " data-bs-theme="dark">
+    <nav class="navbar navbar-expand-lg navbar-dark ">
       <div class="navbar-container container-fluid">
-      <div class="navbar-brand-container mx-auto">
+      <div class="navbar-brand-container">
     <a class="navbar-brand" href="./index.html">
     <span class="navbar-title">OPDI</span>
     </a>
   </div>
-            <div id="quarto-search" class="" title="Search"></div>
           <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" aria-expanded="false" aria-label="Toggle navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
   <span class="navbar-toggler-icon"></span>
 </button>
           <div class="collapse navbar-collapse" id="navbarCollapse">
             <ul class="navbar-nav navbar-nav-scroll me-auto">
   <li class="nav-item">
-    <a class="nav-link" href="./index.html"> 
-<span class="menu-text">Home</span></a>
+    <a class="nav-link" href="./index.html">
+ <span class="menu-text">Home</span></a>
   </li>  
   <li class="nav-item">
-    <a class="nav-link" href="./data.html"> 
-<span class="menu-text">Data</span></a>
+    <a class="nav-link" href="./data.html">
+ <span class="menu-text">Data</span></a>
   </li>  
   <li class="nav-item">
-    <a class="nav-link" href="./concepts.html"> 
-<span class="menu-text">Concepts</span></a>
+    <a class="nav-link" href="./concepts.html">
+ <span class="menu-text">Concepts</span></a>
   </li>  
   <li class="nav-item">
-    <a class="nav-link active" href="./methodology.html" aria-current="page"> 
-<span class="menu-text">Methodology</span></a>
+    <a class="nav-link active" href="./methodology.html" aria-current="page">
+ <span class="menu-text">Methodology</span></a>
   </li>  
   <li class="nav-item">
-    <a class="nav-link" href="./roadmap.html"> 
-<span class="menu-text">Roadmap</span></a>
+    <a class="nav-link" href="./roadmap.html">
+ <span class="menu-text">Roadmap</span></a>
   </li>  
   <li class="nav-item">
-    <a class="nav-link" href="./about.html"> 
-<span class="menu-text">About</span></a>
+    <a class="nav-link" href="./data-preview.html">
+ <span class="menu-text">Data Preview</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="./about.html">
+ <span class="menu-text">About</span></a>
   </li>  
 </ul>
+              <div id="quarto-search" class="" title="Search"></div>
           </div> <!-- /navcollapse -->
-          <div class="quarto-navbar-tools">
-</div>
       </div> <!-- /container-fluid -->
     </nav>
 </header>
@@ -166,11 +161,9 @@ ga('send', {
   </div>
   
 
-
 </header>
 
-
-<p>The various methodologies used to extract <strong>flight lists</strong>, <strong>flight events</strong> and <strong>measurements</strong> from trajectory state vectors.</p>
+<p>The various methodologies used to extract <strong>flight lists</strong>, <strong>flight events</strong> and <strong>measurements</strong> from trajectory state vectors. The code is publically available on <a href="https://github.com/euctrl-pru/opdi">GitHub</a>.</p>
 <section id="flight-list" class="level2">
 <h2 class="anchored" data-anchor-id="flight-list">Flight List</h2>
 <p>To construct the flight list the trajectory needs to be identified from the state vectors. In addition, one needs to assign the Aerodrome of Departure (ADEP) and Aerodrome of Destination (ADES). Based on the state vector source, the trajectory might already contain an identifier <code>id</code> and an ADEP and ADES. The various subsequent algorithms are considered iterative improvements.</p>
@@ -179,7 +172,7 @@ ga('send', {
 <tr class="header">
 <th>Version</th>
 <th>Improvements</th>
-<th>Release date</th>
+<th>Development date</th>
 <th>Methodology</th>
 </tr>
 </thead>
@@ -187,19 +180,25 @@ ga('send', {
 <tr class="odd">
 <td>v0.0.1</td>
 <td>Initial flight, ADEP and ADES identification algorithm.</td>
-<td>1 November 2023</td>
+<td>November 2023</td>
+<td><a href="https://www.opdi.aero/methodology#flight-list-methodology">Link</a></td>
+</tr>
+<tr class="even">
+<td>v0.0.2</td>
+<td>Second iteration flight, ADEP and ADES identification algorithm.</td>
+<td>March 2024</td>
 <td><a href="https://www.opdi.aero/methodology#flight-list-methodology">Link</a></td>
 </tr>
 </tbody>
 </table>
 <section id="flight-list-methodology" class="level4">
 <h4 class="anchored" data-anchor-id="flight-list-methodology">Flight List Methodology</h4>
-<div class="callout callout-style-default callout-note no-icon callout-titled">
+<div class="callout-note callout callout-style-default no-icon callout-captioned">
 <div class="callout-header d-flex align-content-center" data-bs-toggle="collapse" data-bs-target=".callout-1-contents" aria-controls="callout-1" aria-expanded="false" aria-label="Toggle callout">
 <div class="callout-icon-container">
 <i class="callout-icon no-icon"></i>
 </div>
-<div class="callout-title-container flex-fill">
+<div class="callout-caption-container flex-fill">
 Flight List v0.0.1
 </div>
 <div class="callout-btn-toggle d-inline-block border-0 py-1 ps-1 pe-0 float-end"><i class="callout-toggle"></i></div>
@@ -218,6 +217,30 @@ Flight List v0.0.1
 </div>
 </div>
 </div>
+<div class="callout-note callout callout-style-default no-icon callout-captioned">
+<div class="callout-header d-flex align-content-center" data-bs-toggle="collapse" data-bs-target=".callout-2-contents" aria-controls="callout-2" aria-expanded="false" aria-label="Toggle callout">
+<div class="callout-icon-container">
+<i class="callout-icon no-icon"></i>
+</div>
+<div class="callout-caption-container flex-fill">
+Flight List v0.0.2
+</div>
+<div class="callout-btn-toggle d-inline-block border-0 py-1 ps-1 pe-0 float-end"><i class="callout-toggle"></i></div>
+</div>
+<div id="callout-2" class="callout-2-contents callout-collapse collapse">
+<div class="callout-body-container callout-body">
+<p><strong>Object</strong>: Flight list</p>
+<p><strong>Version tag</strong>: <code>flight_list_v0.0.2</code></p>
+<p><strong>Data source(s)</strong>: OSN</p>
+<p><strong>Flight identification algorithm(s):</strong></p>
+<p>Given the OSN state vectors, identifiers or <code>id</code>s are assigned in monthly batches. The statevectors are grouped per <code>icao24</code> and <code>callsign</code> value. Each group is subsequently split and assigned a <code>splitnumber</code> if it is detected that there is a gap in between subsequent state vectors larger than 30 minutes or if there is a gap of 10 minutes whilst the altitude is below 1km.</p>
+<p>The resulting trajectories are given <code>id</code>s which consist of the SHA256 value of the <code>icao24</code> and <code>callsign</code> followed by the <code>splitnumber</code> and the <code>year</code> and <code>month</code> of the <code>event_time</code>. This is done to ensure uniqueness of the <code>id</code>.</p>
+<p><strong>ADEP/ADES identification algorithm(s):</strong></p>
+<p>To approximate the ADEP or ADES of a departing or arriving flight, the method has been adapted from v0.0.1. Compared to last version, circular geospatial detection grids are now created using <a href="https://h3geo.org/">Uber H3 geospatial library</a> calculated around each airport with a radius of 30 NM and an h3 resolution of 7. The trajectories are filtered to only retain state vectors with an altitude lower than 40,000 ft to enable adequate detection of both arrivals and departures. For each lat/lon point of the trajectories a H3 tag is then determined to match with the H3 tags of the cells in the circular grid.</p>
+<p>Onto the H3 tags of these state vectors the airport H3 grids are superimposed. Each state vector in the resulting data sets now indicates the various aerodromes the cells overlap with. If there are multiple aerodromes available, the minimal initial/final distance to the aerodrome indicates the most likely ADEP or ADES. Others are saved as potential ADEP <code>ADEP_P</code> and potential ADES <code>ADES_P</code>.</p>
+</div>
+</div>
+</div>
 </section>
 </section>
 <section id="flight-events" class="level2">
@@ -228,7 +251,7 @@ Flight List v0.0.1
 <tr class="header">
 <th>Version</th>
 <th>Improvements</th>
-<th>Release date</th>
+<th>Development date</th>
 <th>Methodology</th>
 </tr>
 </thead>
@@ -236,24 +259,30 @@ Flight List v0.0.1
 <tr class="odd">
 <td>v0.0.1</td>
 <td>Initial flight event extraction algorithm.</td>
-<td>1 November 2023</td>
+<td>November 2023</td>
+<td><a href="https://www.opdi.aero/methodology#flight-event-methodology">Link</a></td>
+</tr>
+<tr class="even">
+<td>v0.0.2</td>
+<td>Second iteration flight event extraction algorithm.</td>
+<td>May 2024</td>
 <td><a href="https://www.opdi.aero/methodology#flight-event-methodology">Link</a></td>
 </tr>
 </tbody>
 </table>
 <section id="flight-events-methodology" class="level4">
 <h4 class="anchored" data-anchor-id="flight-events-methodology">Flight Events Methodology</h4>
-<div class="callout callout-style-default callout-note no-icon callout-titled">
-<div class="callout-header d-flex align-content-center" data-bs-toggle="collapse" data-bs-target=".callout-2-contents" aria-controls="callout-2" aria-expanded="false" aria-label="Toggle callout">
+<div class="callout-note callout callout-style-default no-icon callout-captioned">
+<div class="callout-header d-flex align-content-center" data-bs-toggle="collapse" data-bs-target=".callout-3-contents" aria-controls="callout-3" aria-expanded="false" aria-label="Toggle callout">
 <div class="callout-icon-container">
 <i class="callout-icon no-icon"></i>
 </div>
-<div class="callout-title-container flex-fill">
+<div class="callout-caption-container flex-fill">
 Flight Events v0.0.1
 </div>
 <div class="callout-btn-toggle d-inline-block border-0 py-1 ps-1 pe-0 float-end"><i class="callout-toggle"></i></div>
 </div>
-<div id="callout-2" class="callout-2-contents callout-collapse collapse">
+<div id="callout-3" class="callout-3-contents callout-collapse collapse">
 <div class="callout-body-container callout-body">
 <p><strong>Object</strong>: Flight Events</p>
 <p><strong>Version tag</strong>: <code>flight_events_v0.0.1</code></p>
@@ -328,6 +357,115 @@ Flight Events v0.0.1
 </div>
 </div>
 </div>
+<div class="callout-note callout callout-style-default no-icon callout-captioned">
+<div class="callout-header d-flex align-content-center" data-bs-toggle="collapse" data-bs-target=".callout-4-contents" aria-controls="callout-4" aria-expanded="false" aria-label="Toggle callout">
+<div class="callout-icon-container">
+<i class="callout-icon no-icon"></i>
+</div>
+<div class="callout-caption-container flex-fill">
+Flight Events v0.0.2
+</div>
+<div class="callout-btn-toggle d-inline-block border-0 py-1 ps-1 pe-0 float-end"><i class="callout-toggle"></i></div>
+</div>
+<div id="callout-4" class="callout-4-contents callout-collapse collapse">
+<div class="callout-body-container callout-body">
+<p><strong>Object</strong>: Flight Events</p>
+<p><strong>Version tag</strong>: <code>flight_events_v0.0.2</code></p>
+<p><strong>Data source(s)</strong>: OSN</p>
+<p><strong>Flight event type(s)</strong>:</p>
+<p>Currently the following flight event types are extracted:</p>
+<table class="table">
+<thead>
+<tr class="header">
+<th>Event type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>level-start</code></td>
+<td>The start of a level segment.</td>
+</tr>
+<tr class="even">
+<td><code>level-end</code></td>
+<td>The end of a level segment.</td>
+</tr>
+<tr class="odd">
+<td><code>top-of-descent</code></td>
+<td>The top-of-descent.</td>
+</tr>
+<tr class="even">
+<td><code>top-of-climb</code></td>
+<td>The top-of-climb.</td>
+</tr>
+<tr class="odd">
+<td><code>take-off</code></td>
+<td>The take-off.</td>
+</tr>
+<tr class="even">
+<td><code>landing</code></td>
+<td>The landing.</td>
+</tr>
+<tr class="odd">
+<td><code>first-xing-fl50/70/100/245</code></td>
+<td>The first crossing of the flight level (FL) 50/70/100/245 during flight.</td>
+</tr>
+<tr class="even">
+<td><code>last-xing-fl50/70/100/245</code></td>
+<td>The last crossing of the flight level (FL) 50/70/100/245 during flight.</td>
+</tr>
+<tr class="odd">
+<td><code>entry-runway</code></td>
+<td>The entry of a runway at an airport. Additional identifiable <a href="https://www.openstreetmap.org/">OpenStreetMap</a> information of the runway is embedded in the <code>info</code> field in the form of a json.</td>
+</tr>
+<tr class="even">
+<td><code>exit-runway</code></td>
+<td>The exit of a runway at an airport. Additional identifiable <a href="https://www.openstreetmap.org/">OpenStreetMap</a> information of the runway is embedded in the <code>info</code> field in the form of a json.</td>
+</tr>
+<tr class="odd">
+<td><code>entry-taxiway</code></td>
+<td>The entry of a taxiway at an airport. Additional identifiable <a href="https://www.openstreetmap.org/">OpenStreetMap</a> information of the runway is embedded in the <code>info</code> field in the form of a json.</td>
+</tr>
+<tr class="even">
+<td><code>exit-taxiway</code></td>
+<td>The exit of a taxiway at an airport. Additional identifiable <a href="https://www.openstreetmap.org/">OpenStreetMap</a> information of the runway is embedded in the <code>info</code> field in the form of a json.</td>
+</tr>
+<tr class="odd">
+<td><code>entry-parking_position</code></td>
+<td>The entry of a parking position at an airport. Additional identifiable <a href="https://www.openstreetmap.org/">OpenStreetMap</a> information of the runway is embedded in the <code>info</code> field in the form of a json.</td>
+</tr>
+<tr class="even">
+<td><code>exit-parking_position</code></td>
+<td>The exit of a parking position at an airport. Additional identifiable <a href="https://www.openstreetmap.org/">OpenStreetMap</a> information of the runway is embedded in the <code>info</code> field in the form of a json.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Flight event algorithm(s):</strong></p>
+<p><em>Phase derivations</em></p>
+<p>Using <a href="https://openap.dev/">OpenAP - The Open Model for Aircraft Performance and Emissions</a> by <a href="https://junzis.com/">Dr.&nbsp;Junzi Sun</a> of the TU Delft, the state vectors of each flight were assessed and classified into various phases (<code>GR</code> = Ground phase, <code>LVL</code> = Level segment phase, <code>CR</code> = Cruise phase, <code>DE</code> = Descent phase, <code>CL</code> = Climb phase). Using this the events are identified in each flight as follows:</p>
+<ul>
+<li><code>level-start</code>: The first state vector in each level segment phase (<code>LVL</code>).</li>
+<li><code>level-end</code>: The last state vector in each level segment phase (<code>LVL</code>).</li>
+<li><code>top-of-climb</code>: The first state vector of the first cruise phase (<code>CR</code>).</li>
+<li><code>top-of-descent</code>: The last state vector of the last cruise phase (<code>CR</code>).</li>
+<li><code>take-off</code>: The first state vector of the climb phase (<code>CL</code>) after a ground phase (<code>GND</code>).</li>
+<li><code>landing</code>: The first state vector of the ground phase (<code>GND</code>) after a descent phase (<code>DE</code>).</li>
+</ul>
+<p>This algorithm has been adapted in this version to a native PySpark version for processing speed improvements.</p>
+<p><em>Crossings</em></p>
+<p>For each crossing of the respective flight levels (FL50/70/100/245) the algorithm is as follows:</p>
+<ol type="1">
+<li>A smooth average flight level is calculated for each state vector.<br>
+</li>
+<li>The flight values are compared between each subsequent state vector.</li>
+</ol>
+<p>The first time it crosses a flight level of interest, the crossing state vector is recorded as a <code>first-xing</code> event. The last time it crosses a flight level of interest, the crossing state vector is recorded as a <code>last-xing</code> event.</p>
+<p><em>Airport events</em></p>
+<p>For each airport element (runway/taxiway/parking position) that we detect entry and exit in, the geographic information has been retrieved from <a href="https://www.openstreetmap.org/">OpenStreetMap</a>. This information has been processed and made a geospatial grid using <a href="https://h3geo.org/">Uber H3</a>. Following this, the trajectories have been matched to these grid cells at resolution 12.</p>
+<p>A separate open source project is being developed to use this for small scale applications. See <a href="https://github.com/euctrl-pru/HexAeroPy">HexAero</a>.</p>
+</div>
+</div>
+</div>
 </section>
 </section>
 <section id="measurements" class="level2">
@@ -337,7 +475,7 @@ Flight Events v0.0.1
 <tr class="header">
 <th>Version</th>
 <th>Improvements</th>
-<th>Release date</th>
+<th>Development date</th>
 <th>Methodology</th>
 </tr>
 </thead>
@@ -345,24 +483,30 @@ Flight Events v0.0.1
 <tr class="odd">
 <td>v0.0.1</td>
 <td>Initial measurement calculation algorithm.</td>
-<td>1 November 2023</td>
+<td>November 2023</td>
+<td><a href="https://www.opdi.aero/methodology#measurements-methodology">Link</a></td>
+</tr>
+<tr class="even">
+<td>v0.0.2</td>
+<td>Second iteration measurement calculation algorithm.</td>
+<td>June 2024</td>
 <td><a href="https://www.opdi.aero/methodology#measurements-methodology">Link</a></td>
 </tr>
 </tbody>
 </table>
 <section id="measurement-methodology" class="level4">
 <h4 class="anchored" data-anchor-id="measurement-methodology">Measurement Methodology</h4>
-<div class="callout callout-style-default callout-note no-icon callout-titled">
-<div class="callout-header d-flex align-content-center" data-bs-toggle="collapse" data-bs-target=".callout-3-contents" aria-controls="callout-3" aria-expanded="false" aria-label="Toggle callout">
+<div class="callout-note callout callout-style-default no-icon callout-captioned">
+<div class="callout-header d-flex align-content-center" data-bs-toggle="collapse" data-bs-target=".callout-5-contents" aria-controls="callout-5" aria-expanded="false" aria-label="Toggle callout">
 <div class="callout-icon-container">
 <i class="callout-icon no-icon"></i>
 </div>
-<div class="callout-title-container flex-fill">
+<div class="callout-caption-container flex-fill">
 Measurements v0.0.1
 </div>
 <div class="callout-btn-toggle d-inline-block border-0 py-1 ps-1 pe-0 float-end"><i class="callout-toggle"></i></div>
 </div>
-<div id="callout-3" class="callout-3-contents callout-collapse collapse">
+<div id="callout-5" class="callout-5-contents callout-collapse collapse">
 <div class="callout-body-container callout-body">
 <p><strong>Object</strong>: Measurements</p>
 <p><strong>Version tag</strong>: <code>measurements_v0.0.1</code></p>
@@ -390,6 +534,53 @@ Measurements v0.0.1
 <p><strong>Measurement algorithm(s):</strong></p>
 <p><em>Distance Flown (NM)</em></p>
 <p>The <code>Distance flown (NM)</code> is calculated between each subsequent state vector using the great circle distance. The unit is nautic miles (NM). This segment distance is then summed cumulatively for each state vector since the first state vector (at time <code>first_seen</code>). This determined flown distance in nautic miles is then taken as measurement when identifying a flight event.</p>
+</div>
+</div>
+</div>
+<div class="callout-note callout callout-style-default no-icon callout-captioned">
+<div class="callout-header d-flex align-content-center" data-bs-toggle="collapse" data-bs-target=".callout-6-contents" aria-controls="callout-6" aria-expanded="false" aria-label="Toggle callout">
+<div class="callout-icon-container">
+<i class="callout-icon no-icon"></i>
+</div>
+<div class="callout-caption-container flex-fill">
+Measurements v0.0.2
+</div>
+<div class="callout-btn-toggle d-inline-block border-0 py-1 ps-1 pe-0 float-end"><i class="callout-toggle"></i></div>
+</div>
+<div id="callout-6" class="callout-6-contents callout-collapse collapse">
+<div class="callout-body-container callout-body">
+<p><strong>Object</strong>: Measurements</p>
+<p><strong>Version tag</strong>: <code>measurements_v0.0.2</code></p>
+<p><strong>Data source(s)</strong>: OpenSky Network (OSN)</p>
+<p><strong>Measurement type(s)</strong>:</p>
+<p>Currently the following measurements are determined:</p>
+<table class="table">
+<colgroup>
+<col style="width: 29%">
+<col style="width: 70%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Measurement type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>Distance Flown (NM)</code></td>
+<td>The cumulative distance flown in nautic miles up until this this event since the aircraft started its’ trajectory (at time <code>first_seen</code>).</td>
+</tr>
+<tr class="even">
+<td><code>Time passed (s)</code></td>
+<td>The cumulative time passed in seconds up until this this event since the aircraft started its’ trajectory (at time <code>first_seen</code>).</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Measurement algorithm(s):</strong></p>
+<p><em>Distance Flown (NM)</em></p>
+<p>The <code>Distance flown (NM)</code> is calculated between each subsequent state vector using the great circle distance. The unit is nautic miles (NM). This segment distance is then summed cumulatively for each state vector since the first state vector (at time <code>first_seen</code>). This determined flown distance in nautic miles is then taken as measurement when identifying a flight event.</p>
+<p><em>Time passed (s)</em></p>
+<p>The <code>Time passed (s)</code> is calculated between each subsequent state vector by subtracting the timestamps and taking a cumulative sum. The unit is seconds (s).</p>
 </div>
 </div>
 </div>
@@ -447,23 +638,9 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
     icon: icon
   };
   anchorJS.add('.anchored');
-  const isCodeAnnotation = (el) => {
-    for (const clz of el.classList) {
-      if (clz.startsWith('code-annotation-')) {                     
-        return true;
-      }
-    }
-    return false;
-  }
   const clipboard = new window.ClipboardJS('.code-copy-button', {
-    text: function(trigger) {
-      const codeEl = trigger.previousElementSibling.cloneNode(true);
-      for (const childEl of codeEl.children) {
-        if (isCodeAnnotation(childEl)) {
-          childEl.remove();
-        }
-      }
-      return codeEl.innerText;
+    target: function(trigger) {
+      return trigger.previousElementSibling;
     }
   });
   clipboard.on('success', function(e) {
@@ -499,9 +676,10 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
     // clear code selection
     e.clearSelection();
   });
-  function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+  function tippyHover(el, contentFn) {
     const config = {
       allowHTML: true,
+      content: contentFn,
       maxWidth: 500,
       delay: 100,
       arrow: false,
@@ -511,17 +689,8 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
       interactive: true,
       interactiveBorder: 10,
       theme: 'quarto',
-      placement: 'bottom-start',
+      placement: 'bottom-start'
     };
-    if (contentFn) {
-      config.content = contentFn;
-    }
-    if (onTriggerFn) {
-      config.onTrigger = onTriggerFn;
-    }
-    if (onUntriggerFn) {
-      config.onUntrigger = onUntriggerFn;
-    }
     window.tippy(el, config); 
   }
   const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
@@ -536,241 +705,6 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
       return note.innerHTML;
     });
   }
-  const xrefs = window.document.querySelectorAll('a.quarto-xref');
-  const processXRef = (id, note) => {
-    // Strip column container classes
-    const stripColumnClz = (el) => {
-      el.classList.remove("page-full", "page-columns");
-      if (el.children) {
-        for (const child of el.children) {
-          stripColumnClz(child);
-        }
-      }
-    }
-    stripColumnClz(note)
-    const typesetMath = (el) => {
-      if (window.MathJax) {
-        // MathJax Typeset
-        window.MathJax.typeset([el]);
-      } else if (window.katex) {
-        // KaTeX Render
-        var mathElements = el.getElementsByClassName("math");
-        var macros = [];
-        for (var i = 0; i < mathElements.length; i++) {
-          var texText = mathElements[i].firstChild;
-          if (mathElements[i].tagName == "SPAN") {
-            window.katex.render(texText.data, mathElements[i], {
-              displayMode: mathElements[i].classList.contains('display'),
-              throwOnError: false,
-              macros: macros,
-              fleqn: false
-            });
-          }
-        }
-      }
-    }
-    if (id === null || id.startsWith('sec-')) {
-      // Special case sections, only their first couple elements
-      const container = document.createElement("div");
-      if (note.children && note.children.length > 2) {
-        for (let i = 0; i < 2; i++) {
-          container.appendChild(note.children[i].cloneNode(true));
-        }
-        typesetMath(container);
-        return container.innerHTML
-      } else {
-        typesetMath(note);
-        return note.innerHTML;
-      }
-    } else {
-      // Remove any anchor links if they are present
-      const anchorLink = note.querySelector('a.anchorjs-link');
-      if (anchorLink) {
-        anchorLink.remove();
-      }
-      typesetMath(note);
-      return note.innerHTML;
-    }
-  }
-  for (var i=0; i<xrefs.length; i++) {
-    const xref = xrefs[i];
-    tippyHover(xref, undefined, function(instance) {
-      instance.disable();
-      let url = xref.getAttribute('href');
-      let hash = undefined; 
-      if (url.startsWith('#')) {
-        hash = url;
-      } else {
-        try { hash = new URL(url).hash; } catch {}
-      }
-      if (hash) {
-        const id = hash.replace(/^#\/?/, "");
-        const note = window.document.getElementById(id);
-        if (note !== null) {
-          try {
-            const html = processXRef(id, note.cloneNode(true));
-            instance.setContent(html);
-          } finally {
-            instance.enable();
-            instance.show();
-          }
-        } else {
-          // See if we can fetch this
-          fetch(url.split('#')[0])
-          .then(res => res.text())
-          .then(html => {
-            const parser = new DOMParser();
-            const htmlDoc = parser.parseFromString(html, "text/html");
-            const note = htmlDoc.getElementById(id);
-            if (note !== null) {
-              const html = processXRef(id, note);
-              instance.setContent(html);
-            } 
-          }).finally(() => {
-            instance.enable();
-            instance.show();
-          });
-        }
-      } else {
-        // See if we can fetch a full url (with no hash to target)
-        // This is a special case and we should probably do some content thinning / targeting
-        fetch(url)
-        .then(res => res.text())
-        .then(html => {
-          const parser = new DOMParser();
-          const htmlDoc = parser.parseFromString(html, "text/html");
-          const note = htmlDoc.querySelector('main.content');
-          if (note !== null) {
-            // This should only happen for chapter cross references
-            // (since there is no id in the URL)
-            // remove the first header
-            if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
-              note.children[0].remove();
-            }
-            const html = processXRef(null, note);
-            instance.setContent(html);
-          } 
-        }).finally(() => {
-          instance.enable();
-          instance.show();
-        });
-      }
-    }, function(instance) {
-    });
-  }
-      let selectedAnnoteEl;
-      const selectorForAnnotation = ( cell, annotation) => {
-        let cellAttr = 'data-code-cell="' + cell + '"';
-        let lineAttr = 'data-code-annotation="' +  annotation + '"';
-        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
-        return selector;
-      }
-      const selectCodeLines = (annoteEl) => {
-        const doc = window.document;
-        const targetCell = annoteEl.getAttribute("data-target-cell");
-        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
-        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
-        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
-        const lineIds = lines.map((line) => {
-          return targetCell + "-" + line;
-        })
-        let top = null;
-        let height = null;
-        let parent = null;
-        if (lineIds.length > 0) {
-            //compute the position of the single el (top and bottom and make a div)
-            const el = window.document.getElementById(lineIds[0]);
-            top = el.offsetTop;
-            height = el.offsetHeight;
-            parent = el.parentElement.parentElement;
-          if (lineIds.length > 1) {
-            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
-            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
-            height = bottom - top;
-          }
-          if (top !== null && height !== null && parent !== null) {
-            // cook up a div (if necessary) and position it 
-            let div = window.document.getElementById("code-annotation-line-highlight");
-            if (div === null) {
-              div = window.document.createElement("div");
-              div.setAttribute("id", "code-annotation-line-highlight");
-              div.style.position = 'absolute';
-              parent.appendChild(div);
-            }
-            div.style.top = top - 2 + "px";
-            div.style.height = height + 4 + "px";
-            div.style.left = 0;
-            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
-            if (gutterDiv === null) {
-              gutterDiv = window.document.createElement("div");
-              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
-              gutterDiv.style.position = 'absolute';
-              const codeCell = window.document.getElementById(targetCell);
-              const gutter = codeCell.querySelector('.code-annotation-gutter');
-              gutter.appendChild(gutterDiv);
-            }
-            gutterDiv.style.top = top - 2 + "px";
-            gutterDiv.style.height = height + 4 + "px";
-          }
-          selectedAnnoteEl = annoteEl;
-        }
-      };
-      const unselectCodeLines = () => {
-        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
-        elementsIds.forEach((elId) => {
-          const div = window.document.getElementById(elId);
-          if (div) {
-            div.remove();
-          }
-        });
-        selectedAnnoteEl = undefined;
-      };
-        // Handle positioning of the toggle
-    window.addEventListener(
-      "resize",
-      throttle(() => {
-        elRect = undefined;
-        if (selectedAnnoteEl) {
-          selectCodeLines(selectedAnnoteEl);
-        }
-      }, 10)
-    );
-    function throttle(fn, ms) {
-    let throttle = false;
-    let timer;
-      return (...args) => {
-        if(!throttle) { // first call gets through
-            fn.apply(this, args);
-            throttle = true;
-        } else { // all the others get throttled
-            if(timer) clearTimeout(timer); // cancel #2
-            timer = setTimeout(() => {
-              fn.apply(this, args);
-              timer = throttle = false;
-            }, ms);
-        }
-      };
-    }
-      // Attach click handler to the DT
-      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
-      for (const annoteDlNode of annoteDls) {
-        annoteDlNode.addEventListener('click', (event) => {
-          const clickedEl = event.target;
-          if (clickedEl !== selectedAnnoteEl) {
-            unselectCodeLines();
-            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
-            if (activeEl) {
-              activeEl.classList.remove('code-annotation-active');
-            }
-            selectCodeLines(clickedEl);
-            clickedEl.classList.add('code-annotation-active');
-          } else {
-            // Unselect the line
-            unselectCodeLines();
-            clickedEl.classList.remove('code-annotation-active');
-          }
-        });
-      }
   const findCites = (el) => {
     const parentEl = el.parentElement;
     if (parentEl) {
@@ -811,7 +745,6 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
 });
 </script>
 </div> <!-- /content -->
-
 
 
 

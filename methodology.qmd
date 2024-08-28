@@ -2,15 +2,16 @@
 title: "Methodology"
 ---
 
-The various methodologies used to extract **flight lists**, **flight events** and **measurements** from trajectory state vectors.
+The various methodologies used to extract **flight lists**, **flight events** and **measurements** from trajectory state vectors. The code is publically available on [GitHub](https://github.com/euctrl-pru/opdi).
 
 ## Flight List
 
 To construct the flight list the trajectory needs to be identified from the state vectors. In addition, one needs to assign the \acr{ADEP} and \acr{ADES}. Based on the state vector source, the trajectory might already contain an identifier `id` and an \acr{ADEP} and \acr{ADES}. The various subsequent algorithms are considered iterative improvements.
 
-| Version | Improvements                                      | Release date | Methodology        |
+| Version | Improvements                                      | Development date | Methodology        |
 |-------------------|--------------------------------------------------|--------------|--------------------|
-| v0.0.1| Initial flight, \acr{ADEP} and \acr{ADES} identification algorithm. | 1 November 2023 | [Link](https://www.opdi.aero/methodology#flight-list-methodology) |
+| v0.0.1| Initial flight, \acr{ADEP} and \acr{ADES} identification algorithm. | November 2023 | [Link](https://www.opdi.aero/methodology#flight-list-methodology) |
+| v0.0.2| Second iteration flight, \acr{ADEP} and \acr{ADES} identification algorithm. | March 2024 | [Link](https://www.opdi.aero/methodology#flight-list-methodology) |
 
 #### Flight List Methodology 
 
@@ -40,14 +41,39 @@ The trajectories identified in the previous step are filtered to only retain sta
 
 :::
 
+::: {.callout-note icon=false collapse=true}
+
+### Flight List v0.0.2 
+
+**Object**: Flight list
+
+**Version tag**: `flight_list_v0.0.2`
+
+**Data source(s)**: \acr{OSN}
+
+**Flight identification algorithm(s):**
+
+Given the \acr{OSN} state vectors, identifiers or `id`s are assigned in monthly batches. The statevectors are grouped per `icao24` and `callsign` value. Each group is subsequently split and assigned a `splitnumber` if it is detected that there is a gap in between subsequent state vectors larger than 30 minutes or if there is a gap of 10 minutes whilst the altitude is below 1km. 
+
+
+The resulting trajectories are given `id`s which consist of the SHA256 value of the `icao24` and `callsign` followed by the `splitnumber` and the `year` and `month` of the `event_time`. This is done to ensure uniqueness of the `id`.
+
+**ADEP/ADES identification algorithm(s):**
+
+To approximate the \acr{ADEP} or \acr{ADES} of a departing or arriving flight, the method has been adapted from v0.0.1. Compared to last version, circular geospatial detection grids are now created using [Uber H3 geospatial library](https://h3geo.org/) calculated around each airport with a radius of 30 NM and an h3 resolution of 7. The trajectories are filtered to only retain state vectors with an altitude lower than 40,000 ft to enable adequate detection of both arrivals and departures. For each lat/lon point of the trajectories a H3 tag is then determined to match with the H3 tags of the cells in the circular grid.  
+
+Onto the H3 tags of these state vectors the airport H3 grids are superimposed. Each state vector in the resulting data sets now indicates the various aerodromes the cells overlap with. If there are multiple aerodromes available, the minimal initial/final distance to the aerodrome indicates the most likely \acr{ADEP} or \acr{ADES}. Others are saved as potential ADEP `ADEP_P` and potential ADES `ADES_P`.     
+
+:::
 
 ## Flight Events
 
 The flight events are extracted from the identified trajectories using different methods for the different `type`s of flight events. 
 
-| Version | Improvements                                      | Release date | Methodology        |
+| Version | Improvements                                      | Development date | Methodology        |
 |-------------------|--------------------------------------------------|--------------|--------------------|
-| v0.0.1| Initial flight event extraction algorithm. | 1 November 2023 | [Link](https://www.opdi.aero/methodology#flight-event-methodology) |
+| v0.0.1| Initial flight event extraction algorithm. | November 2023 | [Link](https://www.opdi.aero/methodology#flight-event-methodology) |
+| v0.0.2| Second iteration flight event extraction algorithm. | May 2024 | [Link](https://www.opdi.aero/methodology#flight-event-methodology) |
 
 
 #### Flight Events Methodology 
@@ -103,12 +129,77 @@ The first time it crosses a flight level of interest, the crossing state vector 
 
 :::
 
+::: {.callout-note icon=false collapse=true}
+
+### Flight Events v0.0.2 
+
+**Object**: Flight Events
+
+**Version tag**: `flight_events_v0.0.2`
+
+**Data source(s)**: \acr{OSN}
+
+**Flight event type(s)**:
+
+Currently the following flight event types are extracted:
+
+| Event type            | Description                                                                 |
+|------------------------------|-------------------------------------------------------------------------|
+| `level-start`    | The start of a level segment.                                         |
+| `level-end`       | The end of a level segment.                                           |
+| `top-of-descent`                          | The top-of-descent.                                                     |
+| `top-of-climb`                          | The top-of-climb.                                                       |
+| `take-off`                     | The take-off.                                                           |
+| `landing`                      | The landing.                                                            |
+| `first-xing-fl50/70/100/245`         | The first crossing of the flight level (FL) 50/70/100/245 during flight.|
+| `last-xing-fl50/70/100/245`          | The last crossing of the flight level (FL) 50/70/100/245 during flight. |
+| `entry-runway`          | The entry of a runway at an airport. Additional identifiable [OpenStreetMap](https://www.openstreetmap.org/) information of the runway is embedded in the `info` field in the form of a json. |
+| `exit-runway`          | The exit of a runway at an airport. Additional identifiable [OpenStreetMap](https://www.openstreetmap.org/) information of the runway is embedded in the `info` field in the form of a json. |
+| `entry-taxiway`          | The entry of a taxiway at an airport. Additional identifiable [OpenStreetMap](https://www.openstreetmap.org/) information of the runway is embedded in the `info` field in the form of a json. |
+| `exit-taxiway`          | The exit of a taxiway at an airport. Additional identifiable [OpenStreetMap](https://www.openstreetmap.org/) information of the runway is embedded in the `info` field in the form of a json. |
+| `entry-parking_position`          | The entry of a parking position at an airport. Additional identifiable [OpenStreetMap](https://www.openstreetmap.org/) information of the runway is embedded in the `info` field in the form of a json. |
+| `exit-parking_position`          | The exit of a parking position at an airport. Additional identifiable [OpenStreetMap](https://www.openstreetmap.org/) information of the runway is embedded in the `info` field in the form of a json. |
+
+
+**Flight event algorithm(s):**
+
+*Phase derivations*
+
+Using [OpenAP - The Open Model for Aircraft Performance and Emissions](https://openap.dev/) by [Dr. Junzi Sun](https://junzis.com/) of the TU Delft, the state vectors of each flight were assessed and classified into various phases (`GR` = Ground phase, `LVL` = Level segment phase, `CR` = Cruise phase, `DE` = Descent phase, `CL` = Climb phase). Using this the events are identified in each flight as follows:
+
+* `level-start`: The first state vector in each level segment phase (`LVL`). 
+* `level-end`: The last state vector in each level segment phase (`LVL`).
+* `top-of-climb`: The first state vector of the first cruise phase (`CR`). 
+* `top-of-descent`: The last state vector of the last cruise phase (`CR`). 
+* `take-off`: The first state vector of the climb phase (`CL`) after a ground phase (`GND`).
+* `landing`: The first state vector of the ground phase (`GND`) after a descent phase (`DE`).
+
+This algorithm has been adapted in this version to a native PySpark version for processing speed improvements. 
+
+*Crossings*
+
+For each crossing of the respective flight levels (FL50/70/100/245) the algorithm is as follows: 
+
+1. A smooth average flight level is calculated for each state vector.  
+2. The flight values are compared between each subsequent state vector. 
+
+The first time it crosses a flight level of interest, the crossing state vector is recorded as a `first-xing` event. The last time it crosses a flight level of interest, the crossing state vector is recorded as a `last-xing` event. 
+
+*Airport events*
+
+For each airport element (runway/taxiway/parking position) that we detect entry and exit in, the geographic information has been retrieved from [OpenStreetMap](https://www.openstreetmap.org/). This information has been processed and made a geospatial grid using [Uber H3](https://h3geo.org/). Following this, the trajectories have been matched to these grid cells at resolution 12. 
+
+A separate open source project is being developed to use this for small scale applications. See [HexAero](https://github.com/euctrl-pru/HexAeroPy). 
+:::
+
+
 ## Measurements
 
 
-| Version | Improvements                                      | Release date | Methodology        |
+| Version | Improvements                                      | Development date | Methodology        |
 |-------------------|--------------------------------------------------|--------------|--------------------|
-| v0.0.1| Initial measurement calculation algorithm. | 1 November 2023 | [Link](https://www.opdi.aero/methodology#measurements-methodology) |
+| v0.0.1| Initial measurement calculation algorithm. | November 2023 | [Link](https://www.opdi.aero/methodology#measurements-methodology) |
+| v0.0.2| Second iteration measurement calculation algorithm. | June 2024 | [Link](https://www.opdi.aero/methodology#measurements-methodology) |
 
 #### Measurement Methodology 
 
@@ -135,5 +226,36 @@ Currently the following measurements are determined:
 *Distance Flown (NM)*
 
 The `Distance flown (NM)` is calculated between each subsequent state vector using the great circle distance. The unit is nautic miles (NM). This segment distance is then summed cumulatively for each state vector since the first state vector (at time `first_seen`). This determined flown distance in nautic miles is then taken as measurement when identifying a flight event.
+
+:::
+
+::: {.callout-note icon=false collapse=true}
+### Measurements v0.0.2 
+
+**Object**: Measurements
+
+**Version tag**: `measurements_v0.0.2`
+
+**Data source(s)**: OpenSky Network (OSN)
+
+**Measurement type(s)**:
+
+Currently the following measurements are determined:
+
+| Measurement type            | Description                                                                 |
+|------------------------------|-------------------------------------------------------------------------|
+| `Distance Flown (NM)`    | The cumulative distance flown in nautic miles up until this this event since the aircraft started its' trajectory (at time `first_seen`).                                          |
+| `Time passed (s)`    | The cumulative time passed in seconds up until this this event since the aircraft started its' trajectory (at time `first_seen`).                                          |
+
+
+**Measurement algorithm(s):**
+
+*Distance Flown (NM)*
+
+The `Distance flown (NM)` is calculated between each subsequent state vector using the great circle distance. The unit is nautic miles (NM). This segment distance is then summed cumulatively for each state vector since the first state vector (at time `first_seen`). This determined flown distance in nautic miles is then taken as measurement when identifying a flight event.
+
+*Time passed (s)*
+
+The `Time passed (s)` is calculated between each subsequent state vector by subtracting the timestamps and taking a cumulative sum. The unit is seconds (s). 
 
 :::
