@@ -2,7 +2,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
 
 <meta charset="utf-8">
-<meta name="generator" content="quarto-1.2.335">
+<meta name="generator" content="quarto-1.4.507">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
@@ -17,7 +17,7 @@ div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
 ul.task-list{list-style: none;}
 ul.task-list li input[type="checkbox"] {
   width: 0.8em;
-  margin: 0 0.8em 0.2em -1.6em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
   vertical-align: middle;
 }
 </style>
@@ -45,7 +45,13 @@ ul.task-list li input[type="checkbox"] {
   "collapse-after": 3,
   "panel-placement": "end",
   "type": "overlay",
-  "limit": 20,
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
   "language": {
     "search-no-results-text": "No results",
     "search-matching-documents-text": "matching documents",
@@ -55,7 +61,8 @@ ul.task-list li input[type="checkbox"] {
     "search-more-matches-text": "more matches in this document",
     "search-clear-button-title": "Clear",
     "search-detached-cancel-button-title": "Cancel",
-    "search-submit-button-title": "Submit"
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
   }
 }</script>
 
@@ -81,49 +88,51 @@ ga('send', {
 
 <div id="quarto-search-results"></div>
   <header id="quarto-header" class="headroom fixed-top">
-    <nav class="navbar navbar-expand-lg navbar-dark ">
+    <nav class="navbar navbar-expand-lg " data-bs-theme="dark">
       <div class="navbar-container container-fluid">
-      <div class="navbar-brand-container">
+      <div class="navbar-brand-container mx-auto">
     <a class="navbar-brand" href="./index.html">
     <span class="navbar-title">OPDI</span>
     </a>
   </div>
+            <div id="quarto-search" class="" title="Search"></div>
           <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" aria-expanded="false" aria-label="Toggle navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
   <span class="navbar-toggler-icon"></span>
 </button>
           <div class="collapse navbar-collapse" id="navbarCollapse">
             <ul class="navbar-nav navbar-nav-scroll me-auto">
   <li class="nav-item">
-    <a class="nav-link" href="./index.html">
- <span class="menu-text">Home</span></a>
+    <a class="nav-link" href="./index.html"> 
+<span class="menu-text">Home</span></a>
   </li>  
   <li class="nav-item">
-    <a class="nav-link" href="./data.html">
- <span class="menu-text">Data</span></a>
+    <a class="nav-link" href="./data.html"> 
+<span class="menu-text">Data</span></a>
   </li>  
   <li class="nav-item">
-    <a class="nav-link" href="./concepts.html">
- <span class="menu-text">Concepts</span></a>
+    <a class="nav-link" href="./concepts.html"> 
+<span class="menu-text">Concepts</span></a>
   </li>  
   <li class="nav-item">
-    <a class="nav-link" href="./methodology.html">
- <span class="menu-text">Methodology</span></a>
+    <a class="nav-link" href="./methodology.html"> 
+<span class="menu-text">Methodology</span></a>
   </li>  
   <li class="nav-item">
-    <a class="nav-link" href="./roadmap.html">
- <span class="menu-text">Roadmap</span></a>
+    <a class="nav-link" href="./roadmap.html"> 
+<span class="menu-text">Roadmap</span></a>
   </li>  
   <li class="nav-item">
-    <a class="nav-link" href="./data-preview.html">
- <span class="menu-text">Data Preview</span></a>
+    <a class="nav-link" href="./data-preview.html"> 
+<span class="menu-text">Data Preview</span></a>
   </li>  
   <li class="nav-item">
-    <a class="nav-link" href="./about.html">
- <span class="menu-text">About</span></a>
+    <a class="nav-link" href="./about.html"> 
+<span class="menu-text">About</span></a>
   </li>  
 </ul>
-              <div id="quarto-search" class="" title="Search"></div>
           </div> <!-- /navcollapse -->
+          <div class="quarto-navbar-tools">
+</div>
       </div> <!-- /container-fluid -->
     </nav>
 </header>
@@ -164,32 +173,20 @@ ga('send', {
   </div>
   
 
+
 </header>
 
-<p>Below you will find links to download flight events v0.0.2 data files from January 1, 2022, to July 9, 2024. Each file is in Parquet format, providing a highly efficient way to store and manage large datasets. The datasets are separated into 10-day intervals. Please note that each dataset covers data up to, but not including, the last day listed in its name.</p>
-<div class="callout-caution callout callout-style-default callout-captioned">
-<div class="callout-header d-flex align-content-center">
-<div class="callout-icon-container">
-<i class="callout-icon"></i>
-</div>
-<div class="callout-caption-container flex-fill">
-Disclaimer
-</div>
-</div>
-<div class="callout-body-container callout-body">
-<p>Please note that due to occasional system maintenance and technical issues experienced by our data provider, OpenSky Network, some of the datasets may have incomplete data for certain periods. We are continuously working with OpenSky to ensure data quality and integrity and will resolve this in the upcoming release.</p>
-<p>Affected periods include <strong>December 2023</strong>, <strong>January 2024</strong>, <strong>February 2024</strong>, <strong>March 2024</strong>, and <strong>April 2024</strong>. Please review the data carefully before use and, if possible, exclude these periods in your analysis.</p>
-</div>
-</div>
+
+<p>Below you will find links to download flight events v0.0.2 data files from January 1, 2022, to November 30, 2024. Each file is in Parquet format, providing a highly efficient way to store and manage large datasets. The datasets are separated into 10-day intervals. Please note that each dataset covers data up to, but not including, the last day listed in its name.</p>
 <section id="available-datasets" class="level2">
 <h2 class="anchored" data-anchor-id="available-datasets">Available Datasets</h2>
 <p>Each dataset corresponds to a specific 10-day period and is listed below for easy access.</p>
-<div class="callout-tip callout callout-style-default callout-captioned">
+<div class="callout callout-style-default callout-tip callout-titled">
 <div class="callout-header d-flex align-content-center">
 <div class="callout-icon-container">
 <i class="callout-icon"></i>
 </div>
-<div class="callout-caption-container flex-fill">
+<div class="callout-title-container flex-fill">
 Automated Download
 </div>
 </div>
@@ -396,6 +393,36 @@ Automated Download
 <a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20240619_20240629.parquet">Download flight_events_20240619_20240629.parquet</a></p></li>
 <li><p><strong>June 29 - July 8, 2024</strong><br>
 <a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20240629_20240709.parquet">Download flight_events_20240629_20240709.parquet</a></p></li>
+<li><p><strong>July 09 - July 19, 2024</strong><br>
+<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20240709_20240719.parquet">Download flight_events_20240709_20240719.parquet</a></p></li>
+<li><p><strong>July 19 - July 29, 2024</strong><br>
+<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20240719_20240729.parquet">Download flight_events_20240719_20240729.parquet</a></p></li>
+<li><p><strong>July 29 - August 08, 2024</strong><br>
+<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20240729_20240808.parquet">Download flight_events_20240729_20240808.parquet</a></p></li>
+<li><p><strong>August 08 - August 18, 2024</strong><br>
+<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20240808_20240818.parquet">Download flight_events_20240808_20240818.parquet</a></p></li>
+<li><p><strong>August 18 - August 28, 2024</strong><br>
+<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20240818_20240828.parquet">Download flight_events_20240818_20240828.parquet</a></p></li>
+<li><p><strong>August 28 - September 07, 2024</strong><br>
+<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20240828_20240907.parquet">Download flight_events_20240828_20240907.parquet</a></p></li>
+<li><p><strong>September 07 - September 17, 2024</strong><br>
+<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20240907_20240917.parquet">Download flight_events_20240907_20240917.parquet</a></p></li>
+<li><p><strong>September 17 - September 27, 2024</strong><br>
+<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20240917_20240927.parquet">Download flight_events_20240917_20240927.parquet</a></p></li>
+<li><p><strong>September 27 - October 07, 2024</strong><br>
+<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20240927_20241007.parquet">Download flight_events_20240927_20241007.parquet</a></p></li>
+<li><p><strong>October 07 - October 17, 2024</strong><br>
+<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20241007_20241017.parquet">Download flight_events_20241007_20241017.parquet</a></p></li>
+<li><p><strong>October 17 - October 27, 2024</strong><br>
+<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20241017_20241027.parquet">Download flight_events_20241017_20241027.parquet</a></p></li>
+<li><p><strong>October 27 - November 06, 2024</strong><br>
+<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20241027_20241106.parquet">Download flight_events_20241027_20241106.parquet</a></p></li>
+<li><p><strong>November 06 - November 16, 2024</strong><br>
+<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20241106_20241116.parquet">Download flight_events_20241106_20241116.parquet</a></p></li>
+<li><p><strong>November 16 - November 26, 2024</strong><br>
+<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20241116_20241126.parquet">Download flight_events_20241116_20241126.parquet</a></p></li>
+<li><p><strong>November 26 - November 30, 2024</strong><br>
+<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20241126_20241206.parquet">Download flight_events_20241126_20241206.parquet</a></p></li>
 </ul>
 <hr>
 <p>We hope you find these datasets useful for your analysis and research. If you have any questions or require further assistance, please contact us at <a href="mailto:support@ansperformance.eu">support@ansperformance.eu</a>.</p>
@@ -437,9 +464,23 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
     icon: icon
   };
   anchorJS.add('.anchored');
+  const isCodeAnnotation = (el) => {
+    for (const clz of el.classList) {
+      if (clz.startsWith('code-annotation-')) {                     
+        return true;
+      }
+    }
+    return false;
+  }
   const clipboard = new window.ClipboardJS('.code-copy-button', {
-    target: function(trigger) {
-      return trigger.previousElementSibling;
+    text: function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
     }
   });
   clipboard.on('success', function(e) {
@@ -475,10 +516,9 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
     // clear code selection
     e.clearSelection();
   });
-  function tippyHover(el, contentFn) {
+  function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
     const config = {
       allowHTML: true,
-      content: contentFn,
       maxWidth: 500,
       delay: 100,
       arrow: false,
@@ -488,8 +528,17 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
       interactive: true,
       interactiveBorder: 10,
       theme: 'quarto',
-      placement: 'bottom-start'
+      placement: 'bottom-start',
     };
+    if (contentFn) {
+      config.content = contentFn;
+    }
+    if (onTriggerFn) {
+      config.onTrigger = onTriggerFn;
+    }
+    if (onUntriggerFn) {
+      config.onUntrigger = onUntriggerFn;
+    }
     window.tippy(el, config); 
   }
   const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
@@ -504,6 +553,248 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
       return note.innerHTML;
     });
   }
+  const xrefs = window.document.querySelectorAll('a.quarto-xref');
+  const processXRef = (id, note) => {
+    // Strip column container classes
+    const stripColumnClz = (el) => {
+      el.classList.remove("page-full", "page-columns");
+      if (el.children) {
+        for (const child of el.children) {
+          stripColumnClz(child);
+        }
+      }
+    }
+    stripColumnClz(note)
+    const typesetMath = (el) => {
+      if (window.MathJax) {
+        // MathJax Typeset
+        window.MathJax.typeset([el]);
+      } else if (window.katex) {
+        // KaTeX Render
+        var mathElements = el.getElementsByClassName("math");
+        var macros = [];
+        for (var i = 0; i < mathElements.length; i++) {
+          var texText = mathElements[i].firstChild;
+          if (mathElements[i].tagName == "SPAN") {
+            window.katex.render(texText.data, mathElements[i], {
+              displayMode: mathElements[i].classList.contains('display'),
+              throwOnError: false,
+              macros: macros,
+              fleqn: false
+            });
+          }
+        }
+      }
+    }
+    if (id === null || id.startsWith('sec-')) {
+      // Special case sections, only their first couple elements
+      const container = document.createElement("div");
+      if (note.children && note.children.length > 2) {
+        container.appendChild(note.children[0].cloneNode(true));
+        for (let i = 1; i < note.children.length; i++) {
+          const child = note.children[i];
+          if (child.tagName === "P" && child.innerText === "") {
+            continue;
+          } else {
+            container.appendChild(child.cloneNode(true));
+            break;
+          }
+        }
+        typesetMath(container);
+        return container.innerHTML
+      } else {
+        typesetMath(note);
+        return note.innerHTML;
+      }
+    } else {
+      // Remove any anchor links if they are present
+      const anchorLink = note.querySelector('a.anchorjs-link');
+      if (anchorLink) {
+        anchorLink.remove();
+      }
+      typesetMath(note);
+      return note.innerHTML;
+    }
+  }
+  for (var i=0; i<xrefs.length; i++) {
+    const xref = xrefs[i];
+    tippyHover(xref, undefined, function(instance) {
+      instance.disable();
+      let url = xref.getAttribute('href');
+      let hash = undefined; 
+      if (url.startsWith('#')) {
+        hash = url;
+      } else {
+        try { hash = new URL(url).hash; } catch {}
+      }
+      if (hash) {
+        const id = hash.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note !== null) {
+          try {
+            const html = processXRef(id, note.cloneNode(true));
+            instance.setContent(html);
+          } finally {
+            instance.enable();
+            instance.show();
+          }
+        } else {
+          // See if we can fetch this
+          fetch(url.split('#')[0])
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.getElementById(id);
+            if (note !== null) {
+              const html = processXRef(id, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      } else {
+        // See if we can fetch a full url (with no hash to target)
+        // This is a special case and we should probably do some content thinning / targeting
+        fetch(url)
+        .then(res => res.text())
+        .then(html => {
+          const parser = new DOMParser();
+          const htmlDoc = parser.parseFromString(html, "text/html");
+          const note = htmlDoc.querySelector('main.content');
+          if (note !== null) {
+            // This should only happen for chapter cross references
+            // (since there is no id in the URL)
+            // remove the first header
+            if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+              note.children[0].remove();
+            }
+            const html = processXRef(null, note);
+            instance.setContent(html);
+          } 
+        }).finally(() => {
+          instance.enable();
+          instance.show();
+        });
+      }
+    }, function(instance) {
+    });
+  }
+      let selectedAnnoteEl;
+      const selectorForAnnotation = ( cell, annotation) => {
+        let cellAttr = 'data-code-cell="' + cell + '"';
+        let lineAttr = 'data-code-annotation="' +  annotation + '"';
+        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+        return selector;
+      }
+      const selectCodeLines = (annoteEl) => {
+        const doc = window.document;
+        const targetCell = annoteEl.getAttribute("data-target-cell");
+        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+        const lineIds = lines.map((line) => {
+          return targetCell + "-" + line;
+        })
+        let top = null;
+        let height = null;
+        let parent = null;
+        if (lineIds.length > 0) {
+            //compute the position of the single el (top and bottom and make a div)
+            const el = window.document.getElementById(lineIds[0]);
+            top = el.offsetTop;
+            height = el.offsetHeight;
+            parent = el.parentElement.parentElement;
+          if (lineIds.length > 1) {
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+            height = bottom - top;
+          }
+          if (top !== null && height !== null && parent !== null) {
+            // cook up a div (if necessary) and position it 
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
+            }
+            div.style.top = top - 2 + "px";
+            div.style.height = height + 4 + "px";
+            div.style.left = 0;
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
+            }
+            gutterDiv.style.top = top - 2 + "px";
+            gutterDiv.style.height = height + 4 + "px";
+          }
+          selectedAnnoteEl = annoteEl;
+        }
+      };
+      const unselectCodeLines = () => {
+        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+        elementsIds.forEach((elId) => {
+          const div = window.document.getElementById(elId);
+          if (div) {
+            div.remove();
+          }
+        });
+        selectedAnnoteEl = undefined;
+      };
+        // Handle positioning of the toggle
+    window.addEventListener(
+      "resize",
+      throttle(() => {
+        elRect = undefined;
+        if (selectedAnnoteEl) {
+          selectCodeLines(selectedAnnoteEl);
+        }
+      }, 10)
+    );
+    function throttle(fn, ms) {
+    let throttle = false;
+    let timer;
+      return (...args) => {
+        if(!throttle) { // first call gets through
+            fn.apply(this, args);
+            throttle = true;
+        } else { // all the others get throttled
+            if(timer) clearTimeout(timer); // cancel #2
+            timer = setTimeout(() => {
+              fn.apply(this, args);
+              timer = throttle = false;
+            }, ms);
+        }
+      };
+    }
+      // Attach click handler to the DT
+      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+      for (const annoteDlNode of annoteDls) {
+        annoteDlNode.addEventListener('click', (event) => {
+          const clickedEl = event.target;
+          if (clickedEl !== selectedAnnoteEl) {
+            unselectCodeLines();
+            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+            if (activeEl) {
+              activeEl.classList.remove('code-annotation-active');
+            }
+            selectCodeLines(clickedEl);
+            clickedEl.classList.add('code-annotation-active');
+          } else {
+            // Unselect the line
+            unselectCodeLines();
+            clickedEl.classList.remove('code-annotation-active');
+          }
+        });
+      }
   const findCites = (el) => {
     const parentEl = el.parentElement;
     if (parentEl) {
@@ -544,6 +835,7 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
 });
 </script>
 </div> <!-- /content -->
+
 
 
 

@@ -2,7 +2,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
 
 <meta charset="utf-8">
-<meta name="generator" content="quarto-1.2.335">
+<meta name="generator" content="quarto-1.4.507">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
@@ -17,14 +17,16 @@ div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
 ul.task-list{list-style: none;}
 ul.task-list li input[type="checkbox"] {
   width: 0.8em;
-  margin: 0 0.8em 0.2em -1.6em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
   vertical-align: middle;
 }
+/* CSS for citations */
 div.csl-bib-body { }
 div.csl-entry {
   clear: both;
+  margin-bottom: 0em;
 }
-.hanging div.csl-entry {
+.hanging-indent div.csl-entry {
   margin-left:2em;
   text-indent:-2em;
 }
@@ -38,8 +40,7 @@ div.csl-right-inline {
 }
 div.csl-indent {
   margin-left: 2em;
-}
-</style>
+}</style>
 
 
 <script src="site_libs/quarto-nav/quarto-nav.js"></script>
@@ -64,7 +65,13 @@ div.csl-indent {
   "collapse-after": 3,
   "panel-placement": "end",
   "type": "overlay",
-  "limit": 20,
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
   "language": {
     "search-no-results-text": "No results",
     "search-matching-documents-text": "matching documents",
@@ -74,7 +81,8 @@ div.csl-indent {
     "search-more-matches-text": "more matches in this document",
     "search-clear-button-title": "Clear",
     "search-detached-cancel-button-title": "Cancel",
-    "search-submit-button-title": "Submit"
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
   }
 }</script>
 
@@ -100,49 +108,51 @@ ga('send', {
 
 <div id="quarto-search-results"></div>
   <header id="quarto-header" class="headroom fixed-top">
-    <nav class="navbar navbar-expand-lg navbar-dark ">
+    <nav class="navbar navbar-expand-lg " data-bs-theme="dark">
       <div class="navbar-container container-fluid">
-      <div class="navbar-brand-container">
+      <div class="navbar-brand-container mx-auto">
     <a class="navbar-brand" href="./index.html">
     <span class="navbar-title">OPDI</span>
     </a>
   </div>
+            <div id="quarto-search" class="" title="Search"></div>
           <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" aria-expanded="false" aria-label="Toggle navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
   <span class="navbar-toggler-icon"></span>
 </button>
           <div class="collapse navbar-collapse" id="navbarCollapse">
             <ul class="navbar-nav navbar-nav-scroll me-auto">
   <li class="nav-item">
-    <a class="nav-link" href="./index.html">
- <span class="menu-text">Home</span></a>
+    <a class="nav-link" href="./index.html"> 
+<span class="menu-text">Home</span></a>
   </li>  
   <li class="nav-item">
-    <a class="nav-link" href="./data.html">
- <span class="menu-text">Data</span></a>
+    <a class="nav-link" href="./data.html"> 
+<span class="menu-text">Data</span></a>
   </li>  
   <li class="nav-item">
-    <a class="nav-link active" href="./concepts.html" aria-current="page">
- <span class="menu-text">Concepts</span></a>
+    <a class="nav-link active" href="./concepts.html" aria-current="page"> 
+<span class="menu-text">Concepts</span></a>
   </li>  
   <li class="nav-item">
-    <a class="nav-link" href="./methodology.html">
- <span class="menu-text">Methodology</span></a>
+    <a class="nav-link" href="./methodology.html"> 
+<span class="menu-text">Methodology</span></a>
   </li>  
   <li class="nav-item">
-    <a class="nav-link" href="./roadmap.html">
- <span class="menu-text">Roadmap</span></a>
+    <a class="nav-link" href="./roadmap.html"> 
+<span class="menu-text">Roadmap</span></a>
   </li>  
   <li class="nav-item">
-    <a class="nav-link" href="./data-preview.html">
- <span class="menu-text">Data Preview</span></a>
+    <a class="nav-link" href="./data-preview.html"> 
+<span class="menu-text">Data Preview</span></a>
   </li>  
   <li class="nav-item">
-    <a class="nav-link" href="./about.html">
- <span class="menu-text">About</span></a>
+    <a class="nav-link" href="./about.html"> 
+<span class="menu-text">About</span></a>
   </li>  
 </ul>
-              <div id="quarto-search" class="" title="Search"></div>
           </div> <!-- /navcollapse -->
+          <div class="quarto-navbar-tools">
+</div>
       </div> <!-- /container-fluid -->
     </nav>
 </header>
@@ -186,18 +196,20 @@ ga('send', {
   </div>
   
 
+
 </header>
+
 
 <p>For the sake of statistical analysis a flight trajectory can be broken down to a discrete set of <code>EVENT</code>s that represent key milestones useful for a specific study.</p>
 <p>These events are characterized by a location and a time of occurrence, e.g., in the case of a flight level crossing event the longitude, latitude, altitude and timestamp of where/when it occurs.</p>
 <p>Certain phenomena cannot be modeled by single 4D<a href="#fn1" class="footnote-ref" id="fnref1" role="doc-noteref"><sup>1</sup></a> <em>instants</em>, i.e. flown level segment or holding segments. In these cases the <code>EVENT</code> concept can still be used, we can capture the start and the end of this phenomenon as two separate event types and process them as a pair during the analysis.</p>
 <p>The concept of <code>MEASUREMENT</code> is then used when associating specific metrics to the events of interest. Example of measurements for flight trajectories are (cumulative) flown distance or emitted CO2.</p>
-<div class="callout-note callout callout-style-default no-icon callout-captioned">
+<div class="callout callout-style-default callout-note no-icon callout-titled">
 <div class="callout-header d-flex align-content-center" data-bs-toggle="collapse" data-bs-target=".callout-1-contents" aria-controls="callout-1" aria-expanded="false" aria-label="Toggle callout">
 <div class="callout-icon-container">
 <i class="callout-icon no-icon"></i>
 </div>
-<div class="callout-caption-container flex-fill">
+<div class="callout-title-container flex-fill">
 Note
 </div>
 <div class="callout-btn-toggle d-inline-block border-0 py-1 ps-1 pe-0 float-end"><i class="callout-toggle"></i></div>
@@ -237,29 +249,43 @@ Note
 <li>The <code>version</code> indicates the algorithm version used to detect the flight event. For more info, see <a href="https://www.opdi.aero/methodology">Methodology</a>.</li>
 <li>Additional <code>info</code> is captured at last. This can be contextual information, i.e.&nbsp;<code>F33R</code> as the relevant parking position for an <code>off-block</code> milestone or <code>26</code> as the Runway (RWY) ID for a <code>take-off</code> milestone.</li>
 </ul>
-<p>A <strong>Flight phase</strong> is a prolonged event which can be broken down into a <em>start event</em> and an <em>end event</em> of the phase. <a href="#fig-flight-phases">Figure&nbsp;1</a> shows a simplified diagram of a possible set of <strong>flight phases</strong> (white square boxes) and relevant <strong>flight events</strong> (<code>Txy</code> labels).</p>
-<div id="fig-flight-phases" class="quarto-figure quarto-figure-center anchored">
-<figure class="figure">
-<p><img src="media/aircraft_state_diagram.png" class="img-fluid figure-img" style="width:100.0%"></p>
-<p></p><figcaption class="figure-caption">Figure&nbsp;1: (Simplified) Flight phases and events. For a more complete/complex representation, see <a href="#fig-flight-phases_complex">Figure&nbsp;2</a> in the collapsable block</figcaption><p></p>
+<p>A <strong>Flight phase</strong> is a prolonged event which can be broken down into a <em>start event</em> and an <em>end event</em> of the phase. <a href="#fig-flight-phases" class="quarto-xref">Figure&nbsp;1</a> shows a simplified diagram of a possible set of <strong>flight phases</strong> (white square boxes) and relevant <strong>flight events</strong> (<code>Txy</code> labels).</p>
+<div id="fig-flight-phases" class="quarto-figure quarto-figure-center anchored" width="100%">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-flight-phases-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="media/aircraft_state_diagram.png" class="img-fluid figure-img" style="width:100.0%">
+</div>
+<figcaption class="figure quarto-float-caption quarto-float-fig" id="fig-flight-phases-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;1: (Simplified) Flight phases and events. For a more complete/complex representation, see <a href="#fig-flight-phases_complex" class="quarto-xref">Figure&nbsp;2</a> in the collapsable block
+</figcaption>
 </figure>
 </div>
-<div class="callout-note callout callout-style-simple">
-<div class="callout-body d-flex">
+<div class="callout callout-style-simple callout-note callout-titled" title="Flight phases and events (more complete/complex diagram) (click to open/close)">
+<div class="callout-header d-flex align-content-center" data-bs-toggle="collapse" data-bs-target=".callout-2-contents" aria-controls="callout-2" aria-expanded="false" aria-label="Toggle callout">
 <div class="callout-icon-container">
 <i class="callout-icon"></i>
 </div>
-<div class="callout-body-container" title="Flight phases and events (more complete/complex diagram) (click to open/close)">
-<div id="fig-flight-phases_complex" class="quarto-figure quarto-figure-center anchored">
-<figure class="figure">
-<p><img src="media/aircraft_state_diagram_complex.png" class="img-fluid figure-img" style="width:100.0%"></p>
-<p></p><figcaption class="figure-caption">Figure&nbsp;2: Flight phases and events, a more complete/complex diagram.</figcaption><p></p>
+<div class="callout-title-container flex-fill">
+Flight phases and events (more complete/complex diagram) (click to open/close)
+</div>
+<div class="callout-btn-toggle d-inline-block border-0 py-1 ps-1 pe-0 float-end"><i class="callout-toggle"></i></div>
+</div>
+<div id="callout-2" class="callout-2-contents callout-collapse collapse">
+<div class="callout-body-container callout-body">
+<div id="fig-flight-phases_complex" class="quarto-figure quarto-figure-center anchored" width="100%">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-flight-phases_complex-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="media/aircraft_state_diagram_complex.png" class="img-fluid figure-img" style="width:100.0%">
+</div>
+<figcaption class="figure quarto-float-caption quarto-float-fig" id="fig-flight-phases_complex-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;2: Flight phases and events, a more complete/complex diagram.
+</figcaption>
 </figure>
 </div>
 </div>
 </div>
 </div>
-<p>The events in <a href="#fig-flight-phases">Figure&nbsp;1</a> are:</p>
+<p>The events in <a href="#fig-flight-phases" class="quarto-xref">Figure&nbsp;1</a> are:</p>
 <ul>
 <li><strong><code>T00</code></strong> = time of maintenance completion</li>
 <li><strong><code>T01</code></strong> = time aircraft servicing begins</li>
@@ -340,7 +366,7 @@ Note
 <section id="operational-performance-monitoring" class="level3">
 <h3 class="anchored" data-anchor-id="operational-performance-monitoring">Operational Performance Monitoring</h3>
 <p>One of the possible use cases for an event-based representation of a flight, could be the monitoring of the International Civil Aviation Organization (ICAO) <a href="https://www4.icao.int/ganpportal/ASBU/KPI" title="ICAO GAMP KPIs website">Global Air Navigation Plan (GANP) Key Performance Indicator (KPI)s</a>. Thus operational indicators could be extracted for the analysis of the operations performance at network, state, airport or airline level.</p>
-<p>For example using the <code>touch-down</code> (<strong>T17</strong> in <a href="#fig-flight-phases">Figure&nbsp;1</a>) with the contextual information (RWY identification) we can calculate RWY utilization at each airport or inter-arrival times, etc.</p>
+<p>For example using the <code>touch-down</code> (<strong>T17</strong> in <a href="#fig-flight-phases" class="quarto-xref">Figure&nbsp;1</a>) with the contextual information (RWY identification) we can calculate RWY utilization at each airport or inter-arrival times, etc.</p>
 <p><img src="media/milestones_3d.png" class="img-fluid" alt="Milestones for gate to gate."> Possible monitoring usages are:</p>
 <ul>
 <li>Airport performance (Throughput, RWY utilization, …)</li>
@@ -362,7 +388,7 @@ Note
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
 <p><img src="media/lto-cycle_eea.png" class="img-fluid figure-img"></p>
-<p></p><figcaption class="figure-caption">LTO phases (<span class="citation" data-cites="doi/10.2822/385503"><a href="#ref-doi/10.2822/385503" role="doc-biblioref">[1]</a></span> Figure 2.5).</figcaption><p></p>
+<figcaption>LTO phases (<span class="citation" data-cites="doi/10.2822/385503"><a href="#ref-doi/10.2822/385503" role="doc-biblioref">[1]</a></span> Figure 2.5).</figcaption>
 </figure>
 </div>
 <p>For LTO we have four sub-phases:</p>
@@ -431,16 +457,16 @@ Runway
 </section>
 
 
-<div id="quarto-appendix" class="default"><section class="quarto-appendix-contents" role="doc-bibliography"><h2 class="anchored quarto-appendix-heading">References</h2><div id="refs" class="references csl-bib-body" role="doc-bibliography">
-<div id="ref-doi/10.2822/385503" class="csl-entry" role="doc-biblioentry">
+<div id="quarto-appendix" class="default"><section class="quarto-appendix-contents" role="doc-bibliography"><h2 class="anchored quarto-appendix-heading">References</h2><div id="refs" class="references csl-bib-body" data-entry-spacing="0" role="list">
+<div id="ref-doi/10.2822/385503" class="csl-entry" role="listitem">
 <div class="csl-left-margin">[1] </div><div class="csl-right-inline">E. E. Agency and E. U. A. S. Agency, <em><a href="https://data.europa.eu/doi/10.2822/385503">European aviation environmental report 2016</a></em>. <span>Publications Office of the European Union</span>, 2016. </div>
 </div>
-</div></section><section id="footnotes" class="footnotes footnotes-end-of-document" role="doc-endnotes"><h2 class="anchored quarto-appendix-heading">Footnotes</h2>
+</div></section><aside id="footnotes" class="footnotes footnotes-end-of-document" role="doc-endnotes"><h2 class="anchored quarto-appendix-heading">Footnotes</h2>
 
 <ol>
 <li id="fn1"><p>3-dimensional information (longitude, latitude, altitude) plus timestamp.<a href="#fnref1" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
 </ol>
-</section></div></main> <!-- /main -->
+</aside></div></main> <!-- /main -->
 <script id="quarto-html-after-body" type="application/javascript">
 window.document.addEventListener("DOMContentLoaded", function (event) {
   const toggleBodyColorMode = (bsSheetEl) => {
@@ -468,9 +494,23 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
     icon: icon
   };
   anchorJS.add('.anchored');
+  const isCodeAnnotation = (el) => {
+    for (const clz of el.classList) {
+      if (clz.startsWith('code-annotation-')) {                     
+        return true;
+      }
+    }
+    return false;
+  }
   const clipboard = new window.ClipboardJS('.code-copy-button', {
-    target: function(trigger) {
-      return trigger.previousElementSibling;
+    text: function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
     }
   });
   clipboard.on('success', function(e) {
@@ -506,10 +546,9 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
     // clear code selection
     e.clearSelection();
   });
-  function tippyHover(el, contentFn) {
+  function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
     const config = {
       allowHTML: true,
-      content: contentFn,
       maxWidth: 500,
       delay: 100,
       arrow: false,
@@ -519,8 +558,17 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
       interactive: true,
       interactiveBorder: 10,
       theme: 'quarto',
-      placement: 'bottom-start'
+      placement: 'bottom-start',
     };
+    if (contentFn) {
+      config.content = contentFn;
+    }
+    if (onTriggerFn) {
+      config.onTrigger = onTriggerFn;
+    }
+    if (onUntriggerFn) {
+      config.onUntrigger = onUntriggerFn;
+    }
     window.tippy(el, config); 
   }
   const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
@@ -535,6 +583,248 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
       return note.innerHTML;
     });
   }
+  const xrefs = window.document.querySelectorAll('a.quarto-xref');
+  const processXRef = (id, note) => {
+    // Strip column container classes
+    const stripColumnClz = (el) => {
+      el.classList.remove("page-full", "page-columns");
+      if (el.children) {
+        for (const child of el.children) {
+          stripColumnClz(child);
+        }
+      }
+    }
+    stripColumnClz(note)
+    const typesetMath = (el) => {
+      if (window.MathJax) {
+        // MathJax Typeset
+        window.MathJax.typeset([el]);
+      } else if (window.katex) {
+        // KaTeX Render
+        var mathElements = el.getElementsByClassName("math");
+        var macros = [];
+        for (var i = 0; i < mathElements.length; i++) {
+          var texText = mathElements[i].firstChild;
+          if (mathElements[i].tagName == "SPAN") {
+            window.katex.render(texText.data, mathElements[i], {
+              displayMode: mathElements[i].classList.contains('display'),
+              throwOnError: false,
+              macros: macros,
+              fleqn: false
+            });
+          }
+        }
+      }
+    }
+    if (id === null || id.startsWith('sec-')) {
+      // Special case sections, only their first couple elements
+      const container = document.createElement("div");
+      if (note.children && note.children.length > 2) {
+        container.appendChild(note.children[0].cloneNode(true));
+        for (let i = 1; i < note.children.length; i++) {
+          const child = note.children[i];
+          if (child.tagName === "P" && child.innerText === "") {
+            continue;
+          } else {
+            container.appendChild(child.cloneNode(true));
+            break;
+          }
+        }
+        typesetMath(container);
+        return container.innerHTML
+      } else {
+        typesetMath(note);
+        return note.innerHTML;
+      }
+    } else {
+      // Remove any anchor links if they are present
+      const anchorLink = note.querySelector('a.anchorjs-link');
+      if (anchorLink) {
+        anchorLink.remove();
+      }
+      typesetMath(note);
+      return note.innerHTML;
+    }
+  }
+  for (var i=0; i<xrefs.length; i++) {
+    const xref = xrefs[i];
+    tippyHover(xref, undefined, function(instance) {
+      instance.disable();
+      let url = xref.getAttribute('href');
+      let hash = undefined; 
+      if (url.startsWith('#')) {
+        hash = url;
+      } else {
+        try { hash = new URL(url).hash; } catch {}
+      }
+      if (hash) {
+        const id = hash.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note !== null) {
+          try {
+            const html = processXRef(id, note.cloneNode(true));
+            instance.setContent(html);
+          } finally {
+            instance.enable();
+            instance.show();
+          }
+        } else {
+          // See if we can fetch this
+          fetch(url.split('#')[0])
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.getElementById(id);
+            if (note !== null) {
+              const html = processXRef(id, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      } else {
+        // See if we can fetch a full url (with no hash to target)
+        // This is a special case and we should probably do some content thinning / targeting
+        fetch(url)
+        .then(res => res.text())
+        .then(html => {
+          const parser = new DOMParser();
+          const htmlDoc = parser.parseFromString(html, "text/html");
+          const note = htmlDoc.querySelector('main.content');
+          if (note !== null) {
+            // This should only happen for chapter cross references
+            // (since there is no id in the URL)
+            // remove the first header
+            if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+              note.children[0].remove();
+            }
+            const html = processXRef(null, note);
+            instance.setContent(html);
+          } 
+        }).finally(() => {
+          instance.enable();
+          instance.show();
+        });
+      }
+    }, function(instance) {
+    });
+  }
+      let selectedAnnoteEl;
+      const selectorForAnnotation = ( cell, annotation) => {
+        let cellAttr = 'data-code-cell="' + cell + '"';
+        let lineAttr = 'data-code-annotation="' +  annotation + '"';
+        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+        return selector;
+      }
+      const selectCodeLines = (annoteEl) => {
+        const doc = window.document;
+        const targetCell = annoteEl.getAttribute("data-target-cell");
+        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+        const lineIds = lines.map((line) => {
+          return targetCell + "-" + line;
+        })
+        let top = null;
+        let height = null;
+        let parent = null;
+        if (lineIds.length > 0) {
+            //compute the position of the single el (top and bottom and make a div)
+            const el = window.document.getElementById(lineIds[0]);
+            top = el.offsetTop;
+            height = el.offsetHeight;
+            parent = el.parentElement.parentElement;
+          if (lineIds.length > 1) {
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+            height = bottom - top;
+          }
+          if (top !== null && height !== null && parent !== null) {
+            // cook up a div (if necessary) and position it 
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
+            }
+            div.style.top = top - 2 + "px";
+            div.style.height = height + 4 + "px";
+            div.style.left = 0;
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
+            }
+            gutterDiv.style.top = top - 2 + "px";
+            gutterDiv.style.height = height + 4 + "px";
+          }
+          selectedAnnoteEl = annoteEl;
+        }
+      };
+      const unselectCodeLines = () => {
+        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+        elementsIds.forEach((elId) => {
+          const div = window.document.getElementById(elId);
+          if (div) {
+            div.remove();
+          }
+        });
+        selectedAnnoteEl = undefined;
+      };
+        // Handle positioning of the toggle
+    window.addEventListener(
+      "resize",
+      throttle(() => {
+        elRect = undefined;
+        if (selectedAnnoteEl) {
+          selectCodeLines(selectedAnnoteEl);
+        }
+      }, 10)
+    );
+    function throttle(fn, ms) {
+    let throttle = false;
+    let timer;
+      return (...args) => {
+        if(!throttle) { // first call gets through
+            fn.apply(this, args);
+            throttle = true;
+        } else { // all the others get throttled
+            if(timer) clearTimeout(timer); // cancel #2
+            timer = setTimeout(() => {
+              fn.apply(this, args);
+              timer = throttle = false;
+            }, ms);
+        }
+      };
+    }
+      // Attach click handler to the DT
+      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+      for (const annoteDlNode of annoteDls) {
+        annoteDlNode.addEventListener('click', (event) => {
+          const clickedEl = event.target;
+          if (clickedEl !== selectedAnnoteEl) {
+            unselectCodeLines();
+            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+            if (activeEl) {
+              activeEl.classList.remove('code-annotation-active');
+            }
+            selectCodeLines(clickedEl);
+            clickedEl.classList.add('code-annotation-active');
+          } else {
+            // Unselect the line
+            unselectCodeLines();
+            clickedEl.classList.remove('code-annotation-active');
+          }
+        });
+      }
   const findCites = (el) => {
     const parentEl = el.parentElement;
     if (parentEl) {
@@ -575,6 +865,7 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
 });
 </script>
 </div> <!-- /content -->
+
 
 
 
