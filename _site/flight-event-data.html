@@ -20,6 +20,40 @@ ul.task-list li input[type="checkbox"] {
   margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
   vertical-align: middle;
 }
+/* CSS for syntax highlighting */
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
 </style>
 
 
@@ -145,12 +179,8 @@ ga('send', {
     <h2 id="toc-title">On this page</h2>
    
   <ul>
-  <li><a href="#available-datasets" id="toc-available-datasets" class="nav-link active" data-scroll-target="#available-datasets">Available Datasets</a>
-  <ul class="collapse">
-  <li><a href="#section" id="toc-section" class="nav-link" data-scroll-target="#section">2022</a></li>
-  <li><a href="#section-1" id="toc-section-1" class="nav-link" data-scroll-target="#section-1">2023</a></li>
-  <li><a href="#section-2" id="toc-section-2" class="nav-link" data-scroll-target="#section-2">2024</a></li>
-  </ul></li>
+  <li><a href="#automated-download" id="toc-automated-download" class="nav-link active" data-scroll-target="#automated-download">Automated Download</a></li>
+  <li><a href="#download-available-datasets" id="toc-download-available-datasets" class="nav-link" data-scroll-target="#download-available-datasets">Download Available Datasets</a></li>
   <li><a href="#acronyms_HEADER_LOA" id="toc-acronyms_HEADER_LOA" class="nav-link" data-scroll-target="#acronyms_HEADER_LOA">List of Acronyms</a></li>
   </ul>
 </nav>
@@ -177,258 +207,455 @@ ga('send', {
 </header>
 
 
-<p>Below you will find links to download flight events v0.0.2 data files from January 1, 2022, to November 30, 2024. Each file is in Parquet format, providing a highly efficient way to store and manage large datasets. The datasets are separated into 10-day intervals. Please note that each dataset covers data up to, but not including, the last day listed in its name.</p>
-<section id="available-datasets" class="level2">
-<h2 class="anchored" data-anchor-id="available-datasets">Available Datasets</h2>
-<p>Each dataset corresponds to a specific 10-day period and is listed below for easy access.</p>
+<p>Below you will find links to download flight events v0.0.2 data files from January 01, 2022 to December 31, 2024. Each file is in Parquet format, providing a highly efficient way to store and manage large datasets. The datasets are separated into 10-day intervals. Please note that each dataset covers data up to, but not including, the last day listed in its name.</p>
+<section id="automated-download" class="level2">
+<h2 class="anchored" data-anchor-id="automated-download">Automated Download</h2>
+<p>If you want to automate your downloads, you can generate the link for downloading using the following format where <code>YYYYMMDD</code> is the start date of the 10-day period. Note: The first date to start generating intervals for is January 01, 2022:</p>
+<p><code>https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_{YYYYMMDD}_{YYYYMMDD_next10}.parquet</code></p>
 <div class="callout callout-style-default callout-tip callout-titled">
-<div class="callout-header d-flex align-content-center">
+<div class="callout-header d-flex align-content-center" data-bs-toggle="collapse" data-bs-target=".callout-1-contents" aria-controls="callout-1" aria-expanded="false" aria-label="Toggle callout">
 <div class="callout-icon-container">
 <i class="callout-icon"></i>
 </div>
 <div class="callout-title-container flex-fill">
-Automated Download
+Python download script example
 </div>
+<div class="callout-btn-toggle d-inline-block border-0 py-1 ps-1 pe-0 float-end"><i class="callout-toggle"></i></div>
 </div>
+<div id="callout-1" class="callout-1-contents callout-collapse collapse">
 <div class="callout-body-container callout-body">
-<p>If you want to automate your downloads, you can generate the link for downloading using the following format where <code>YYYYMMDD</code> is the start date of the 10-day period: <code>https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_{YYYYMMDD}_{YYYYMMDD_next10}.parquet</code></p>
-<p>The first date to start generating intervals for is 1 January 2022. As an example, for January 1, 2022, to January 10, 2022, the link would be:<br>
-<code>https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20220101_20220111.parquet</code></p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> os</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> requests</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> datetime <span class="im">import</span> datetime, timedelta</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> dateutil.relativedelta <span class="im">import</span> relativedelta</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> generate_urls(data_type: <span class="bu">str</span>, start_date: <span class="bu">str</span>, end_date: <span class="bu">str</span>) <span class="op">-&gt;</span> <span class="bu">list</span>:</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="co">    Generate a list of URLs for flight lists, flight events, or measurements.</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a><span class="co">    Args:</span></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a><span class="co">        data_type (str): Type of data ("flight_list", "flight_events", "measurements").</span></span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a><span class="co">        start_date (str): The start date in the format YYYYMM or YYYYMMDD.</span></span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a><span class="co">        end_date (str): The end date in the format YYYYMM or YYYYMMDD.</span></span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a><span class="co">    Returns:</span></span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a><span class="co">        list: List of generated URLs.</span></span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a><span class="co">    """</span></span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a>    base_url <span class="op">=</span> <span class="ss">f"https://www.eurocontrol.int/performance/data/download/OPDI/v002/</span><span class="sc">{</span>data_type<span class="sc">}</span><span class="ss">/</span><span class="sc">{</span>data_type<span class="sc">}</span><span class="ss">_"</span></span>
+<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a>    urls <span class="op">=</span> []</span>
+<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> data_type <span class="op">==</span> <span class="st">"flight_list"</span>:  <span class="co"># Monthly intervals</span></span>
+<span id="cb1-23"><a href="#cb1-23" aria-hidden="true" tabindex="-1"></a>        start_dt <span class="op">=</span> datetime.strptime(start_date, <span class="st">"%Y%m"</span>)</span>
+<span id="cb1-24"><a href="#cb1-24" aria-hidden="true" tabindex="-1"></a>        end_dt <span class="op">=</span> datetime.strptime(end_date, <span class="st">"%Y%m"</span>)</span>
+<span id="cb1-25"><a href="#cb1-25" aria-hidden="true" tabindex="-1"></a>        delta <span class="op">=</span> relativedelta(months<span class="op">=</span><span class="dv">1</span>)</span>
+<span id="cb1-26"><a href="#cb1-26" aria-hidden="true" tabindex="-1"></a>    <span class="cf">else</span>:  <span class="co"># Flight events &amp; Measurements: 10-day intervals</span></span>
+<span id="cb1-27"><a href="#cb1-27" aria-hidden="true" tabindex="-1"></a>        start_dt <span class="op">=</span> datetime.strptime(start_date, <span class="st">"%Y%m</span><span class="sc">%d</span><span class="st">"</span>)</span>
+<span id="cb1-28"><a href="#cb1-28" aria-hidden="true" tabindex="-1"></a>        end_dt <span class="op">=</span> datetime.strptime(end_date, <span class="st">"%Y%m</span><span class="sc">%d</span><span class="st">"</span>)</span>
+<span id="cb1-29"><a href="#cb1-29" aria-hidden="true" tabindex="-1"></a>        delta <span class="op">=</span> timedelta(days<span class="op">=</span><span class="dv">10</span>)</span>
+<span id="cb1-30"><a href="#cb1-30" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-31"><a href="#cb1-31" aria-hidden="true" tabindex="-1"></a>    current_dt <span class="op">=</span> start_dt</span>
+<span id="cb1-32"><a href="#cb1-32" aria-hidden="true" tabindex="-1"></a>    <span class="cf">while</span> current_dt <span class="op">&lt;=</span> end_dt:</span>
+<span id="cb1-33"><a href="#cb1-33" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> data_type <span class="op">==</span> <span class="st">"flight_list"</span>:</span>
+<span id="cb1-34"><a href="#cb1-34" aria-hidden="true" tabindex="-1"></a>            url <span class="op">=</span> <span class="ss">f"</span><span class="sc">{</span>base_url<span class="sc">}{</span>current_dt<span class="sc">.</span>strftime(<span class="st">'%Y%m'</span>)<span class="sc">}</span><span class="ss">.parquet"</span></span>
+<span id="cb1-35"><a href="#cb1-35" aria-hidden="true" tabindex="-1"></a>        <span class="cf">else</span>:</span>
+<span id="cb1-36"><a href="#cb1-36" aria-hidden="true" tabindex="-1"></a>            next_dt <span class="op">=</span> current_dt <span class="op">+</span> delta</span>
+<span id="cb1-37"><a href="#cb1-37" aria-hidden="true" tabindex="-1"></a>            url <span class="op">=</span> <span class="ss">f"</span><span class="sc">{</span>base_url<span class="sc">}{</span>current_dt<span class="sc">.</span>strftime(<span class="st">'%Y%m</span><span class="sc">%d</span><span class="st">'</span>)<span class="sc">}</span><span class="ss">_</span><span class="sc">{</span>next_dt<span class="sc">.</span>strftime(<span class="st">'%Y%m</span><span class="sc">%d</span><span class="st">'</span>)<span class="sc">}</span><span class="ss">.parquet"</span></span>
+<span id="cb1-38"><a href="#cb1-38" aria-hidden="true" tabindex="-1"></a>        </span>
+<span id="cb1-39"><a href="#cb1-39" aria-hidden="true" tabindex="-1"></a>        urls.append(url)</span>
+<span id="cb1-40"><a href="#cb1-40" aria-hidden="true" tabindex="-1"></a>        current_dt <span class="op">+=</span> delta</span>
+<span id="cb1-41"><a href="#cb1-41" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-42"><a href="#cb1-42" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> urls</span>
+<span id="cb1-43"><a href="#cb1-43" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-44"><a href="#cb1-44" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> download_files(urls: <span class="bu">list</span>, save_folder: <span class="bu">str</span>):</span>
+<span id="cb1-45"><a href="#cb1-45" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""</span></span>
+<span id="cb1-46"><a href="#cb1-46" aria-hidden="true" tabindex="-1"></a><span class="co">    Download files from the generated URLs and save them in the specified folder.</span></span>
+<span id="cb1-47"><a href="#cb1-47" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-48"><a href="#cb1-48" aria-hidden="true" tabindex="-1"></a><span class="co">    Args:</span></span>
+<span id="cb1-49"><a href="#cb1-49" aria-hidden="true" tabindex="-1"></a><span class="co">        urls (list): List of URLs to download.</span></span>
+<span id="cb1-50"><a href="#cb1-50" aria-hidden="true" tabindex="-1"></a><span class="co">        save_folder (str): Folder to save downloaded files.</span></span>
+<span id="cb1-51"><a href="#cb1-51" aria-hidden="true" tabindex="-1"></a><span class="co">    """</span></span>
+<span id="cb1-52"><a href="#cb1-52" aria-hidden="true" tabindex="-1"></a>    os.makedirs(save_folder, exist_ok<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb1-53"><a href="#cb1-53" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-54"><a href="#cb1-54" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> url <span class="kw">in</span> urls:</span>
+<span id="cb1-55"><a href="#cb1-55" aria-hidden="true" tabindex="-1"></a>        file_name <span class="op">=</span> url.split(<span class="st">"/"</span>)[<span class="op">-</span><span class="dv">1</span>]</span>
+<span id="cb1-56"><a href="#cb1-56" aria-hidden="true" tabindex="-1"></a>        save_path <span class="op">=</span> os.path.join(save_folder, file_name)</span>
+<span id="cb1-57"><a href="#cb1-57" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-58"><a href="#cb1-58" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> os.path.exists(save_path):</span>
+<span id="cb1-59"><a href="#cb1-59" aria-hidden="true" tabindex="-1"></a>            <span class="bu">print</span>(<span class="ss">f"Skipping </span><span class="sc">{</span>file_name<span class="sc">}</span><span class="ss">, already exists."</span>)</span>
+<span id="cb1-60"><a href="#cb1-60" aria-hidden="true" tabindex="-1"></a>            <span class="cf">continue</span></span>
+<span id="cb1-61"><a href="#cb1-61" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-62"><a href="#cb1-62" aria-hidden="true" tabindex="-1"></a>        <span class="bu">print</span>(<span class="ss">f"Downloading </span><span class="sc">{</span>url<span class="sc">}</span><span class="ss">..."</span>)</span>
+<span id="cb1-63"><a href="#cb1-63" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-64"><a href="#cb1-64" aria-hidden="true" tabindex="-1"></a>        <span class="cf">try</span>:</span>
+<span id="cb1-65"><a href="#cb1-65" aria-hidden="true" tabindex="-1"></a>            response <span class="op">=</span> requests.get(url, stream<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb1-66"><a href="#cb1-66" aria-hidden="true" tabindex="-1"></a>            response.raise_for_status()</span>
+<span id="cb1-67"><a href="#cb1-67" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-68"><a href="#cb1-68" aria-hidden="true" tabindex="-1"></a>            <span class="cf">with</span> <span class="bu">open</span>(save_path, <span class="st">"wb"</span>) <span class="im">as</span> <span class="bu">file</span>:</span>
+<span id="cb1-69"><a href="#cb1-69" aria-hidden="true" tabindex="-1"></a>                <span class="cf">for</span> chunk <span class="kw">in</span> response.iter_content(chunk_size<span class="op">=</span><span class="dv">1024</span>):</span>
+<span id="cb1-70"><a href="#cb1-70" aria-hidden="true" tabindex="-1"></a>                    <span class="bu">file</span>.write(chunk)</span>
+<span id="cb1-71"><a href="#cb1-71" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-72"><a href="#cb1-72" aria-hidden="true" tabindex="-1"></a>            <span class="bu">print</span>(<span class="ss">f"Saved to </span><span class="sc">{</span>save_path<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb1-73"><a href="#cb1-73" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-74"><a href="#cb1-74" aria-hidden="true" tabindex="-1"></a>        <span class="cf">except</span> requests.exceptions.RequestException <span class="im">as</span> e:</span>
+<span id="cb1-75"><a href="#cb1-75" aria-hidden="true" tabindex="-1"></a>            <span class="bu">print</span>(<span class="ss">f"Failed to download </span><span class="sc">{</span>url<span class="sc">}</span><span class="ss">: </span><span class="sc">{</span>e<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb1-76"><a href="#cb1-76" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-77"><a href="#cb1-77" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> <span class="va">__name__</span> <span class="op">==</span> <span class="st">"__main__"</span>:</span>
+<span id="cb1-78"><a href="#cb1-78" aria-hidden="true" tabindex="-1"></a>    datasets <span class="op">=</span> {</span>
+<span id="cb1-79"><a href="#cb1-79" aria-hidden="true" tabindex="-1"></a>        <span class="co">#"flight_list": ("202201", "202412"),</span></span>
+<span id="cb1-80"><a href="#cb1-80" aria-hidden="true" tabindex="-1"></a>        <span class="st">"flight_events"</span>: (<span class="st">"20220101"</span>, <span class="st">"20241231"</span>)<span class="co">#,</span></span>
+<span id="cb1-81"><a href="#cb1-81" aria-hidden="true" tabindex="-1"></a>        <span class="co">#"measurements": ("20220101", "20241231")</span></span>
+<span id="cb1-82"><a href="#cb1-82" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb1-83"><a href="#cb1-83" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-84"><a href="#cb1-84" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> data_type, (start_date, end_date) <span class="kw">in</span> datasets.items():</span>
+<span id="cb1-85"><a href="#cb1-85" aria-hidden="true" tabindex="-1"></a>        urls <span class="op">=</span> generate_urls(data_type, start_date, end_date)</span>
+<span id="cb1-86"><a href="#cb1-86" aria-hidden="true" tabindex="-1"></a>        download_files(urls, <span class="ss">f"./data/</span><span class="sc">{</span>data_type<span class="sc">}</span><span class="ss">"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </div>
-<section id="section" class="level3">
-<h3 class="anchored" data-anchor-id="section">2022</h3>
-<ul>
-<li><p><strong>January 1 - 10, 2022</strong><br>
-<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20220101_20220111.parquet">Download flight_events_20220101_20220111.parquet</a></p></li>
-<li><p><strong>January 11 - 20, 2022</strong><br>
-<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20220111_20220121.parquet">Download flight_events_20220111_20220121.parquet</a></p></li>
-<li><p><strong>January 21 - 30, 2022</strong><br>
-<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20220121_20220131.parquet">Download flight_events_20220121_20220131.parquet</a></p></li>
-<li><p><strong>January 31 - February 9, 2022</strong><br>
-<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20220131_20220210.parquet">Download flight_events_20220131_20220210.parquet</a></p></li>
-<li><p><strong>February 10 - 19, 2022</strong><br>
-<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20220210_20220220.parquet">Download flight_events_20220210_20220220.parquet</a></p></li>
-<li><p><strong>February 20 - March 1, 2022</strong><br>
-<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20220220_20220302.parquet">Download flight_events_20220220_20220302.parquet</a></p></li>
-<li><p><strong>March 2 - 11, 2022</strong><br>
-<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20220302_20220312.parquet">Download flight_events_20220302_20220312.parquet</a></p></li>
-<li><p><strong>March 12 - 21, 2022</strong><br>
-<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20220312_20220322.parquet">Download flight_events_20220312_20220322.parquet</a></p></li>
-<li><p><strong>March 22 - 31, 2022</strong><br>
-<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20220322_20220401.parquet">Download flight_events_20220322_20220401.parquet</a></p></li>
-<li><p><strong>April 1 - 10, 2022</strong><br>
-<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20220401_20220411.parquet">Download flight_events_20220401_20220411.parquet</a></p></li>
-<li><p><strong>April 11 - 20, 2022</strong><br>
-<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20220411_20220421.parquet">Download flight_events_20220411_20220421.parquet</a></p></li>
-<li><p><strong>April 21 - 30, 2022</strong><br>
-<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20220421_20220501.parquet">Download flight_events_20220421_20220501.parquet</a></p></li>
-<li><p><strong>May 1 - 10, 2022</strong><br>
-<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20220501_20220511.parquet">Download flight_events_20220501_20220511.parquet</a></p></li>
-<li><p><strong>May 11 - 20, 2022</strong><br>
-<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20220511_20220521.parquet">Download flight_events_20220511_20220521.parquet</a></p></li>
-<li><p><strong>May 21 - 30, 2022</strong><br>
-<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20220521_20220531.parquet">Download flight_events_20220521_20220531.parquet</a></p></li>
-<li><p><strong>May 31 - June 9, 2022</strong><br>
-<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20220531_20220610.parquet">Download flight_events_20220531_20220610.parquet</a></p></li>
-<li><p><strong>June 10 - 19, 2022</strong><br>
-<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20220610_20220620.parquet">Download flight_events_20220610_20220620.parquet</a></p></li>
-<li><p><strong>June 20 - 29, 2022</strong><br>
-<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20220620_20220630.parquet">Download flight_events_20220620_20220630.parquet</a></p></li>
-<li><p><strong>June 30 - July 9, 2022</strong><br>
-<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20220630_20220710.parquet">Download flight_events_20220630_20220710.parquet</a></p></li>
-<li><p><strong>July 10 - 19, 2022</strong><br>
-<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20220710_20220720.parquet">Download flight_events_20220710_20220720.parquet</a></p></li>
-<li><p><strong>July 20 - 29, 2022</strong><br>
-<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20220720_20220730.parquet">Download flight_events_20220720_20220730.parquet</a></p></li>
-<li><p><strong>July 30 - August 8, 2022</strong><br>
-<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20220730_20220809.parquet">Download flight_events_20220730_20220809.parquet</a></p></li>
-<li><p><strong>August 9 - 18, 2022</strong><br>
-<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20220809_20220819.parquet">Download flight_events_20220809_20220819.parquet</a></p></li>
-<li><p><strong>August 19 - 28, 2022</strong><br>
-<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20220819_20220829.parquet">Download flight_events_20220819_20220829.parquet</a></p></li>
-<li><p><strong>August 29 - September 7, 2022</strong><br>
-<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20220829_20220908.parquet">Download flight_events_20220829_20220908.parquet</a></p></li>
-<li><p><strong>September 8 - 17, 2022</strong><br>
-<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20220908_20220918.parquet">Download flight_events_20220908_20220918.parquet</a></p></li>
-<li><p><strong>September 18 - 27, 2022</strong><br>
-<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20220918_20220928.parquet">Download flight_events_20220918_20220928.parquet</a></p></li>
-<li><p><strong>September 28 - October 7, 2022</strong><br>
-<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20220928_20221008.parquet">Download flight_events_20220928_20221008.parquet</a></p></li>
-<li><p><strong>October 8 - 17, 2022</strong><br>
-<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20221008_20221018.parquet">Download flight_events_20221008_20221018.parquet</a></p></li>
-<li><p><strong>October 18 - 27, 2022</strong><br>
-<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20221018_20221028.parquet">Download flight_events_20221018_20221028.parquet</a></p></li>
-<li><p><strong>October 28 - November 6, 2022</strong><br>
-<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20221028_20221107.parquet">Download flight_events_20221028_20221107.parquet</a></p></li>
-<li><p><strong>November 7 - 16, 2022</strong><br>
-<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20221107_20221117.parquet">Download flight_events_20221107_20221117.parquet</a></p></li>
-<li><p><strong>November 17 - 26, 2022</strong><br>
-<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20221117_20221127.parquet">Download flight_events_20221117_20221127.parquet</a></p></li>
-<li><p><strong>November 27 - December 6, 2022</strong><br>
-<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20221127_20221207.parquet">Download flight_events_20221127_20221207.parquet</a></p></li>
-<li><p><strong>December 7 - 16, 2022</strong><br>
-<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20221207_20221217.parquet">Download flight_events_20221207_20221217.parquet</a></p></li>
-<li><p><strong>December 17 - 26, 2022</strong><br>
-<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20221217_20221227.parquet">Download flight_events_20221217_20221227.parquet</a></p></li>
-<li><p><strong>December 27, 2022 - January 5, 2023</strong><br>
-<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20221227_20230106.parquet">Download flight_events_20221227_20230106.parquet</a></p></li>
-</ul>
+</div>
+</div>
+<div class="callout callout-style-default callout-tip callout-titled">
+<div class="callout-header d-flex align-content-center" data-bs-toggle="collapse" data-bs-target=".callout-2-contents" aria-controls="callout-2" aria-expanded="false" aria-label="Toggle callout">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+R download script example
+</div>
+<div class="callout-btn-toggle d-inline-block border-0 py-1 ps-1 pe-0 float-end"><i class="callout-toggle"></i></div>
+</div>
+<div id="callout-2" class="callout-2-contents callout-collapse collapse">
+<div class="callout-body-container callout-body">
+<div class="cell">
+<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(httr)</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(lubridate)</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(fs)</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>generate_urls <span class="ot">&lt;-</span> <span class="cf">function</span>(data_type, start_date, end_date) {</span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Generates a list of URLs for flight lists, flight events, or measurements.</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>  <span class="co">#</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Args:</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>  <span class="co">#   data_type (character): Type of data ("flight_list", "flight_events", "measurements").</span></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>  <span class="co">#   start_date (character): The start date in format YYYYMM or YYYYMMDD.</span></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>  <span class="co">#   end_date (character): The end date in format YYYYMM or YYYYMMDD.</span></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>  <span class="co">#</span></span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Returns:</span></span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>  <span class="co">#   A vector of URLs.</span></span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a>  base_url <span class="ot">&lt;-</span> <span class="fu">paste0</span>(<span class="st">"https://www.eurocontrol.int/performance/data/download/OPDI/v002/"</span>, data_type, <span class="st">"/"</span>, data_type, <span class="st">"_"</span>)</span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a>  urls <span class="ot">&lt;-</span> <span class="fu">c</span>()</span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (data_type <span class="sc">==</span> <span class="st">"flight_list"</span>) {</span>
+<span id="cb2-20"><a href="#cb2-20" aria-hidden="true" tabindex="-1"></a>    start_dt <span class="ot">&lt;-</span> <span class="fu">ymd</span>(<span class="fu">paste0</span>(start_date, <span class="st">"01"</span>))</span>
+<span id="cb2-21"><a href="#cb2-21" aria-hidden="true" tabindex="-1"></a>    end_dt <span class="ot">&lt;-</span> <span class="fu">ymd</span>(<span class="fu">paste0</span>(end_date, <span class="st">"01"</span>))</span>
+<span id="cb2-22"><a href="#cb2-22" aria-hidden="true" tabindex="-1"></a>    delta <span class="ot">&lt;-</span> <span class="fu">months</span>(<span class="dv">1</span>)</span>
+<span id="cb2-23"><a href="#cb2-23" aria-hidden="true" tabindex="-1"></a>  } <span class="cf">else</span> {</span>
+<span id="cb2-24"><a href="#cb2-24" aria-hidden="true" tabindex="-1"></a>    start_dt <span class="ot">&lt;-</span> <span class="fu">ymd</span>(start_date)</span>
+<span id="cb2-25"><a href="#cb2-25" aria-hidden="true" tabindex="-1"></a>    end_dt <span class="ot">&lt;-</span> <span class="fu">ymd</span>(end_date)</span>
+<span id="cb2-26"><a href="#cb2-26" aria-hidden="true" tabindex="-1"></a>    delta <span class="ot">&lt;-</span> <span class="fu">days</span>(<span class="dv">10</span>)</span>
+<span id="cb2-27"><a href="#cb2-27" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb2-28"><a href="#cb2-28" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb2-29"><a href="#cb2-29" aria-hidden="true" tabindex="-1"></a>  current_dt <span class="ot">&lt;-</span> start_dt</span>
+<span id="cb2-30"><a href="#cb2-30" aria-hidden="true" tabindex="-1"></a>  <span class="cf">while</span> (current_dt <span class="sc">&lt;=</span> end_dt) {</span>
+<span id="cb2-31"><a href="#cb2-31" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> (data_type <span class="sc">==</span> <span class="st">"flight_list"</span>) {</span>
+<span id="cb2-32"><a href="#cb2-32" aria-hidden="true" tabindex="-1"></a>      url <span class="ot">&lt;-</span> <span class="fu">paste0</span>(base_url, <span class="fu">format</span>(current_dt, <span class="st">"%Y%m"</span>), <span class="st">".parquet"</span>)</span>
+<span id="cb2-33"><a href="#cb2-33" aria-hidden="true" tabindex="-1"></a>    } <span class="cf">else</span> {</span>
+<span id="cb2-34"><a href="#cb2-34" aria-hidden="true" tabindex="-1"></a>      next_dt <span class="ot">&lt;-</span> current_dt <span class="sc">+</span> delta</span>
+<span id="cb2-35"><a href="#cb2-35" aria-hidden="true" tabindex="-1"></a>      url <span class="ot">&lt;-</span> <span class="fu">paste0</span>(base_url, <span class="fu">format</span>(current_dt, <span class="st">"%Y%m%d"</span>), <span class="st">"_"</span>, <span class="fu">format</span>(next_dt, <span class="st">"%Y%m%d"</span>), <span class="st">".parquet"</span>)</span>
+<span id="cb2-36"><a href="#cb2-36" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb2-37"><a href="#cb2-37" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb2-38"><a href="#cb2-38" aria-hidden="true" tabindex="-1"></a>    urls <span class="ot">&lt;-</span> <span class="fu">c</span>(urls, url)</span>
+<span id="cb2-39"><a href="#cb2-39" aria-hidden="true" tabindex="-1"></a>    current_dt <span class="ot">&lt;-</span> current_dt <span class="sc">+</span> delta</span>
+<span id="cb2-40"><a href="#cb2-40" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb2-41"><a href="#cb2-41" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb2-42"><a href="#cb2-42" aria-hidden="true" tabindex="-1"></a>  <span class="fu">return</span>(urls)</span>
+<span id="cb2-43"><a href="#cb2-43" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb2-44"><a href="#cb2-44" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-45"><a href="#cb2-45" aria-hidden="true" tabindex="-1"></a>download_files <span class="ot">&lt;-</span> <span class="cf">function</span>(urls, save_folder) {</span>
+<span id="cb2-46"><a href="#cb2-46" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Downloads files from the generated URLs and saves them in the specified folder.</span></span>
+<span id="cb2-47"><a href="#cb2-47" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Skips files that already exist.</span></span>
+<span id="cb2-48"><a href="#cb2-48" aria-hidden="true" tabindex="-1"></a>  <span class="co">#</span></span>
+<span id="cb2-49"><a href="#cb2-49" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Args:</span></span>
+<span id="cb2-50"><a href="#cb2-50" aria-hidden="true" tabindex="-1"></a>  <span class="co">#   urls (character vector): List of URLs to download.</span></span>
+<span id="cb2-51"><a href="#cb2-51" aria-hidden="true" tabindex="-1"></a>  <span class="co">#   save_folder (character): Folder to save downloaded files.</span></span>
+<span id="cb2-52"><a href="#cb2-52" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb2-53"><a href="#cb2-53" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (<span class="sc">!</span><span class="fu">dir_exists</span>(save_folder)) {</span>
+<span id="cb2-54"><a href="#cb2-54" aria-hidden="true" tabindex="-1"></a>    <span class="fu">dir_create</span>(save_folder)</span>
+<span id="cb2-55"><a href="#cb2-55" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb2-56"><a href="#cb2-56" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb2-57"><a href="#cb2-57" aria-hidden="true" tabindex="-1"></a>  <span class="cf">for</span> (url <span class="cf">in</span> urls) {</span>
+<span id="cb2-58"><a href="#cb2-58" aria-hidden="true" tabindex="-1"></a>    file_name <span class="ot">&lt;-</span> <span class="fu">basename</span>(url)</span>
+<span id="cb2-59"><a href="#cb2-59" aria-hidden="true" tabindex="-1"></a>    save_path <span class="ot">&lt;-</span> <span class="fu">file.path</span>(save_folder, file_name)</span>
+<span id="cb2-60"><a href="#cb2-60" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb2-61"><a href="#cb2-61" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> (<span class="fu">file_exists</span>(save_path)) {</span>
+<span id="cb2-62"><a href="#cb2-62" aria-hidden="true" tabindex="-1"></a>      <span class="fu">message</span>(<span class="st">"Skipping "</span>, file_name, <span class="st">", already exists."</span>)</span>
+<span id="cb2-63"><a href="#cb2-63" aria-hidden="true" tabindex="-1"></a>      <span class="cf">next</span></span>
+<span id="cb2-64"><a href="#cb2-64" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb2-65"><a href="#cb2-65" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb2-66"><a href="#cb2-66" aria-hidden="true" tabindex="-1"></a>    <span class="fu">message</span>(<span class="st">"Downloading "</span>, url, <span class="st">"..."</span>)</span>
+<span id="cb2-67"><a href="#cb2-67" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb2-68"><a href="#cb2-68" aria-hidden="true" tabindex="-1"></a>    <span class="fu">tryCatch</span>({</span>
+<span id="cb2-69"><a href="#cb2-69" aria-hidden="true" tabindex="-1"></a>      response <span class="ot">&lt;-</span> <span class="fu">GET</span>(url, <span class="fu">write_disk</span>(save_path, <span class="at">overwrite =</span> <span class="cn">TRUE</span>))</span>
+<span id="cb2-70"><a href="#cb2-70" aria-hidden="true" tabindex="-1"></a>      </span>
+<span id="cb2-71"><a href="#cb2-71" aria-hidden="true" tabindex="-1"></a>      <span class="cf">if</span> (<span class="fu">http_error</span>(response)) {</span>
+<span id="cb2-72"><a href="#cb2-72" aria-hidden="true" tabindex="-1"></a>        <span class="fu">warning</span>(<span class="st">"Failed to download "</span>, url, <span class="st">": HTTP error "</span>, <span class="fu">status_code</span>(response))</span>
+<span id="cb2-73"><a href="#cb2-73" aria-hidden="true" tabindex="-1"></a>      } <span class="cf">else</span> {</span>
+<span id="cb2-74"><a href="#cb2-74" aria-hidden="true" tabindex="-1"></a>        <span class="fu">message</span>(<span class="st">"Saved to "</span>, save_path)</span>
+<span id="cb2-75"><a href="#cb2-75" aria-hidden="true" tabindex="-1"></a>      }</span>
+<span id="cb2-76"><a href="#cb2-76" aria-hidden="true" tabindex="-1"></a>      </span>
+<span id="cb2-77"><a href="#cb2-77" aria-hidden="true" tabindex="-1"></a>    }, <span class="at">error =</span> <span class="cf">function</span>(e) {</span>
+<span id="cb2-78"><a href="#cb2-78" aria-hidden="true" tabindex="-1"></a>      <span class="fu">warning</span>(<span class="st">"Failed to download "</span>, url, <span class="st">": "</span>, e<span class="sc">$</span>message)</span>
+<span id="cb2-79"><a href="#cb2-79" aria-hidden="true" tabindex="-1"></a>    })</span>
+<span id="cb2-80"><a href="#cb2-80" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb2-81"><a href="#cb2-81" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb2-82"><a href="#cb2-82" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-83"><a href="#cb2-83" aria-hidden="true" tabindex="-1"></a><span class="co"># Example usage</span></span>
+<span id="cb2-84"><a href="#cb2-84" aria-hidden="true" tabindex="-1"></a>datasets <span class="ot">&lt;-</span> <span class="fu">list</span>(</span>
+<span id="cb2-85"><a href="#cb2-85" aria-hidden="true" tabindex="-1"></a>  <span class="co">#"flight_list" = c("202201", "202412"),</span></span>
+<span id="cb2-86"><a href="#cb2-86" aria-hidden="true" tabindex="-1"></a>  <span class="st">"flight_events"</span> <span class="ot">=</span> <span class="fu">c</span>(<span class="st">"20220101"</span>, <span class="st">"20241231"</span>)<span class="co">#,</span></span>
+<span id="cb2-87"><a href="#cb2-87" aria-hidden="true" tabindex="-1"></a>  <span class="co">#"measurements" = c("20220101", "20241231")</span></span>
+<span id="cb2-88"><a href="#cb2-88" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb2-89"><a href="#cb2-89" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-90"><a href="#cb2-90" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> (data_type <span class="cf">in</span> <span class="fu">names</span>(datasets)) {</span>
+<span id="cb2-91"><a href="#cb2-91" aria-hidden="true" tabindex="-1"></a>  dates <span class="ot">&lt;-</span> datasets[[data_type]]</span>
+<span id="cb2-92"><a href="#cb2-92" aria-hidden="true" tabindex="-1"></a>  urls <span class="ot">&lt;-</span> <span class="fu">generate_urls</span>(data_type, dates[<span class="dv">1</span>], dates[<span class="dv">2</span>])</span>
+<span id="cb2-93"><a href="#cb2-93" aria-hidden="true" tabindex="-1"></a>  <span class="fu">download_files</span>(urls, <span class="fu">paste0</span>(<span class="st">"./data/"</span>, data_type))</span>
+<span id="cb2-94"><a href="#cb2-94" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</div>
+</div>
+</div>
 </section>
-<section id="section-1" class="level3">
-<h3 class="anchored" data-anchor-id="section-1">2023</h3>
+<section id="download-available-datasets" class="level2">
+<h2 class="anchored" data-anchor-id="download-available-datasets">Download Available Datasets</h2>
+<p>Each dataset corresponds to a specific 10-day period and is listed below for easy access.</p>
 <ul>
-<li><p><strong>January 6 - 15, 2023</strong><br>
-<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20230106_20230116.parquet">Download flight_events_20230106_20230116.parquet</a></p></li>
-<li><p><strong>January 16 - 25, 2023</strong><br>
-<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20230116_20230126.parquet">Download flight_events_20230116_20230126.parquet</a></p></li>
-<li><p><strong>January 26 - February 4, 2023</strong><br>
-<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20230126_20230205.parquet">Download flight_events_20230126_20230205.parquet</a></p></li>
-<li><p><strong>February 5 - 14, 2023</strong><br>
-<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20230205_20230215.parquet">Download flight_events_20230205_20230215.parquet</a></p></li>
-<li><p><strong>February 15 - 24, 2023</strong><br>
-<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20230215_20230225.parquet">Download flight_events_20230215_20230225.parquet</a></p></li>
-<li><p><strong>February 25 - March 6, 2023</strong><br>
-<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20230225_20230307.parquet">Download flight_events_20230225_20230307.parquet</a></p></li>
-<li><p><strong>March 7 - 16, 2023</strong><br>
-<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20230307_20230317.parquet">Download flight_events_20230307_20230317.parquet</a></p></li>
-<li><p><strong>March 17 - 26, 2023</strong><br>
-<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20230317_20230327.parquet">Download flight_events_20230317_20230327.parquet</a></p></li>
-<li><p><strong>March 27 - April 5, 2023</strong><br>
-<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20230327_20230406.parquet">Download flight_events_20230327_20230406.parquet</a></p></li>
-<li><p><strong>April 6 - 15, 2023</strong><br>
-<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20230406_20230416.parquet">Download flight_events_20230406_20230416.parquet</a></p></li>
-<li><p><strong>April 16 - 25, 2023</strong><br>
-<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20230416_20230426.parquet">Download flight_events_20230416_20230426.parquet</a></p></li>
-<li><p><strong>April 26 - May 5, 2023</strong><br>
-<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20230426_20230506.parquet">Download flight_events_20230426_20230506.parquet</a></p></li>
-<li><p><strong>May 6 - 15, 2023</strong><br>
-<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20230506_20230516.parquet">Download flight_events_20230506_20230516.parquet</a></p></li>
-<li><p><strong>May 16 - 25, 2023</strong><br>
-<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20230516_20230526.parquet">Download flight_events_20230516_20230526.parquet</a></p></li>
-<li><p><strong>May 26 - June 4, 2023</strong><br>
-<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20230526_20230605.parquet">Download flight_events_20230526_20230605.parquet</a></p></li>
-<li><p><strong>June 5 - 14, 2023</strong><br>
-<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20230605_20230615.parquet">Download flight_events_20230605_20230615.parquet</a></p></li>
-<li><p><strong>June 15 - 24, 2023</strong><br>
-<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20230615_20230625.parquet">Download flight_events_20230615_20230625.parquet</a></p></li>
-<li><p><strong>June 25 - July 4, 2023</strong><br>
-<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20230625_20230705.parquet">Download flight_events_20230625_20230705.parquet</a></p></li>
-<li><p><strong>July 5 - 14, 2023</strong><br>
-<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20230705_20230715.parquet">Download flight_events_20230705_20230715.parquet</a></p></li>
-<li><p><strong>July 15 - 24, 2023</strong><br>
-<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20230715_20230725.parquet">Download flight_events_20230715_20230725.parquet</a></p></li>
-<li><p><strong>July 25 - August 3, 2023</strong><br>
-<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20230725_20230804.parquet">Download flight_events_20230725_20230804.parquet</a></p></li>
-<li><p><strong>August 4 - 13, 2023</strong><br>
-<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20230804_20230814.parquet">Download flight_events_20230804_20230814.parquet</a></p></li>
-<li><p><strong>August 14 - 23, 2023</strong><br>
-<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20230814_20230824.parquet">Download flight_events_20230814_20230824.parquet</a></p></li>
-<li><p><strong>August 24 - September 2, 2023</strong><br>
-<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20230824_20230903.parquet">Download flight_events_20230824_20230903.parquet</a></p></li>
-<li><p><strong>September 3 - 12, 2023</strong><br>
-<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20230903_20230913.parquet">Download flight_events_20230903_20230913.parquet</a></p></li>
-<li><p><strong>September 13 - 22, 2023</strong><br>
-<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20230913_20230923.parquet">Download flight_events_20230913_20230923.parquet</a></p></li>
-<li><p><strong>September 23 - October 2, 2023</strong><br>
-<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20230923_20231003.parquet">Download flight_events_20230923_20231003.parquet</a></p></li>
-<li><p><strong>October 3 - 12, 2023</strong><br>
-<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20231003_20231013.parquet">Download flight_events_20231003_20231013.parquet</a></p></li>
-<li><p><strong>October 13 - 22, 2023</strong><br>
-<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20231013_20231023.parquet">Download flight_events_20231013_20231023.parquet</a></p></li>
-<li><p><strong>October 23 - November 1, 2023</strong><br>
-<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20231023_20231102.parquet">Download flight_events_20231023_20231102.parquet</a></p></li>
-<li><p><strong>November 2 - 11, 2023</strong><br>
-<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20231102_20231112.parquet">Download flight_events_20231102_20231112.parquet</a></p></li>
-<li><p><strong>November 12 - 21, 2023</strong><br>
-<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20231112_20231122.parquet">Download flight_events_20231112_20231122.parquet</a></p></li>
-<li><p><strong>November 22 - December 1, 2023</strong><br>
-<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20231122_20231202.parquet">Download flight_events_20231122_20231202.parquet</a></p></li>
-<li><p><strong>December 2 - 11, 2023</strong><br>
-<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20231202_20231212.parquet">Download flight_events_20231202_20231212.parquet</a></p></li>
-<li><p><strong>December 12 - 21, 2023</strong><br>
-<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20231212_20231222.parquet">Download flight_events_20231212_20231222.parquet</a></p></li>
-<li><p><strong>December 22 - 31, 2023</strong><br>
-<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20231222_20240101.parquet">Download flight_events_20231222_20240101.parquet</a></p></li>
-</ul>
-</section>
-<section id="section-2" class="level3">
-<h3 class="anchored" data-anchor-id="section-2">2024</h3>
-<ul>
-<li><p><strong>January 1 - 10, 2024</strong><br>
-<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20240101_20240111.parquet">Download flight_events_20240101_20240111.parquet</a></p></li>
-<li><p><strong>January 11 - 20, 2024</strong><br>
-<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20240111_20240121.parquet">Download flight_events_20240111_20240121.parquet</a></p></li>
-<li><p><strong>January 21 - 30, 2024</strong><br>
-<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20240121_20240131.parquet">Download flight_events_20240121_20240131.parquet</a></p></li>
-<li><p><strong>January 31 - February 9, 2024</strong><br>
-<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20240131_20240210.parquet">Download flight_events_20240131_20240210.parquet</a></p></li>
-<li><p><strong>February 10 - 19, 2024</strong><br>
-<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20240210_20240220.parquet">Download flight_events_20240210_20240220.parquet</a></p></li>
-<li><p><strong>February 20 - 29, 2024</strong><br>
-<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20240220_20240301.parquet">Download flight_events_20240220_20240301.parquet</a></p></li>
-<li><p><strong>March 1 - 10, 2024</strong><br>
-<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20240301_20240311.parquet">Download flight_events_20240301_20240311.parquet</a></p></li>
-<li><p><strong>March 11 - 20, 2024</strong><br>
-<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20240311_20240321.parquet">Download flight_events_20240311_20240321.parquet</a></p></li>
-<li><p><strong>March 21 - 30, 2024</strong><br>
-<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20240321_20240331.parquet">Download flight_events_20240321_20240331.parquet</a></p></li>
-<li><p><strong>March 31 - April 9, 2024</strong><br>
-<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20240331_20240410.parquet">Download flight_events_20240331_20240410.parquet</a></p></li>
-<li><p><strong>April 10 - 19, 2024</strong><br>
-<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20240410_20240420.parquet">Download flight_events_20240410_20240420.parquet</a></p></li>
-<li><p><strong>April 20 - 29, 2024</strong><br>
-<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20240420_20240430.parquet">Download flight_events_20240420_20240430.parquet</a></p></li>
-<li><p><strong>April 30 - May 9, 2024</strong><br>
-<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20240430_20240510.parquet">Download flight_events_20240430_20240510.parquet</a></p></li>
-<li><p><strong>May 10 - 19, 2024</strong><br>
-<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20240510_20240520.parquet">Download flight_events_20240510_20240520.parquet</a></p></li>
-<li><p><strong>May 20 - 29, 2024</strong><br>
-<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20240520_20240530.parquet">Download flight_events_20240520_20240530.parquet</a></p></li>
-<li><p><strong>May 30 - June 8, 2024</strong><br>
-<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20240530_20240609.parquet">Download flight_events_20240530_20240609.parquet</a></p></li>
-<li><p><strong>June 9 - 18, 2024</strong><br>
-<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20240609_20240619.parquet">Download flight_events_20240609_20240619.parquet</a></p></li>
-<li><p><strong>June 19 - 28, 2024</strong><br>
-<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20240619_20240629.parquet">Download flight_events_20240619_20240629.parquet</a></p></li>
-<li><p><strong>June 29 - July 8, 2024</strong><br>
-<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20240629_20240709.parquet">Download flight_events_20240629_20240709.parquet</a></p></li>
-<li><p><strong>July 09 - July 19, 2024</strong><br>
-<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20240709_20240719.parquet">Download flight_events_20240709_20240719.parquet</a></p></li>
-<li><p><strong>July 19 - July 29, 2024</strong><br>
-<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20240719_20240729.parquet">Download flight_events_20240719_20240729.parquet</a></p></li>
-<li><p><strong>July 29 - August 08, 2024</strong><br>
-<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20240729_20240808.parquet">Download flight_events_20240729_20240808.parquet</a></p></li>
-<li><p><strong>August 08 - August 18, 2024</strong><br>
-<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20240808_20240818.parquet">Download flight_events_20240808_20240818.parquet</a></p></li>
-<li><p><strong>August 18 - August 28, 2024</strong><br>
-<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20240818_20240828.parquet">Download flight_events_20240818_20240828.parquet</a></p></li>
-<li><p><strong>August 28 - September 07, 2024</strong><br>
-<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20240828_20240907.parquet">Download flight_events_20240828_20240907.parquet</a></p></li>
-<li><p><strong>September 07 - September 17, 2024</strong><br>
-<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20240907_20240917.parquet">Download flight_events_20240907_20240917.parquet</a></p></li>
-<li><p><strong>September 17 - September 27, 2024</strong><br>
-<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20240917_20240927.parquet">Download flight_events_20240917_20240927.parquet</a></p></li>
-<li><p><strong>September 27 - October 07, 2024</strong><br>
-<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20240927_20241007.parquet">Download flight_events_20240927_20241007.parquet</a></p></li>
-<li><p><strong>October 07 - October 17, 2024</strong><br>
-<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20241007_20241017.parquet">Download flight_events_20241007_20241017.parquet</a></p></li>
-<li><p><strong>October 17 - October 27, 2024</strong><br>
-<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20241017_20241027.parquet">Download flight_events_20241017_20241027.parquet</a></p></li>
-<li><p><strong>October 27 - November 06, 2024</strong><br>
-<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20241027_20241106.parquet">Download flight_events_20241027_20241106.parquet</a></p></li>
-<li><p><strong>November 06 - November 16, 2024</strong><br>
-<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20241106_20241116.parquet">Download flight_events_20241106_20241116.parquet</a></p></li>
-<li><p><strong>November 16 - November 26, 2024</strong><br>
-<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20241116_20241126.parquet">Download flight_events_20241116_20241126.parquet</a></p></li>
-<li><p><strong>November 26 - November 30, 2024</strong><br>
-<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20241126_20241206.parquet">Download flight_events_20241126_20241206.parquet</a></p></li>
+<li><strong>January 01, 2022 - January 11, 2022</strong><br>
+<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20220101_20220111.parquet">Download flight_events_20220101_20220111.parquet</a></li>
+<li><strong>January 11, 2022 - January 21, 2022</strong><br>
+<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20220111_20220121.parquet">Download flight_events_20220111_20220121.parquet</a></li>
+<li><strong>January 21, 2022 - January 31, 2022</strong><br>
+<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20220121_20220131.parquet">Download flight_events_20220121_20220131.parquet</a></li>
+<li><strong>January 31, 2022 - February 10, 2022</strong><br>
+<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20220131_20220210.parquet">Download flight_events_20220131_20220210.parquet</a></li>
+<li><strong>February 10, 2022 - February 20, 2022</strong><br>
+<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20220210_20220220.parquet">Download flight_events_20220210_20220220.parquet</a></li>
+<li><strong>February 20, 2022 - March 02, 2022</strong><br>
+<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20220220_20220302.parquet">Download flight_events_20220220_20220302.parquet</a></li>
+<li><strong>March 02, 2022 - March 12, 2022</strong><br>
+<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20220302_20220312.parquet">Download flight_events_20220302_20220312.parquet</a></li>
+<li><strong>March 12, 2022 - March 22, 2022</strong><br>
+<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20220312_20220322.parquet">Download flight_events_20220312_20220322.parquet</a></li>
+<li><strong>March 22, 2022 - April 01, 2022</strong><br>
+<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20220322_20220401.parquet">Download flight_events_20220322_20220401.parquet</a></li>
+<li><strong>April 01, 2022 - April 11, 2022</strong><br>
+<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20220401_20220411.parquet">Download flight_events_20220401_20220411.parquet</a></li>
+<li><strong>April 11, 2022 - April 21, 2022</strong><br>
+<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20220411_20220421.parquet">Download flight_events_20220411_20220421.parquet</a></li>
+<li><strong>April 21, 2022 - May 01, 2022</strong><br>
+<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20220421_20220501.parquet">Download flight_events_20220421_20220501.parquet</a></li>
+<li><strong>May 01, 2022 - May 11, 2022</strong><br>
+<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20220501_20220511.parquet">Download flight_events_20220501_20220511.parquet</a></li>
+<li><strong>May 11, 2022 - May 21, 2022</strong><br>
+<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20220511_20220521.parquet">Download flight_events_20220511_20220521.parquet</a></li>
+<li><strong>May 21, 2022 - May 31, 2022</strong><br>
+<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20220521_20220531.parquet">Download flight_events_20220521_20220531.parquet</a></li>
+<li><strong>May 31, 2022 - June 10, 2022</strong><br>
+<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20220531_20220610.parquet">Download flight_events_20220531_20220610.parquet</a></li>
+<li><strong>June 10, 2022 - June 20, 2022</strong><br>
+<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20220610_20220620.parquet">Download flight_events_20220610_20220620.parquet</a></li>
+<li><strong>June 20, 2022 - June 30, 2022</strong><br>
+<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20220620_20220630.parquet">Download flight_events_20220620_20220630.parquet</a></li>
+<li><strong>June 30, 2022 - July 10, 2022</strong><br>
+<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20220630_20220710.parquet">Download flight_events_20220630_20220710.parquet</a></li>
+<li><strong>July 10, 2022 - July 20, 2022</strong><br>
+<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20220710_20220720.parquet">Download flight_events_20220710_20220720.parquet</a></li>
+<li><strong>July 20, 2022 - July 30, 2022</strong><br>
+<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20220720_20220730.parquet">Download flight_events_20220720_20220730.parquet</a></li>
+<li><strong>July 30, 2022 - August 09, 2022</strong><br>
+<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20220730_20220809.parquet">Download flight_events_20220730_20220809.parquet</a></li>
+<li><strong>August 09, 2022 - August 19, 2022</strong><br>
+<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20220809_20220819.parquet">Download flight_events_20220809_20220819.parquet</a></li>
+<li><strong>August 19, 2022 - August 29, 2022</strong><br>
+<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20220819_20220829.parquet">Download flight_events_20220819_20220829.parquet</a></li>
+<li><strong>August 29, 2022 - September 08, 2022</strong><br>
+<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20220829_20220908.parquet">Download flight_events_20220829_20220908.parquet</a></li>
+<li><strong>September 08, 2022 - September 18, 2022</strong><br>
+<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20220908_20220918.parquet">Download flight_events_20220908_20220918.parquet</a></li>
+<li><strong>September 18, 2022 - September 28, 2022</strong><br>
+<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20220918_20220928.parquet">Download flight_events_20220918_20220928.parquet</a></li>
+<li><strong>September 28, 2022 - October 08, 2022</strong><br>
+<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20220928_20221008.parquet">Download flight_events_20220928_20221008.parquet</a></li>
+<li><strong>October 08, 2022 - October 18, 2022</strong><br>
+<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20221008_20221018.parquet">Download flight_events_20221008_20221018.parquet</a></li>
+<li><strong>October 18, 2022 - October 28, 2022</strong><br>
+<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20221018_20221028.parquet">Download flight_events_20221018_20221028.parquet</a></li>
+<li><strong>October 28, 2022 - November 07, 2022</strong><br>
+<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20221028_20221107.parquet">Download flight_events_20221028_20221107.parquet</a></li>
+<li><strong>November 07, 2022 - November 17, 2022</strong><br>
+<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20221107_20221117.parquet">Download flight_events_20221107_20221117.parquet</a></li>
+<li><strong>November 17, 2022 - November 27, 2022</strong><br>
+<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20221117_20221127.parquet">Download flight_events_20221117_20221127.parquet</a></li>
+<li><strong>November 27, 2022 - December 07, 2022</strong><br>
+<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20221127_20221207.parquet">Download flight_events_20221127_20221207.parquet</a></li>
+<li><strong>December 07, 2022 - December 17, 2022</strong><br>
+<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20221207_20221217.parquet">Download flight_events_20221207_20221217.parquet</a></li>
+<li><strong>December 17, 2022 - December 27, 2022</strong><br>
+<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20221217_20221227.parquet">Download flight_events_20221217_20221227.parquet</a></li>
+<li><strong>December 27, 2022 - January 06, 2023</strong><br>
+<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20221227_20230106.parquet">Download flight_events_20221227_20230106.parquet</a></li>
+<li><strong>January 06, 2023 - January 16, 2023</strong><br>
+<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20230106_20230116.parquet">Download flight_events_20230106_20230116.parquet</a></li>
+<li><strong>January 16, 2023 - January 26, 2023</strong><br>
+<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20230116_20230126.parquet">Download flight_events_20230116_20230126.parquet</a></li>
+<li><strong>January 26, 2023 - February 05, 2023</strong><br>
+<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20230126_20230205.parquet">Download flight_events_20230126_20230205.parquet</a></li>
+<li><strong>February 05, 2023 - February 15, 2023</strong><br>
+<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20230205_20230215.parquet">Download flight_events_20230205_20230215.parquet</a></li>
+<li><strong>February 15, 2023 - February 25, 2023</strong><br>
+<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20230215_20230225.parquet">Download flight_events_20230215_20230225.parquet</a></li>
+<li><strong>February 25, 2023 - March 07, 2023</strong><br>
+<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20230225_20230307.parquet">Download flight_events_20230225_20230307.parquet</a></li>
+<li><strong>March 07, 2023 - March 17, 2023</strong><br>
+<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20230307_20230317.parquet">Download flight_events_20230307_20230317.parquet</a></li>
+<li><strong>March 17, 2023 - March 27, 2023</strong><br>
+<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20230317_20230327.parquet">Download flight_events_20230317_20230327.parquet</a></li>
+<li><strong>March 27, 2023 - April 06, 2023</strong><br>
+<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20230327_20230406.parquet">Download flight_events_20230327_20230406.parquet</a></li>
+<li><strong>April 06, 2023 - April 16, 2023</strong><br>
+<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20230406_20230416.parquet">Download flight_events_20230406_20230416.parquet</a></li>
+<li><strong>April 16, 2023 - April 26, 2023</strong><br>
+<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20230416_20230426.parquet">Download flight_events_20230416_20230426.parquet</a></li>
+<li><strong>April 26, 2023 - May 06, 2023</strong><br>
+<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20230426_20230506.parquet">Download flight_events_20230426_20230506.parquet</a></li>
+<li><strong>May 06, 2023 - May 16, 2023</strong><br>
+<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20230506_20230516.parquet">Download flight_events_20230506_20230516.parquet</a></li>
+<li><strong>May 16, 2023 - May 26, 2023</strong><br>
+<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20230516_20230526.parquet">Download flight_events_20230516_20230526.parquet</a></li>
+<li><strong>May 26, 2023 - June 05, 2023</strong><br>
+<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20230526_20230605.parquet">Download flight_events_20230526_20230605.parquet</a></li>
+<li><strong>June 05, 2023 - June 15, 2023</strong><br>
+<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20230605_20230615.parquet">Download flight_events_20230605_20230615.parquet</a></li>
+<li><strong>June 15, 2023 - June 25, 2023</strong><br>
+<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20230615_20230625.parquet">Download flight_events_20230615_20230625.parquet</a></li>
+<li><strong>June 25, 2023 - July 05, 2023</strong><br>
+<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20230625_20230705.parquet">Download flight_events_20230625_20230705.parquet</a></li>
+<li><strong>July 05, 2023 - July 15, 2023</strong><br>
+<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20230705_20230715.parquet">Download flight_events_20230705_20230715.parquet</a></li>
+<li><strong>July 15, 2023 - July 25, 2023</strong><br>
+<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20230715_20230725.parquet">Download flight_events_20230715_20230725.parquet</a></li>
+<li><strong>July 25, 2023 - August 04, 2023</strong><br>
+<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20230725_20230804.parquet">Download flight_events_20230725_20230804.parquet</a></li>
+<li><strong>August 04, 2023 - August 14, 2023</strong><br>
+<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20230804_20230814.parquet">Download flight_events_20230804_20230814.parquet</a></li>
+<li><strong>August 14, 2023 - August 24, 2023</strong><br>
+<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20230814_20230824.parquet">Download flight_events_20230814_20230824.parquet</a></li>
+<li><strong>August 24, 2023 - September 03, 2023</strong><br>
+<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20230824_20230903.parquet">Download flight_events_20230824_20230903.parquet</a></li>
+<li><strong>September 03, 2023 - September 13, 2023</strong><br>
+<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20230903_20230913.parquet">Download flight_events_20230903_20230913.parquet</a></li>
+<li><strong>September 13, 2023 - September 23, 2023</strong><br>
+<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20230913_20230923.parquet">Download flight_events_20230913_20230923.parquet</a></li>
+<li><strong>September 23, 2023 - October 03, 2023</strong><br>
+<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20230923_20231003.parquet">Download flight_events_20230923_20231003.parquet</a></li>
+<li><strong>October 03, 2023 - October 13, 2023</strong><br>
+<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20231003_20231013.parquet">Download flight_events_20231003_20231013.parquet</a></li>
+<li><strong>October 13, 2023 - October 23, 2023</strong><br>
+<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20231013_20231023.parquet">Download flight_events_20231013_20231023.parquet</a></li>
+<li><strong>October 23, 2023 - November 02, 2023</strong><br>
+<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20231023_20231102.parquet">Download flight_events_20231023_20231102.parquet</a></li>
+<li><strong>November 02, 2023 - November 12, 2023</strong><br>
+<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20231102_20231112.parquet">Download flight_events_20231102_20231112.parquet</a></li>
+<li><strong>November 12, 2023 - November 22, 2023</strong><br>
+<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20231112_20231122.parquet">Download flight_events_20231112_20231122.parquet</a></li>
+<li><strong>November 22, 2023 - December 02, 2023</strong><br>
+<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20231122_20231202.parquet">Download flight_events_20231122_20231202.parquet</a></li>
+<li><strong>December 02, 2023 - December 12, 2023</strong><br>
+<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20231202_20231212.parquet">Download flight_events_20231202_20231212.parquet</a></li>
+<li><strong>December 12, 2023 - December 22, 2023</strong><br>
+<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20231212_20231222.parquet">Download flight_events_20231212_20231222.parquet</a></li>
+<li><strong>December 22, 2023 - January 01, 2024</strong><br>
+<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20231222_20240101.parquet">Download flight_events_20231222_20240101.parquet</a></li>
+<li><strong>January 01, 2024 - January 11, 2024</strong><br>
+<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20240101_20240111.parquet">Download flight_events_20240101_20240111.parquet</a></li>
+<li><strong>January 11, 2024 - January 21, 2024</strong><br>
+<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20240111_20240121.parquet">Download flight_events_20240111_20240121.parquet</a></li>
+<li><strong>January 21, 2024 - January 31, 2024</strong><br>
+<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20240121_20240131.parquet">Download flight_events_20240121_20240131.parquet</a></li>
+<li><strong>January 31, 2024 - February 10, 2024</strong><br>
+<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20240131_20240210.parquet">Download flight_events_20240131_20240210.parquet</a></li>
+<li><strong>February 10, 2024 - February 20, 2024</strong><br>
+<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20240210_20240220.parquet">Download flight_events_20240210_20240220.parquet</a></li>
+<li><strong>February 20, 2024 - March 01, 2024</strong><br>
+<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20240220_20240301.parquet">Download flight_events_20240220_20240301.parquet</a></li>
+<li><strong>March 01, 2024 - March 11, 2024</strong><br>
+<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20240301_20240311.parquet">Download flight_events_20240301_20240311.parquet</a></li>
+<li><strong>March 11, 2024 - March 21, 2024</strong><br>
+<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20240311_20240321.parquet">Download flight_events_20240311_20240321.parquet</a></li>
+<li><strong>March 21, 2024 - March 31, 2024</strong><br>
+<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20240321_20240331.parquet">Download flight_events_20240321_20240331.parquet</a></li>
+<li><strong>March 31, 2024 - April 10, 2024</strong><br>
+<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20240331_20240410.parquet">Download flight_events_20240331_20240410.parquet</a></li>
+<li><strong>April 10, 2024 - April 20, 2024</strong><br>
+<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20240410_20240420.parquet">Download flight_events_20240410_20240420.parquet</a></li>
+<li><strong>April 20, 2024 - April 30, 2024</strong><br>
+<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20240420_20240430.parquet">Download flight_events_20240420_20240430.parquet</a></li>
+<li><strong>April 30, 2024 - May 10, 2024</strong><br>
+<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20240430_20240510.parquet">Download flight_events_20240430_20240510.parquet</a></li>
+<li><strong>May 10, 2024 - May 20, 2024</strong><br>
+<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20240510_20240520.parquet">Download flight_events_20240510_20240520.parquet</a></li>
+<li><strong>May 20, 2024 - May 30, 2024</strong><br>
+<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20240520_20240530.parquet">Download flight_events_20240520_20240530.parquet</a></li>
+<li><strong>May 30, 2024 - June 09, 2024</strong><br>
+<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20240530_20240609.parquet">Download flight_events_20240530_20240609.parquet</a></li>
+<li><strong>June 09, 2024 - June 19, 2024</strong><br>
+<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20240609_20240619.parquet">Download flight_events_20240609_20240619.parquet</a></li>
+<li><strong>June 19, 2024 - June 29, 2024</strong><br>
+<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20240619_20240629.parquet">Download flight_events_20240619_20240629.parquet</a></li>
+<li><strong>June 29, 2024 - July 09, 2024</strong><br>
+<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20240629_20240709.parquet">Download flight_events_20240629_20240709.parquet</a></li>
+<li><strong>July 09, 2024 - July 19, 2024</strong><br>
+<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20240709_20240719.parquet">Download flight_events_20240709_20240719.parquet</a></li>
+<li><strong>July 19, 2024 - July 29, 2024</strong><br>
+<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20240719_20240729.parquet">Download flight_events_20240719_20240729.parquet</a></li>
+<li><strong>July 29, 2024 - August 08, 2024</strong><br>
+<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20240729_20240808.parquet">Download flight_events_20240729_20240808.parquet</a></li>
+<li><strong>August 08, 2024 - August 18, 2024</strong><br>
+<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20240808_20240818.parquet">Download flight_events_20240808_20240818.parquet</a></li>
+<li><strong>August 18, 2024 - August 28, 2024</strong><br>
+<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20240818_20240828.parquet">Download flight_events_20240818_20240828.parquet</a></li>
+<li><strong>August 28, 2024 - September 07, 2024</strong><br>
+<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20240828_20240907.parquet">Download flight_events_20240828_20240907.parquet</a></li>
+<li><strong>September 07, 2024 - September 17, 2024</strong><br>
+<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20240907_20240917.parquet">Download flight_events_20240907_20240917.parquet</a></li>
+<li><strong>September 17, 2024 - September 27, 2024</strong><br>
+<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20240917_20240927.parquet">Download flight_events_20240917_20240927.parquet</a></li>
+<li><strong>September 27, 2024 - October 07, 2024</strong><br>
+<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20240927_20241007.parquet">Download flight_events_20240927_20241007.parquet</a></li>
+<li><strong>October 07, 2024 - October 17, 2024</strong><br>
+<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20241007_20241017.parquet">Download flight_events_20241007_20241017.parquet</a></li>
+<li><strong>October 17, 2024 - October 27, 2024</strong><br>
+<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20241017_20241027.parquet">Download flight_events_20241017_20241027.parquet</a></li>
+<li><strong>October 27, 2024 - November 06, 2024</strong><br>
+<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20241027_20241106.parquet">Download flight_events_20241027_20241106.parquet</a></li>
+<li><strong>November 06, 2024 - November 16, 2024</strong><br>
+<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20241106_20241116.parquet">Download flight_events_20241106_20241116.parquet</a></li>
+<li><strong>November 16, 2024 - November 26, 2024</strong><br>
+<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20241116_20241126.parquet">Download flight_events_20241116_20241126.parquet</a></li>
+<li><strong>November 26, 2024 - December 06, 2024</strong><br>
+<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20241126_20241206.parquet">Download flight_events_20241126_20241206.parquet</a></li>
+<li><strong>December 06, 2024 - December 16, 2024</strong><br>
+<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20241206_20241216.parquet">Download flight_events_20241206_20241216.parquet</a></li>
+<li><strong>December 16, 2024 - December 26, 2024</strong><br>
+<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20241216_20241226.parquet">Download flight_events_20241216_20241226.parquet</a></li>
+<li><strong>December 26, 2024 - January 05, 2025</strong><br>
+<a href="https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_20241226_20250105.parquet">Download flight_events_20241226_20250105.parquet</a></li>
 </ul>
 <hr>
 <p>We hope you find these datasets useful for your analysis and research. If you have any questions or require further assistance, please contact us at <a href="mailto:support@ansperformance.eu">support@ansperformance.eu</a>.</p>
 
 
-</section>
 </section>
 <section id="acronyms_HEADER_LOA" class="level1 loa">
 <h1 class="loa">List of Acronyms</h1>

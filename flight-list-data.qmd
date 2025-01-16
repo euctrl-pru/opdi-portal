@@ -1,133 +1,207 @@
 ---
 title: "Download Flight List v0.0.2 Datasets"
 format: html
-acronyms:
-  insert_loa: false
+params:
+  start_date: "2022-01-01"
+  end_date: "2024-12-31"
 ---
 
-Below you will find links to download flight list v.0.0.2 data files from January 2022 to November 2024. Each file is in Parquet format, providing a highly efficient way to store and manage large datasets.
+Below you will find links to download flight list v0.0.2 data files from `r format(as.Date(params$start_date), "%B %d, %Y")` to `r format(as.Date(params$end_date), "%B %d, %Y")`. Each file is in Parquet format, providing a highly efficient way to store and manage large datasets. The datasets are organized by month.
 
-## Available Datasets
+## Automated Download
+
+If you want to automate your downloads, you can generate the link for downloading using the following format where `YYYYMM` is the year and month of interest. 
+
+```https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_list/flight_list_{YYYYMM}.parquet```
+
+::: {.callout-tip collapse="true"}
+
+## Python download script example
+
+```{python}
+#| echo: true
+#| eval: false
+
+import os
+import requests
+from datetime import datetime, timedelta
+from dateutil.relativedelta import relativedelta
+
+def generate_urls(data_type: str, start_date: str, end_date: str) -> list:
+    """
+    Generate a list of URLs for flight lists, flight events, or measurements.
+
+    Args:
+        data_type (str): Type of data ("flight_list", "flight_events", "measurements").
+        start_date (str): The start date in the format YYYYMM or YYYYMMDD.
+        end_date (str): The end date in the format YYYYMM or YYYYMMDD.
+
+    Returns:
+        list: List of generated URLs.
+    """
+    base_url = f"https://www.eurocontrol.int/performance/data/download/OPDI/v002/{data_type}/{data_type}_"
+
+    urls = []
+    
+    if data_type == "flight_list":
+        start_dt = datetime.strptime(start_date, "%Y%m")
+        end_dt = datetime.strptime(end_date, "%Y%m")
+        delta = relativedelta(months=1)
+    
+    current_dt = start_dt
+    while current_dt <= end_dt:
+        url = f"{base_url}{current_dt.strftime('%Y%m')}.parquet"
+        urls.append(url)
+        current_dt += delta
+
+    return urls
+
+def download_files(urls: list, save_folder: str):
+    """
+    Download files from the generated URLs and save them in the specified folder.
+
+    Args:
+        urls (list): List of URLs to download.
+        save_folder (str): Folder to save downloaded files.
+    """
+    os.makedirs(save_folder, exist_ok=True)
+
+    for url in urls:
+        file_name = url.split("/")[-1]
+        save_path = os.path.join(save_folder, file_name)
+
+        if os.path.exists(save_path):
+            print(f"Skipping {file_name}, already exists.")
+            continue
+
+        print(f"Downloading {url}...")
+
+        try:
+            response = requests.get(url, stream=True)
+            response.raise_for_status()
+
+            with open(save_path, "wb") as file:
+                for chunk in response.iter_content(chunk_size=1024):
+                    file.write(chunk)
+
+            print(f"Saved to {save_path}")
+
+        except requests.exceptions.RequestException as e:
+            print(f"Failed to download {url}: {e}")
+
+if __name__ == "__main__":
+    datasets = {
+        "flight_list": ("202201", "202411")
+    }
+
+    for data_type, (start_date, end_date) in datasets.items():
+        urls = generate_urls(data_type, start_date, end_date)
+        download_files(urls, f"./data/{data_type}")
+```
+
+:::
+
+::: {.callout-tip collapse="true"}
+
+## R download script example
+ 
+```{R}
+#| echo: true
+#| eval: false
+
+library(httr)
+library(lubridate)
+library(fs)
+
+generate_urls <- function(data_type, start_date, end_date) {
+  base_url <- paste0("https://www.eurocontrol.int/performance/data/download/OPDI/v002/", data_type, "/", data_type, "_")
+  urls <- c()
+  
+  start_dt <- ymd(paste0(start_date, "01"))
+  end_dt <- ymd(paste0(end_date, "01"))
+  delta <- months(1)
+
+  current_dt <- start_dt
+  while (current_dt <= end_dt) {
+    url <- paste0(base_url, format(current_dt, "%Y%m"), ".parquet")
+    urls <- c(urls, url)
+    current_dt <- current_dt + delta
+  }
+
+  return(urls)
+}
+
+download_files <- function(urls, save_folder) {
+  if (!dir_exists(save_folder)) {
+    dir_create(save_folder)
+  }
+
+  for (url in urls) {
+    file_name <- basename(url)
+    save_path <- file.path(save_folder, file_name)
+
+    if (file_exists(save_path)) {
+      message("Skipping ", file_name, ", already exists.")
+      next
+    }
+
+    message("Downloading ", url, "...")
+
+    tryCatch({
+      response <- GET(url, write_disk(save_path, overwrite = TRUE))
+
+      if (http_error(response)) {
+        warning("Failed to download ", url, ": HTTP error ", status_code(response))
+      } else {
+        message("Saved to ", save_path)
+      }
+
+    }, error = function(e) {
+      warning("Failed to download ", url, ": ", e$message)
+    })
+  }
+}
+
+# Example usage
+urls <- generate_urls("flight_list", "202201", "202411")
+download_files(urls, "./data/flight_list")
+```
+
+:::
+
+## Download Available Datasets
 
 Each dataset corresponds to a specific month and year, listed below for easy access.
 
-::: {.callout-tip}
-## Automated Download
+```{r}
+library(lubridate)
 
-If you want to automate your downloads, you can generate the link for downloading using the following format where YYYY is the year of interest and MM the month (using two digits): 
-```https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_list/flight_list_{YYYY}{MM}.parquet```
-:::
+start_date <- as.Date(params$start_date)
+end_date <- as.Date(params$end_date)
 
-### 2022
+generate_markdown_entries <- function(start_date, end_date) {
+  base_url <- "https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_list/"
+  markdown_entries <- c()
+  current_date <- floor_date(start_date, "month")
 
-- **January 2022**  
-  [Download flight_list_202201.parquet](https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_list/flight_list_202201.parquet)
+  while (current_date <= end_date) {
+    entry <- paste0(
+      "- **", format(current_date, "%B %Y"), "**  \n  ",
+      "[Download flight_list_", format(current_date, "%Y%m"), ".parquet](", 
+      base_url, "flight_list_", format(current_date, "%Y%m"), ".parquet)"
+    )
+    markdown_entries <- c(markdown_entries, entry)
+    current_date <- current_date + months(1)
+  }
 
-- **February 2022**  
-  [Download flight_list_202202.parquet](https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_list/flight_list_202202.parquet)
+  return(markdown_entries)
+}
 
-- **March 2022**  
-  [Download flight_list_202203.parquet](https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_list/flight_list_202203.parquet)
+entries <- generate_markdown_entries(start_date, end_date)
+entries <- paste(entries, collapse = "\n")
+```
 
-- **April 2022**  
-  [Download flight_list_202204.parquet](https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_list/flight_list_202204.parquet)
-
-- **May 2022**  
-  [Download flight_list_202205.parquet](https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_list/flight_list_202205.parquet)
-
-- **June 2022**  
-  [Download flight_list_202206.parquet](https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_list/flight_list_202206.parquet)
-
-- **July 2022**  
-  [Download flight_list_202207.parquet](https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_list/flight_list_202207.parquet)
-
-- **August 2022**  
-  [Download flight_list_202208.parquet](https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_list/flight_list_202208.parquet)
-
-- **September 2022**  
-  [Download flight_list_202209.parquet](https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_list/flight_list_202209.parquet)
-
-- **October 2022**  
-  [Download flight_list_202210.parquet](https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_list/flight_list_202210.parquet)
-
-- **November 2022**  
-  [Download flight_list_202211.parquet](https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_list/flight_list_202211.parquet)
-
-- **December 2022**  
-  [Download flight_list_202212.parquet](https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_list/flight_list_202212.parquet)
-
-### 2023
-
-- **January 2023**  
-  [Download flight_list_202301.parquet](https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_list/flight_list_202301.parquet)
-
-- **February 2023**  
-  [Download flight_list_202302.parquet](https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_list/flight_list_202302.parquet)
-
-- **March 2023**  
-  [Download flight_list_202303.parquet](https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_list/flight_list_202303.parquet)
-
-- **April 2023**  
-  [Download flight_list_202304.parquet](https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_list/flight_list_202304.parquet)
-
-- **May 2023**  
-  [Download flight_list_202305.parquet](https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_list/flight_list_202305.parquet)
-
-- **June 2023**  
-  [Download flight_list_202306.parquet](https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_list/flight_list_202306.parquet)
-
-- **July 2023**  
-  [Download flight_list_202307.parquet](https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_list/flight_list_202307.parquet)
-
-- **August 2023**  
-  [Download flight_list_202308.parquet](https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_list/flight_list_202308.parquet)
-
-- **September 2023**  
-  [Download flight_list_202309.parquet](https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_list/flight_list_202309.parquet)
-
-- **October 2023**  
-  [Download flight_list_202310.parquet](https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_list/flight_list_202310.parquet)
-
-- **November 2023**  
-  [Download flight_list_202311.parquet](https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_list/flight_list_202311.parquet)
-
-- **December 2023**  
-  [Download flight_list_202312.parquet](https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_list/flight_list_202312.parquet)
-
-### 2024
-
-- **January 2024**  
-  [Download flight_list_202401.parquet](https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_list/flight_list_202401.parquet)
-
-- **February 2024**  
-  [Download flight_list_202402.parquet](https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_list/flight_list_202402.parquet)
-
-- **March 2024**  
-  [Download flight_list_202403.parquet](https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_list/flight_list_202403.parquet)
-
-- **April 2024**  
-  [Download flight_list_202404.parquet](https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_list/flight_list_202404.parquet)
-
-- **May 2024**  
-  [Download flight_list_202405.parquet](https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_list/flight_list_202405.parquet)
-
-- **June 2024**  
-  [Download flight_list_202406.parquet](https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_list/flight_list_202406.parquet)
-  
-- **July 2024**  
-  [Download flight_list_202407.parquet](https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_list/flight_list_202407.parquet)
-  
-- **August 2024**  
-  [Download flight_list_202408.parquet](https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_list/flight_list_202408.parquet)
-  
-- **September 2024**  
-  [Download flight_list_202409.parquet](https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_list/flight_list_202409.parquet)
-  
-- **October 2024**  
-  [Download flight_list_202410.parquet](https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_list/flight_list_202410.parquet)
-  
-- **November 2024**  
-  [Download flight_list_202411.parquet](https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_list/flight_list_202411.parquet)
+`r entries`
 
 ---
 
