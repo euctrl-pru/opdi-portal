@@ -37,7 +37,7 @@ The resulting trajectories are given `id`s which consist of the SHA256 value of 
 
 To approximate the \acr{ADEP} or \acr{ADES} of a departing or arriving flight, coordinate grids are calculated for each airport with a radius of 10 km and a latitude/longitude step of 0.0001 degrees. For each point in the circular grid surrounding the airport, the distance to the \acr{ARP} is calculated. 
 
-The trajectories identified in the previous step are filtered to only retain state vectors with an altitude lower than 10,000 ft. Onto the latitude and longitude (rounded to 0.0001 degrees) of the remaining state vectors the airport coordinate grids are superimposed. Each state vector in the resulting data sets now indicates the various aerodromes the coordinates overlap with. If there are multiple aerodromes available, the minimal initial/final distance to the aerodrome indicates the most likely \acr{ADEP} or \acr{ADES}.     
+The trajectories identified in the previous step are filtered to only retain state vectors with an altitude lower than 1,000 ft. Onto the latitude and longitude (rounded to 0.0001 degrees) of the remaining state vectors the airport coordinate grids are superimposed. Each state vector in the resulting data sets now indicates the various aerodromes the coordinates overlap with. If there are multiple aerodromes available, the minimal initial/final distance to the aerodrome indicates the most likely \acr{ADEP} or \acr{ADES}.     
 
 :::
 
@@ -60,7 +60,7 @@ The resulting trajectories are given `id`s which consist of the SHA256 value of 
 
 **ADEP/ADES identification algorithm(s):**
 
-To approximate the \acr{ADEP} or \acr{ADES} of a departing or arriving flight, the method has been adapted from v0.0.1. Compared to last version, circular geospatial detection grids are now created using [Uber H3 geospatial library](https://h3geo.org/) calculated around each airport with a radius of 30 NM and an h3 resolution of 7. The trajectories are filtered to only retain state vectors with an altitude lower than 40,000 ft to enable adequate detection of both arrivals and departures. For each lat/lon point of the trajectories a H3 tag is then determined to match with the H3 tags of the cells in the circular grid.  
+To approximate the \acr{ADEP} or \acr{ADES} of a departing or arriving flight, the method has been adapted from v0.0.1. Compared to last version, circular geospatial detection grids are now created using [Uber H3 geospatial library](https://h3geo.org/) calculated around each airport with a radius of 30 NM and an h3 resolution of 7. The trajectories are filtered to only retain state vectors with an altitude lower than 4,000 ft to enable adequate detection of both arrivals and departures. For each lat/lon point of the trajectories a H3 tag is then determined to match with the H3 tags of the cells in the circular grid.  
 
 Onto the H3 tags of these state vectors the airport H3 grids are superimposed. Each state vector in the resulting data sets now indicates the various aerodromes the cells overlap with. If there are multiple aerodromes available, the minimal initial/final distance to the aerodrome indicates the most likely \acr{ADEP} or \acr{ADES}. Others are saved as potential ADEP `ADEP_P` and potential ADES `ADES_P`.     
 
