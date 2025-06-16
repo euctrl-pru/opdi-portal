@@ -2,7 +2,6 @@ project:
   type: website
 bibliography: bibliography.bib
 csl: media/ieee-with-url.csl
-# number-sections: true
 
 execute:
   echo: false
@@ -29,10 +28,11 @@ website:
   title: "OPDI"
   # TODO: re-enalble when in production
   google-analytics: "UA-61343306-1"
+  search:
+    location: sidebar
 
-
-  navbar:
-    left:
+  sidebar:
+    contents:
       - href: index.qmd
         text: Home
       - data.qmd
@@ -43,8 +43,137 @@ website:
         text: Data Preview
       - about.qmd
 
+  navbar:
+  # Note: You need to install: ```quarto install extension mcanouil/quarto-iconify```
+  # For the icons to work.
+    background: dark
+    search: true
+    title: '      Open Performance Data Initiative (OPDI)'
+    logo: "media/EUROCONTROL-logo-standard-rgb.png"
+    right:
+      - text: "Home"
+        href: https://ansperformance.eu/
+      - text: "Performance areas"
+        menu:
+          - text: "{{< iconify fa6-solid th >}}&nbsp;Balanced scorecard"
+            href: "https://www.eurocontrol.int/Economics/BalancedScorecard.html"
+          - text: "{{< iconify fa6-solid plane-departure >}}&nbsp;Traffic"
+            href: https://ansperformance.eu/traffic/
+          - text: "&nbsp;&nbsp;&nbsp;&nbsp;<span style='font-weight: normal'>Daily traffic dashboard</span>"
+            href: "https://www.eurocontrol.int/Economics/DailyTrafficVariation-States.html"
+          - text: "&nbsp;&nbsp;&nbsp;<span style='font-weight: normal'>Service units</span>"
+            href: "https://www.eurocontrol.int/ServiceUnits/Dashboard/EnRouteMainDashboard.html"
+          - text: "&nbsp;&nbsp;&nbsp;<span style='font-weight: normal'>Traffic forecast</span>"
+            href: https://ansperformance.eu/traffic/statfor/
+          - text: "{{< iconify fa6-solid calendar >}}&nbsp;Punctuality"
+            href: https://ansperformance.eu/traffic/punctuality/
+          - text: "&nbsp;&nbsp;&nbsp;&nbsp;<span style='font-weight: normal'>Daily punctuality dashboard</span>"
+            href: "https://www.eurocontrol.int/Economics/DailyPunctuality-States.html"
+          - text: "&nbsp;&nbsp;&nbsp;<span style='font-weight: normal'>Network punctuality</span>"
+            href: https://ansperformance.eu/traffic/punctuality/#eurocontrol-area-network-view-1
+          - text: "&nbsp;&nbsp;&nbsp;<span style='font-weight: normal'>State & airport punctuality</span>"
+            href: https://ansperformance.eu/traffic/punctuality/#state-view-1
+          - text: "{{< iconify fa6-solid clock >}}&nbsp;En-route & airport delays"
+            href: https://ansperformance.eu/capacity/
+          - text: "&nbsp;&nbsp;&nbsp;&nbsp;<span style='font-weight: normal'>Daily ATFM delays dashboard</span>"
+            href: "https://www.eurocontrol.int/Economics/DailyDelay-States.html"
+          - text: "&nbsp;&nbsp;&nbsp;<span style='font-weight: normal'>En-route ATFM delays</span>"
+            href: https://ansperformance.eu/capacity/atfm_ert/
+          - text: "&nbsp;&nbsp;&nbsp;<span style='font-weight: normal'>Airport ATFM delays</span>"
+            href: https://ansperformance.eu/capacity/atfm_apt/
+          - text: "&nbsp;&nbsp;&nbsp;<span style='font-weight: normal'>All-causes delays</span>"
+            href: https://ansperformance.eu/capacity/tot_dly
+          - text: "{{< iconify fa6-solid leaf >}}&nbsp;Efficiency & environment"
+            href: https://ansperformance.eu/efficiency/
+          - text: "&nbsp;&nbsp;&nbsp;<span style='font-weight: normal'>CO<sub>2</sub> emissions</span>"
+            href: https://ansperformance.eu/efficiency/emissions/
+          - text: "&nbsp;&nbsp;&nbsp;<span style='font-weight: normal'>Horizontal flight efficiency</span>"
+            href: https://ansperformance.eu/efficiency/hfe/
+          - text: "&nbsp;&nbsp;&nbsp;<span style='font-weight: normal'>Vertical flight efficiency</span>"
+            href: https://ansperformance.eu/efficiency/vfe/
+          - text: "&nbsp;&nbsp;&nbsp;<span style='font-weight: normal'>Terminal holdings</span>"
+            href: https://ansperformance.eu/efficiency/asma/
+          - text: "&nbsp;&nbsp;&nbsp;<span style='font-weight: normal'>Taxi-out</span>"
+            href: https://ansperformance.eu/efficiency/taxiout/
+          - text: "&nbsp;&nbsp;&nbsp;<span style='font-weight: normal'>Taxi-in</span>"
+            href: https://ansperformance.eu/efficiency/taxiin/
+          - text: "{{< iconify fa6-solid euro-sign >}}&nbsp;Economics"
+            href: https://ansperformance.eu/economics/
+          - text: "&nbsp;&nbsp;&nbsp;<span style='font-weight: normal'>ATM cost-effectiveness (ACE)</span>"
+            href: https://ansperformance.eu/economics/ace-overview/
+          - text: "&nbsp;&nbsp;&nbsp;<span style='font-weight: normal'>Unit rates and costs</span>"
+            href: "https://www.eurocontrol.int/ServiceUnits/Dashboard/EnRouteUnitRates.html"
+          - text: "&nbsp;&nbsp;&nbsp;<span style='font-weight: normal'>Service units</span>"
+            href: "https://www.eurocontrol.int/ServiceUnits/Dashboard/EnRouteMainDashboard.html"
+          - text: "&nbsp;&nbsp;&nbsp;<span style='font-weight: normal'>ANSPs financial dashboard</span>"
+            href: https://ansperformance.eu/economics/finance/
+          - text: "&nbsp;&nbsp;&nbsp;<span style='font-weight: normal'>Standard Inputs for Economic Analyses</span>"
+            href: https://ansperformance.eu/economics/cba/
+
+      - text: "Stakeholder views"
+        menu:
+          - text: "{{< iconify fa6-solid plane-arrival >}}&nbsp;Airports"
+            href: https://ansperformance.eu/dashboard/stakeholder/airport/
+          - text: "{{< iconify fa6-solid compass >}}&nbsp;Air navigation service provider"
+            href: https://ansperformance.eu/dashboard/stakeholder/ansp/
+          - text: "{{< iconify fa6-solid globe >}}&nbsp;States"
+            href: https://ansperformance.eu/dashboard/stakeholder/state/
+
+      - text: "Data"
+        href: https://ansperformance.eu/data/
+
+      - text: "Publications"
+        href: https://ansperformance.eu/publications/
+
+      - text: "Reference"
+        menu:
+          - text: "{{< iconify fa6-solid marker >}}&nbsp;Definitions"
+            href: https://ansperformance.eu/definition/
+          - text: "{{< iconify fa6-solid wrench >}}&nbsp;Methodology"
+            href: https://ansperformance.eu/methodology/
+          - text: "{{< iconify fa6-solid quote-left >}}&nbsp;Acronyms"
+            href: https://ansperformance.eu/acronym/
+          - text: "{{< iconify fa6-solid book >}}&nbsp;Bibliography"
+            href: https://ansperformance.eu/bibliography/
+
+      - text: "Links"
+        menu:
+          - text: "EUROCONTROL <i class='fas fa-xs fa-external-link-alt'></i>"
+            href: "https://www.eurocontrol.int/"
+          - text: "Single European Sky (SES) portal <i class='fas fa-xs fa-external-link-alt'></i>"
+            href: "https://www.eurocontrol.int/prudata/dashboard/"
+          - text: "ICAO GANP <i class='fas fa-xs fa-external-link-alt'></i>"
+            href: "https://www4.icao.int/ganpportal/"
+          - text: "Connectivity dashboard <i class='fas fa-xs fa-external-link-alt'></i>"
+            href: "https://ext.eurocontrol.int/connectivity_web/from"
+          - text: "PRC Transformation Strategy"
+            href: https://ansperformance.eu/transformation/
+          - text: "PRC Open Performance Data Initiative"
+            href: "https://opdi.aero"
+
+      - text: "About"
+        menu:
+          - text: "About the PRC"
+            href: https://ansperformance.eu/about/prc/
+          - text: "About the AIU"
+            href: https://ansperformance.eu/about/aiu/
+          - text: "About the PRU"
+            href: https://ansperformance.eu/about/us/
+          - text: "Release notes"
+            href: https://ansperformance.eu/post/
+          - text: "Disclaimer"
+            href: https://ansperformance.eu/about/disclaimer/
+
 format:
   html:
     theme: cosmo
-    css: styles.css
     toc: true
+    include-in-header:
+      text: |
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+        <style>
+          .navbar-logo {
+            max-height: 60px;
+          }
+        </style>
+    css: styles.css
