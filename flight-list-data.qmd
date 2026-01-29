@@ -3,10 +3,23 @@ title: "Download Flight List v0.0.2 Datasets"
 format: html
 params:
   start_date: "2022-01-01"
-  end_date: "2025-11-30"
+  end_date: "2025-12-31"
 ---
 
-Below you will find links to download flight list v0.0.2 data files from `r format(as.Date(params$start_date), "%B %d, %Y")` to `r format(as.Date(params$end_date), "%B %d, %Y")`. Each file is in Parquet format, providing a highly efficient way to store and manage large datasets. The datasets are organized by month.
+```{r setup}
+source("R/portal_config.R")
+cfg <- portal_cfg
+labs <- portal_labels
+start_date <- cfg$coverage$start
+end_date <- cfg$coverage$end
+version <- cfg$version
+```
+
+::: {.callout-note appearance="simple"}
+**Coverage:** `r labs$month_range(start_date, end_date)` | **Version:** `r version`
+:::
+
+Below you will find links to download flight list `r version` data files from `r format(as.Date(start_date), "%B %d, %Y")` to `r format(as.Date(end_date), "%B %d, %Y")`. Each file is in Parquet format, providing a highly efficient way to store and manage large datasets. The datasets are organized by month.
 
 ## Automated Download
 
@@ -18,7 +31,7 @@ If you want to automate your downloads, you can generate the link for downloadin
 
 ## Python download script example
 
-```{python}
+```{python download_flight_list}
 #| echo: true
 #| eval: false
 
@@ -91,7 +104,7 @@ def download_files(urls: list, save_folder: str):
 
 if __name__ == "__main__":
     datasets = {
-        "flight_list": ("202201", "202411")
+        "flight_list": ("`r format(start_date, "%Y%m")`", "`r format(end_date, "%Y%m")`")
     }
 
     for data_type, (start_date, end_date) in datasets.items():
@@ -105,7 +118,7 @@ if __name__ == "__main__":
 
 ## R download script example
  
-```{R}
+```{R download_flight_list_R}
 #| echo: true
 #| eval: false
 
@@ -163,7 +176,7 @@ download_files <- function(urls, save_folder) {
 }
 
 # Example usage
-urls <- generate_urls("flight_list", "202201", "202411")
+urls <- generate_urls("flight_list", "`r format(start_date, "%Y%m")`", "`r format(end_date, "%Y%m")`")
 download_files(urls, "./data/flight_list")
 ```
 
@@ -173,11 +186,11 @@ download_files(urls, "./data/flight_list")
 
 Each dataset corresponds to a specific month and year, listed below for easy access.
 
-```{r}
+```{r download_list_markdown}
 library(lubridate)
 
-start_date <- as.Date(params$start_date)
-end_date <- as.Date(params$end_date)
+start_date <- as.Date(start_date)
+end_date <- as.Date(end_date)
 
 generate_markdown_entries <- function(start_date, end_date) {
   base_url <- "https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_list/"
@@ -205,4 +218,6 @@ entries <- paste(entries, collapse = "\n")
 
 ---
 
-We hope you find these datasets useful for your analysis and research. If you have any questions or require further assistance, please contact us at [aviation.intelligence@eurocontrol.int](mailto:aviation.intelligence@eurocontrol.int).
+We hope you find these datasets useful for your analysis and research. If you have any questions or require further assistance, please contact us at [pru-support@eurocontrol.int](mailto:pru-support@eurocontrol.int).
+
+

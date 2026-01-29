@@ -3,14 +3,27 @@ title: "Download Flight Events v0.0.2 Datasets"
 format: html
 params:
   start_date: "2022-01-01"
-  end_date: "2025-11-30"
+  end_date: "2025-12-31"
 ---
 
-Below you will find links to download flight events v0.0.2 data files from `r format(as.Date(params$start_date), "%B %d, %Y")` tso `r format(as.Date(params$end_date), "%B %d, %Y")`. Each file is in Parquet format, providing a highly efficient way to store and manage large datasets. The datasets are separated into 10-day intervals. Please note that each dataset covers data up to, but not including, the last day listed in its name.
+```{r setup}
+source("R/portal_config.R")
+cfg <- portal_cfg
+labs <- portal_labels
+start_date <- cfg$coverage$start
+end_date <- cfg$coverage$end
+version <- cfg$version
+```
+
+::: {.callout-note appearance="simple"}
+**Coverage:** `r labs$date_range(start_date, end_date)` | **Version:** `r version`
+:::
+
+Below you will find links to download flight events `r version` data files from `r format(as.Date(start_date), "%B %d, %Y")` to `r format(as.Date(end_date), "%B %d, %Y")`. Each file is in Parquet format, providing a highly efficient way to store and manage large datasets. The datasets are separated into 10-day intervals. Please note that each dataset covers data up to, but not including, the last day listed in its name.
 
 ## Automated Download
 
-If you want to automate your downloads, you can generate the link for downloading using the following format where `YYYYMMDD` is the start date of the 10-day period. Note that the first date to start generating intervals for is `r format(as.Date(params$start_date), "%B %d, %Y")`. 
+If you want to automate your downloads, you can generate the link for downloading using the following format where `YYYYMMDD` is the start date of the 10-day period. Note that the first date to start generating intervals for is `r format(as.Date(start_date), "%B %d, %Y")`. 
 
 ```https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_{YYYYMMDD}_{YYYYMMDD_next10}.parquet```
 
@@ -18,7 +31,7 @@ If you want to automate your downloads, you can generate the link for downloadin
 
 ## Python download script example
 
-```{python}
+```{python download_flight_events}
 #| echo: true
 #| eval: false
 
@@ -100,9 +113,9 @@ def download_files(urls: list, save_folder: str):
 
 if __name__ == "__main__":
     datasets = {
-        #"flight_list": ("202201", "202412"),
-        "flight_events": ("20220101", "20241231")#,
-        #"measurements": ("20220101", "20241231")
+        #"flight_list": ("`r format(cfg$coverage$start, "%Y%m")`", "`r format(cfg$coverage$end, "%Y%m")`"),
+        "flight_events": ("`r format(start_date, "%Y%m%d")`", "`r format(end_date, "%Y%m%d")`")#,
+        #"measurements": ("`r format(cfg$coverage$start, "%Y%m%d")`", "`r format(cfg$coverage$end, "%Y%m%d")`")
     }
 
     for data_type, (start_date, end_date) in datasets.items():
@@ -118,7 +131,7 @@ if __name__ == "__main__":
 
 ## R download script example
  
-```{R}
+```{R download_flight_events_R}
 #| echo: true
 #| eval: false
 
@@ -206,9 +219,9 @@ download_files <- function(urls, save_folder) {
 
 # Example usage
 datasets <- list(
-  #"flight_list" = c("202201", "202412"),
-  "flight_events" = c("20220101", "20241231")#,
-  #"measurements" = c("20220101", "20241231")
+  #"flight_list" = c("`r format(cfg$coverage$start, "%Y%m")`", "`r format(cfg$coverage$end, "%Y%m")`"),
+  "flight_events" = c("`r format(start_date, "%Y%m%d")`", "`r format(end_date, "%Y%m%d")`")#,
+  #"measurements" = c("`r format(cfg$coverage$start, "%Y%m%d")`", "`r format(cfg$coverage$end, "%Y%m%d")`")
 )
 
 for (data_type in names(datasets)) {
@@ -225,13 +238,13 @@ for (data_type in names(datasets)) {
 Each dataset corresponds to a specific 10-day period and is listed below for easy access.
 
 
-```{r}
+```{r download_list_markdown}
 # Load necessary library
 library(lubridate)
 
 # Define start and end dates
-start_date <- as.Date(params$start_date)
-end_date <- as.Date(params$end_date)
+start_date <- as.Date(start_date)
+end_date <- as.Date(end_date)
 
 # Function to generate markdown entries
 generate_markdown_entries <- function(start_date, end_date, interval_days = 10) {
@@ -263,4 +276,5 @@ entries <- paste(entries, collapse = "\n")
 
 ---
 
-We hope you find these datasets useful for your analysis and research. If you have any questions or require further assistance, please contact us at [aviation.intelligence@eurocontrol.int](mailto:aviation.intelligence@eurocontrol.int).
+We hope you find these datasets useful for your analysis and research. If you have any questions or require further assistance, please contact us at [pru-support@eurocontrol.int](mailto:pru-support@eurocontrol.int).
+

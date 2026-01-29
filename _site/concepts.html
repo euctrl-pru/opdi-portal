@@ -2,7 +2,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
 
 <meta charset="utf-8">
-<meta name="generator" content="quarto-1.7.32">
+<meta name="generator" content="quarto-1.8.26">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
@@ -52,14 +52,15 @@ div.csl-indent {
 <meta name="quarto:offset" content="./">
 <script src="site_libs/quarto-html/quarto.js" type="module"></script>
 <script src="site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="site_libs/quarto-html/axe/axe-check.js" type="module"></script>
 <script src="site_libs/quarto-html/popper.min.js"></script>
 <script src="site_libs/quarto-html/tippy.umd.min.js"></script>
 <script src="site_libs/quarto-html/anchor.min.js"></script>
 <link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
-<link href="site_libs/quarto-html/quarto-syntax-highlighting-37eea08aefeeee20ff55810ff984fec1.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting-587c61ba64f3a5504c4d52d930310e48.css" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script src="site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="site_libs/bootstrap/bootstrap-ad92c8f6789d64c8f40a91dd2b038e8c.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<link href="site_libs/bootstrap/bootstrap-ad05cf3b0d969654a1dcd69f04a11bdd.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
 <script src="site_libs/quarto-contrib/iconify-3.0.0/iconify-icon.min.js"></script>
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
@@ -88,20 +89,6 @@ div.csl-indent {
     "search-label": "Search"
   }
 }</script>
-
-<script type="text/javascript">
-
-(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
-  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
-  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
-  })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
-ga('create', 'UA-61343306-1', 'auto');
-
-ga('send', {
-  hitType: 'pageview',
-  'anonymizeIp': true,
-});
-</script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
 <style>
   .navbar-logo {
@@ -121,7 +108,8 @@ ga('send', {
       <div class="navbar-container container-fluid">
       <div class="navbar-brand-container mx-auto">
     <a href="./index.html" class="navbar-brand navbar-brand-logo">
-    <img src="./media/EUROCONTROL-logo-standard-rgb.png" alt="" class="navbar-logo">
+    <img src="./media/EUROCONTROL-logo-standard-rgb.png" alt="" class="navbar-logo light-content">
+    <img src="./media/EUROCONTROL-logo-standard-rgb.png" alt="" class="navbar-logo dark-content">
     </a>
     <a class="navbar-brand" href="./index.html">
     <span class="navbar-title">Open Performance Data Initiative (OPDI)</span>
@@ -475,7 +463,7 @@ ga('send', {
 <p>Certain phenomena cannot be modeled by single 4D<a href="#fn1" class="footnote-ref" id="fnref1" role="doc-noteref"><sup>1</sup></a> <em>instants</em>, i.e. flown level segment or holding segments. In these cases the <code>EVENT</code> concept can still be used, we can capture the start and the end of this phenomenon as two separate event types and process them as a pair during the analysis.</p>
 <p>The concept of <code>MEASUREMENT</code> is then used when associating specific metrics to the events of interest. Example of measurements for flight trajectories are (cumulative) flown distance or emitted CO2.</p>
 <div class="callout callout-style-default callout-note no-icon callout-titled">
-<div class="callout-header d-flex align-content-center" data-bs-toggle="collapse" data-bs-target=".callout-1-contents" aria-controls="callout-1" aria-expanded="false" aria-label="Toggle callout">
+<div class="callout-header d-flex align-content-center collapsed" data-bs-toggle="collapse" data-bs-target=".callout-1-contents" aria-controls="callout-1" aria-expanded="false" aria-label="Toggle callout">
 <div class="callout-icon-container">
 <i class="callout-icon no-icon"></i>
 </div>
@@ -516,7 +504,7 @@ Note
 <li>The <code>event_time</code> when the event took place (UTC). E.g., <code>2021-09-27 10:43:11.234 UTC</code>.</li>
 <li>The event <code>type</code>, i.e.&nbsp;<code>top-of-climb</code> or <code>off-block</code>.</li>
 <li>The <code>source</code> indicates the origin of the flight trajectory used to determine the event (e.g., <code>OSN</code>).</li>
-<li>The <code>version</code> indicates the algorithm version used to detect the flight event. For more info, see <a href="https://www.opdi.aero/methodology">Methodology</a>.</li>
+<li>The <code>version</code> indicates the algorithm version used to detect the flight event. For more info, see <a href=".\methodology.html">Methodology</a>.</li>
 <li>Additional <code>info</code> is captured at last. This can be contextual information, i.e.&nbsp;<code>F33R</code> as the relevant parking position for an <code>off-block</code> milestone or <code>26</code> as the Runway (RWY) ID for a <code>take-off</code> milestone.</li>
 </ul>
 <p>A <strong>Flight phase</strong> is a prolonged event which can be broken down into a <em>start event</em> and an <em>end event</em> of the phase. <a href="#fig-flight-phases" class="quarto-xref">Figure&nbsp;1</a> shows a simplified diagram of a possible set of <strong>flight phases</strong> (white square boxes) and relevant <strong>flight events</strong> (<code>Txy</code> labels).</p>
@@ -531,12 +519,12 @@ Figure&nbsp;1: (Simplified) Flight phases and events. For a more complete/comple
 </figure>
 </div>
 <div class="callout callout-style-simple callout-note callout-titled" title="Flight phases and events (more complete/complex diagram) (click to open/close)">
-<div class="callout-header d-flex align-content-center" data-bs-toggle="collapse" data-bs-target=".callout-2-contents" aria-controls="callout-2" aria-expanded="false" aria-label="Toggle callout">
+<div class="callout-header d-flex align-content-center collapsed" data-bs-toggle="collapse" data-bs-target=".callout-2-contents" aria-controls="callout-2" aria-expanded="false" aria-label="Toggle callout">
 <div class="callout-icon-container">
 <i class="callout-icon"></i>
 </div>
 <div class="callout-title-container flex-fill">
-Flight phases and events (more complete/complex diagram) (click to open/close)
+<span class="screen-reader-only">Note</span>Flight phases and events (more complete/complex diagram) (click to open/close)
 </div>
 <div class="callout-btn-toggle d-inline-block border-0 py-1 ps-1 pe-0 float-end"><i class="callout-toggle"></i></div>
 </div>
@@ -639,11 +627,11 @@ Figure&nbsp;2: Flight phases and events, a more complete/complex diagram.
 <p>For example using the <code>touch-down</code> (<strong>T17</strong> in <a href="#fig-flight-phases" class="quarto-xref">Figure&nbsp;1</a>) with the contextual information (RWY identification) we can calculate RWY utilization at each airport or inter-arrival times, etc.</p>
 <p><img src="media/milestones_3d.png" class="img-fluid" alt="Milestones for gate to gate."> Possible monitoring usages are:</p>
 <ul>
-<li>Airport performance (Throughput, RWY utilization, …)</li>
-<li>Fuel efficiency &amp; CO2/NOx Emissions</li>
+<li>Airport performance (throughput, RWY utilization, runway occupancy)</li>
+<li>Fuel efficiency &amp; CO2/NOx emissions</li>
 <li>Airline profiling</li>
-<li>Safety: separation, …</li>
-<li>Influence/resilience to Meteo events</li>
+<li>Safety: separation and spacing</li>
+<li>Influence/resilience to meteo events</li>
 </ul>
 </section>
 <section id="fuel-consumption-and-environmental-emissions" class="level3">
@@ -788,13 +776,14 @@ Runway
       e.clearSelection();
     }
     const getTextToCopy = function(trigger) {
-        const codeEl = trigger.previousElementSibling.cloneNode(true);
-        for (const childEl of codeEl.children) {
-          if (isCodeAnnotation(childEl)) {
-            childEl.remove();
-          }
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
         }
-        return codeEl.innerText;
+      }
+      return codeEl.innerText;
     }
     const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
       text: getTextToCopy

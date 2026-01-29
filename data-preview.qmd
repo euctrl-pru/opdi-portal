@@ -5,16 +5,22 @@ acronyms:
   insert_loa: false
 ---
 
+```{r setup}
+source("R/portal_config.R")
+cfg <- portal_cfg
+labs <- portal_labels
+```
+
+::: {.callout-note appearance="simple"}
+This preview uses a snapshot of the `r cfg$version` datasets (coverage: `r labs$month_range(cfg$coverage$start, cfg$coverage$snapshot_end)`). For the most up-to-date numbers, rely on the downloads on the Data page.
+:::
+
 The various data sets (flight list, flight events, and measurements) can be used to provide insights on topics such as traffic counts, runway/taxi-way/parking position usage at airports.
 
 ::: {.callout-caution}
 ## Disclaimer
 
-Please note that due to system maintenance and technical issues experienced by our data provider, OpenSky Network, some of the datasets had incomplete data for certain months when doing the below analysis. We are continuously working with OpenSky to ensure data quality and integrity and this has been resolved this in the meantime in the available data provided by the OPDI (see our Data page). This data preview will be updated soon.
-
-Affected months include **December 2023**, **January 2024**, **February 2024**, **March 2024** and **April 2024**. Please take this into consideration when viewing the data in this data preview.
-
-In addition, please also note that any numbers are influenced by the availability of ADS-B coverage. To view the history of ADS-B coverage by OSN, see [here](https://opensky-network.org/network/facts). 
+The preview plots may lag the latest published data and are provided for illustration. Always use the downloadable datasets for authoritative figures. Numbers are influenced by the availability of ADS-B coverage; to view the history of ADS-B coverage by OSN, see [here](https://opensky-network.org/network/facts). 
 :::
 
 <script>
@@ -57,7 +63,7 @@ In addition, please also note that any numbers are influenced by the availabilit
 Below you see the traffic at the major top 20 European airports (i.e., most observed flights during 2022 and 2024). This data is extracted from the **OPDI flight list** available for download [here](/data.html).
 
 <div class="plotly-container1">
-```{r}
+```{r top20_airports_plot}
 library(tidyverse)
 library(arrow)
 library(ggplot2)
@@ -112,7 +118,7 @@ p
 Below you can see the detected traffic for all European medium and large airports. Use the dropdown menu to select an airport of choice (alphabetically ordered). There are 1121 airports in the dropdown menu. This data is extracted from the **OPDI flight list** available for download [here](/data.html).
 
 <div class="plotly-container2">
-```{r}
+```{r all_airports_dropdown_plot}
 library(tidyverse)
 library(arrow)
 library(ggplot2)
@@ -174,14 +180,14 @@ Also airport event monitoring is possible using the **OPDI flight events**. An e
 
 <div class="plotly-container3">
 ::: {include-file}
-<iframe src="resources/plotly-airport-gantt.html" width="120%" height="800" frameborder="0"></iframe>
+<iframe src="resources/plotly-airport-gantt.html" style="width:100%; height:800px;" frameborder="0"></iframe>
 :::
 </div>
 
 ### Flight events in function of the measurement distance flown (NM)
 Analyse your flight using the predefined **OPDI flight events** and **OPDI measurements**. An example can be seen below with the included measurements. This data is extracted from the **OPDI flight events** and **OPDI measurements** available for download [here](/data.html).
 
-```{r}
+```{r events_vs_distance}
 # Load required libraries
 library(dplyr)
 library(arrow)  # for reading parquet files
@@ -203,7 +209,7 @@ fig <- plot_ly(tmp, x = ~value, y = ~altitude, color = ~type.x, type = 'scatter'
 fig
 ```
 <br>
-```{r}
+```{r events_vs_time}
 # Load required libraries
 library(dplyr)
 library(arrow)  # for reading parquet files
