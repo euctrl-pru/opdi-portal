@@ -23,7 +23,7 @@ You need to install the following Quarto extension(s):
 Run from the repo root after completing the monthly refresh and checks:
 
 ```bash
-git checkout master
+git checkout main
 git pull
 git merge --squash 202308-release-1
 git commit -m "202308 August full release"
