@@ -2,6 +2,15 @@
 title: "Data"
 ---
 
+```{r setup}
+source("R/portal_config.R")
+cfg <- portal_cfg
+labs <- portal_labels
+```
+
+::: {.callout-note appearance="simple"}
+**Coverage:** `r labs$month_range(cfg$coverage$start, cfg$coverage$end)` | **Version:** `r cfg$version`
+:::
 
 The data is modeled according to the [ER diagram][ERm] in @sec-ER-model.
 
@@ -9,16 +18,15 @@ The `FLIGHT`, `EVENT` and `MEASUREMENT` tables are published under the **\acr{OP
 in collaboration with the **[\acr{OSN}](https://opensky-network.org/)**. 
 The `TRAJECTORY` data comes from \acr{OSN}'s State Vector data.
 
-The first data release contains limited flight events from `start-date` until `end-date`,
-further enhancements are planned according to our [Roadmap](roadmap.html) page. 
+The current release covers `r labs$month_range(cfg$coverage$start, cfg$coverage$end)`. Further enhancements are planned according to our [Roadmap](roadmap.html).
 
 Download the data here: 
 
 | Table Reference | Description   | Data Source(s)     | Version | Download Link / Portal                          |
 |-----------------|---------------|--------------------|---------|-----------------------------------------|
-| `FLIGHT`        | Flight list   | [OSN]/[PRC]        | v0.0.2 | [Data portal][FListpq]  |
-| `EVENT`         | Flight events | [OSN]/[PRC]        | v0.0.2 | [Data portal][Eventspq] |
-| `MEASUREMENT`   | Measurements  | [OSN]/[PRC]        | v0.0.2 | [Data portal][Measpq]    |
+| `FLIGHT`        | Flight list   | [OSN]/[PRC]        | `r cfg$version` | [Data portal][FListpq]  |
+| `EVENT`         | Flight events | [OSN]/[PRC]        | `r cfg$version` | [Data portal][Eventspq] |
+| `MEASUREMENT`   | Measurements  | [OSN]/[PRC]        | `r cfg$version` | [Data portal][Measpq]    |
 | `AIRPORT`       | Airports      | [OurAirports][OA]  | N/A | [CSV][OAapt] |
 | `RUNWAY`        | Runways       | [OurAirports][OA]  | N/A | [CSV][OArwy] |
 
@@ -37,20 +45,6 @@ Download the data here:
 [404]: <https://en.wikipedia.org/wiki/HTTP_404>
 
 
-::: {.callout-note appearance="simple" collapse=true}
-
-## Future releases (click to open/close)
-
-Further data will be made available in upcoming iterations.
-These updates will cover an extended time frame, additional flight event and
-measurement types, and
-additional flight events and measurements from different trajectory sources.
-
-See the [Roadmap](roadmap.html) page for our plans.
-
-:::
-
-
 ## Retrieving Data on Trajectories
 
 Given the `FLIGHT` table, one can, when the data `source` is `OpenSky Network (OSN)` fetch the trajectory from the publicly available OpenSky Network history database if needed. Based on the available `icao24` or `callsign`, `first_seen` and `last_seen` one can perform a query to fetch the data. 
@@ -64,7 +58,7 @@ The following tools are available for such queries: [https://opensky-network.org
 
 \acr{OSN} kindly provided State Vector data at 5-sec granularity for a bounding box covering (wider) Europe.
 
-![Bounding box for OPDI state vector coverage, SW=[-25.86653, 26.74617] NE=[49.65699, 70.25976] ](media/bbox-opdi.png "Title: a map of the bounding box for OPDI state vector coverage"){width="80%" fig-alt="Bounding box for OPDI state vector coverage."}
+![Bounding box for OPDI state vector coverage, SW=[-25.86653, 26.74617] NE=[49.65699, 70.25976]](media/bbox-opdi.png "Title: a map of the bounding box for OPDI state vector coverage"){width="80%" fig-alt="Bounding box for OPDI state vector coverage."}
 
 
 We intend to make these trajectories available for easy download, see [Roadmap](roadmap.html) page.
@@ -189,7 +183,7 @@ and/or country and/or time period.
 The `AIRPORT` table contains details about an airport such as \acr{ICAO}/\acr{IATA}
 identification code, the coordinated of the 
 [\acr{ARP}](https://en.wikipedia.org/wiki/Airport_reference_point),
-ISO contry and region...
+ISO country and region...
 
 
 ### `RUNWAY`
@@ -216,3 +210,4 @@ Some examples of measurements are cumulative distance flown or
 cumulative CO2 emissions.
 
 For more on Measurements see the [Concepts](concepts.html) page.
+

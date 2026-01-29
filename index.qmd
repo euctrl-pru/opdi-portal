@@ -4,27 +4,30 @@ filters:
   - acronyms
 ---
 
-```{r}
+```{r setup}
 library(bslib)
 library(bsicons)
+source("R/portal_config.R")
+cfg <- portal_cfg
+labs <- portal_labels
 ```
 
 
 
 ::: {layout-ncol=2}
-```{r}
+```{r value_period}
 bslib::value_box(
   title = "Period",
-  value = "1/2022 - 11/2025",
+  value = labs$short_month_range(cfg$coverage$start, cfg$coverage$end),
   showcase = bs_icon("calendar-range"),
   theme = "primary"
 )
 ```
 
-```{r}
+```{r value_flights}
 bslib::value_box(
   title = "Flights",
-  value = "+58M", 
+  value = cfg$counts$flights, 
   showcase = bs_icon("airplane"),
   theme = "primary"
 )
@@ -32,19 +35,19 @@ bslib::value_box(
 :::
 
 ::: {layout-ncol=2}
-```{r}
+```{r value_events}
 bslib::value_box(
   title = "Events",
-  value = "+1.3B",
+  value = cfg$counts$events,
   showcase = bs_icon("calendar4-event"),
   theme = "primary"
 )
 ```
 
-```{r}
+```{r value_measurements}
 bslib::value_box(
   title = "Measurements",
-  value = "+2.7B",
+  value = cfg$counts$measurements,
   showcase = bs_icon("pencil-square"),
   theme = "primary"
 )
@@ -54,9 +57,13 @@ bslib::value_box(
 ::: {.callout-tip}
 ## Second version available
 
-The second iteration of the OPDI flight list, flight events and measurements is now available! Now extended to up until November 2025 (incl.). See the description in [Methodology](/methodology.html) and download the data under [Data](/data.html).
+The second iteration of the OPDI flight list, flight events and measurements is now available! Now extended to up until `r format(cfg$coverage$end, "%B %Y")` (incl.). See the description in [Methodology](/methodology.html) and download the data under [Data](/data.html).
 
 In addition, get a preview of the data under [Data Preview](/data-preview.html).
+:::
+
+::: {.callout-note appearance="simple"}
+**Coverage:** `r labs$month_range(cfg$coverage$start, cfg$coverage$end)` (`r cfg$version` datasets, refreshed `r cfg$refresh_label`).
 :::
 
 ## Data
@@ -64,15 +71,15 @@ In addition, get a preview of the data under [Data Preview](/data-preview.html).
 The flight data made available is published under the **[Open Performance Data Initiative (OPDI)](https://www.opdi.aero/)** as sponsored by
 the **[Performance Review Commission](https://ansperformance.eu/about/prc/)** and in collaboration with the **[OpenSky Network (OSN)](https://opensky-network.org/)**. 
 
-Download the data [here](https://opdi.aero/data).
+Download the data [here](/data.html).
 
 ## Concepts
 
-To learn more about the concepts used within the OPDI data tables, see the [Concepts](https://opdi.aero/concepts).
+To learn more about the concepts used within the OPDI data tables, see [Concepts](/concepts.html).
 
 ## Methodology
-The description of the algorithms used to identify flights, flight events and compute the measurements are described under [Methodology](https://opdi.aero/concepts).
+The description of the algorithms used to identify flights, flight events and compute the measurements are described under [Methodology](/methodology.html).
 
 ## About
 
-To learn more about the initiative, see [About](https://opdi.aero/concepts).
+To learn more about the initiative, see [About](/about.html).
