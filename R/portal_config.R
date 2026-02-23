@@ -3,11 +3,11 @@
 
 portal_cfg <- list(
   version = "v0.0.2",
-  refresh_label = "January 2026",
+  refresh_label = "February 2026",
   coverage = list(
     start = as.Date("2022-01-01"),
-    end   = as.Date("2025-12-31"),
-    snapshot_end = as.Date("2025-11-30")
+    end   = as.Date("2026-01-31"),
+    snapshot_end = as.Date("2026-01-31")
   ),
   counts = list(
     flights = "+67M",

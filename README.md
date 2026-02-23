@@ -10,6 +10,7 @@ You need to install the following Quarto extension(s):
 * `quarto add rchaput/acronyms@master`
 
 ## Monthly Data Refresh (single source of truth)
+
 0) ```bash git checkout -b YYYYMM-release```
 1) Update only `R/portal_config.R` with the new:
    - coverage start/end dates (site, flight list, flight events, measurements, snapshot),
