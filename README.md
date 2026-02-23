@@ -27,10 +27,10 @@ Run from the repo root after completing the monthly refresh and checks:
 git checkout main
 git pull
 git merge --squash YYYYMM-release-1
-git commit -m "YYYYMM August full release"
+git commit -m "YYYYMM full release"
 git tag -l            # only if you need to inspect existing tags
-git tag -af v9.8.1 -m "%B YYYY full release"
-git push origin --follow-tags master
+git tag -af v9.8.1 -m "YYYYMM full release"
+git push origin --follow-tags main
 ```
 
 
