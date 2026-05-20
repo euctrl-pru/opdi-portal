@@ -12,7 +12,7 @@ portal_cfg <- list(
   counts = list(
     flights = "+72M",
     events = "+1.7B",
-    measurements = "+3.4sB"
+    measurements = "+3.4B"
   )
 )
 
