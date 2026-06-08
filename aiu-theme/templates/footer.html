@@ -1,0 +1,191 @@
+<!-- Hero Banner (positioned by script below) -->
+<div id="aiu-hero-banner" class="aiu-hero" style="display:none;">
+  <div class="bg-overlay"></div>
+  <div class="container position-relative zi-2">
+    <div class="row align-items-lg-center">
+      <div class="col-lg-7 mb-lg-0">
+        <div class="aiu-hero-content">
+          <h1 id="aiu-hero-title" class="text-white"></h1>
+          <p id="aiu-hero-desc" class="lead text-white" style="display:none;"></p>
+          <div id="aiu-hero-buttons" style="display:none;">
+            <a class="btn btn-primary" href="https://www.eurocontrol.int/form/aviation-intelligence-unit-aiu-newsletter">Subscribe</a>
+            <a class="btn btn-secondary" href="about.html">About us</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Footer -->
+<footer class="aiu-footer" style="display:none;">
+  <div class="container-fluid pb-2 pt-3">
+    <!-- App download row (centered) -->
+    <div class="text-center mb-2">
+      <p class="text-white small mb-1">Why not download the App?</p>
+      <div class="d-flex justify-content-center align-items-start gap-3">
+        <div class="text-center">
+          <img src="aiu-theme/assets/images/footer/google_app_qr.png" width="90" height="90" alt="Google app QR code" class="mb-1">
+          <br>
+          <a href="https://play.google.com/store/apps/details?id=com.performancereviewunit.eurocontroldata&hl=en&pli=1" target="_blank">
+            <img src="aiu-theme/assets/images/footer/app-store-google-image.svg" class="pop-out" width="90" alt="Get it on Google Play">
+          </a>
+        </div>
+        <div class="text-center">
+          <img src="aiu-theme/assets/images/footer/apple_app_qr.png" width="90" height="90" alt="Apple app QR code" class="mb-1">
+          <br>
+          <a href="https://apps.apple.com/us/app/eurocontrol-data/id6467232405" target="_blank">
+            <img src="aiu-theme/assets/images/footer/app-store-apple-image.svg" class="pop-out" width="90" alt="Download on the App Store">
+          </a>
+        </div>
+      </div>
+    </div>
+    <!-- Bottom bar -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center border-top border-secondary pt-2">
+      <div class="small">
+        &copy; <span id="aiu-footer-year"></span> EUROCONTROL
+        &nbsp;&nbsp;<a class="text-white" href="https://ansperformance.eu/about/disclaimer/">Disclaimer</a>
+        &nbsp;&nbsp;<a class="text-white" href="https://www.eurocontrol.int/info/privacy-and-website-terms-use" target="_blank">Privacy statement</a>
+      </div>
+      <div class="small">
+        <a class="text-white" href="https://www.eurocontrol.int/form/aviation-intelligence-unit-aiu-newsletter">Subscribe to our Newsletter&nbsp;<i class="fas fa-envelope"></i></a>
+        &nbsp;or&nbsp;
+        <a class="text-white" href="https://ansperformance.eu/index.xml" target="_blank">RSS&nbsp;<i class="fas fa-rss"></i></a>
+        &nbsp;&nbsp;
+        <a class="text-white" href="https://ansperformance.eu/about/help/" title="Help"><i class="fas fa-question-circle"></i></a>
+        &nbsp;
+        <a class="text-white" href="https://ansperformance.eu/about/howbuilt/" title="How this site was built"><i class="fas fa-cogs"></i></a>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // --- Hero: move after navbar and populate ---
+  var hero = document.getElementById('aiu-hero-banner');
+  var header = document.getElementById('quarto-header');
+  if (hero && header) {
+    var pageH1 = document.querySelector('main h1.title');
+    var titleText = pageH1 ? pageH1.textContent : document.title.split(' – ')[0];
+    titleText = titleText.replace(/\s*\(.*?\)\s*/, ' ');
+    document.getElementById('aiu-hero-title').textContent = titleText;
+    if (pageH1) pageH1.style.display = 'none';
+
+    var isHome = window.location.pathname === '/' ||
+                 window.location.pathname.endsWith('/index.html') ||
+                 window.location.pathname.endsWith('/index.qmd');
+    if (isHome) {
+      var desc = document.getElementById('aiu-hero-desc');
+      desc.textContent = 'Open flight performance data for research and analysis, developed by the EUROCONTROL Performance Review Commission.';
+      desc.style.display = '';
+      document.getElementById('aiu-hero-buttons').style.display = '';
+    }
+
+    header.insertAdjacentElement('afterend', hero);
+    hero.style.display = '';
+
+    // --- Floating sidebar toggle (replaces quarto-secondary-nav) ---
+    var sidebar = document.getElementById('quarto-sidebar');
+    if (sidebar) {
+      var toggle = document.createElement('button');
+      toggle.id = 'aiu-sidebar-toggle';
+      toggle.innerHTML = '<i class="bi bi-layout-text-sidebar-reverse"></i>';
+      toggle.title = 'Toggle sidebar';
+      hero.insertAdjacentElement('afterend', toggle);
+      toggle.style.marginTop = '1rem';
+
+      function positionSidebar() {
+        if (sidebar.classList.contains('aiu-sidebar-open')) {
+          var rect = toggle.getBoundingClientRect();
+          sidebar.style.top = (rect.bottom + 8) + 'px';
+          sidebar.style.left = rect.left + 'px';
+        }
+      }
+
+      // Toggle sidebar panel
+      toggle.addEventListener('click', function(e) {
+        e.stopPropagation();
+        sidebar.classList.toggle('aiu-sidebar-open');
+        if (sidebar.classList.contains('aiu-sidebar-open')) {
+          sidebar.style.removeProperty('max-height');
+          sidebar.style.removeProperty('height');
+          positionSidebar();
+        }
+      });
+
+      // Keep sidebar anchored to toggle while scrolling
+      window.addEventListener('scroll', positionSidebar, { passive: true });
+
+      // Close sidebar when clicking outside
+      document.addEventListener('click', function(e) {
+        if (!sidebar.contains(e.target) && e.target !== toggle) {
+          sidebar.classList.remove('aiu-sidebar-open');
+        }
+      });
+    }
+  }
+
+  // --- Footer: move outside #quarto-content for full width ---
+  var footer = document.querySelector('.aiu-footer');
+  var quartoContent = document.getElementById('quarto-content');
+  if (footer && quartoContent) {
+    document.body.appendChild(footer);
+    footer.style.display = '';
+  }
+
+  // --- Footer year ---
+  var yearEl = document.getElementById('aiu-footer-year');
+  if (yearEl) yearEl.textContent = new Date().getFullYear();
+
+  // --- Collapsible sub-menus in dropdowns ---
+  document.querySelectorAll('.dropdown-menu').forEach(function(menu) {
+    var items = Array.from(menu.querySelectorAll(':scope > li'));
+
+    items.forEach(function(item, index) {
+      var link = item.querySelector('.dropdown-item');
+      if (!link) return;
+      var textSpan = link.querySelector('.dropdown-text');
+      if (!textSpan) return;
+      var hasIcon = textSpan.querySelector('iconify-icon');
+      if (!hasIcon) return;
+
+      // Collect subsequent child items (no icon = indented sub-item)
+      var children = [];
+      for (var j = index + 1; j < items.length; j++) {
+        var nextLink = items[j].querySelector('.dropdown-item');
+        if (!nextLink) continue;
+        var nextText = nextLink.querySelector('.dropdown-text');
+        if (!nextText) continue;
+        if (nextText.querySelector('iconify-icon')) break;
+        children.push(items[j]);
+      }
+
+      if (children.length === 0) return;
+
+      // Hide children by default and mark them
+      children.forEach(function(child) {
+        child.style.display = 'none';
+        child.classList.add('dropdown-submenu-child');
+      });
+
+      // Add chevron toggle
+      var chevron = document.createElement('i');
+      chevron.className = 'fas fa-chevron-right dropdown-submenu-chevron';
+      textSpan.appendChild(chevron);
+
+      // Click toggles children, doesn't navigate
+      link.addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        var isOpen = chevron.classList.contains('fa-chevron-down');
+        children.forEach(function(child) {
+          child.style.display = isOpen ? 'none' : '';
+        });
+        chevron.classList.toggle('fa-chevron-right', isOpen);
+        chevron.classList.toggle('fa-chevron-down', !isOpen);
+      });
+    });
+  });
+});
+</script>
