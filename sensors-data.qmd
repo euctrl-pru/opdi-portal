@@ -1,0 +1,40 @@
+---
+title: "Access Sensor Data"
+---
+
+All data collected by OPDI sensors flows into the [OpenSky Network](https://opensky-network.org/) and is accessible through their data interfaces. This page explains how to access the ADS-B data captured by the OPDI sensor fleet and the broader OpenSky Network.
+
+## OpenSky Network API
+
+The OpenSky Network provides a REST API for real-time and historical ADS-B data. With an OpenSky account, you can query:
+
+- **Live state vectors** — current position, altitude, velocity, and identification of aircraft
+- **Flight tracks** — waypoint-based trajectories for individual flights
+- **Arrival and departure data** — flights arriving at or departing from specific airports
+
+The API is documented at [openskynetwork.github.io/opensky-api](https://openskynetwork.github.io/opensky-api/).
+
+::: {.callout-note appearance="simple"}
+Registered users with an active feeder receive enhanced API access with higher rate limits and longer historical data access.
+:::
+
+## OpenSky Historical Database
+
+For research purposes, the OpenSky Network maintains a historical database of ADS-B state vectors with global coverage. Access is available to researchers and academic institutions through an application process.
+
+- **Trino database** — query historical state vectors via SQL
+- **Coverage** — data from 2020 onwards at 1-second granularity (where received)
+- **Access** — apply at [opensky-network.org/data/impala](https://opensky-network.org/data/impala)
+
+## Using Sensor Data in the OPDI
+
+The OPDI processes raw ADS-B data from the OpenSky Network (including data from OPDI sensors) into structured flight performance datasets: flight lists, flight events, and measurements. These processed datasets are available for download on the [OPDI Data](/data.html) page.
+
+If you are interested in the raw ADS-B data from specific OPDI sensor locations, you can query the OpenSky Network API filtering by the sensor's serial number. Contact us at [pru-support@eurocontrol.int](mailto:pru-support@eurocontrol.int) for sensor identifiers.
+
+## Python Libraries
+
+Several Python libraries simplify access to OpenSky data:
+
+- **[traffic](https://traffic-viz.github.io/)** — a comprehensive library for air traffic data analysis, with built-in OpenSky integration for fetching trajectories, state vectors, and flight data
+- **[pyopensky](https://github.com/open-aviation/pyopensky)** — a lightweight Python client for the OpenSky Network REST API and Trino historical database

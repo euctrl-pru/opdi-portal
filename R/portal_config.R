@@ -13,6 +13,48 @@ portal_cfg <- list(
     flights = "+73M",
     events = "+1.7B",
     measurements = "+3.4B"
+  ),
+
+  challenges = list(
+    editions = 2,
+    total_teams = "100+",
+    items = list(
+      list(
+        id = "dc2024",
+        title = "Actual Takeoff Weight Prediction",
+        year = 2024,
+        status = "Completed",
+        teams = 53,
+        submissions = "1,600+",
+        description = "Participants predicted the actual takeoff weight (ATOW) of flights using open ADS-B trajectory data, weather information, and aircraft characteristics.",
+        url = "https://ansperformance.eu/study/data-challenge/dc2024/",
+        github = "https://github.com/prc-data-challenge-2024"
+      ),
+      list(
+        id = "dc2025",
+        title = "Fuel Flow Estimation",
+        year = 2025,
+        status = "Completed",
+        teams = 179,
+        submissions = "2,127",
+        description = "Participants estimated per-second fuel flow along flight trajectories, enabling granular emissions analysis using open data sources.",
+        url = "https://ansperformance.eu/study/data-challenge/dc2025/",
+        github = "https://github.com/prc-data-challenge-2025"
+      )
+    )
+  ),
+
+  sensors = list(
+    total_sensors = 12,
+    total_airports = 7,
+    countries = 4,
+    airports = data.frame(
+      icao    = c("ESSA", "EYVI", "EYPA", "UGTB", "UGSB", "UGKO", "SBSP"),
+      name    = c("Stockholm Arlanda", "Vilnius", "Palanga", "Tbilisi", "Batumi", "Kutaisi", "São Paulo Congonhas"),
+      country = c("Sweden", "Lithuania", "Lithuania", "Georgia", "Georgia", "Georgia", "Brazil"),
+      sensors = c(4L, 2L, 1L, 2L, 1L, 1L, 1L),
+      stringsAsFactors = FALSE
+    )
   )
 )
 
