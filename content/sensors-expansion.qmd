@@ -1,0 +1,238 @@
+---
+title: "Where Next"
+---
+
+```{r setup}
+#| include: false
+library(knitr)
+library(DT)
+# Read-only: every figure comes from a cache under data/. Refresh with
+#   Rscript R/update_sensor_cache.R
+source("../R/portal_config.R")
+source("../R/sensor_coverage.R")
+source("../R/airport_capture.R")
+
+sc <- get_sensor_coverage()
+```
+
+We are actively identifying airports where additional sensor deployment would most benefit open performance monitoring. Priority criteria include:
+
+- Airports with limited or no existing ADS-B ground station coverage in the OpenSky Network
+- Airports in regions underrepresented in open aviation data
+- Airports of strategic importance for performance benchmarking
+
+## Where does OPDI already see the traffic?
+
+To find the gaps, we ask a simple question of every European airport: *of the
+traffic an airport is known to have handled, how much does \acr{OPDI} actually
+observe?*
+
+**The two sources.** The reference is EUROCONTROL's published
+[airport traffic statistics](https://www.eurocontrol.int/performance/data/download/csv/airport_traffic_2025.csv)
+for 2025 — one row per airport per day, giving the number of departures
+(`FLT_DEP_1`) and arrivals (`FLT_ARR_1`) recorded that day. Against it we place
+the [OPDI flight list](flight-list-data.qmd), twelve monthly Parquet files in
+which each row is one flight reconstructed from crowd-sourced \acr{ADS-B}
+trajectories, carrying a departure aerodrome (`adep`) and an arrival aerodrome
+(`ades`).
+
+**How they are compared.** The common unit is the *movement*: one departure or
+one arrival. A single flight is therefore counted twice — once at the airport it
+left, once at the airport it reached — which is exactly how the reference
+totals `FLT_DEP_1` and `FLT_ARR_1`. Summing the OPDI flight list the same way,
+over the whole of 2025, gives a directly comparable count per airport.
+
+**What is calculated.** For each airport,
+
+$$\text{capture rate} = \frac{\text{movements OPDI attributes to the airport}}{\text{movements the airport reported}} \times 100\%$$
+
+A flight whose trajectory begins or ends outside \acr{ADS-B} coverage has no
+`adep` or no `ades`, and so contributes no movement anywhere. In 2025 that
+applies to 47% of departures and 44% of arrivals in the flight list, which is
+why a capture rate of 100% is not attainable in principle — the metric measures
+how much of an airport's traffic \acr{OPDI} can *attribute to that airport*, not
+the completeness of the trajectory data behind it.
+
+::: {.callout-important appearance="simple"}
+**The capture rate measures the detection algorithm as much as the coverage.**
+
+`adep` and `ades` are not reported by the aircraft; they are *inferred* from the
+trajectory. The current algorithm (`v0.0.2`) lays an
+[H3](https://h3geo.org/) grid of 30 NM radius around every aerodrome, keeps the
+state vectors below 4,000 ft, and assigns the airport whose reference point is
+closest to the start or end of the track. Full details are on the
+[Methodology](methodology.qmd#flight-list) page, and the resulting columns are
+described under [Flight List data](flight-list-data.qmd).
+
+Two consequences follow directly, and both move the capture rate:
+
+- **Aerodromes close together can be confused.** Where several grids overlap, the
+  nearest reference point wins and the runners-up are recorded as `adep_p` /
+  `ades_p`. Paris Charles-de-Gaulle and Le Bourget, or Frankfurt and Egelsbach,
+  sit well inside one another's 30 NM grids, so a flight may be attributed to
+  the wrong neighbour — inflating one airport's capture rate at the other's
+  expense.
+- **The algorithm is an iterative approximation.** Successive versions have
+  changed both the detection radius and the altitude ceiling, and a future
+  refinement will attribute more flights at some airports and fewer at others.
+
+A low capture rate is therefore a prompt to investigate — it may indicate absent
+\acr{ADS-B} coverage, or it may indicate that the detection algorithm is
+mis-assigning that airport's traffic.
+:::
+
+Two summaries answer different questions. **Capture rate** is movement-weighted —
+of all the traffic in a size band, how much did \acr{OPDI} see? **Median airport**
+weights every airport equally — what does the typical airport in the band look
+like? They diverge where a few outliers dominate.
+
+```{r capture-summary}
+#| echo: false
+
+cap <- read_airport_capture(update_sensor_pages_cache$capture$year)
+
+if (!is.null(cap)) {
+  bs <- cap$by_size
+  i <- match(c("large", "medium", "small"), bs$tier)
+  tbl <- data.frame(
+    `Airport size`        = c("Large (≥50k movements)", "Medium (5k–50k)", "Small (<5k)"),
+    Airports              = bs$airports[i],
+    `Reported movements`  = format(bs$reported_movements[i], big.mark = ",", trim = TRUE),
+    `Captured movements`  = format(bs$opdi_movements[i], big.mark = ",", trim = TRUE),
+    `Capture rate`        = sprintf("%.1f%%", bs$capture_rate[i]),
+    `Median airport`      = sprintf("%.1f%%", bs$median_capture_rate[i]),
+    check.names = FALSE, stringsAsFactors = FALSE
+  )
+  knitr::kable(tbl, align = c("l", "r", "r", "r", "r", "r"))
+}
+```
+
+```{r capture-note}
+#| echo: false
+#| output: asis
+
+if (!is.null(cap)) {
+  cat("::: {.callout-note appearance='simple'}\n",
+      sprintf(
+        paste0("Across %s reported airports in %d, OPDI attributes %s of %s movements (%.1f%%). ",
+               "Coverage is near-complete at the busiest airports and thins out at smaller fields.\n\n",
+               "The two sources count different populations: the reference reports IFR commercial ",
+               "traffic, while the OPDI flight list contains every transponder-equipped flight, ",
+               "including general aviation. At %d small aerodromes this pushes the ratio above 100%%, ",
+               "so the rate is only meaningful where scheduled traffic dominates."),
+        format(cap$totals$airports, big.mark = ","), cap$year,
+        format(cap$totals$opdi_movements, big.mark = ","),
+        format(cap$totals$reported_movements, big.mark = ","),
+        cap$totals$capture_rate, cap$totals$over_reference),
+      "\n:::\n", sep = "")
+}
+```
+
+## Candidate airports
+
+Every reported airport, sorted by capture rate. Those at the top — where
+\acr{OPDI} attributes little or none of the reported traffic — sit outside
+current \acr{ADS-B} ground coverage and are the strongest candidates for a
+sensor. Use the **Size** filter to restrict the table to a traffic band, search
+by name or country, or sort on any column.
+
+```{r capture-gaps-note}
+#| echo: false
+#| output: asis
+
+if (!is.null(cap)) {
+  a <- cap$airports
+  near_zero <- a[a$capture_rate < 1, ]
+  # Name whichever airports actually top the list, rather than hardcoding them:
+  # the set changes whenever the cache is regenerated.
+  top <- head(near_zero[order(-near_zero$reported_movements), ], 3)
+
+  cat("::: {.callout-note appearance='simple'}\n",
+      sprintf(
+        paste0("%d airports, together reporting %s movements in %d, are captured at under 1%%. ",
+               "The largest is %s (%s movements reported, %s captured), followed by %s."),
+        nrow(near_zero),
+        format(sum(near_zero$reported_movements), big.mark = ","), cap$year,
+        top$airport[1],
+        format(top$reported_movements[1], big.mark = ","),
+        format(top$opdi_movements[1], big.mark = ","),
+        paste(top$airport[-1], collapse = " and ")),
+      "\n:::\n", sep = "")
+}
+```
+
+```{r capture-sensor-note}
+#| echo: false
+#| output: asis
+
+if (!is.null(cap) && !is.null(sc$sensors)) {
+  a <- cap$airports
+  ours <- a[a$icao %in% unique(sc$sensors$airport_icao), ]
+  ours <- ours[order(ours$capture_rate), ]
+  worst <- head(ours, 3)
+
+  cat("::: {.callout-warning appearance='simple'}\n",
+      sprintf(
+        paste0("**These figures cover the whole of %d, but not every OPDI sensor was live for all of it.** ",
+               "The Georgian receivers were commissioned during the year, so a full-year capture rate ",
+               "understates what they deliver today: %s. ",
+               "By contrast the longer-established Swedish and Lithuanian sites reach 94%% or more. ",
+               "A low capture rate at an airport that hosts an OPDI sensor therefore reflects when the ",
+               "sensor came online, not its current contribution — the 40 NM analysis on the ",
+               "[Impact](sensors-impact.qmd) page measures that."),
+        cap$year,
+        paste(sprintf("%s %.0f%%", worst$airport, worst$capture_rate), collapse = ", ")),
+      "\n:::\n", sep = "")
+}
+```
+
+```{r capture-full-table}
+#| echo: false
+
+if (!is.null(cap)) {
+  a <- cap$airports
+  # Lowest capture first; break ties by size so the biggest gaps lead.
+  a <- a[order(a$capture_rate, -a$reported_movements), ]
+
+  # A factor renders as a select box in DT's column filters, matching the size
+  # bands used in the summary above.
+  size_label <- factor(
+    as.character(a$size_tier),
+    levels = c("large", "medium", "small"),
+    labels = c("Large (≥50k)", "Medium (5k–50k)", "Small (<5k)")
+  )
+
+  tbl <- data.frame(
+    ICAO        = a$icao,
+    Airport     = a$airport,
+    Country     = a$state,
+    Size        = size_label,
+    Reported    = a$reported_movements,
+    OPDI        = a$opdi_movements,
+    `Capture %` = a$capture_rate,
+    check.names = FALSE, stringsAsFactors = FALSE
+  )
+
+  DT::datatable(
+    tbl,
+    rownames = FALSE,
+    filter = list(position = "top", clear = TRUE),
+    options = list(
+      pageLength = 15,
+      lengthMenu = c(15, 25, 50, 100),
+      order = list(),        # keep the data frame's own ordering
+      scrollX = TRUE,
+      columnDefs = list(list(className = "dt-right", targets = 4:6))
+    ),
+    class = "compact stripe hover"
+  ) |>
+    DT::formatCurrency(c("Reported", "OPDI"), currency = "", digits = 0) |>
+    DT::formatRound("Capture %", digits = 1)
+}
+```
+
+---
+
+Interested in hosting a sensor, or in the raw data these receivers produce? See
+[Extend the Network](sensors-contribute.qmd) and
+[Access Sensor Data](sensors-data.qmd).
