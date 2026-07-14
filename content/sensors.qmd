@@ -1,0 +1,95 @@
+---
+title: "OPDI Sensors"
+---
+
+```{r setup}
+#| include: false
+library(bslib)
+library(bsicons)
+library(knitr)
+source("../R/portal_config.R")
+cfg <- portal_cfg
+```
+
+::: {layout-ncol=2}
+```{r}
+bslib::value_box(
+  title = "Sensors Deployed",
+  value = cfg$sensors$total_sensors,
+  showcase = bs_icon("broadcast"),
+  theme = value_box_theme(bg = "#c35a00")
+)
+```
+
+```{r}
+bslib::value_box(
+  title = "Airports Covered",
+  value = cfg$sensors$total_airports,
+  showcase = bs_icon("geo-alt"),
+  theme = value_box_theme(bg = "#c35a00")
+)
+```
+:::
+
+::: {layout-ncol=2}
+```{r}
+bslib::value_box(
+  title = "Countries",
+  value = cfg$sensors$countries,
+  showcase = bs_icon("globe2"),
+  theme = value_box_theme(bg = "#c35a00")
+)
+```
+
+```{r}
+bslib::value_box(
+  title = "Msg/day",
+  value = "~5M",
+  showcase = bs_icon("bar-chart-line"),
+  theme = value_box_theme(bg = "#c35a00")
+)
+```
+:::
+
+
+## Overview
+
+The **OPDI Sensors** is an initiative to extend the [OpenSky Network](https://opensky-network.org/) crowd-sourced receiver network by deploying ground-based ADS-B sensors at strategic airport locations. The aim is to improve ground-based and low-altitude ADS-B coverage around airports, especially where existing coverage in the OpenSky Network is limited.
+
+In collaboration with the [Performance Review Commission](https://ansperformance.eu/about/prc/), each deployed sensor receives ADS-B transponder signals from aircraft in its vicinity, providing position, altitude, speed, and identification data. The collected data feeds into the OpenSky Network and is subsequently used by the OPDI, enabling performance monitoring at airports that were previously unobservable through open data sources.
+
+
+## Current Deployment
+
+```{r}
+apt <- cfg$sensors$airports
+apt_display <- data.frame(
+  ICAO     = apt$icao,
+  Airport  = apt$name,
+  Country  = apt$country,
+  Sensors  = apt$sensors,
+  stringsAsFactors = FALSE
+)
+knitr::kable(apt_display, align = c("l", "l", "l", "r"))
+```
+
+
+## Impact on Airport Monitoring
+
+::: {.callout-note appearance="simple"}
+Coverage improvement metrics are under development and will be published here in a future update. These will quantify the increase in observable flights and trajectory completeness at each instrumented airport.
+:::
+
+
+## Future Sensor Placements
+
+We are actively identifying airports where additional sensor deployment would most benefit open performance monitoring. Priority criteria include:
+
+- Airports with limited or no existing ADS-B ground station coverage in the OpenSky Network
+- Airports in regions underrepresented in open aviation data
+- Airports of strategic importance for performance benchmarking
+
+::: {.callout-note appearance="simple"}
+A detailed list of candidate airports is under development and will be published here.
+:::
+
