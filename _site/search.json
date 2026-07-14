@@ -166,51 +166,75 @@
     ]
   },
   {
-    "objectID": "content/roadmap.html",
-    "href": "content/roadmap.html",
-    "title": "Roadmap",
+    "objectID": "content/sensors-expansion.html",
+    "href": "content/sensors-expansion.html",
+    "title": "Where Next",
     "section": "",
-    "text": "The plan is to release subsequent improvements of the Open Performance Data Initiative (OPDI) data sets roughly every two months as data and validations become available.",
+    "text": "We are actively identifying airports where additional sensor deployment would most benefit open performance monitoring. Priority criteria include:",
     "crumbs": [
       "Home",
-      "OPDI Data",
-      "Roadmap"
+      "OPDI Sensors",
+      "Where Next"
     ]
   },
   {
-    "objectID": "content/roadmap.html#upcoming-focus",
-    "href": "content/roadmap.html#upcoming-focus",
-    "title": "Roadmap",
-    "section": "Upcoming focus",
-    "text": "Upcoming focus\nThe next planned updates aim to include the following improvements:\n\nInclusion of new event types and occurrences:\n\noff-block\nin-block\nFlight Information Region (FIR) crossing\n\n\n\nCandidate topics for future releases\nIn the longer term the OPDI aims to include the following improvements:\n\nInclude more events\n\nstart and stop of holdings\n\nUse third party trajectory data (aside from the available via OpenSky Network (OSN)).\nValidate flight events and measurements using third party data.\nProvide easy access to OSN state vector trajectories at 5-sec granularity\nProvide cleaned up state vector based trajectories, i.e. remove vertical glitches (via filter() in traffic library), associate meteorological information (via fastmeteo library), remove dirty trajectories (too small/short), …",
+    "objectID": "content/sensors-expansion.html#where-does-opdi-already-see-the-traffic",
+    "href": "content/sensors-expansion.html#where-does-opdi-already-see-the-traffic",
+    "title": "Where Next",
+    "section": "Where does OPDI already see the traffic?",
+    "text": "Where does OPDI already see the traffic?\nTo find the gaps, we ask a simple question of every European airport: of the traffic an airport is known to have handled, how much does Open Performance Data Initiative (OPDI) actually observe?\nThe two sources. The reference is EUROCONTROL’s published airport traffic statistics for 2025 — one row per airport per day, giving the number of departures (FLT_DEP_1) and arrivals (FLT_ARR_1) recorded that day. Against it we place the OPDI flight list, twelve monthly Parquet files in which each row is one flight reconstructed from crowd-sourced Automatic Dependent Surveillance–Broadcast (ADS-B) trajectories, carrying a departure aerodrome (adep) and an arrival aerodrome (ades).\nHow they are compared. The common unit is the movement: one departure or one arrival. A single flight is therefore counted twice — once at the airport it left, once at the airport it reached — which is exactly how the reference totals FLT_DEP_1 and FLT_ARR_1. Summing the OPDI flight list the same way, over the whole of 2025, gives a directly comparable count per airport.\nWhat is calculated. For each airport,\n\\[\\text{capture rate} = \\frac{\\text{movements OPDI attributes to the airport}}{\\text{movements the airport reported}} \\times 100\\%\\]\nA flight whose trajectory begins or ends outside ADS-B coverage has no adep or no ades, and so contributes no movement anywhere. In 2025 that applies to 47% of departures and 44% of arrivals in the flight list, which is why a capture rate of 100% is not attainable in principle — the metric measures how much of an airport’s traffic OPDI can attribute to that airport, not the completeness of the trajectory data behind it.\n\n\n\n\n\n\nThe capture rate measures the detection algorithm as much as the coverage.\nadep and ades are not reported by the aircraft; they are inferred from the trajectory. The current algorithm (v0.0.2) lays an H3 grid of 30 NM radius around every aerodrome, keeps the state vectors below 4,000 ft, and assigns the airport whose reference point is closest to the start or end of the track. Full details are on the Methodology page, and the resulting columns are described under Flight List data.\nTwo consequences follow directly, and both move the capture rate:\n\nAerodromes close together can be confused. Where several grids overlap, the nearest reference point wins and the runners-up are recorded as adep_p / ades_p. Paris Charles-de-Gaulle and Le Bourget, or Frankfurt and Egelsbach, sit well inside one another’s 30 NM grids, so a flight may be attributed to the wrong neighbour — inflating one airport’s capture rate at the other’s expense.\nThe algorithm is an iterative approximation. Successive versions have changed both the detection radius and the altitude ceiling, and a future refinement will attribute more flights at some airports and fewer at others.\n\nA low capture rate is therefore a prompt to investigate — it may indicate absent ADS-B coverage, or it may indicate that the detection algorithm is mis-assigning that airport’s traffic.\n\n\n\nTwo summaries answer different questions. Capture rate is movement-weighted — of all the traffic in a size band, how much did OPDI see? Median airport weights every airport equally — what does the typical airport in the band look like? They diverge where a few outliers dominate.\n\n\n\n\n\n\n\n\n\n\n\n\n\nAirport size\nAirports\nReported movements\nCaptured movements\nCapture rate\nMedian airport\n\n\n\n\nLarge (≥50k movements)\n99\n14,594,170\n12,612,803\n86.4%\n97.9%\n\n\nMedium (5k–50k)\n135\n2,361,118\n1,843,328\n78.1%\n88.0%\n\n\nSmall (&lt;5k)\n97\n232,826\n197,478\n84.8%\n47.2%\n\n\n\n\n\n\n\n\n\n\n\nAcross 331 reported airports in 2025, OPDI attributes 14,653,609 of 17,188,114 movements (85.3%). Coverage is near-complete at the busiest airports and thins out at smaller fields.\nThe two sources count different populations: the reference reports IFR commercial traffic, while the OPDI flight list contains every transponder-equipped flight, including general aviation. At 127 small aerodromes this pushes the ratio above 100%, so the rate is only meaningful where scheduled traffic dominates.",
     "crumbs": [
       "Home",
-      "OPDI Data",
-      "Roadmap"
+      "OPDI Sensors",
+      "Where Next"
     ]
   },
   {
-    "objectID": "content/roadmap.html#past-releases",
-    "href": "content/roadmap.html#past-releases",
-    "title": "Roadmap",
-    "section": "Past Releases",
-    "text": "Past Releases\nAn overview of past releases and the various versions were used in each OPDI version can be seen below.\n\n\n\n\n\n\n\n\n\n\n\nOPDI version\nRelease date\nFlight List\nFlight Event\nMeasurements\nPeriod\n\n\n\n\nOPDI v0.0.1\n2023-12-01\nFlight List v0.0.1\nFlight Event v0.0.1\nMeasurements v0.0.1\n2 months\n\n\nOPDI v0.0.2 (release 1)\n2024-03-01\nFlight List v0.0.2\nFlight Event v0.0.2\nMeasurements v0.0.2\n1.5 years\n\n\nOPDI v0.0.2 (release 2)\n2024-08-01\nFlight List v0.0.2\nFlight Event v0.0.2\nMeasurements v0.0.2\n2.5 years\n\n\nOPDI v0.0.2 (release 3)\n2024-12-01\nFlight List v0.0.2\nFlight Event v0.0.2\nMeasurements v0.0.2\n3 years",
+    "objectID": "content/sensors-expansion.html#candidate-airports",
+    "href": "content/sensors-expansion.html#candidate-airports",
+    "title": "Where Next",
+    "section": "Candidate airports",
+    "text": "Candidate airports\nEvery reported airport, sorted by capture rate. Those at the top — where OPDI attributes little or none of the reported traffic — sit outside current ADS-B ground coverage and are the strongest candidates for a sensor. Use the Size filter to restrict the table to a traffic band, search by name or country, or sort on any column.\n\n\n\n\n\n\n68 airports, together reporting 1,148,382 movements in 2025, are captured at under 1%. The largest is Gran Canaria (141,509 movements reported, 16 captured), followed by Ankara - Esenboğa and Tenerife Sur - Reina Sofia.\n\n\n\n\n\n\n\n\n\nThese figures cover the whole of 2025, but not every OPDI sensor was live for all of it. The Georgian receivers were commissioned during the year, so a full-year capture rate understates what they deliver today: Kutaisi 23%, Tbilisi 40%, Batumi 76%. By contrast the longer-established Swedish and Lithuanian sites reach 94% or more. A low capture rate at an airport that hosts an OPDI sensor therefore reflects when the sensor came online, not its current contribution — the 40 NM analysis on the Impact page measures that.\n\n\n\n\n\n\n\n\n\n\nInterested in hosting a sensor, or in the raw data these receivers produce? See Extend the Network and Access Sensor Data.",
     "crumbs": [
       "Home",
-      "OPDI Data",
-      "Roadmap"
+      "OPDI Sensors",
+      "Where Next"
     ]
   },
   {
-    "objectID": "content/roadmap.html#contact",
-    "href": "content/roadmap.html#contact",
-    "title": "Roadmap",
-    "section": "Contact",
-    "text": "Contact\nIf you notice any bugs, or if you have any feature requests, please contact us.",
+    "objectID": "content/sensors-impact.html",
+    "href": "content/sensors-impact.html",
+    "title": "Impact on Airport Monitoring",
+    "section": "",
+    "text": "Deploying a sensor is one thing; showing that it changed what can be observed is another. This page answers that question twice over — once as a snapshot across every instrumented airport, and once as a time series in which a single sensor switching on is visible to the day.",
     "crumbs": [
       "Home",
-      "OPDI Data",
-      "Roadmap"
+      "OPDI Sensors",
+      "Impact"
+    ]
+  },
+  {
+    "objectID": "content/sensors-impact.html#what-the-sensors-add",
+    "href": "content/sensors-impact.html#what-the-sensors-add",
+    "title": "Impact on Airport Monitoring",
+    "section": "What the sensors add",
+    "text": "What the sensors add\nHow much aircraft observation would be lost without the Open Performance Data Initiative (OPDI) sensors? For each airport we take every state vector within 40 NM of the airport reference point and ask which receivers in the OpenSky Network (OSN) reported it. A fix is exclusive when only OPDI sensors saw it: without them, that moment of flight would go unobserved.\n\n\n\n\n\n\n\n\n\n\n\n\nAirport\nCountry\nFlight hours\nOPDI-only hours\nAdded coverage\n\n\n\n\nTbilisi International (UGTB)\nGeorgia\n122\n108\n88.7%\n\n\nVilnius International (EYVI)\nLithuania\n190\n153\n80.9%\n\n\nKutaisi International (UGKO)\nGeorgia\n41\n30\n73.5%\n\n\nStockholm Arlanda (ESSA)\nSweden\n233\n126\n53.9%\n\n\nBatumi International (UGSB)\nGeorgia\n83\n38\n46.3%\n\n\nPalanga International (EYPA)\nLithuania\n10\n3\n24.7%\n\n\nSão Paulo–Congonhas (SBSP)\nBrazil\n—\n—\n—\n\n\n\n\n\n\n\n\n\n\n\nMeasured over a single day (2026-07-08) within 40 NM of each airport reference point. Across the reporting sites, OPDI sensors exclusively observed between 25% and 89% of flight hours. São Paulo–Congonhas is still being commissioned and is not yet reporting.\nFlight hours count the time between consecutive receptions of the same aircraft. State vectors carrying no receiver attribution (about 8% of fixes) are excluded, so the totals describe traffic observed by an identified receiver rather than all traffic aloft.",
+    "crumbs": [
+      "Home",
+      "OPDI Sensors",
+      "Impact"
+    ]
+  },
+  {
+    "objectID": "content/sensors-impact.html#a-sensor-switching-on",
+    "href": "content/sensors-impact.html#a-sensor-switching-on",
+    "title": "Impact on Airport Monitoring",
+    "section": "A sensor switching on",
+    "text": "A sensor switching on\nThe 40 NM figures above measure a single day. Tracking the same airports over time shows the effect of a deployment directly.\nThe chart below plots the daily capture rate at every airport hosting OPDI sensors: the share of an airport’s reported movements — one departure or one arrival — that the OPDI flight list attributes to it, measured against EUROCONTROL’s published traffic statistics. A rate near 100% means OPDI sees essentially all of the airport’s traffic. The full method, and the caveats that come with it, are set out under Where Next.\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nKutaisi is the clearest case. Its capture rate sat at 1.5% until 07 April, then stepped to 89.8% from the day its OPDI sensor began reporting. The other airports stay flat across the same window, which is what makes the step attributable to the sensor rather than to a change in traffic or in the flight-list pipeline.\nThe red band marks a 5-day outage at Tbilisi, from 18 January to 22 January, with reporting resuming on 25 January. Only that airport goes quiet — its neighbours continue reporting throughout — so the cause is local to the receiver, not the data pipeline.\n\n\n\n\nThe sensors deployed so far close real gaps. Finding the next ones means asking which airports are still unobserved: see Where Next.",
+    "crumbs": [
+      "Home",
+      "OPDI Sensors",
+      "Impact"
     ]
   },
   {
@@ -222,7 +246,7 @@
     "crumbs": [
       "Home",
       "OPDI Sensors",
-      "Overview"
+      "Deployment"
     ]
   },
   {
@@ -230,11 +254,11 @@
     "href": "content/sensors.html#overview",
     "title": "OPDI Sensors",
     "section": "Overview",
-    "text": "Overview\nThe OPDI Sensors is an initiative to extend the OpenSky Network crowd-sourced receiver network by deploying ground-based ADS-B sensors at strategic airport locations. The aim is to improve ground-based and low-altitude ADS-B coverage around airports, especially where existing coverage in the OpenSky Network is limited.\nIn collaboration with the Performance Review Commission, each deployed sensor receives ADS-B transponder signals from aircraft in its vicinity, providing position, altitude, speed, and identification data. The collected data feeds into the OpenSky Network and is subsequently used by the OPDI, enabling performance monitoring at airports that were previously unobservable through open data sources.",
+    "text": "Overview\nThe OPDI Sensors is an initiative to extend the OpenSky Network crowd-sourced receiver network by deploying ground-based ADS-B sensors at strategic airport locations. The aim is to improve ground-based and low-altitude ADS-B coverage around airports, especially where existing coverage in the OpenSky Network is limited.\nIn collaboration with the Performance Review Commission, each deployed sensor receives ADS-B transponder signals from aircraft in its vicinity, providing position, altitude, speed, and identification data. The collected data feeds into the OpenSky Network and is subsequently used by the OPDI, enabling performance monitoring at airports that were previously unobservable through open data sources.\nThis page describes the network as it stands: where the receivers are, whether they are reporting, and how far each one sees. Two companion pages take the argument further — Impact on Airport Monitoring measures what the sensors added, and Where Next identifies the airports that remain unobserved.",
     "crumbs": [
       "Home",
       "OPDI Sensors",
-      "Overview"
+      "Deployment"
     ]
   },
   {
@@ -242,35 +266,23 @@
     "href": "content/sensors.html#current-deployment",
     "title": "OPDI Sensors",
     "section": "Current Deployment",
-    "text": "Current Deployment\n\n\n\n\n\nICAO\nAirport\nCountry\nSensors\n\n\n\n\nESSA\nStockholm Arlanda\nSweden\n4\n\n\nEYVI\nVilnius\nLithuania\n2\n\n\nEYPA\nPalanga\nLithuania\n1\n\n\nUGTB\nTbilisi\nGeorgia\n2\n\n\nUGSB\nBatumi\nGeorgia\n1\n\n\nUGKO\nKutaisi\nGeorgia\n1\n\n\nSBSP\nSão Paulo Congonhas\nBrazil\n1",
+    "text": "Current Deployment\n\n\n\n\n\nICAO\nAirport\nCountry\nSensors\nStatus\n\n\n\n\nESSA\nStockholm Arlanda\nSweden\n4\nOperational\n\n\nEYVI\nVilnius International\nLithuania\n2\nOperational\n\n\nUGTB\nTbilisi International\nGeorgia\n2\nOperational\n\n\nEYPA\nPalanga International\nLithuania\n1\nOperational\n\n\nSBSP\nSão Paulo–Congonhas\nBrazil\n1\nCommissioning\n\n\nUGKO\nKutaisi International\nGeorgia\n1\nOperational\n\n\nUGSB\nBatumi International\nGeorgia\n1\nOperational",
     "crumbs": [
       "Home",
       "OPDI Sensors",
-      "Overview"
+      "Deployment"
     ]
   },
   {
-    "objectID": "content/sensors.html#impact-on-airport-monitoring",
-    "href": "content/sensors.html#impact-on-airport-monitoring",
+    "objectID": "content/sensors.html#sensor-coverage",
+    "href": "content/sensors.html#sensor-coverage",
     "title": "OPDI Sensors",
-    "section": "Impact on Airport Monitoring",
-    "text": "Impact on Airport Monitoring\n\n\n\n\n\n\nCoverage improvement metrics are under development and will be published here in a future update. These will quantify the increase in observable flights and trajectory completeness at each instrumented airport.",
+    "section": "Sensor Coverage",
+    "text": "Sensor Coverage\nEach Open Performance Data Initiative (OPDI) sensor’s reception footprint, as measured by the OpenSky Network (OSN): the polygon traces the furthest aircraft position received in each compass direction. Zoom in to inspect an individual airport; hover a sensor for its serial and maximum range.\n\n\n\n\n\n\n\n\n\n\n\n\nCoverage measured 2026-07-10. 1 of 12 sensors reported no coverage in the sampled period.\n\n\n\n\nThe map shows what each receiver reaches. Whether that reach added anything — aircraft nobody else was seeing — is a separate question, answered under Impact on Airport Monitoring.",
     "crumbs": [
       "Home",
       "OPDI Sensors",
-      "Overview"
-    ]
-  },
-  {
-    "objectID": "content/sensors.html#future-sensor-placements",
-    "href": "content/sensors.html#future-sensor-placements",
-    "title": "OPDI Sensors",
-    "section": "Future Sensor Placements",
-    "text": "Future Sensor Placements\nWe are actively identifying airports where additional sensor deployment would most benefit open performance monitoring. Priority criteria include:\n\nAirports with limited or no existing ADS-B ground station coverage in the OpenSky Network\nAirports in regions underrepresented in open aviation data\nAirports of strategic importance for performance benchmarking\n\n\n\n\n\n\n\nA detailed list of candidate airports is under development and will be published here.",
-    "crumbs": [
-      "Home",
-      "OPDI Sensors",
-      "Overview"
+      "Deployment"
     ]
   },
   {
@@ -323,7 +335,17 @@
     "href": "index.html",
     "title": "Open Performance Data Initiative",
     "section": "",
-    "text": "The Open Performance Data Initiative (OPDI) is an initiative of the Performance Review Commission (PRC) to advance transparency, reproducibility, and democratisation of aviation performance monitoring. In collaboration with the OpenSky Network (OSN), the OPDI pursues three complementary objectives: publishing open flight performance data with transparent and reproducible methodologies, engaging the research community to develop and validate novel analytical approaches through data challenges, and expanding ground-based Automatic Dependent Surveillance–Broadcast (ADS-B) surveillance coverage by supporting crowd-sourced receiver infrastructure at underserved airports.\n\n\n OPDI Data\nOpen flight performance data — flight lists, events, and measurements derived from ADS-B data.\n\n\n\n\n\n\n\n\n\nFlights\n+73M\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nPeriod\n01/2022 - 05/2026\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nLatest release (v0.0.2): January 2022 - May 2026, refreshed June 2026. See Methodology for details.\n\n\n\nExplore the data →\n\n\n PRC Data Challenges\nEngaging data scientists worldwide to develop transparent, reproducible methods for aviation performance analysis.\n\n\n\n\n\n\n\n\n\nEditions\n3\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nTeams\n300+\n\n\n\n\n\n\n\n\n\nView challenges →\n\n\n OPDI Sensors\nExtending the OpenSky Network (OSN) crowd-sourced receiver network to improve ground-based and low-altitude ADS-B coverage around airports, especially where existing coverage is limited.\n\n\n\n\n\n\n\n\n\nSensors\n12\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nAirports\n7\n\n\n\n\n\n\n\n\n\nLearn more → Extend the network → Access sensor data →\n\n\n OPDI Community\nWorking with research institutions, air navigation service providers, and open-data enthusiasts to advance open aviation performance data.\n\n\n\n\n\n\n\n\n\n\nMembers\n8\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nCountries\n7\n\n\n\n\n\n\n\n\n\nMeet the community →\n\n\n Resources\nPeer-reviewed papers, open datasets, and the open-source software behind the OPDI.\n\n\n\n\n\n\n\n\n\n\n\nPublications\n6\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nSoftware Projects\n6\n\n\n\n\n\n\n\n\n\nBrowse resources →\n\n\n\n\nList of Acronyms\n\nADS-B\n\nAutomatic Dependent Surveillance–Broadcast\n\nOPDI\n\nOpen Performance Data Initiative\n\nOSN\n\nOpenSky Network\n\nPRC\n\nPerformance Review Commission",
+    "text": "Much of the data behind aviation performance analysis is difficult to obtain, which makes results hard to reproduce and to build on. The Open Performance Data Initiative (OPDI), an initiative of the Performance Review Commission (PRC) in collaboration with the OpenSky Network (OSN), takes a different route: it builds a picture of European air traffic from crowd-sourced Automatic Dependent Surveillance–Broadcast (ADS-B) signals, and publishes the data, the methods and the tools openly and free to use.\nIt works on three fronts:\nThe initiative is the work of a community of individuals — researchers, engineers and analysts — from institutions, universities, air navigation service providers and the wider open-data world. Everything they build — papers, datasets, source code — is published openly as resources anyone can use.",
+    "crumbs": [
+      "Home"
+    ]
+  },
+  {
+    "objectID": "index.html#the-initiative-at-a-glance",
+    "href": "index.html#the-initiative-at-a-glance",
+    "title": "Open Performance Data Initiative",
+    "section": "The initiative at a glance",
+    "text": "The initiative at a glance\n\n OPDI Data\nOpen flight performance data — flight lists, events, and measurements derived from ADS-B data.\n\n\n\n\n\n\n\n\n\nFlights\n+73M\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nPeriod\n01/2022 - 05/2026\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nLatest release (v0.0.2): January 2022 - May 2026, refreshed June 2026. See Methodology for details.\n\n\n\nExplore the data →\n\n\n PRC Data Challenges\nEngaging data scientists worldwide to develop transparent, reproducible methods for aviation performance analysis.\n\n\n\n\n\n\n\n\n\nEditions\n3\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nTeams\n300+\n\n\n\n\n\n\n\n\n\nView challenges →\n\n\n OPDI Sensors\nExtending the OpenSky Network (OSN) crowd-sourced receiver network to improve ground-based and low-altitude ADS-B coverage around airports, especially where existing coverage is limited.\n\n\n\n\n\n\n\n\n\nSensors\n12\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nAirports\n7\n\n\n\n\n\n\n\n\n\nLearn more → Extend the network → Access sensor data →\n\n\n OPDI Community\nWorking with research institutions, air navigation service providers, and open-data enthusiasts to advance open aviation performance data.\n\n\n\n\n\n\n\n\n\n\nMembers\n8\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nCountries\n7\n\n\n\n\n\n\n\n\n\nMeet the community →\n\n\n Resources\nPeer-reviewed papers, open datasets, and the open-source software behind the OPDI.\n\n\n\n\n\n\n\n\n\n\n\nPublications\n6\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nSoftware Projects\n6\n\n\n\n\n\n\n\n\n\nBrowse resources →",
     "crumbs": [
       "Home"
     ]
@@ -443,6 +465,54 @@
     ]
   },
   {
+    "objectID": "content/roadmap.html",
+    "href": "content/roadmap.html",
+    "title": "Roadmap",
+    "section": "",
+    "text": "The plan is to release subsequent improvements of the Open Performance Data Initiative (OPDI) data sets roughly every two months as data and validations become available.",
+    "crumbs": [
+      "Home",
+      "OPDI Data",
+      "Roadmap"
+    ]
+  },
+  {
+    "objectID": "content/roadmap.html#upcoming-focus",
+    "href": "content/roadmap.html#upcoming-focus",
+    "title": "Roadmap",
+    "section": "Upcoming focus",
+    "text": "Upcoming focus\nThe next planned updates aim to include the following improvements:\n\nInclusion of new event types and occurrences:\n\noff-block\nin-block\nFlight Information Region (FIR) crossing\n\n\n\nCandidate topics for future releases\nIn the longer term the OPDI aims to include the following improvements:\n\nInclude more events\n\nstart and stop of holdings\n\nUse third party trajectory data (aside from the available via OpenSky Network (OSN)).\nValidate flight events and measurements using third party data.\nProvide easy access to OSN state vector trajectories at 5-sec granularity\nProvide cleaned up state vector based trajectories, i.e. remove vertical glitches (via filter() in traffic library), associate meteorological information (via fastmeteo library), remove dirty trajectories (too small/short), …",
+    "crumbs": [
+      "Home",
+      "OPDI Data",
+      "Roadmap"
+    ]
+  },
+  {
+    "objectID": "content/roadmap.html#past-releases",
+    "href": "content/roadmap.html#past-releases",
+    "title": "Roadmap",
+    "section": "Past Releases",
+    "text": "Past Releases\nAn overview of past releases and the various versions were used in each OPDI version can be seen below.\n\n\n\n\n\n\n\n\n\n\n\nOPDI version\nRelease date\nFlight List\nFlight Event\nMeasurements\nPeriod\n\n\n\n\nOPDI v0.0.1\n2023-12-01\nFlight List v0.0.1\nFlight Event v0.0.1\nMeasurements v0.0.1\n2 months\n\n\nOPDI v0.0.2 (release 1)\n2024-03-01\nFlight List v0.0.2\nFlight Event v0.0.2\nMeasurements v0.0.2\n1.5 years\n\n\nOPDI v0.0.2 (release 2)\n2024-08-01\nFlight List v0.0.2\nFlight Event v0.0.2\nMeasurements v0.0.2\n2.5 years\n\n\nOPDI v0.0.2 (release 3)\n2024-12-01\nFlight List v0.0.2\nFlight Event v0.0.2\nMeasurements v0.0.2\n3 years",
+    "crumbs": [
+      "Home",
+      "OPDI Data",
+      "Roadmap"
+    ]
+  },
+  {
+    "objectID": "content/roadmap.html#contact",
+    "href": "content/roadmap.html#contact",
+    "title": "Roadmap",
+    "section": "Contact",
+    "text": "Contact\nIf you notice any bugs, or if you have any feature requests, please contact us.",
+    "crumbs": [
+      "Home",
+      "OPDI Data",
+      "Roadmap"
+    ]
+  },
+  {
     "objectID": "content/sensors-contribute.html",
     "href": "content/sensors-contribute.html",
     "title": "Extend the Network",
@@ -494,7 +564,7 @@
     "href": "content/data-challenges.html#about",
     "title": "PRC Data Challenges",
     "section": "About",
-    "text": "About\nThe PRC Data Challenges invite data scientists, researchers, and aviation enthusiasts to tackle real-world aviation performance questions using open data. Organised by the Performance Review Commission (PRC) of EUROCONTROL, each challenge defines a specific prediction or estimation task, provides curated open datasets, and evaluates submissions on a public leaderboard.\nA core objective of the PRC Data Challenges is to foster transparency and reproducibility in aviation analytics. All participating teams are required to publish their code in open GitHub repositories, making their methodologies fully inspectable and reproducible. This approach aligns with the PRC’s broader mission to democratise access to performance data and analytical methods, enabling independent validation and building a shared body of open, peer-reviewed techniques for the aviation community.\nFor more information, visit the PRC Data Challenge programme page.",
+    "text": "About\nThe PRC Data Challenges invite data scientists, researchers, and aviation enthusiasts to tackle real-world aviation performance questions using open data. Organised by the Performance Review Commission (PRC) of EUROCONTROL in collaboration with the OpenSky Network, each challenge defines a specific prediction or estimation task, provides curated open datasets, and evaluates submissions on a public leaderboard.\nA core objective of the PRC Data Challenges is to foster transparency and reproducibility in aviation analytics. All participating teams are required to publish their code in open Git repositories, making their methodologies fully inspectable and reproducible. This approach aligns with the PRC’s broader mission to democratise access to performance data and analytical methods, enabling independent validation and building a shared body of open, peer-reviewed techniques for the aviation community.\nFor more information, visit the PRC Data Challenge programme page.",
     "crumbs": [
       "Home",
       "PRC Data Challenges"
