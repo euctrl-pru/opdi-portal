@@ -7,15 +7,33 @@ title: "OPDI Sensors"
 library(bslib)
 library(bsicons)
 library(knitr)
+library(leaflet)
+# Every figure on this page comes from a cache under data/. Rendering never
+# calls an API or scans a Parquet file. Refresh the caches with
+#   Rscript R/update_sensor_cache.R
+# See README.md.
 source("../R/portal_config.R")
+source("../R/sensor_coverage.R")
+source("../R/flight_hours.R")
 cfg <- portal_cfg
+
+fh <- read_flight_hours()
+sc <- get_sensor_coverage()
+
+# Counts and the deployment table are derived from the same records that drive
+# the map, so the page cannot disagree with the sensor register. Fall back to
+# the values in portal_config.R if no sensor data is reachable at all.
+st <- sensor_stats(sc$sensors)
+sensor_val <- function(field) {
+  if (is.null(st)) cfg$sensors[[field]] else st[[field]]
+}
 ```
 
 ::: {layout-ncol=2}
 ```{r}
 bslib::value_box(
   title = "Sensors Deployed",
-  value = cfg$sensors$total_sensors,
+  value = sensor_val("total_sensors"),
   showcase = bs_icon("broadcast"),
   theme = value_box_theme(bg = "#c35a00")
 )
@@ -24,7 +42,7 @@ bslib::value_box(
 ```{r}
 bslib::value_box(
   title = "Airports Covered",
-  value = cfg$sensors$total_airports,
+  value = sensor_val("total_airports"),
   showcase = bs_icon("geo-alt"),
   theme = value_box_theme(bg = "#c35a00")
 )
@@ -35,7 +53,7 @@ bslib::value_box(
 ```{r}
 bslib::value_box(
   title = "Countries",
-  value = cfg$sensors$countries,
+  value = sensor_val("countries"),
   showcase = bs_icon("globe2"),
   theme = value_box_theme(bg = "#c35a00")
 )
@@ -43,14 +61,14 @@ bslib::value_box(
 
 ```{r}
 bslib::value_box(
-  title = "Msg/day",
-  value = "~5M",
+  title = "Observed flight hours/day",
+  value = if (is.null(fh)) "—" else
+    paste0("~", format(round(fh$flight_hours, -1), big.mark = ",", trim = TRUE)),
   showcase = bs_icon("bar-chart-line"),
   theme = value_box_theme(bg = "#c35a00")
 )
 ```
 :::
-
 
 ## Overview
 
@@ -58,38 +76,161 @@ The **OPDI Sensors** is an initiative to extend the [OpenSky Network](https://op
 
 In collaboration with the [Performance Review Commission](https://ansperformance.eu/about/prc/), each deployed sensor receives ADS-B transponder signals from aircraft in its vicinity, providing position, altitude, speed, and identification data. The collected data feeds into the OpenSky Network and is subsequently used by the OPDI, enabling performance monitoring at airports that were previously unobservable through open data sources.
 
+This page describes the network as it stands: where the receivers are, whether
+they are reporting, and how far each one sees. Two companion pages take the
+argument further — [Impact on Airport Monitoring](sensors-impact.qmd) measures
+what the sensors added, and [Where Next](sensors-expansion.qmd) identifies the
+airports that remain unobserved.
+
 
 ## Current Deployment
 
 ```{r}
-apt <- cfg$sensors$airports
+apt <- if (is.null(st)) cfg$sensors$airports else st$airports
+
+# A site is operational once at least one of its sensors is reporting coverage
+# to the OpenSky Network; installed-but-silent sites are still being commissioned.
+reporting_icao <- if (!is.null(sc$sensors) && length(sc$coverage)) {
+  unique(sc$sensors$airport_icao[
+    as.character(sc$sensors$serial) %in% names(sc$coverage)])
+} else {
+  apt$icao  # no coverage data: assume all operational rather than alarm
+}
+
 apt_display <- data.frame(
   ICAO     = apt$icao,
   Airport  = apt$name,
   Country  = apt$country,
   Sensors  = apt$sensors,
+  Status   = ifelse(apt$icao %in% reporting_icao, "Operational", "Commissioning"),
   stringsAsFactors = FALSE
 )
-knitr::kable(apt_display, align = c("l", "l", "l", "r"))
+knitr::kable(apt_display, align = c("l", "l", "l", "r", "l"))
 ```
 
 
-## Impact on Airport Monitoring
+## Sensor Coverage
 
-::: {.callout-note appearance="simple"}
-Coverage improvement metrics are under development and will be published here in a future update. These will quantify the increase in observable flights and trajectory completeness at each instrumented airport.
-:::
+Each \acr{OPDI} sensor's reception footprint, as measured by the \acr{OSN}: the
+polygon traces the furthest aircraft position received in each compass
+direction. Zoom in to inspect an individual airport; hover a sensor for its
+serial and maximum range.
 
+```{r coverage-map}
+#| echo: false
+#| out-width: "100%"
+#| fig-height: 5
 
-## Future Sensor Placements
+if (is.null(sc$sensors)) {
+  cat("::: {.callout-warning appearance='simple'}\n",
+      "Sensor metadata is currently unavailable.\n:::\n", sep = "")
+} else {
+  sensors <- sc$sensors
+  cov <- sc$coverage %||% list()
 
-We are actively identifying airports where additional sensor deployment would most benefit open performance monitoring. Priority criteria include:
+  pal <- colorFactor(
+    c("#003399", "#00857c", "#c35a00", "#6a3d9a", "#37536b"),
+    domain = sort(unique(sensors$country_name))
+  )
 
-- Airports with limited or no existing ADS-B ground station coverage in the OpenSky Network
-- Airports in regions underrepresented in open aviation data
-- Airports of strategic importance for performance benchmarking
+  # Great-circle distance from the sensor to each coverage vertex, so the
+  # tooltip can report a real maximum range rather than a bounding box.
+  max_range_km <- function(serial, lat0, lon0) {
+    p <- cov[[as.character(serial)]]
+    if (is.null(p) || !nrow(p)) return(NA_real_)
+    r <- 6371
+    dlat <- (p$latitude - lat0) * pi / 180
+    dlon <- (p$longitude - lon0) * pi / 180
+    a <- sin(dlat / 2)^2 +
+      cos(lat0 * pi / 180) * cos(p$latitude * pi / 180) * sin(dlon / 2)^2
+    max(2 * r * asin(pmin(1, sqrt(a))))
+  }
 
-::: {.callout-note appearance="simple"}
-A detailed list of candidate airports is under development and will be published here.
-:::
+  m <- leaflet(options = leafletOptions(worldCopyJump = TRUE)) |>
+    addProviderTiles(providers$CartoDB.Positron)
 
+  # Coverage first, so sensor markers sit on top of their own polygons.
+  for (i in seq_len(nrow(sensors))) {
+    s <- sensors[i, ]
+    p <- cov[[as.character(s$serial)]]
+    if (is.null(p) || !nrow(p)) next
+    p <- p[order(p$bearing), ]
+    m <- addPolygons(
+      m, lng = c(p$longitude, p$longitude[1]),
+      lat = c(p$latitude, p$latitude[1]),
+      color = pal(s$country_name), weight = 1, opacity = 0.7,
+      fillColor = pal(s$country_name), fillOpacity = 0.08,
+      label = sprintf("%s - serial %s", s$airport_name,
+                      format(s$serial, scientific = FALSE))
+    )
+  }
+
+  for (i in seq_len(nrow(sensors))) {
+    s <- sensors[i, ]
+    rng <- max_range_km(s$serial, s$latitude, s$longitude)
+    m <- addCircleMarkers(
+      m, lng = s$longitude, lat = s$latitude,
+      radius = 4, color = "#ffffff", weight = 1,
+      fillColor = pal(s$country_name), fillOpacity = 1,
+      label = sprintf(
+        "%s (%s) - serial %s - %s",
+        s$airport_name, s$airport_icao,
+        format(s$serial, scientific = FALSE),
+        if (is.na(rng)) "no coverage reported"
+        else sprintf("max range %.0f km", rng)
+      )
+    )
+  }
+
+  # Open on Europe, framed so every European sensor and the full extent of its
+  # coverage polygon is visible with a margin. São Paulo stays on the map -- pan
+  # or zoom out to reach it -- rather than stretching the default view across
+  # the Atlantic and shrinking the European footprints to specks.
+  # Frame on the European cluster by bounding box rather than by country name,
+  # so a future sensor outside it does not silently change the default view.
+  eu <- sensors[sensors$longitude > -15 & sensors$longitude < 60 &
+                sensors$latitude  >  30 & sensors$latitude  < 72, ]
+  if (!nrow(eu)) eu <- sensors
+  eu_cov <- do.call(rbind, cov[intersect(as.character(eu$serial), names(cov))])
+  lons <- c(eu$longitude, eu_cov$longitude)
+  lats <- c(eu$latitude,  eu_cov$latitude)
+  # A lone sensor with no coverage would give a zero-width box; keep a floor.
+  pad_lon <- max(0.06 * diff(range(lons)), 0.5)
+  pad_lat <- max(0.06 * diff(range(lats)), 0.5)
+
+  m |>
+    addLegend("bottomleft", pal = pal, values = sort(unique(sensors$country_name)),
+              title = "Country", opacity = 0.9) |>
+    fitBounds(min(lons) - pad_lon, min(lats) - pad_lat,
+              max(lons) + pad_lon, max(lats) + pad_lat)
+}
+```
+
+```{r coverage-note}
+#| echo: false
+#| output: asis
+
+if (!is.null(sc$sensors)) {
+  n_cov <- length(sc$coverage %||% list())
+  n_all <- nrow(sc$sensors)
+  bits <- character()
+  if (!is.na(sc$fetched_at)) {
+    bits <- c(bits, sprintf("Coverage measured %s", sc$fetched_at))
+  }
+  if (n_cov < n_all) {
+    bits <- c(bits, sprintf(
+      "%d of %d sensors reported no coverage in the sampled period",
+      n_all - n_cov, n_all))
+  }
+  if (length(bits)) {
+    cat("::: {.callout-note appearance='simple'}\n",
+        paste(bits, collapse = ". "), ".\n:::\n", sep = "")
+  }
+}
+```
+
+---
+
+The map shows what each receiver reaches. Whether that reach *added* anything —
+aircraft nobody else was seeing — is a separate question, answered under
+[Impact on Airport Monitoring](sensors-impact.qmd).

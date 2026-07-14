@@ -9,13 +9,40 @@ filters:
 library(bslib)
 library(bsicons)
 source("R/portal_config.R")
+source("R/sensor_coverage.R")
 cfg <- portal_cfg
 labs <- portal_labels
+
+# Sensor counts come from the PocketBase register (cached), so the homepage
+# and the Sensors page always agree. Falls back to portal_config.R.
+sensor_st <- sensor_stats()
+sensor_val <- function(field) {
+  if (is.null(sensor_st)) cfg$sensors[[field]] else sensor_st[[field]]
+}
 ```
 
-The **\acr{OPDI}** is an initiative of the \acr{PRC} to advance transparency, reproducibility, and democratisation of aviation performance monitoring. In collaboration with the [\acr{OSN}](https://opensky-network.org/), the \acr{OPDI} pursues three complementary objectives: publishing open flight performance data with transparent and reproducible methodologies, engaging the research community to develop and validate novel analytical approaches through data challenges, and expanding ground-based \acr{ADS-B} surveillance coverage by supporting crowd-sourced receiver infrastructure at underserved airports.
+Much of the data behind aviation performance analysis is difficult to obtain,
+which makes results hard to reproduce and to build on. The **\acr{OPDI}**, an
+initiative of the \acr{PRC} in collaboration with the
+[\acr{OSN}](https://opensky-network.org/), takes a different route: it builds a
+picture of European air traffic from crowd-sourced \acr{ADS-B} signals, and
+publishes the data, the methods and the tools **openly and free to use**.
 
----
+It works on three fronts:
+
+- **Open data.** A public dataset of flights, events and measurements, with
+  every step of the derivation documented.
+- **Open methods.** The PRC Data Challenges invite researchers worldwide to
+  develop and validate new analytical approaches in the open.
+- **Open coverage.** Aviation can only be measured if it is observed, so we
+  place \acr{ADS-B} receivers where crowd-sourced coverage is thin.
+
+The initiative is the work of a **community** of individuals — researchers,
+engineers and analysts — from institutions, universities, air navigation service providers
+and the wider open-data world. Everything they build — papers, datasets, source
+code — is **published openly** as **resources** anyone can use.
+
+## The initiative at a glance
 
 ::: {.pillar-card .pillar-data}
 
@@ -91,7 +118,7 @@ Extending the [OpenSky Network (OSN)](https://opensky-network.org/) crowd-source
 ```{r}
 bslib::value_box(
   title = "Sensors",
-  value = cfg$sensors$total_sensors,
+  value = sensor_val("total_sensors"),
   showcase = bs_icon("broadcast"),
   theme = value_box_theme(bg = "#c35a00")
 )
@@ -100,7 +127,7 @@ bslib::value_box(
 ```{r}
 bslib::value_box(
   title = "Airports",
-  value = cfg$sensors$total_airports,
+  value = sensor_val("total_airports"),
   showcase = bs_icon("geo-alt"),
   theme = value_box_theme(bg = "#c35a00")
 )
