@@ -1,7 +1,15 @@
 project:
   type: website
-bibliography: bibliography.bib
-csl: media/ieee-with-url.csl
+  render:
+    - index.qmd
+    - content/
+    - "!archive/"
+  resources:
+    - assets/
+    - "!assets/bib/"
+    - "!assets/csl/"
+bibliography: assets/bib/bibliography.bib
+csl: assets/csl/ieee-with-url.csl
 
 execute:
   echo: false
@@ -21,7 +29,7 @@ acronyms:
   non_existing: "key"
   style: "long-short"
   fromfile:
-    - media/acronyms.yml
+    - assets/acronyms.yml
 
 
 website:
@@ -36,25 +44,27 @@ website:
         text: Home
       - section: "OPDI Data"
         contents:
-          - data.qmd
-          - concepts.qmd
-          - methodology.qmd
-          - roadmap.qmd
-          - href: data-preview.qmd
+          - content/data.qmd
+          - content/concepts.qmd
+          - content/methodology.qmd
+          - content/roadmap.qmd
+          - href: content/data-preview.qmd
             text: Data Preview
-      - href: data-challenges.qmd
+      - href: content/data-challenges.qmd
         text: PRC Data Challenges
       - section: "OPDI Sensors"
         contents:
-          - href: sensors.qmd
+          - href: content/sensors.qmd
             text: Overview
-          - href: sensors-contribute.qmd
+          - href: content/sensors-contribute.qmd
             text: Extend the Network
-          - href: sensors-data.qmd
+          - href: content/sensors-data.qmd
             text: Access Sensor Data
-      - href: partners.qmd
-        text: Partners
-      - about.qmd
+      - href: content/resources.qmd
+        text: Resources
+      - href: content/community.qmd
+        text: Community
+      - content/about.qmd
 
   navbar:
   # Note: You need to install: ```quarto install extension mcanouil/quarto-iconify```
@@ -62,7 +72,7 @@ website:
     background: dark
     search: true
     title: 'Open Performance Data Initiative'
-    logo: "media/EUROCONTROL-logo-standard-rgb.png"
+    logo: "assets/logos/eurocontrol-standard-rgb.png"
     right:
       - text: "Home"
         href: https://ansperformance.eu/
@@ -203,4 +213,4 @@ format:
           })();
         </script>
         <!-- End Matomo Code -->
-    css: styles.css
+    css: assets/css/styles.css
