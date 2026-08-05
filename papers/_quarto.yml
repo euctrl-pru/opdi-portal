@@ -4,7 +4,18 @@ project:
   # deploys. Papers are a separate Quarto *project* -- so a draft that fails to
   # render can never break the site build -- but they are not a separate
   # *site*, and content/resources.qmd links straight into them.
-  output-dir: ../_site/papers
+  # Build inside the project, then publish. Pointing output-dir straight at
+  # ../_site/papers works but makes Quarto warn that it "did not expect the
+  # path configuration", and it refuses to clean directories outside the
+  # project -- so stale files accumulate. Building locally and copying in the
+  # post-render step keeps Quarto on its supported path.
+  output-dir: _site
+
+  # Publishes the built site into the portal's _site/papers, and keeps a copy
+  # of each PDF beside its source so the deliverable is findable in the repo
+  # and cannot drift from the .qmd it came from.
+  post-render:
+    - bash _save-pdf.sh
 
 website:
   title: "OPDI Papers"
