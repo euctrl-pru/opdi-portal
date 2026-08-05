@@ -1,0 +1,627 @@
+---
+title: "Detecting departure and destination aerodromes from ADS-B"
+subtitle: "Version 2 — out-of-area flights, aircraft selection, and the limits of the endpoint"
+author: "EUROCONTROL Performance Review Unit"
+date: last-modified
+---
+
+```{r setup}
+#| include: false
+library(knitr)
+library(ggplot2)
+
+# Read-only. Every figure and table comes from a committed CSV cache under
+# data/, refreshed from the opdi repository with
+#   python benchmarks/export_results.py
+cache <- function(f) {
+  p <- file.path("data", f)
+  if (!file.exists(p)) return(NULL)
+  read.csv(p, stringsAsFactors = FALSE)
+}
+
+methods <- cache("method_comparison.csv")
+sweep   <- cache("abstention_sweep.csv")
+attrib  <- cache("cascade_attribution.csv")
+apt     <- cache("per_airport.csv")
+errs    <- cache("error_pairs.csv")
+trackq  <- cache("track_quality.csv")
+
+# pandas writes booleans as "True"/"False", which read.csv keeps as character
+# and R's == FALSE silently never matches. Normalise once, at the edge.
+as_bool <- function(x) {
+  if (is.null(x)) return(logical(0))
+  if (is.logical(x)) return(x)
+  tolower(as.character(x)) %in% c("true", "1", "t")
+}
+for (nm in c("cleaned")) {
+  if (!is.null(methods) && nm %in% names(methods)) methods[[nm]] <- as_bool(methods[[nm]])
+  if (!is.null(sweep)   && nm %in% names(sweep))   sweep[[nm]]   <- as_bool(sweep[[nm]])
+}
+if (!is.null(apt) && "in_scope" %in% names(apt)) apt$in_scope <- as_bool(apt$in_scope)
+
+MONTHS <- sort(unique(methods$month))
+pct <- function(x) ifelse(is.na(x), "—", sprintf("%.2f%%", 100 * x))
+pp  <- function(x) ifelse(is.na(x), "—", sprintf("%+.2f pp", 100 * x))
+
+# One accessor, so prose and tables cannot drift apart.
+m <- function(meth, field, month, cleaned = FALSE, set = "large_medium") {
+  d <- methods[methods$method == meth & methods$month == month, ]
+  if ("cleaned" %in% names(d)) d <- d[d$cleaned == cleaned, ]
+  if ("airport_set" %in% names(d)) d <- d[d$airport_set == set, ]
+  if (nrow(d) == 0) return(NA_real_)
+  d[[field]][1]
+}
+n_flights <- sum(sapply(MONTHS, function(mo) methods$n_ground_truth[methods$month == mo][1]))
+```
+
+## Summary {.unnumbered}
+
+This is version 2. [Version 1](../adep-ades-detection/index.html) compared seven
+methods for assigning a departure (ADEP) and destination (ADES) aerodrome to
+ADS-B trajectories and concluded that coverage, not accuracy, was the binding
+problem. That conclusion survives. Two of its explanations did not.
+
+**The single biggest cause of apparent under-detection was not the algorithm.**
+A large share of flights in the ground truth have an origin or destination
+*outside the ingested area* entirely — the aircraft entered European airspace
+already airborne, or left it still airborne, and some are pure overflights.
+Version 1 scored every one of those as a detection failure. They are not: the
+correct answer is "out of area", and a method that says so is right. Reporting
+it as a distinct answer rather than a silence moves ADEP coverage of the
+production algorithm from roughly 55% to
+`r pct(m("M0_current","adep_coverage",MONTHS[1]))`, without changing a line of
+detection logic.
+
+**The second cause was our own aircraft filter.** Version 1 kept only airframes
+*confirmed* to be aeroplanes. Since the aircraft database records a class for
+only 60.9% of airframes, that allowlist discarded **47.74%** of the fleet to
+exclude rotorcraft, which are 8.64% of it. Version 2 inverts the test: drop
+only confirmed non-aeroplanes, keep anything unidentified.
+
+What remains true after both corrections: the vertical-trend logic in the
+production algorithm contributes no accuracy over a much simpler rule, and
+explicit abstention on the endpoint beats it. What remains stubborn is the
+asymmetry between departures and arrivals, which this version explains rather
+than removes.
+
+::: {.callout-important}
+## Corrections to version 1
+
+* **Ground truth is Network Manager data, not APDF.** Version 1 called it
+  "APDF ground truth" throughout. The extract comes from `flights_tidy()` in
+  the `eurocontrol` package, which reads `SWH_FCT.V_FAC_FLIGHT_MS` — the NM
+  flight table. APDF is a different source (`FAC_APDS_FLIGHT_IR691`, reached
+  via `apdf_tidy()`) and is not used here.
+* **Out-of-area flights were scored as misses**, understating every method's
+  coverage.
+* **The aircraft filter was an allowlist**, discarding nearly half the fleet.
+* Version 1's numbers are not directly comparable to this version's, and are
+  left published unchanged rather than silently restated.
+:::
+
+## Why this is hard
+
+An ADS-B trajectory does not carry its origin or destination. Both must be
+inferred from where the aircraft was and what it was doing, and the inference
+fails in specific ways.
+
+**Much of the traffic begins or ends outside the observed area.** OPDI ingests
+state vectors inside a European bounding box. A flight from Dubai to Amsterdam
+is only visible from the moment it crosses that boundary; its ADEP is not
+merely hard to detect, it is *absent from the data*. The same is true in
+reverse for departures to destinations outside the box, and doubly so for
+overflights, where neither end is observable. Any honest accounting has to
+treat "out of area" as an answer.
+
+**Reception near the ground is patchy.** A receiver 50 NM from a regional
+aerodrome sees an aircraft in the cruise perfectly and never sees it below
+2,000 ft. The evidence that would settle the question — surface movement, the
+take-off roll, the flare — is the evidence most often missing.
+
+**Departure and destination are not symmetric.** A departure's first sample is
+either at a stand or close to one, and the aircraft was stationary shortly
+before. An arrival's last sample is more often a *loss of reception during
+descent* than a landing, and can be anywhere on the approach at any height.
+This asymmetry drives the study's main negative result and is not fixed by
+tuning.
+
+**Nearby aerodromes compete.** Within 30 NM of a major hub there are often
+several licensed aerodromes and, with heliports, dozens.
+
+## Data
+
+### Samples
+
+Two three-day samples a year apart, so a threshold fitted on one can be
+validated on the other.
+
+```{r sample-table}
+if (!is.null(methods)) {
+  s <- do.call(rbind, lapply(MONTHS, function(mo) data.frame(
+    Sample = mo,
+    Days = gsub(",", ", ", methods$days[methods$month == mo][1]),
+    `Ground-truth flights` = format(methods$n_ground_truth[methods$month == mo][1],
+                                    big.mark = ","),
+    check.names = FALSE)))
+  kable(s, align = "llr")
+}
+```
+
+### Trajectories
+
+State vectors come from the OpenSky Network historical archive, filtered to the
+OPDI European bounding box `(-25.87, 26.75, 49.66, 70.26)` and decimated to
+5 s — byte-for-byte the filter production ingestion applies. Tracks are built
+with OPDI's own `_add_track_id`, imported and called rather than
+reimplemented; @sec-trackid measures how well it separates real flights.
+
+### Aircraft selection {#sec-aircraft}
+
+Only aeroplanes are of interest, but *only confirmed non-aeroplanes are
+removed*. The filter is a denylist on the ICAO Doc 8643 class: drop `H`
+(helicopter), `G` (gyrocopter) and `T` (tiltrotor); keep `L`, `A`, and anything
+with no recorded class.
+
+This is the reverse of version 1, and the reason is arithmetic:
+
+```{r aircraft-filter}
+kable(data.frame(
+  Rule = c("v1 allowlist — keep confirmed L/A",
+           "v2 denylist — drop confirmed H/G/T"),
+  `Airframes removed` = c("71,855", "13,013"),
+  `Share of database` = c("47.74%", "8.64%"),
+  check.names = FALSE), align = "lrr",
+  caption = "Effect of each rule on the 150,528-airframe OpenSky aircraft database, where icao_aircraft_class is populated on 60.9% of records.")
+```
+
+An airframe with no recorded class is overwhelmingly likely to be an aeroplane.
+Excluding it to guard against the 8.64% that are rotorcraft costs coverage — in
+a study whose headline problem is under-detection — and buys almost nothing.
+
+**Surface vehicles cannot currently be excluded by declaration.** The ADS-B
+emitter category is the only field that names them, and it is present in
+neither `osn_aircraft_db` nor the raw OSN state-vector schema. Retaining it
+would require a change to the reference pipeline. Until then the only available
+control is behavioural — requiring a sustained airborne period — which is not
+applied here and is listed under [limitations](#limitations).
+
+### Aerodromes {#sec-aerodromes}
+
+Aerodromes come from **OurAirports**. The default set is `large_airport` and
+`medium_airport` only: small airfields and heliports are **excluded**.
+@sec-aptset measures what including them does, and the answer is that it makes
+things worse — which is what "nearby aerodromes compete" means in practice.
+
+**Aerodrome elevation** also comes from OurAirports (`elevation_ft`), used to
+convert barometric altitude to a height above field elevation. It is
+crowd-sourced and **missing for 3.09% of large and medium aerodromes**. Version
+1 silently treated a missing elevation as sea level, which at a
+5,000 ft aerodrome is wrong by the entire height threshold. Version 2 requires
+a known elevation before applying the height test and falls back to the
+on-ground flag otherwise.
+
+### Ground truth
+
+The reference is the **EUROCONTROL Network Manager** flight table, extracted
+with `flights_tidy()` from the `eurocontrol` R package
+(`SWH_FCT.V_FAC_FLIGHT_MS`). It provides ADEP, ADES and off-block time per
+flight. `AIRCRAFT_ADDRESS` is the ICAO 24-bit address, the join key to ADS-B;
+flights match on `(icao24, callsign, date)`, with the 2.42% of colliding keys
+resolved by proximity to actual off-block time.
+
+::: {.callout-note}
+This is **not** APDF. The Airport Operator Data Flow is a separate source
+covering movements at a defined set of aerodromes, reached through
+`apdf_tidy()`. Version 1 misnamed the source; no APDF data was used in either
+version.
+:::
+
+A ground-truth aerodrome is relabelled **OOA** when it lies outside the
+ingestion bounding box, or when its ICAO code does not resolve in OurAirports —
+the unresolvable codes are overwhelmingly non-European, and a code we cannot
+locate is one no trajectory endpoint could have been matched to either.
+
+## How methods are scored
+
+Ground truth is the denominator throughout. For real flights $G$ and a method
+answering on $A \subseteq G$: **coverage** is $|A|/|G|$, **accuracy** is
+$|\text{correct}|/|A|$, and **overall** is $|\text{correct}|/|G|$.
+
+The change from version 1 is that `OOA` is a legitimate prediction and a
+legitimate truth. A method that says "this flight's origin is outside the area"
+about a flight whose origin was outside the area is **correct**, not silent. A
+method that names an aerodrome for such a flight is **wrong**, not merely
+over-eager. Both were mis-scored before.
+
+## The candidate methods
+
+| | Method | Signal |
+|---|---|---|
+| **M0** | *Current production* | Sign of a 5-sample rolling-mean altitude difference near each candidate aerodrome; ambiguous flights dropped |
+| **M1** | *traffic library* | Nearest aerodrome to the track's first and last sample. No altitude, no trend, no ground state |
+| **M2** | *On-ground* | Aerodrome at the surface samples bracketing the airborne phase |
+| **M3** | *Vertical rate* | Sign of measured `vert_rate` near each candidate aerodrome |
+| **M5** | *Lowest and nearest* | Aerodrome where the track is lowest and closest, split at the midpoint |
+| **M6** | *Cascade* | Most precise available answer, falling through when a rung is silent |
+| **M7** | *Endpoint with abstention* | M1's naming rule; silent unless the endpoint is close to an aerodrome and low over it; **OOA** when the endpoint is at the area boundary |
+| **M8** | *Extrapolated endpoint* | Projects the trajectory to field elevation before matching, to recover approaches that lose reception early |
+
+M7 and M8 apply the out-of-area rule: an endpoint within 30 NM of the bounding
+box edge is labelled `OOA`, **with no height condition**, since a flight leaving
+the area is at cruise level by definition and any height cut-off would reject
+exactly the cases the rule exists to catch.
+
+## Results
+
+```{r results-table}
+if (!is.null(methods)) {
+  base <- methods
+  if ("cleaned" %in% names(base)) base <- base[base$cleaned == FALSE, ]
+  if ("airport_set" %in% names(base)) base <- base[base$airport_set == "large_medium", ]
+  tab <- do.call(rbind, lapply(MONTHS, function(mo) {
+    d <- base[base$month == mo, ]
+    d <- d[order(-d$adep_overall), ]
+    data.frame(Sample = mo, Method = d$method,
+      `ADEP cov` = pct(d$adep_coverage), `ADEP acc` = pct(d$adep_accuracy),
+      `ADEP overall` = pct(d$adep_overall),
+      `ADES cov` = pct(d$ades_coverage), `ADES acc` = pct(d$ades_accuracy),
+      `ADES overall` = pct(d$ades_overall), check.names = FALSE)
+  }))
+  kable(tab, align = "llrrrrrr",
+        caption = "Coverage, accuracy and overall correctness by method and sample, with out-of-area treated as a valid answer and the denylist aircraft filter applied.")
+}
+```
+
+Compared with version 1 every coverage figure rises substantially, and the
+ordering of the methods is largely unchanged. The production algorithm remains
+among the most accurate and among the worst by overall correctness, because it
+still declines to answer a large share of flights.
+
+## The cascade still collapses {#sec-cascade}
+
+Version 1's central negative result was that a precision-ordered cascade over
+the trend-based methods collapses onto its fallback rung: every trend method,
+scored on *its own* flights, is no more accurate than simply naming the nearest
+aerodrome to the endpoint. Re-running that attribution on the corrected data:
+
+```{r attribution-table}
+if (!is.null(attrib)) {
+  a <- attrib[attrib$side == "adep", ]
+  a <- a[order(a$month, a$ladder_pos), ]
+  kable(data.frame(
+    Sample = a$month, Rung = a$rung,
+    `Flights answered` = format(a$n_answered, big.mark = ","),
+    `Its accuracy` = pct(a$accuracy),
+    `M1 on the same flights` = pct(a$fallback_accuracy),
+    Lift = pp(a$lift), check.names = FALSE),
+    align = "llrrrr",
+    caption = "ADEP attribution for the cascade, with M1 as the control. Negative lift means the rung overwrote a better answer.")
+}
+```
+
+The conclusion is unchanged and now rests on corrected data: the trend logic
+buys abstention, not precision.
+
+## Abstention, per side {#sec-abstain}
+
+M7 emits an aerodrome only when the endpoint is within $d$ NM of it and no more
+than $h$ ft above field elevation. Version 1 applied one $(d, h)$ pair to both
+sides. Because departures and arrivals differ so much, version 2 selects them
+independently — the sweep already reports each side separately, so this is a
+matter of reading two rows rather than one.
+
+```{r frontier-plot}
+#| fig-cap: "Coverage/accuracy frontier for endpoint abstention, by sample and side. Each line is one distance threshold; points along it are height thresholds relaxing left to right. Dotted lines mark the production algorithm M0; the region up and to the right of their intersection beats it on both axes at once."
+#| fig-width: 9
+#| fig-height: 6.4
+if (!is.null(sweep)) {
+  s <- sweep[sweep$max_endpoint_dist_nm < 1e8, ]
+  long <- do.call(rbind, lapply(c("adep", "ades"), function(sd) data.frame(
+    month = s$month, dist = s$max_endpoint_dist_nm,
+    coverage = s[[paste0(sd, "_coverage")]],
+    accuracy = s[[paste0(sd, "_accuracy")]], side = toupper(sd))))
+  long$dist <- factor(long$dist, levels = sort(unique(long$dist)),
+                      labels = paste0(sort(unique(long$dist)), " NM"))
+  ref <- do.call(rbind, lapply(MONTHS, function(mo) rbind(
+    data.frame(month = mo, side = "ADEP",
+               coverage = m("M0_current","adep_coverage",mo),
+               accuracy = m("M0_current","adep_accuracy",mo)),
+    data.frame(month = mo, side = "ADES",
+               coverage = m("M0_current","ades_coverage",mo),
+               accuracy = m("M0_current","ades_accuracy",mo)))))
+  ggplot(long, aes(coverage, accuracy, colour = dist, group = dist)) +
+    geom_hline(data = ref, aes(yintercept = accuracy), linetype = "dotted", colour = "grey40") +
+    geom_vline(data = ref, aes(xintercept = coverage), linetype = "dotted", colour = "grey40") +
+    geom_line(linewidth = 0.5) + geom_point(size = 1.3) +
+    geom_point(data = ref, aes(coverage, accuracy), inherit.aes = FALSE,
+               size = 2.8, shape = 18) +
+    facet_grid(side ~ month) +
+    scale_x_continuous("Coverage", labels = scales::percent) +
+    scale_y_continuous("Accuracy", labels = scales::percent) +
+    scale_colour_viridis_d("Endpoint within", end = 0.9) +
+    theme_minimal(base_size = 11) +
+    theme(panel.grid.minor = element_blank(), strip.text = element_text(face = "bold"))
+}
+```
+
+```{r per-side-optimum}
+if (!is.null(sweep)) {
+  best <- do.call(rbind, lapply(MONTHS, function(mo) do.call(rbind, lapply(
+    c("adep","ades"), function(sd) {
+      d  <- sweep[sweep$month == mo & sweep$max_endpoint_dist_nm < 1e8, ]
+      c0 <- m("M0_current", paste0(sd,"_coverage"), mo)
+      a0 <- m("M0_current", paste0(sd,"_accuracy"), mo)
+      w  <- d[d[[paste0(sd,"_coverage")]] > c0 & d[[paste0(sd,"_accuracy")]] > a0, ]
+      if (nrow(w) == 0) return(data.frame(Sample = mo, Side = toupper(sd),
+        Cells = sprintf("0/%d", nrow(d)), `Best point` = "—",
+        Coverage = "—", `M0 cov` = pct(c0), Accuracy = "—", `M0 acc` = pct(a0),
+        check.names = FALSE))
+      b <- w[which.max(w[[paste0(sd,"_coverage")]] * w[[paste0(sd,"_accuracy")]]), ]
+      data.frame(Sample = mo, Side = toupper(sd),
+        Cells = sprintf("%d/%d", nrow(w), nrow(d)),
+        `Best point` = sprintf("%g NM, %s ft", b$max_endpoint_dist_nm,
+                               format(b$max_endpoint_agl_ft, big.mark=",")),
+        Coverage = pct(b[[paste0(sd,"_coverage")]]), `M0 cov` = pct(c0),
+        Accuracy = pct(b[[paste0(sd,"_accuracy")]]), `M0 acc` = pct(a0),
+        check.names = FALSE) }))))
+  kable(best, align = "llrlrrrr",
+        caption = "Best operating point per side and sample, chosen independently. Cells counts the grid points that beat production on both axes.")
+}
+```
+
+## Extrapolating the endpoint does not work {#sec-extrapolate}
+
+If an arrival's last sample is typically mid-approach rather than at
+touchdown, the obvious remedy is to continue the trajectory: take the observed
+descent rate and track over the final minutes, project to field elevation, and
+match the aerodrome nearest *that* point. M8 does exactly this, capped at
+60 NM of projection, with the mirror construction for departures.
+
+It fails, and it fails asymmetrically.
+
+```{r m8-table}
+if (!is.null(methods)) {
+  cmp <- do.call(rbind, lapply(MONTHS, function(mo) do.call(rbind, lapply(
+    c("M7_abstain","M8_extrapolate"), function(mm) data.frame(
+      Sample = mo, Method = mm,
+      `ADEP cov` = pct(m(mm,"adep_coverage",mo)), `ADEP acc` = pct(m(mm,"adep_accuracy",mo)),
+      `ADES cov` = pct(m(mm,"ades_coverage",mo)), `ADES acc` = pct(m(mm,"ades_accuracy",mo)),
+      check.names = FALSE)))))
+  kable(cmp, align = "llrrrr",
+        caption = "Endpoint abstention against trajectory extrapolation.")
+}
+```
+
+Extrapolation buys departure coverage at some cost in accuracy, and destroys
+arrival accuracy outright. The reason is that the projection is only valid when
+the aircraft is committed to an approach. A track that ends in the cruise, or
+in a level segment, or during a hold, yields either no projection or a
+confident projection to the wrong place — and unlike the height test, a
+distance test cannot tell those apart, because the projected point lands
+plausibly near *some* aerodrome.
+
+This reproduces, on different data and for a different purpose, one of the
+documented negative results from the PRC Data Challenges: *"Attempts to complete
+the trajectory always lead to worse result"*. Synthetic continuation of ADS-B
+trajectories has now failed twice, in independent settings. It should be
+treated as a closed question rather than re-attempted.
+
+## Ablations
+
+### Trajectory cleaning {#sec-cleaning}
+
+Version 1 did not apply OPDI's cleaning stage and flagged the omission as
+genuinely uncertain: the stale-broadcast filter nulls repeated positions, which
+is exactly what a stationary aircraft at a gate transmits, so cleaning might
+remove the very samples the endpoint rule depends on.
+
+```{r cleaning-table}
+if (!is.null(methods) && "cleaned" %in% names(methods) && any(methods$cleaned)) {
+  ab <- do.call(rbind, lapply(MONTHS, function(mo) do.call(rbind, lapply(
+    c(FALSE, TRUE), function(cl) data.frame(
+      Sample = mo, Cleaning = ifelse(cl, "applied", "none"),
+      `ADEP cov` = pct(m("M7_abstain","adep_coverage",mo,cleaned=cl)),
+      `ADEP acc` = pct(m("M7_abstain","adep_accuracy",mo,cleaned=cl)),
+      `ADES cov` = pct(m("M7_abstain","ades_coverage",mo,cleaned=cl)),
+      `ADES acc` = pct(m("M7_abstain","ades_accuracy",mo,cleaned=cl)),
+      check.names = FALSE)))))
+  kable(ab, align = "llrrrr", caption = "M7 with and without the step-02a cleaning stages.")
+} else {
+  cat("_Cleaning ablation still running; this table is populated by the next refresh._")
+}
+```
+
+### Aerodrome set {#sec-aptset}
+
+```{r aptset-table}
+if (!is.null(methods) && "airport_set" %in% names(methods) &&
+    length(unique(methods$airport_set)) > 1) {
+  sets <- unique(methods$airport_set)
+  st <- do.call(rbind, lapply(sets, function(sx) data.frame(
+    `Aerodrome set` = sx,
+    `ADEP cov` = pct(m("M7_abstain","adep_coverage",MONTHS[length(MONTHS)],set=sx)),
+    `ADEP acc` = pct(m("M7_abstain","adep_accuracy",MONTHS[length(MONTHS)],set=sx)),
+    `ADES cov` = pct(m("M7_abstain","ades_coverage",MONTHS[length(MONTHS)],set=sx)),
+    `ADES acc` = pct(m("M7_abstain","ades_accuracy",MONTHS[length(MONTHS)],set=sx)),
+    check.names = FALSE)))
+  kable(st, align = "lrrrr",
+        caption = "M7 against different OurAirports type sets. Adding candidates can only raise coverage; the question is what it does to accuracy.")
+} else {
+  cat("_Aerodrome-set sweep still running; this table is populated by the next refresh._")
+}
+```
+
+## Where the residual errors are {#sec-errors}
+
+M7's accuracy is close to 100%, which is only reassuring if the residual is
+scattered. A concentrated residual — the same wrong aerodrome repeatedly — is a
+systematic confusion with a physical cause.
+
+```{r error-pairs}
+if (!is.null(errs)) {
+  e <- errs[errs$side == "adep", ]
+  e <- head(e[order(-e$n), ], 15)
+  kable(data.frame(
+    Truth = e$truth, Predicted = e$predicted,
+    Flights = format(e$n, big.mark = ","),
+    `Apart` = ifelse(is.na(e$apart_nm), "—", sprintf("%.1f NM", e$apart_nm)),
+    Sample = e$month, check.names = FALSE),
+    align = "llrrl",
+    caption = "Most frequent ADEP confusions. A separation of a few miles is a neighbouring-field confusion; a large one is a different failure.")
+} else {
+  cat("_Error analysis still running._")
+}
+```
+
+The pattern to look for is pairs a few miles apart: co-located aerodromes that
+the nearest-endpoint rule cannot separate because the endpoint's positional
+uncertainty exceeds the distance between them. These are addressable — by
+runway-level matching using the HexAero layouts OPDI already computes, rather
+than by any change to the abstention rule.
+
+## Per-aerodrome movement counts
+
+Flight-level accuracy hides errors that cancel: a departure misattributed from
+A to B leaves both counts wrong and the total right. Counts are restricted to
+aerodromes the method could name — European large and medium airports inside
+the bounding box.
+
+```{r per-airport-summary}
+if (!is.null(apt)) {
+  ia <- apt[apt$in_scope, ]
+  ps <- do.call(rbind, lapply(MONTHS, function(mo) do.call(rbind, lapply(
+    c("departures","arrivals"), function(rl) {
+      d <- ia[ia$month == mo & ia$role == rl, ]
+      if (nrow(d) == 0) return(NULL)
+      b <- d[d$n_truth >= 50, ]
+      data.frame(Sample = mo, Movements = rl, Aerodromes = nrow(d),
+        `Count ratio` = sprintf("%.3f", sum(d$n_assigned)/sum(d$n_truth)),
+        `Median recall` = pct(median(d$recall)),
+        `Median recall, 50+` = pct(median(b$recall)), check.names = FALSE) }))))
+  kable(ps, align = "llrrrr",
+        caption = "M7 movement counts against Network Manager, in-scope aerodromes only. A ratio below 1 is an undercount.")
+}
+```
+
+## Track identification {#sec-trackid}
+
+Everything above assumes a *track* corresponds to a flight. `_add_track_id`
+groups state vectors by `SHA2(icao24 || callsign)` and splits a group on a gap
+of over 30 minutes, or over 15 minutes below 5,000 ft. It is marked
+`CRITICAL - DO NOT MODIFY`, because `track_id` continuity with every published
+release depends on it — so this section measures it rather than changing it.
+
+```{r trackq-table}
+if (!is.null(trackq)) {
+  keys <- c("n_tracks","fragmented_flights","matched_flights","merged_tracks",
+            "matched_tracks","callsign_blank","callsign_padded","single_sample",
+            "over_18h","starts_at_window_edge","ends_at_window_edge")
+  lab <- c("Tracks built","Flights split across >1 track","Flights matched",
+           "Tracks covering >1 flight","Tracks matched","Blank callsign",
+           "Untrimmed callsign","Single-sample tracks","Tracks over 18 h",
+           "Tracks starting at the window edge","Tracks ending at the window edge")
+  rows <- do.call(rbind, lapply(seq_along(keys), function(i) {
+    if (!keys[i] %in% names(trackq)) return(NULL)
+    r <- data.frame(Measure = lab[i])
+    for (mo in MONTHS) r[[mo]] <- format(trackq[[keys[i]]][trackq$month == mo][1],
+                                         big.mark = ",")
+    r }))
+  kable(rows, align = paste0("l", strrep("r", length(MONTHS))),
+        caption = "Track construction quality against Network Manager flights.")
+} else {
+  cat("_Track-quality measurement still running._")
+}
+```
+
+### What a version 2 of `track_id` should change
+
+Five defects, in descending order of how much they cost ADEP/ADES detection.
+
+**1. The month boundary splits flights by construction.** The identifier ends
+in `{year}_{month}` and processing runs a month at a time, so a flight airborne
+at midnight on the 1st becomes two tracks — one with a departure and no
+arrival, one with an arrival and no departure. Endpoint methods then fail on
+both halves. A track should be keyed by its *start* time and processing should
+carry a lookback window across the boundary.
+
+**2. The split rule uses pressure altitude, not height above field.** The
+15-minute rule fires only below 5,000 ft *MSL*. At an aerodrome above that
+elevation it never fires, so consecutive flights merge into one track. Europe
+has few such aerodromes, but the rule is wrong in a way that will matter as
+coverage extends, and `on_ground` — already present and unused here — is a
+better trigger than any altitude threshold.
+
+**3. A missing callsign collapses an airframe's segments together.**
+`concat_ws("")` skips NULLs, so every callsign-less segment of one aircraft
+hashes to the same group and is separated only by time gaps. Conversely a
+callsign *change* mid-flight splits a track. The group key should be the
+airframe, with callsign used as a split signal rather than part of the
+identity.
+
+**4. Concatenation without a separator is ambiguous.** `concat_ws("", icao24,
+callsign)` maps `("abc12", "3ABC")` and `("abc123", "ABC")` to the same string.
+ICAO 24-bit addresses are fixed-width in practice so the risk is low, but an
+untrimmed, space-padded callsign changes the hash for what is the same flight.
+Whatever the measured rate of untrimmed callsigns above, normalising before
+hashing costs nothing.
+
+**5. No spatial discontinuity check.** A 29-minute gap during which the
+aircraft moved 300 NM is one track. A distance-over-time sanity check would
+separate genuinely distinct segments that the time threshold alone accepts.
+
+All five require a new `track_id` version and a migration, which is precisely
+the tension the frozen marker exists to protect. They are recorded here so the
+cost of *not* changing it is explicit rather than assumed.
+
+## Recommendation
+
+**Report out-of-area explicitly.** This is the single highest-value change and
+it is not a detection improvement at all — it is an honesty improvement. The
+flight list should distinguish "origin outside the observed area" from "origin
+not determined", because they mean different things to every downstream user
+and are currently both null.
+
+**Adopt endpoint abstention for departures**, with the per-side thresholds in
+@sec-abstain. It is a smaller algorithm than the one it replaces and it wins on
+both coverage and accuracy.
+
+**Do not change the arrivals algorithm on this evidence.** Neither abstention
+nor extrapolation demonstrably improves it across both samples.
+
+**Invert the aircraft filter in the pipeline**, for the reasons in
+@sec-aircraft. This affects the published flight list directly.
+
+**Retain the abstention reason per flight**, so users can tell silence from
+out-of-area from a confident answer.
+
+## Limitations {#limitations}
+
+- **Six days**, two three-day samples. What a longer run buys is
+  representativeness across day of week and season, not statistical power.
+- **Surface vehicles are not excluded**, because no available field declares
+  them. A behavioural filter is the remaining option and is not implemented.
+- **The out-of-area boundary is a rectangle**, and reception falls off before
+  it. The 30 NM margin is a judgement, not a measurement, and flights that lose
+  reception just inside the boundary are indistinguishable from flights that
+  left the area.
+- **`track_id` is taken as given**, with its defects measured but not fixed.
+- **Aerodrome elevation is missing for 3.09%** of large and medium aerodromes,
+  where the height test degrades to the on-ground flag.
+
+## Reproducing
+
+```bash
+# Sample, score, diagnose, and measure track quality
+python benchmarks/osn_sample.py 2025-06-05 2025-06-08
+python benchmarks/adep_ades.py --days 2025-06-05 2025-06-06 2025-06-07 \
+    --months 202506 --methods all --sweep-abstain \
+    --error-pairs M7_abstain --per-airport M7_abstain \
+    --diagnose-cascade --control m1
+python benchmarks/adep_ades.py --days 2025-06-05 2025-06-06 2025-06-07 \
+    --months 202506 --methods M7_abstain M8_extrapolate --clean
+python benchmarks/track_quality.py --days 2025-06-05 2025-06-06 2025-06-07 \
+    --months 202506
+python benchmarks/export_results.py --paper adep-ades-detection-v2
+```
+
+Rendering this page needs no credentials, no database and no cluster.
