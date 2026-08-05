@@ -188,18 +188,23 @@ window.Quarto = {
   <li><a href="#why-this-is-hard" id="toc-why-this-is-hard" class="nav-link" data-scroll-target="#why-this-is-hard"><span class="header-section-number">1</span> Why this is hard</a></li>
   <li><a href="#data" id="toc-data" class="nav-link" data-scroll-target="#data"><span class="header-section-number">2</span> Data</a>
   <ul class="collapse">
-  <li><a href="#trajectories" id="toc-trajectories" class="nav-link" data-scroll-target="#trajectories"><span class="header-section-number">2.1</span> Trajectories</a></li>
-  <li><a href="#aircraft-selection" id="toc-aircraft-selection" class="nav-link" data-scroll-target="#aircraft-selection"><span class="header-section-number">2.2</span> Aircraft selection</a></li>
-  <li><a href="#ground-truth" id="toc-ground-truth" class="nav-link" data-scroll-target="#ground-truth"><span class="header-section-number">2.3</span> Ground truth</a></li>
+  <li><a href="#samples" id="toc-samples" class="nav-link" data-scroll-target="#samples"><span class="header-section-number">2.1</span> Samples</a></li>
+  <li><a href="#trajectories" id="toc-trajectories" class="nav-link" data-scroll-target="#trajectories"><span class="header-section-number">2.2</span> Trajectories</a></li>
+  <li><a href="#aircraft-selection" id="toc-aircraft-selection" class="nav-link" data-scroll-target="#aircraft-selection"><span class="header-section-number">2.3</span> Aircraft selection</a></li>
+  <li><a href="#ground-truth" id="toc-ground-truth" class="nav-link" data-scroll-target="#ground-truth"><span class="header-section-number">2.4</span> Ground truth</a></li>
   </ul></li>
   <li><a href="#how-methods-are-scored" id="toc-how-methods-are-scored" class="nav-link" data-scroll-target="#how-methods-are-scored"><span class="header-section-number">3</span> How methods are scored</a></li>
   <li><a href="#the-candidate-methods" id="toc-the-candidate-methods" class="nav-link" data-scroll-target="#the-candidate-methods"><span class="header-section-number">4</span> The candidate methods</a></li>
   <li><a href="#results" id="toc-results" class="nav-link" data-scroll-target="#results"><span class="header-section-number">5</span> Results</a></li>
   <li><a href="#cascade" id="toc-cascade" class="nav-link" data-scroll-target="#cascade"><span class="header-section-number">6</span> The cascade, and why it fails</a></li>
-  <li><a href="#abstention-on-the-endpoint" id="toc-abstention-on-the-endpoint" class="nav-link" data-scroll-target="#abstention-on-the-endpoint"><span class="header-section-number">7</span> Abstention on the endpoint</a></li>
-  <li><a href="#recommendation" id="toc-recommendation" class="nav-link" data-scroll-target="#recommendation"><span class="header-section-number">8</span> Recommendation</a></li>
-  <li><a href="#limitations" id="toc-limitations" class="nav-link" data-scroll-target="#limitations"><span class="header-section-number">9</span> Limitations</a></li>
-  <li><a href="#reproducing" id="toc-reproducing" class="nav-link" data-scroll-target="#reproducing"><span class="header-section-number">10</span> Reproducing</a></li>
+  <li><a href="#abstention-on-the-endpoint" id="toc-abstention-on-the-endpoint" class="nav-link" data-scroll-target="#abstention-on-the-endpoint"><span class="header-section-number">7</span> Abstention on the endpoint</a>
+  <ul class="collapse">
+  <li><a href="#which-operating-points-beat-production" id="toc-which-operating-points-beat-production" class="nav-link" data-scroll-target="#which-operating-points-beat-production"><span class="header-section-number">7.1</span> Which operating points beat production</a></li>
+  </ul></li>
+  <li><a href="#per-aerodrome-movement-counts" id="toc-per-aerodrome-movement-counts" class="nav-link" data-scroll-target="#per-aerodrome-movement-counts"><span class="header-section-number">8</span> Per-aerodrome movement counts</a></li>
+  <li><a href="#recommendation" id="toc-recommendation" class="nav-link" data-scroll-target="#recommendation"><span class="header-section-number">9</span> Recommendation</a></li>
+  <li><a href="#limitations" id="toc-limitations" class="nav-link" data-scroll-target="#limitations"><span class="header-section-number">10</span> Limitations</a></li>
+  <li><a href="#reproducing" id="toc-reproducing" class="nav-link" data-scroll-target="#reproducing"><span class="header-section-number">11</span> Reproducing</a></li>
   </ul>
 <div class="quarto-alternate-formats"><h2>Other Formats</h2><ul><li><a href="index.pdf"><i class="bi bi-file-pdf"></i>PDF</a></li></ul></div></nav>
     </div>
@@ -240,39 +245,24 @@ window.Quarto = {
 
 <section id="summary" class="level2 unnumbered">
 <h2 class="unnumbered anchored" data-anchor-id="summary">Summary</h2>
-<p>The OPDI flight list assigns each flight a departure aerodrome (ADEP) and a destination aerodrome (ADES) from ADS-B alone. The production algorithm does this by testing the sign of a smoothed altitude trend near each candidate aerodrome and discarding every flight whose trend is ambiguous. It is accurate where it speaks — 98.25% on ADEP — but it stays silent on 45.22% of flights.</p>
-<p>We compared seven methodologies against EUROCONTROL APDF ground truth. Three findings, in increasing order of consequence:</p>
+<p>The OPDI flight list assigns each flight a departure aerodrome (ADEP) and a destination aerodrome (ADES) from ADS-B alone. The production algorithm tests the sign of a smoothed altitude trend near each candidate aerodrome and discards every flight whose trend is ambiguous. It is accurate where it speaks — 97.50% on ADEP — and silent on almost half of all flights.</p>
+<p>We compared seven methodologies against EUROCONTROL APDF ground truth over two three-day samples a year apart, 187,961 flights in total. Three findings:</p>
 <ol type="1">
-<li><p><strong>Coverage is the problem, not accuracy.</strong> Every trend-based method scores above 96% where it fires. None of them covers more than 58% of flights.</p></li>
-<li><p><strong>The vertical-trend machinery earns nothing.</strong> Attributing a cascade’s answers to the rung that supplied them shows that the simplest possible rule — <em>the nearest aerodrome to the track’s first and last sample</em> — is at least as accurate as every trend-based method <strong>on that method’s own flights</strong>. A five-stage cascade built on those methods collapses exactly onto the one-line rule.</p></li>
-<li><p><strong>What the trend methods actually supply is abstention, badly.</strong> Replacing them with an explicit test on the endpoint — is it close to an aerodrome, and is it low over it? — beats the production algorithm on coverage and accuracy simultaneously: 58.79% of flights at 99.40% accuracy, against 54.78% at 98.25%.</p></li>
+<li><p><strong>Coverage is the problem, not accuracy.</strong> Every trend-based method scores above 94% where it fires, and none covers more than 57% of flights.</p></li>
+<li><p><strong>The vertical-trend machinery earns nothing.</strong> Attributing a cascade’s answers to the rung that supplied them shows that the simplest possible rule — <em>the nearest aerodrome to the track’s first and last sample</em> — is at least as accurate as every trend-based method <strong>on that method’s own flights</strong>, in both samples. A five-stage cascade built on those methods collapses exactly onto the one-line rule, to two decimal places, in both months.</p></li>
+<li><p><strong>Replacing the trend logic with explicit abstention improves departures, and does not improve arrivals.</strong> Naming the nearest aerodrome to the endpoint, but staying silent unless that endpoint is credibly <em>at</em> an aerodrome, beats the production algorithm on coverage and accuracy at once for ADEP — by 8 to 10 percentage points of coverage — in both samples. For ADES the same construction wins in one sample and not in the other, so we do not claim it.</p></li>
 </ol>
-<div class="callout callout-style-default callout-warning callout-titled">
+<div class="callout callout-style-default callout-note callout-titled">
 <div class="callout-header d-flex align-content-center">
 <div class="callout-icon-container">
 <i class="callout-icon"></i>
 </div>
 <div class="callout-title-container flex-fill">
-<span class="screen-reader-only">Warning</span>Interim — larger samples are being scored now
+<span class="screen-reader-only">Note</span>What changed since the first draft
 </div>
 </div>
 <div class="callout-body-container callout-body">
-<p>This is a working draft published while the benchmark is still running. Three-day samples in <strong>2025-06</strong> and <strong>2024-06</strong> are being scored on the OpenSky cluster and will replace every number below; the cleaning ablation, the per-aerodrome counts and the aerodrome-set sweep are implemented but not yet run.</p>
-<p>The findings are reported now because the effects are large — several percentage points, not fractions of one — and because the central result is structural rather than numerical: it is about which signal carries the information, and that does not depend on the sample size.</p>
-</div>
-</div>
-<div class="callout callout-style-default callout-important callout-titled">
-<div class="callout-header d-flex align-content-center">
-<div class="callout-icon-container">
-<i class="callout-icon"></i>
-</div>
-<div class="callout-title-container flex-fill">
-<span class="screen-reader-only">Important</span>Scope of the results on this page
-</div>
-</div>
-<div class="callout-body-container callout-body">
-<p>Every figure below is computed on a <strong>single day, 2025-06-05</strong> (32,404 ground-truth flights, 35.4 million state vectors). Three-day samples in 2025-06 and 2024-06 are being scored and will replace these numbers.</p>
-<p>The sample is small in <em>days</em>, not in flights: three days is roughly 97,000 ground-truth flights, which is ample for fitting the two thresholds this study ends up recommending. The real exposure is representativeness — day of week, weather, seasonal traffic mix — which is why the second sample is a year apart rather than adjacent. Read the conclusions as what these days support.</p>
+<p>An earlier version of this page reported a single day and stated finding 3 without restricting it to departures. Scoring the second sample removed that claim for arrivals: in 2024-06 endpoint abstention beats production on ADES by +4.47 pp of coverage at matched accuracy, and in 2025-06 the best it can do is -0.28 pp.&nbsp;Fitting on one month and validating on the other is what caught it.</p>
 </div>
 </div>
 </section>
@@ -282,36 +272,73 @@ window.Quarto = {
 <p>Three consequences shape everything below:</p>
 <ul>
 <li><strong>Tracks frequently begin or end in mid-air.</strong> A track that starts in the cruise has no departure evidence at all, and any method that names an aerodrome for it is guessing.</li>
-<li><strong>Departure and destination are not symmetric.</strong> Departure evidence is a climb from a known point; destination evidence is a descent to one. Coverage differs between the two, and so does accuracy.</li>
-<li><strong>Nearby aerodromes compete.</strong> Within 30 NM of a major hub there are often several licensed aerodromes and, if heliports are included, dozens.</li>
+<li><strong>Departure and destination are not symmetric.</strong> Departure evidence is a climb from a known point; destination evidence is a descent to one. This asymmetry turns out to drive the study’s main negative result.</li>
+<li><strong>Nearby aerodromes compete.</strong> Within 30 NM of a major hub there are often several licensed aerodromes and, with heliports, dozens.</li>
 </ul>
 </section>
 <section id="data" class="level2" data-number="2">
 <h2 data-number="2" class="anchored" data-anchor-id="data"><span class="header-section-number">2</span> Data</h2>
-<section id="trajectories" class="level3" data-number="2.1">
-<h3 data-number="2.1" class="anchored" data-anchor-id="trajectories"><span class="header-section-number">2.1</span> Trajectories</h3>
-<p>State vectors are read from the OpenSky Network historical archive, filtered to the OPDI European bounding box and decimated to 5 s — byte-for-byte the same filter the production ingestion applies, so the benchmark evaluates the same population the pipeline ingests.</p>
-<p>Tracks are built with OPDI’s own track-splitting algorithm, imported and called rather than reimplemented: <code>track_id</code> continuity with published data depends on it and it is frozen.</p>
+<section id="samples" class="level3" data-number="2.1">
+<h3 data-number="2.1" class="anchored" data-anchor-id="samples"><span class="header-section-number">2.1</span> Samples</h3>
+<p>Two three-day samples, <strong>2025-06-05 to 07</strong> and <strong>2024-06-05 to 07</strong>, chosen a year apart so that a threshold fitted on one can be validated on the other.</p>
+<div class="cell">
+<div class="cell-output-display">
+<table class="caption-top table table-sm table-striped small">
+<colgroup>
+<col style="width: 10%">
+<col style="width: 44%">
+<col style="width: 26%">
+<col style="width: 17%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Sample</th>
+<th style="text-align: left;">Days</th>
+<th style="text-align: right;">Ground-truth flights</th>
+<th style="text-align: right;">State vectors</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">2024-06</td>
+<td style="text-align: left;">2024-06-05, 2024-06-06, 2024-06-07</td>
+<td style="text-align: right;">92,825</td>
+<td style="text-align: right;">111,487,350</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">2025-06</td>
+<td style="text-align: left;">2025-06-05, 2025-06-06, 2025-06-07</td>
+<td style="text-align: right;">95,136</td>
+<td style="text-align: right;">105,734,448</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<p>The sample is small in <em>days</em>, not in flights. What a longer run would buy is representativeness across day of week and season, not statistical power; the year-apart design addresses the part of that which matters most.</p>
 </section>
-<section id="aircraft-selection" class="level3" data-number="2.2">
-<h3 data-number="2.2" class="anchored" data-anchor-id="aircraft-selection"><span class="header-section-number">2.2</span> Aircraft selection</h3>
-<p>Only aeroplanes are in scope. Helicopters in particular defeat every aerodrome-based method — they depart from and arrive at places that are not in any aerodrome database — and they are not a rounding error: they are 9.8% of classified airframes in the OpenSky aircraft database.</p>
-<p>Filtering uses the ICAO Doc 8643 aircraft class, keeping <code>L</code> (landplane) and <code>A</code> (amphibian) and dropping <code>H</code> (helicopter), <code>G</code> (gyrocopter) and <code>T</code> (tiltrotor). The field is present on ~73% of the database, so <em>unknown</em> handling is a real trade-off: the results here <strong>exclude</strong> unknowns, which protects precision at some cost to coverage. Two further layers — the ADS-B emitter category, which is the only field naming surface vehicles, and a behavioural filter requiring a sustained airborne period — are described under <a href="#limitations">Limitations</a> and not yet applied.</p>
+<section id="trajectories" class="level3" data-number="2.2">
+<h3 data-number="2.2" class="anchored" data-anchor-id="trajectories"><span class="header-section-number">2.2</span> Trajectories</h3>
+<p>State vectors come from the OpenSky Network historical archive, filtered to the OPDI European bounding box and decimated to 5 s — byte-for-byte the filter the production ingestion applies, so the benchmark evaluates the same population the pipeline ingests. Tracks are built with OPDI’s own track-splitting algorithm, imported and called rather than reimplemented, since <code>track_id</code> continuity with published data depends on it.</p>
 </section>
-<section id="ground-truth" class="level3" data-number="2.3">
-<h3 data-number="2.3" class="anchored" data-anchor-id="ground-truth"><span class="header-section-number">2.3</span> Ground truth</h3>
-<p>APDF <code>flights_tidy</code> provides ADEP, ADES and off-block time per flight. <code>AIRCRAFT_ADDRESS</code> is the ICAO 24-bit address, which is the join key to ADS-B; flights are matched on <code>(icao24, callsign, date)</code>. 2.42% of those keys collide — same-day multi-leg rotations — and are resolved by proximity to the actual off-block time rather than left to chance.</p>
+<section id="aircraft-selection" class="level3" data-number="2.3">
+<h3 data-number="2.3" class="anchored" data-anchor-id="aircraft-selection"><span class="header-section-number">2.3</span> Aircraft selection</h3>
+<p>Only aeroplanes are in scope. Helicopters defeat every aerodrome-based method — they depart from and arrive at places no aerodrome database lists — and they are 9.8% of classified airframes in the OpenSky aircraft database. Filtering uses the ICAO Doc 8643 aircraft class, keeping <code>L</code> (landplane) and <code>A</code> (amphibian). The field is present on ~73% of the database; these results <strong>exclude</strong> unknowns, protecting precision at some cost to coverage.</p>
+</section>
+<section id="ground-truth" class="level3" data-number="2.4">
+<h3 data-number="2.4" class="anchored" data-anchor-id="ground-truth"><span class="header-section-number">2.4</span> Ground truth</h3>
+<p>APDF <code>flights_tidy</code> provides ADEP, ADES and off-block time per flight. <code>AIRCRAFT_ADDRESS</code> is the ICAO 24-bit address, the join key to ADS-B; flights match on <code>(icao24, callsign, date)</code>. 2.42% of those keys collide — same-day multi-leg rotations — and are resolved by proximity to actual off-block time.</p>
 </section>
 </section>
 <section id="how-methods-are-scored" class="level2" data-number="3">
 <h2 data-number="3" class="anchored" data-anchor-id="how-methods-are-scored"><span class="header-section-number">3</span> How methods are scored</h2>
-<p>Ground truth is the denominator throughout. For a set of real flights <span class="math inline">\(G\)</span> and a method that emits an answer on the subset <span class="math inline">\(A \subseteq G\)</span>:</p>
+<p>Ground truth is the denominator throughout. For real flights <span class="math inline">\(G\)</span> and a method answering on <span class="math inline">\(A \subseteq G\)</span>:</p>
 <ul>
-<li><strong>Coverage</strong> <span class="math inline">\(= |A| / |G|\)</span> — the fraction of real flights the method answers at all. A flight whose trajectory was never seen counts as a miss.</li>
+<li><strong>Coverage</strong> <span class="math inline">\(= |A| / |G|\)</span> — the fraction of real flights answered at all. A flight whose trajectory was never seen counts as a miss.</li>
 <li><strong>Accuracy</strong> <span class="math inline">\(= |\text{correct}| / |A|\)</span> — how often it is right <em>when it speaks</em>.</li>
-<li><strong>Overall</strong> <span class="math inline">\(= |\text{correct}| / |G|\)</span> — coverage times accuracy; the fraction of real flights correctly labelled.</li>
+<li><strong>Overall</strong> <span class="math inline">\(= |\text{correct}| / |G|\)</span> — coverage times accuracy.</li>
 </ul>
-<p>Reporting all three matters, because the production algorithm and its alternatives sit at opposite ends of the same trade: one is nearly always right and usually silent, the other nearly always speaks and is often wrong. Neither “accuracy” nor “coverage” alone can distinguish them.</p>
+<p>All three matter, because the production algorithm and its alternatives sit at opposite ends of one trade: one is nearly always right and usually silent, the other nearly always speaks and is often wrong.</p>
 <div class="callout callout-style-default callout-note callout-titled">
 <div class="callout-header d-flex align-content-center">
 <div class="callout-icon-container">
@@ -322,7 +349,7 @@ window.Quarto = {
 </div>
 </div>
 <div class="callout-body-container callout-body">
-<p>No method exceeds ~73% coverage, because that is roughly the share of APDF flights with a usable ADS-B track in the sample at all. The remaining ~27% is a data-availability limit, not an algorithmic one, and no change to the naming rule can recover it.</p>
+<p>No method exceeds ~73% coverage, because that is roughly the share of APDF flights with a usable ADS-B track in the sample at all. The remaining ~27% is a data-availability limit, not an algorithmic one.</p>
 </div>
 </div>
 </section>
@@ -345,7 +372,7 @@ window.Quarto = {
 <tr class="odd">
 <td><strong>M0</strong></td>
 <td><em>Current production</em></td>
-<td>Sign of a 5-sample rolling-mean altitude difference near each candidate aerodrome, requiring a margin of 4; ambiguous flights dropped</td>
+<td>Sign of a 5-sample rolling-mean altitude difference near each candidate aerodrome, margin of 4; ambiguous flights dropped</td>
 </tr>
 <tr class="even">
 <td><strong>M1</strong></td>
@@ -375,30 +402,31 @@ window.Quarto = {
 <tr class="odd">
 <td><strong>M7</strong></td>
 <td><em>Endpoint with abstention</em></td>
-<td>M1’s naming rule, but silent unless the endpoint is close to the aerodrome and low over it</td>
+<td>M1’s naming rule, silent unless the endpoint is close to the aerodrome and low over it</td>
 </tr>
 </tbody>
 </table>
-<p>M1 recreates <code>TakeoffAirportInference</code> / <code>LandingAirportInference</code> from the <code>traffic</code> library, which sorts by timestamp and calls <code>guess_airport</code> on the first and last row. M2 and M3 both use columns the production algorithm already selects and then never reads: <code>on_ground</code> and <code>vert_rate</code>.</p>
-<p>Aerodromes come from OurAirports, restricted to large and medium airports. Including heliports is a swept parameter rather than a detail — <code>traffic</code>’s own documentation shows <code>infer_airport</code> returning a helipad instead of Amsterdam Schiphol when they are left in.</p>
+<p>M1 recreates <code>TakeoffAirportInference</code> / <code>LandingAirportInference</code> from the <code>traffic</code> library. M2 and M3 use columns the production algorithm already selects and never reads: <code>on_ground</code> and <code>vert_rate</code>.</p>
 </section>
 <section id="results" class="level2" data-number="5">
 <h2 data-number="5" class="anchored" data-anchor-id="results"><span class="header-section-number">5</span> Results</h2>
 <div class="cell">
 <div class="cell-output-display">
 <table class="caption-top table table-sm table-striped small">
-<caption>Coverage, accuracy and overall correctness by method, 2025-06-05, sorted by ADEP overall correctness.</caption>
+<caption>Coverage, accuracy and overall correctness by method and sample, sorted within each sample by ADEP overall correctness.</caption>
 <colgroup>
-<col style="width: 17%">
-<col style="width: 12%">
-<col style="width: 12%">
-<col style="width: 17%">
-<col style="width: 12%">
-<col style="width: 12%">
-<col style="width: 17%">
+<col style="width: 9%">
+<col style="width: 15%">
+<col style="width: 10%">
+<col style="width: 10%">
+<col style="width: 15%">
+<col style="width: 10%">
+<col style="width: 10%">
+<col style="width: 15%">
 </colgroup>
 <thead>
 <tr class="header">
+<th style="text-align: left;">Sample</th>
 <th style="text-align: left;">Method</th>
 <th style="text-align: right;">ADEP cov</th>
 <th style="text-align: right;">ADEP acc</th>
@@ -410,95 +438,174 @@ window.Quarto = {
 </thead>
 <tbody>
 <tr class="odd">
-<td style="text-align: left;">M1_traffic</td>
-<td style="text-align: right;">72.66%</td>
-<td style="text-align: right;">87.54%</td>
-<td style="text-align: right;">63.61%</td>
-<td style="text-align: right;">71.25%</td>
-<td style="text-align: right;">79.59%</td>
-<td style="text-align: right;">56.71%</td>
-</tr>
-<tr class="even">
+<td style="text-align: left;">2024-06</td>
 <td style="text-align: left;">M6_cascade</td>
-<td style="text-align: right;">74.40%</td>
-<td style="text-align: right;">85.50%</td>
-<td style="text-align: right;">63.61%</td>
-<td style="text-align: right;">74.33%</td>
-<td style="text-align: right;">76.31%</td>
-<td style="text-align: right;">56.72%</td>
+<td style="text-align: right;">73.48%</td>
+<td style="text-align: right;">84.60%</td>
+<td style="text-align: right;">62.16%</td>
+<td style="text-align: right;">73.46%</td>
+<td style="text-align: right;">75.31%</td>
+<td style="text-align: right;">55.32%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">2024-06</td>
+<td style="text-align: left;">M1_traffic</td>
+<td style="text-align: right;">71.75%</td>
+<td style="text-align: right;">86.63%</td>
+<td style="text-align: right;">62.16%</td>
+<td style="text-align: right;">70.44%</td>
+<td style="text-align: right;">78.51%</td>
+<td style="text-align: right;">55.30%</td>
 </tr>
 <tr class="odd">
+<td style="text-align: left;">2024-06</td>
 <td style="text-align: left;">M7_abstain</td>
-<td style="text-align: right;">58.79%</td>
-<td style="text-align: right;">99.40%</td>
-<td style="text-align: right;">58.43%</td>
-<td style="text-align: right;">50.23%</td>
-<td style="text-align: right;">98.75%</td>
-<td style="text-align: right;">49.61%</td>
+<td style="text-align: right;">56.55%</td>
+<td style="text-align: right;">99.05%</td>
+<td style="text-align: right;">56.01%</td>
+<td style="text-align: right;">48.87%</td>
+<td style="text-align: right;">97.22%</td>
+<td style="text-align: right;">47.51%</td>
 </tr>
 <tr class="even">
-<td style="text-align: left;">M5_min_alt</td>
-<td style="text-align: right;">69.27%</td>
-<td style="text-align: right;">82.16%</td>
-<td style="text-align: right;">56.91%</td>
-<td style="text-align: right;">68.99%</td>
-<td style="text-align: right;">76.14%</td>
-<td style="text-align: right;">52.53%</td>
-</tr>
-<tr class="odd">
+<td style="text-align: left;">2024-06</td>
 <td style="text-align: left;">M3_vert_rate</td>
-<td style="text-align: right;">57.42%</td>
-<td style="text-align: right;">97.39%</td>
-<td style="text-align: right;">55.92%</td>
-<td style="text-align: right;">52.95%</td>
-<td style="text-align: right;">97.06%</td>
-<td style="text-align: right;">51.40%</td>
-</tr>
-<tr class="even">
-<td style="text-align: left;">M0_current</td>
-<td style="text-align: right;">54.78%</td>
-<td style="text-align: right;">98.25%</td>
-<td style="text-align: right;">53.82%</td>
-<td style="text-align: right;">52.66%</td>
-<td style="text-align: right;">96.68%</td>
-<td style="text-align: right;">50.91%</td>
+<td style="text-align: right;">54.94%</td>
+<td style="text-align: right;">97.04%</td>
+<td style="text-align: right;">53.31%</td>
+<td style="text-align: right;">51.52%</td>
+<td style="text-align: right;">94.93%</td>
+<td style="text-align: right;">48.91%</td>
 </tr>
 <tr class="odd">
+<td style="text-align: left;">2024-06</td>
+<td style="text-align: left;">M5_min_alt</td>
+<td style="text-align: right;">68.03%</td>
+<td style="text-align: right;">77.26%</td>
+<td style="text-align: right;">52.56%</td>
+<td style="text-align: right;">67.85%</td>
+<td style="text-align: right;">72.54%</td>
+<td style="text-align: right;">49.22%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">2024-06</td>
+<td style="text-align: left;">M0_current</td>
+<td style="text-align: right;">52.22%</td>
+<td style="text-align: right;">97.57%</td>
+<td style="text-align: right;">50.95%</td>
+<td style="text-align: right;">51.11%</td>
+<td style="text-align: right;">94.34%</td>
+<td style="text-align: right;">48.22%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">2024-06</td>
 <td style="text-align: left;">M2_on_ground</td>
-<td style="text-align: right;">24.76%</td>
-<td style="text-align: right;">96.57%</td>
-<td style="text-align: right;">23.91%</td>
-<td style="text-align: right;">28.11%</td>
-<td style="text-align: right;">94.88%</td>
-<td style="text-align: right;">26.67%</td>
+<td style="text-align: right;">23.59%</td>
+<td style="text-align: right;">97.78%</td>
+<td style="text-align: right;">23.07%</td>
+<td style="text-align: right;">26.21%</td>
+<td style="text-align: right;">96.43%</td>
+<td style="text-align: right;">25.28%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">2025-06</td>
+<td style="text-align: left;">M1_traffic</td>
+<td style="text-align: right;">67.96%</td>
+<td style="text-align: right;">86.99%</td>
+<td style="text-align: right;">59.13%</td>
+<td style="text-align: right;">66.78%</td>
+<td style="text-align: right;">78.30%</td>
+<td style="text-align: right;">52.29%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">2025-06</td>
+<td style="text-align: left;">M6_cascade</td>
+<td style="text-align: right;">69.66%</td>
+<td style="text-align: right;">84.87%</td>
+<td style="text-align: right;">59.13%</td>
+<td style="text-align: right;">69.60%</td>
+<td style="text-align: right;">75.15%</td>
+<td style="text-align: right;">52.31%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">2025-06</td>
+<td style="text-align: left;">M7_abstain</td>
+<td style="text-align: right;">54.63%</td>
+<td style="text-align: right;">99.03%</td>
+<td style="text-align: right;">54.10%</td>
+<td style="text-align: right;">46.86%</td>
+<td style="text-align: right;">97.01%</td>
+<td style="text-align: right;">45.46%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">2025-06</td>
+<td style="text-align: left;">M3_vert_rate</td>
+<td style="text-align: right;">53.58%</td>
+<td style="text-align: right;">96.90%</td>
+<td style="text-align: right;">51.92%</td>
+<td style="text-align: right;">50.10%</td>
+<td style="text-align: right;">95.68%</td>
+<td style="text-align: right;">47.94%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">2025-06</td>
+<td style="text-align: left;">M5_min_alt</td>
+<td style="text-align: right;">65.32%</td>
+<td style="text-align: right;">78.60%</td>
+<td style="text-align: right;">51.34%</td>
+<td style="text-align: right;">65.10%</td>
+<td style="text-align: right;">73.66%</td>
+<td style="text-align: right;">47.95%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">2025-06</td>
+<td style="text-align: left;">M0_current</td>
+<td style="text-align: right;">51.10%</td>
+<td style="text-align: right;">97.50%</td>
+<td style="text-align: right;">49.82%</td>
+<td style="text-align: right;">49.71%</td>
+<td style="text-align: right;">95.65%</td>
+<td style="text-align: right;">47.55%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">2025-06</td>
+<td style="text-align: left;">M2_on_ground</td>
+<td style="text-align: right;">23.19%</td>
+<td style="text-align: right;">95.63%</td>
+<td style="text-align: right;">22.17%</td>
+<td style="text-align: right;">26.83%</td>
+<td style="text-align: right;">93.16%</td>
+<td style="text-align: right;">24.99%</td>
 </tr>
 </tbody>
 </table>
 </div>
 </div>
-<p>The shape of the table is the first finding. The production algorithm M0 is the <strong>second most accurate</strong> method tested and the <strong>fifth</strong> by overall correctness, because it declines to answer nearly half the flights. <code>traffic</code>’s one-line nearest-aerodrome rule, with no aviation logic in it whatsoever, gets more flights right in absolute terms than any trend-based method.</p>
-<p>That is not an argument for adopting M1 as it stands — an 87.5% ADEP accuracy would be a serious regression in data quality for OPDI, which publishes a flight list that downstream users treat as authoritative. It is an argument that the trend logic is not where the value is.</p>
+<p>The shape of the table is the first finding, and it is the same in both samples. The production algorithm M0 is among the <strong>most accurate</strong> methods tested and among the <strong>worst</strong> by overall correctness, because it declines to answer nearly half the flights. <code>traffic</code>’s one-line nearest-aerodrome rule, with no aviation logic in it whatsoever, gets more flights right in absolute terms than any trend-based method.</p>
+<p>That is not an argument for adopting M1 as it stands — an 86.99% ADEP accuracy would be a serious regression for a flight list downstream users treat as authoritative. It is an argument that the trend logic is not where the value is.</p>
 </section>
 <section id="cascade" class="level2" data-number="6">
 <h2 data-number="6" class="anchored" data-anchor-id="cascade"><span class="header-section-number">6</span> The cascade, and why it fails</h2>
-<p>The natural response to the table above is a cascade: take M0’s answer when it speaks, fall through to M3, then M2, and use M1 only as a last resort. The strong signals keep their precision and M1 supplies coverage where they are silent.</p>
+<p>The natural response is a cascade: take M0’s answer when it speaks, fall through to M3, then M2, and use M1 only as a last resort. The strong signals keep their precision and M1 supplies coverage where they are silent.</p>
 <p>It does not work, and the way it fails is instructive.</p>
-<p>A cascade’s accuracy is <em>not</em> bounded below by its rungs’ accuracies, because each rung is scored only on the flights the rungs above it could not answer, which are the harder ones. So a cascade legitimately scoring below every method it is built from is not by itself evidence of a bug. What it must not do is score below its own fallback rung used alone — that means some rung is actively overwriting better answers.</p>
+<p>A cascade’s accuracy is <em>not</em> bounded below by its rungs’ accuracies, because each rung is scored only on the flights the rungs above it could not answer, which are the harder ones. So a cascade scoring below every method it is built from is not by itself evidence of a bug. What it must not do is score below its own fallback rung used alone — that means some rung is actively overwriting better answers.</p>
 <p>To test that, every cascade answer is attributed to the rung that supplied it, and that rung is scored against a control on <strong>the same flights</strong>:</p>
 <div class="cell">
 <div class="cell-output-display">
 <table class="caption-top table table-sm table-striped small">
 <caption>ADEP attribution for the precision-ordered cascade M0 -&gt; M3 -&gt; M2 -&gt; M1 -&gt; M5, with M1 as the control. A negative lift means the rung overwrote a better answer.</caption>
 <colgroup>
-<col style="width: 6%">
-<col style="width: 21%">
-<col style="width: 16%">
-<col style="width: 16%">
-<col style="width: 29%">
-<col style="width: 10%">
+<col style="width: 8%">
+<col style="width: 5%">
+<col style="width: 19%">
+<col style="width: 14%">
+<col style="width: 14%">
+<col style="width: 25%">
+<col style="width: 11%">
 </colgroup>
 <thead>
 <tr class="header">
+<th style="text-align: left;">Sample</th>
 <th style="text-align: left;">Rung</th>
 <th style="text-align: right;">Flights answered</th>
 <th style="text-align: right;">Share of all</th>
@@ -509,52 +616,140 @@ window.Quarto = {
 </thead>
 <tbody>
 <tr class="odd">
+<td style="text-align: left;">2024-06</td>
 <td style="text-align: left;">m0</td>
-<td style="text-align: right;">17,751</td>
-<td style="text-align: right;">54.78%</td>
-<td style="text-align: right;">98.25%</td>
-<td style="text-align: right;">99.55%</td>
-<td style="text-align: right;">-1.30%</td>
+<td style="text-align: right;">48,477</td>
+<td style="text-align: right;">52.22%</td>
+<td style="text-align: right;">97.57%</td>
+<td style="text-align: right;">99.07%</td>
+<td style="text-align: right;">-1.51 pp</td>
 </tr>
 <tr class="even">
+<td style="text-align: left;">2024-06</td>
 <td style="text-align: left;">m3</td>
-<td style="text-align: right;">907</td>
-<td style="text-align: right;">2.80%</td>
-<td style="text-align: right;">84.45%</td>
-<td style="text-align: right;">92.50%</td>
-<td style="text-align: right;">-8.05%</td>
+<td style="text-align: right;">2,726</td>
+<td style="text-align: right;">2.94%</td>
+<td style="text-align: right;">88.85%</td>
+<td style="text-align: right;">93.21%</td>
+<td style="text-align: right;">-4.37 pp</td>
 </tr>
 <tr class="odd">
+<td style="text-align: left;">2024-06</td>
 <td style="text-align: left;">m2</td>
-<td style="text-align: right;">240</td>
-<td style="text-align: right;">0.74%</td>
-<td style="text-align: right;">7.92%</td>
-<td style="text-align: right;">47.08%</td>
-<td style="text-align: right;">-39.17%</td>
+<td style="text-align: right;">313</td>
+<td style="text-align: right;">0.34%</td>
+<td style="text-align: right;">13.42%</td>
+<td style="text-align: right;">46.96%</td>
+<td style="text-align: right;">-33.55 pp</td>
 </tr>
 <tr class="even">
+<td style="text-align: left;">2024-06</td>
 <td style="text-align: left;">m1</td>
-<td style="text-align: right;">4,685</td>
-<td style="text-align: right;">14.46%</td>
-<td style="text-align: right;">42.43%</td>
-<td style="text-align: right;">42.43%</td>
-<td style="text-align: right;">+0.00%</td>
+<td style="text-align: right;">15,182</td>
+<td style="text-align: right;">16.36%</td>
+<td style="text-align: right;">46.00%</td>
+<td style="text-align: right;">46.00%</td>
+<td style="text-align: right;">+0.00 pp</td>
 </tr>
 <tr class="odd">
+<td style="text-align: left;">2024-06</td>
 <td style="text-align: left;">m5</td>
-<td style="text-align: right;">526</td>
-<td style="text-align: right;">1.62%</td>
+<td style="text-align: right;">1,509</td>
+<td style="text-align: right;">1.63%</td>
+<td style="text-align: right;">0.20%</td>
+<td style="text-align: right;">0.00%</td>
+<td style="text-align: right;">+0.20 pp</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">2025-06</td>
+<td style="text-align: left;">m0</td>
+<td style="text-align: right;">48,617</td>
+<td style="text-align: right;">51.10%</td>
+<td style="text-align: right;">97.50%</td>
+<td style="text-align: right;">99.20%</td>
+<td style="text-align: right;">-1.70 pp</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">2025-06</td>
+<td style="text-align: left;">m3</td>
+<td style="text-align: right;">2,510</td>
+<td style="text-align: right;">2.64%</td>
+<td style="text-align: right;">85.14%</td>
+<td style="text-align: right;">91.95%</td>
+<td style="text-align: right;">-6.81 pp</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">2025-06</td>
+<td style="text-align: left;">m2</td>
+<td style="text-align: right;">782</td>
+<td style="text-align: right;">0.82%</td>
+<td style="text-align: right;">7.42%</td>
+<td style="text-align: right;">44.37%</td>
+<td style="text-align: right;">-36.96 pp</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">2025-06</td>
+<td style="text-align: left;">m1</td>
+<td style="text-align: right;">12,859</td>
+<td style="text-align: right;">13.52%</td>
+<td style="text-align: right;">41.74%</td>
+<td style="text-align: right;">41.74%</td>
+<td style="text-align: right;">+0.00 pp</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">2025-06</td>
+<td style="text-align: left;">m5</td>
+<td style="text-align: right;">1,507</td>
+<td style="text-align: right;">1.58%</td>
 <td style="text-align: right;">0.00%</td>
 <td style="text-align: right;">0.00%</td>
-<td style="text-align: right;">+0.00%</td>
+<td style="text-align: right;">+0.00 pp</td>
 </tr>
 </tbody>
 </table>
 </div>
 </div>
-<p>The lift is negative in every row. On the 17,751 flights M0 answers, M0 is 98.25% accurate and M1 is 99.55%. On M3’s flights the gap is 8 points; on M2’s, 39.</p>
-<p>So the trend methods do not look precise because they reason well about trajectories. They look precise because they <em>fire on easy flights</em> — those with unambiguous low-altitude coverage near a single aerodrome — and on exactly those flights, “which aerodrome is nearest the endpoint” is already the right answer, slightly more often than the trend vote is. Where the trend vote differs, it is usually because a neighbouring aerodrome produced a stronger vote than the correct one.</p>
-<p>Running the same cascade with M1 <strong>first</strong> confirms it: the remaining four rungs together contribute 564 additional flights, of which <strong>none</strong> are correct, and the cascade’s score becomes indistinguishable from M1 alone.</p>
+<p>The lift is negative in every row of both samples. So the trend methods do not look precise because they reason well about trajectories. They look precise because they <em>fire on easy flights</em> — those with unambiguous low-altitude coverage near a single aerodrome — and on exactly those flights, “which aerodrome is nearest the endpoint” is already the right answer, slightly more often than the trend vote is.</p>
+<p>Running the same cascade with M1 <strong>first</strong> confirms it: the cascade’s overall correctness becomes indistinguishable from M1 alone.</p>
+<div class="cell">
+<div class="cell-output-display">
+<table class="caption-top table table-sm table-striped small">
+<caption>The cascade collapses onto its fallback rung. Four independent comparisons, agreeing to two decimal places.</caption>
+<colgroup>
+<col style="width: 11%">
+<col style="width: 22%">
+<col style="width: 22%">
+<col style="width: 22%">
+<col style="width: 22%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Sample</th>
+<th style="text-align: right;">M1 ADEP overall</th>
+<th style="text-align: right;">M6 ADEP overall</th>
+<th style="text-align: right;">M1 ADES overall</th>
+<th style="text-align: right;">M6 ADES overall</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">2024-06</td>
+<td style="text-align: right;">62.16%</td>
+<td style="text-align: right;">62.16%</td>
+<td style="text-align: right;">55.30%</td>
+<td style="text-align: right;">55.32%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">2025-06</td>
+<td style="text-align: right;">59.13%</td>
+<td style="text-align: right;">59.13%</td>
+<td style="text-align: right;">52.29%</td>
+<td style="text-align: right;">52.31%</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <div class="callout callout-style-default callout-tip callout-titled">
 <div class="callout-header d-flex align-content-center">
 <div class="callout-icon-container">
@@ -572,174 +767,284 @@ window.Quarto = {
 </section>
 <section id="abstention-on-the-endpoint" class="level2" data-number="7">
 <h2 data-number="7" class="anchored" data-anchor-id="abstention-on-the-endpoint"><span class="header-section-number">7</span> Abstention on the endpoint</h2>
-<p>M7 keeps M1’s naming rule and adds an explicit two-parameter test. An ADEP is emitted only if the track’s first sample is within <span class="math inline">\(d\)</span> NM of the nearest aerodrome and no more than <span class="math inline">\(h\)</span> ft above that aerodrome’s elevation; ADES uses the last sample. Height is measured above field elevation rather than above the ellipsoid, because a fixed 1,000 ft cut-off means nothing at an aerodrome sitting at 5,000 ft. A sample flagged <code>on_ground</code> satisfies the height test outright, since a missing barometric altitude on the surface is normal.</p>
+<p>M7 keeps M1’s naming rule and adds an explicit two-parameter test. An ADEP is emitted only if the track’s first sample is within <span class="math inline">\(d\)</span> NM of the nearest aerodrome and no more than <span class="math inline">\(h\)</span> ft above that aerodrome’s elevation; ADES uses the last sample. Height is measured above field elevation rather than above the ellipsoid, because a fixed 1,000 ft cut-off means nothing at an aerodrome sitting at 5,000 ft. A sample flagged <code>on_ground</code> satisfies the height test outright.</p>
 <div class="cell">
 <div class="cell-output-display">
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
-<p><img src="index_files/figure-html/frontier-plot-1.png" class="img-fluid figure-img" width="768"></p>
-<figcaption>Coverage/accuracy frontier for endpoint abstention, ADEP, 2025-06-05. Each line is one distance threshold; points along it are height thresholds, relaxing left to right from on-ground-only through 5,000 ft AGL to unrestricted. Accuracy holds above 99% across a long plateau and then falls off a cliff once the height test is dropped altogether. The dotted lines mark the production algorithm M0; the region up and to the right of their intersection beats it on both axes at once.</figcaption>
+<p><img src="index_files/figure-html/frontier-plot-1.png" class="img-fluid figure-img" width="864"></p>
+<figcaption>Coverage/accuracy frontier for endpoint abstention, by sample and side. Each line is one distance threshold; points along it are height thresholds relaxing left to right, from on-ground-only to unrestricted. Dotted lines mark the production algorithm M0. The region up and to the right of their intersection beats M0 on both axes at once — populated for ADEP in both samples, and for ADES in 2024-06 only.</figcaption>
 </figure>
 </div>
 </div>
 </div>
-<p>Two things are visible immediately.</p>
-<p><strong>The height threshold does nearly all the work.</strong> Moving the radius from 10 NM to 40 NM changes ADEP coverage by 0.2 percentage points. Moving the height cut from on-ground-only to 5,000 ft AGL moves it by 34 points. This makes physical sense: an aircraft below 5,000 ft AGL is in the terminal area of the aerodrome it is nearest to, and being 30 NM out at that height does not make it ambiguous. It also means the radius parameter, which is where the production algorithm spends its tuning effort, is close to irrelevant.</p>
-<p><strong>There is a region that dominates the production algorithm outright.</strong> The dotted lines mark M0’s operating point. Every point up and to the right of their intersection beats it on coverage <em>and</em> accuracy at the same time:</p>
+<p><strong>The height threshold does nearly all the work.</strong> Moving the radius from 10 NM to 40 NM changes ADEP coverage by a fraction of a point; moving the height cut from on-ground-only to 5,000 ft AGL moves it by tens of points. An aircraft below 5,000 ft AGL is in the terminal area of the aerodrome it is nearest to, and being 30 NM out at that height does not make it ambiguous. The radius parameter, which is where the production algorithm spends its tuning effort, is close to irrelevant.</p>
+<section id="which-operating-points-beat-production" class="level3" data-number="7.1">
+<h3 data-number="7.1" class="anchored" data-anchor-id="which-operating-points-beat-production"><span class="header-section-number">7.1</span> Which operating points beat production</h3>
 <div class="cell">
 <div class="cell-output-display">
 <table class="caption-top table table-sm table-striped small">
-<caption>Selected operating points. Compare against M0 production: 54.78% / 98.25% for ADEP and 52.66% / 96.68% for ADES.</caption>
+<caption>Grid cells that beat the production algorithm on coverage AND accuracy simultaneously. For ADEP the region is large and consistent across samples; for ADES it is empty in 2025-06.</caption>
+<colgroup>
+<col style="width: 11%">
+<col style="width: 7%">
+<col style="width: 8%">
+<col style="width: 25%">
+<col style="width: 13%">
+<col style="width: 10%">
+<col style="width: 13%">
+<col style="width: 10%">
+</colgroup>
 <thead>
 <tr class="header">
-<th style="text-align: left;">Within</th>
-<th style="text-align: left;">Below</th>
-<th style="text-align: right;">ADEP cov</th>
-<th style="text-align: right;">ADEP acc</th>
-<th style="text-align: right;">ADES cov</th>
-<th style="text-align: right;">ADES acc</th>
+<th style="text-align: left;">Sample</th>
+<th style="text-align: left;">Side</th>
+<th style="text-align: right;">Cells</th>
+<th style="text-align: left;">Best point</th>
+<th style="text-align: right;">Coverage</th>
+<th style="text-align: right;">M0 cov</th>
+<th style="text-align: right;">Accuracy</th>
+<th style="text-align: right;">M0 acc</th>
 </tr>
 </thead>
 <tbody>
 <tr class="odd">
-<td style="text-align: left;">5 NM</td>
-<td style="text-align: left;">1,000 ft AGL</td>
-<td style="text-align: right;">44.52%</td>
-<td style="text-align: right;">99.70%</td>
-<td style="text-align: right;">46.60%</td>
-<td style="text-align: right;">99.56%</td>
+<td style="text-align: left;">2024-06</td>
+<td style="text-align: left;">ADEP</td>
+<td style="text-align: right;">18/70</td>
+<td style="text-align: left;">20 NM, 15,000 ft</td>
+<td style="text-align: right;">61.88%</td>
+<td style="text-align: right;">52.22%</td>
+<td style="text-align: right;">97.67%</td>
+<td style="text-align: right;">97.57%</td>
 </tr>
 <tr class="even">
-<td style="text-align: left;">10 NM</td>
-<td style="text-align: left;">1,000 ft AGL</td>
-<td style="text-align: right;">44.52%</td>
-<td style="text-align: right;">99.70%</td>
-<td style="text-align: right;">46.63%</td>
-<td style="text-align: right;">99.52%</td>
+<td style="text-align: left;">2024-06</td>
+<td style="text-align: left;">ADES</td>
+<td style="text-align: right;">7/70</td>
+<td style="text-align: left;">40 NM, 10,000 ft</td>
+<td style="text-align: right;">55.58%</td>
+<td style="text-align: right;">51.11%</td>
+<td style="text-align: right;">94.86%</td>
+<td style="text-align: right;">94.34%</td>
 </tr>
 <tr class="odd">
-<td style="text-align: left;">20 NM</td>
-<td style="text-align: left;">1,000 ft AGL</td>
-<td style="text-align: right;">44.54%</td>
-<td style="text-align: right;">99.65%</td>
-<td style="text-align: right;">46.76%</td>
-<td style="text-align: right;">99.27%</td>
+<td style="text-align: left;">2025-06</td>
+<td style="text-align: left;">ADEP</td>
+<td style="text-align: right;">18/70</td>
+<td style="text-align: left;">20 NM, 15,000 ft</td>
+<td style="text-align: right;">59.04%</td>
+<td style="text-align: right;">51.10%</td>
+<td style="text-align: right;">97.67%</td>
+<td style="text-align: right;">97.50%</td>
 </tr>
 <tr class="even">
-<td style="text-align: left;">40 NM</td>
-<td style="text-align: left;">1,000 ft AGL</td>
-<td style="text-align: right;">44.57%</td>
-<td style="text-align: right;">99.58%</td>
-<td style="text-align: right;">46.87%</td>
-<td style="text-align: right;">99.07%</td>
-</tr>
-<tr class="odd">
-<td style="text-align: left;">5 NM</td>
-<td style="text-align: left;">2,000 ft AGL</td>
-<td style="text-align: right;">53.22%</td>
-<td style="text-align: right;">99.68%</td>
-<td style="text-align: right;">47.61%</td>
-<td style="text-align: right;">99.47%</td>
-</tr>
-<tr class="even">
-<td style="text-align: left;">10 NM</td>
-<td style="text-align: left;">2,000 ft AGL</td>
-<td style="text-align: right;">53.26%</td>
-<td style="text-align: right;">99.66%</td>
-<td style="text-align: right;">48.61%</td>
-<td style="text-align: right;">99.40%</td>
-</tr>
-<tr class="odd">
-<td style="text-align: left;">20 NM</td>
-<td style="text-align: left;">2,000 ft AGL</td>
-<td style="text-align: right;">53.30%</td>
-<td style="text-align: right;">99.59%</td>
-<td style="text-align: right;">48.75%</td>
-<td style="text-align: right;">99.15%</td>
-</tr>
-<tr class="even">
-<td style="text-align: left;">40 NM</td>
-<td style="text-align: left;">2,000 ft AGL</td>
-<td style="text-align: right;">53.33%</td>
-<td style="text-align: right;">99.53%</td>
-<td style="text-align: right;">48.90%</td>
-<td style="text-align: right;">98.90%</td>
-</tr>
-<tr class="odd">
-<td style="text-align: left;">5 NM</td>
-<td style="text-align: left;">5,000 ft AGL</td>
-<td style="text-align: right;">56.73%</td>
-<td style="text-align: right;">99.45%</td>
-<td style="text-align: right;">47.89%</td>
-<td style="text-align: right;">99.23%</td>
-</tr>
-<tr class="even">
-<td style="text-align: left;">10 NM</td>
-<td style="text-align: left;">5,000 ft AGL</td>
-<td style="text-align: right;">58.79%</td>
-<td style="text-align: right;">99.40%</td>
-<td style="text-align: right;">50.23%</td>
-<td style="text-align: right;">98.75%</td>
-</tr>
-<tr class="odd">
-<td style="text-align: left;">20 NM</td>
-<td style="text-align: left;">5,000 ft AGL</td>
-<td style="text-align: right;">58.91%</td>
-<td style="text-align: right;">99.28%</td>
-<td style="text-align: right;">51.74%</td>
-<td style="text-align: right;">98.33%</td>
-</tr>
-<tr class="even">
-<td style="text-align: left;">40 NM</td>
-<td style="text-align: left;">5,000 ft AGL</td>
-<td style="text-align: right;">58.99%</td>
-<td style="text-align: right;">99.18%</td>
-<td style="text-align: right;">52.02%</td>
-<td style="text-align: right;">97.97%</td>
+<td style="text-align: left;">2025-06</td>
+<td style="text-align: left;">ADES</td>
+<td style="text-align: right;">0/70</td>
+<td style="text-align: left;">—</td>
+<td style="text-align: right;">—</td>
+<td style="text-align: right;">49.71%</td>
+<td style="text-align: right;">—</td>
+<td style="text-align: right;">95.65%</td>
 </tr>
 </tbody>
 </table>
 </div>
 </div>
-<p>At 10 NM and 5,000 ft AGL the rule answers 58.79% of ADEPs at 99.40% accuracy — four points more coverage than production, at higher accuracy. Tightening to 2 NM and 1,000 ft trades coverage down to 43% for 99.69% accuracy, which is essentially error-free labelling. The parameters give OPDI a dial where it currently has a fixed point, and every position on the dial between 1,000 and 5,000 ft is above 99% accurate.</p>
-<p>ADES is consistently weaker than ADEP at the same thresholds — about 6 points less coverage at 5,000 ft AGL. Arrivals are harder: a descent can be interrupted by a go-around or a diversion, and the last recorded sample of a track is more often a loss of reception than a landing.</p>
+<p>For <strong>departures</strong> the answer is unambiguous and it replicates: 18 of 70 grid cells beat production on both axes in each sample, and the best of them — <strong>20 NM and 15,000 ft AGL</strong> — reaches 59.04% coverage in 2025-06 and 61.88% in 2024-06, at 97.67% accuracy in <strong>both</strong>. That is 8 to 10 percentage points of coverage over production at slightly better accuracy.</p>
+<p>For <strong>arrivals</strong> it does not replicate. In 2024-06 seven cells beat production, the best by +4.47 pp of coverage at matched accuracy. In 2025-06 <strong>none do</strong>: production already sits on the achievable frontier, and the closest M7 gets is -0.28 pp.&nbsp;Two three-day samples disagree, so the honest conclusion is that endpoint abstention does not demonstrably improve ADES.</p>
+<p>Why the sides differ is not mysterious. A departure’s first sample is either at a stand or it is not, and the aircraft was stationary moments earlier. An arrival’s last sample is more often a <strong>loss of reception during descent</strong> than a landing — it can be anywhere on the approach, at any height, tens of miles out. The endpoint is simply a weaker instrument for arrivals, and no threshold on it recovers what was never observed.</p>
 </section>
-<section id="recommendation" class="level2" data-number="8">
-<h2 data-number="8" class="anchored" data-anchor-id="recommendation"><span class="header-section-number">8</span> Recommendation</h2>
-<p>On the evidence of one day, OPDI should replace the altitude-trend vote with endpoint proximity plus explicit abstention. This is a smaller algorithm than the one it replaces — no smoothing window, no margin parameter, no per-aerodrome vote — and it is strictly better on both axes.</p>
-<p>The two parameters should be published alongside the flight list, and the abstention reason retained per flight, so that downstream users can distinguish “no departure aerodrome” from “departure aerodrome not determinable”. The current algorithm collapses those two cases into a null, which is a loss of information that costs nothing to preserve.</p>
-<p>This should not be implemented until the full-month results are in.</p>
 </section>
-<section id="limitations" class="level2" data-number="9">
-<h2 data-number="9" class="anchored" data-anchor-id="limitations"><span class="header-section-number">9</span> Limitations</h2>
+<section id="per-aerodrome-movement-counts" class="level2" data-number="8">
+<h2 data-number="8" class="anchored" data-anchor-id="per-aerodrome-movement-counts"><span class="header-section-number">8</span> Per-aerodrome movement counts</h2>
+<p>Flight-level accuracy can hide errors that cancel: a departure misattributed from A to B leaves both counts wrong and the total right. Movement counts per aerodrome are the number an operational user actually reads, so they are reported separately.</p>
+<p>The comparison is restricted to aerodromes the method could ever have named — European large and medium airports inside the sampled bounding box. Ground truth names every destination a flight really had, including small fields and airports on other continents; an unrestricted comparison measures that mismatch rather than the method.</p>
+<div class="cell">
+<div class="cell-output-display">
+<table class="caption-top table table-sm table-striped small">
+<caption>M7 movement counts against APDF, restricted to in-scope aerodromes. A count ratio below 1 is an undercount.</caption>
+<colgroup>
+<col style="width: 9%">
+<col style="width: 12%">
+<col style="width: 12%">
+<col style="width: 14%">
+<col style="width: 16%">
+<col style="width: 34%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Sample</th>
+<th style="text-align: left;">Movements</th>
+<th style="text-align: right;">Aerodromes</th>
+<th style="text-align: right;">Count ratio</th>
+<th style="text-align: right;">Median recall</th>
+<th style="text-align: right;">Median recall, 50+ movements</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">2024-06</td>
+<td style="text-align: left;">departures</td>
+<td style="text-align: right;">670</td>
+<td style="text-align: right;">0.618</td>
+<td style="text-align: right;">33.33%</td>
+<td style="text-align: right;">66.67%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">2024-06</td>
+<td style="text-align: left;">arrivals</td>
+<td style="text-align: right;">669</td>
+<td style="text-align: right;">0.533</td>
+<td style="text-align: right;">22.08%</td>
+<td style="text-align: right;">58.14%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">2025-06</td>
+<td style="text-align: left;">departures</td>
+<td style="text-align: right;">683</td>
+<td style="text-align: right;">0.599</td>
+<td style="text-align: right;">27.27%</td>
+<td style="text-align: right;">63.78%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">2025-06</td>
+<td style="text-align: left;">arrivals</td>
+<td style="text-align: right;">677</td>
+<td style="text-align: right;">0.511</td>
+<td style="text-align: right;">22.22%</td>
+<td style="text-align: right;">54.03%</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div class="cell">
+<div class="cell-output-display">
+<table class="caption-top table table-sm table-striped small">
+<caption>Busiest aerodromes by APDF departures, 2025-06.</caption>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Aerodrome</th>
+<th style="text-align: right;">APDF departures</th>
+<th style="text-align: right;">OPDI assigned</th>
+<th style="text-align: right;">Count ratio</th>
+<th style="text-align: right;">Recall</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">LTFM</td>
+<td style="text-align: right;">2,282</td>
+<td style="text-align: right;">1,711</td>
+<td style="text-align: right;">0.75</td>
+<td style="text-align: right;">74.72%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">EHAM</td>
+<td style="text-align: right;">2,148</td>
+<td style="text-align: right;">1,613</td>
+<td style="text-align: right;">0.75</td>
+<td style="text-align: right;">74.35%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">EDDF</td>
+<td style="text-align: right;">2,094</td>
+<td style="text-align: right;">1,729</td>
+<td style="text-align: right;">0.83</td>
+<td style="text-align: right;">82.43%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">LFPG</td>
+<td style="text-align: right;">2,084</td>
+<td style="text-align: right;">1,616</td>
+<td style="text-align: right;">0.78</td>
+<td style="text-align: right;">77.06%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">EGLL</td>
+<td style="text-align: right;">2,001</td>
+<td style="text-align: right;">1,575</td>
+<td style="text-align: right;">0.79</td>
+<td style="text-align: right;">78.66%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">LEMD</td>
+<td style="text-align: right;">1,773</td>
+<td style="text-align: right;">1,346</td>
+<td style="text-align: right;">0.76</td>
+<td style="text-align: right;">75.92%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">LEBL</td>
+<td style="text-align: right;">1,591</td>
+<td style="text-align: right;">1,248</td>
+<td style="text-align: right;">0.78</td>
+<td style="text-align: right;">78.32%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">EDDM</td>
+<td style="text-align: right;">1,573</td>
+<td style="text-align: right;">1,273</td>
+<td style="text-align: right;">0.81</td>
+<td style="text-align: right;">80.80%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">LIRF</td>
+<td style="text-align: right;">1,449</td>
+<td style="text-align: right;">935</td>
+<td style="text-align: right;">0.65</td>
+<td style="text-align: right;">64.53%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">LTAI</td>
+<td style="text-align: right;">1,435</td>
+<td style="text-align: right;">723</td>
+<td style="text-align: right;">0.50</td>
+<td style="text-align: right;">50.03%</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<p>Two things stand out. <strong>The error is always an undercount</strong> — no aerodrome is credited with movements it did not have. That is the good failure mode: a systematic undercount can be corrected for, an overcount cannot. And <strong>recall scales with aerodrome size</strong>: 75–87% at the busiest hubs, around 65% median at aerodromes with 50 or more movements, and poor in the long tail. OPDI’s flight list is substantially more complete at large aerodromes than small ones, which is worth knowing before using it for a comparison across aerodrome classes.</p>
+<p>The exception is instructive: <strong>LTAI (Antalya)</strong> sits at a count ratio of 0.50 in 2025-06 and 0.26 in 2024-06, far below every comparable hub. That is a receiver-coverage blackspot, not an algorithmic failure, and no change to the detection rule will fix it.</p>
+</section>
+<section id="recommendation" class="level2" data-number="9">
+<h2 data-number="9" class="anchored" data-anchor-id="recommendation"><span class="header-section-number">9</span> Recommendation</h2>
+<p><strong>For departures, adopt endpoint abstention.</strong> Nearest aerodrome to the track’s first sample, emitted only when that sample is within 20 NM and below 15,000 ft above field elevation. This is a smaller algorithm than the one it replaces — no smoothing window, no margin parameter, no per-aerodrome vote — and it gains 8 to 10 percentage points of ADEP coverage at slightly better accuracy, in both samples.</p>
+<p><strong>For arrivals, do not change the algorithm on this evidence.</strong> The same construction wins in one sample and loses in the other. If ADES coverage is judged more valuable than the last point of accuracy, the frontier above gives the available trades explicitly — but that is a policy decision, not a finding.</p>
+<p>In both cases the thresholds should be published alongside the flight list, and <strong>the abstention reason retained per flight</strong>, so downstream users can distinguish “no departure aerodrome” from “departure aerodrome not determinable”. The current algorithm collapses those into a null, a loss of information that costs nothing to preserve.</p>
+</section>
+<section id="limitations" class="level2" data-number="10">
+<h2 data-number="10" class="anchored" data-anchor-id="limitations"><span class="header-section-number">10</span> Limitations</h2>
 <ul>
-<li><strong>One day, becoming three plus three.</strong> Everything here rests on 2025-06-05. Three-day samples in 2025-06 and 2024-06 are being scored; fitting the thresholds on one and validating on the other, a year apart, is the only honest way to report a tuned parameter. Full-month sampling was considered and dropped: it costs ~12 hours of cluster time and ~100 GB to reduce a sampling error that is already small relative to the effect sizes here — the gap between M7 and the production algorithm is four percentage points of coverage and one of accuracy, not a fraction of a point.</li>
-<li><strong>No trajectory cleaning.</strong> The state vectors are raw apart from the bounding box and decimation. OPDI’s cleaning stage has not been applied, and whether it helps here is an open question rather than a formality: the stale-broadcast filter nulls repeated positions, which is precisely what a stationary aircraft at a gate transmits. It could remove the very samples the endpoint rule depends on. This will be measured as an ablation, not assumed.</li>
-<li><strong>Aircraft filtering is one layer of three.</strong> The ADS-B emitter category — the only field that names surface vehicles — is dropped by the reference pipeline stage and would need to be retained. A behavioural filter requiring a sustained airborne period is database-independent and would catch the 27% of airframes with no recorded class at all.</li>
-<li><strong>Per-aerodrome counts are not yet reported.</strong> Comparing arrival and departure counts per aerodrome against APDF is a stricter test than flight-level accuracy and is only meaningful at the 90 aerodromes APDF covers. It is not in this version.</li>
+<li><strong>Six days.</strong> Two three-day samples. What a longer run would buy is representativeness across day of week and season, not statistical power. The ADES result shows the exposure is real: two samples a year apart disagreed.</li>
+<li><strong>No trajectory cleaning.</strong> State vectors are raw apart from the bounding box and decimation. OPDI’s cleaning stage is implemented and not yet applied here, and whether it helps is genuinely open: the stale-broadcast filter nulls repeated positions, which is precisely what a stationary aircraft at a gate transmits. It could remove the very samples the endpoint rule depends on. This will be measured as an ablation, not assumed.</li>
+<li><strong>Aircraft filtering is one layer of three.</strong> The ADS-B emitter category — the only field naming surface vehicles — is dropped by the reference pipeline stage and would need retaining. A behavioural filter requiring a sustained airborne period is database-independent and would catch the 27% of airframes with no recorded class.</li>
 <li><strong>Aerodrome set is fixed.</strong> All results use large and medium airports. Sweeping small airports and heliports is implemented but not yet reported.</li>
+<li><strong>The two sides share one threshold pair.</strong> M7 applies the same <span class="math inline">\(d\)</span> and <span class="math inline">\(h\)</span> to departures and arrivals. Given how differently the two behave, fitting them separately is the obvious next step.</li>
 </ul>
 </section>
-<section id="reproducing" class="level2" data-number="10">
-<h2 data-number="10" class="anchored" data-anchor-id="reproducing"><span class="header-section-number">10</span> Reproducing</h2>
+<section id="reproducing" class="level2" data-number="11">
+<h2 data-number="11" class="anchored" data-anchor-id="reproducing"><span class="header-section-number">11</span> Reproducing</h2>
 <p>Everything is in the <code>opdi</code> repository under <code>benchmarks/</code>, and every dataset written is registered in <code>benchmarks/DATASETS.md</code>.</p>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co"># 1. Sample state vectors from the OpenSky archive into S3</span></span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="ex">python</span> benchmarks/osn_sample.py 2025-06-05 2025-06-08</span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="co"># 2. Score every method</span></span>
-<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="ex">python</span> benchmarks/adep_ades.py <span class="at">--days</span> 2025-06-05 <span class="at">--months</span> 202506 <span class="at">--methods</span> all</span>
-<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="co"># 3. Attribute the cascade's answers, with M1 as the control</span></span>
-<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="ex">python</span> benchmarks/adep_ades.py <span class="at">--days</span> 2025-06-05 <span class="at">--months</span> 202506 <span class="dt">\</span></span>
-<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>    <span class="at">--methods</span> M6_cascade <span class="at">--diagnose-cascade</span> <span class="at">--control</span> m1</span>
-<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a><span class="co"># 4. Sweep the abstention grid</span></span>
-<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a><span class="ex">python</span> benchmarks/adep_ades.py <span class="at">--days</span> 2025-06-05 <span class="at">--months</span> 202506 <span class="dt">\</span></span>
-<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>    <span class="at">--methods</span> none <span class="at">--sweep-abstain</span></span>
-<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a><span class="co"># 5. Refresh this page's CSV cache</span></span>
-<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a><span class="ex">python</span> benchmarks/export_results.py</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p>Steps 1–4 run on the OpenSky Kubernetes cluster and need credentials. Step 5 needs S3 read access. Rendering this page needs neither.</p>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="ex">python</span> benchmarks/adep_ades.py <span class="at">--days</span> 2025-06-05 2025-06-06 2025-06-07 <span class="dt">\</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">--months</span> 202506 <span class="at">--methods</span> all <span class="at">--ladder</span> m1 m0 m3 m2 m5 <span class="at">--sweep-abstain</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="co"># 3. Attribute the cascade's answers, and count movements per aerodrome</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="ex">python</span> benchmarks/adep_ades.py <span class="at">--days</span> 2025-06-05 2025-06-06 2025-06-07 <span class="dt">\</span></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>    <span class="at">--months</span> 202506 <span class="at">--methods</span> none <span class="at">--diagnose-cascade</span> <span class="at">--control</span> m1 <span class="dt">\</span></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>    <span class="at">--per-airport</span> M7_abstain</span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a><span class="co"># 4. Refresh this page's CSV cache (both samples)</span></span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a><span class="ex">python</span> benchmarks/export_results.py</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Steps 1–3 run on the OpenSky Kubernetes cluster and need credentials; step 4 needs S3 read access. Rendering this page needs neither — no credentials, no database, no cluster.</p>
 
 
 </section>
