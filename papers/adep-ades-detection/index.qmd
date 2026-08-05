@@ -55,6 +55,20 @@ findings, in increasing order of consequence:
    against `r pct(methods$adep_coverage[methods$method == "M0_current"])` at
    `r pct(methods$adep_accuracy[methods$method == "M0_current"])`.
 
+::: {.callout-warning}
+## Interim — larger samples are being scored now
+
+This is a working draft published while the benchmark is still running. Three-day
+samples in **2025-06** and **2024-06** are being scored on the OpenSky cluster
+and will replace every number below; the cleaning ablation, the per-aerodrome
+counts and the aerodrome-set sweep are implemented but not yet run.
+
+The findings are reported now because the effects are large — several
+percentage points, not fractions of one — and because the central result is
+structural rather than numerical: it is about which signal carries the
+information, and that does not depend on the sample size.
+:::
+
 ::: {.callout-important}
 ## Scope of the results on this page
 
@@ -286,7 +300,7 @@ sitting at 5,000 ft. A sample flagged `on_ground` satisfies the height test
 outright, since a missing barometric altitude on the surface is normal.
 
 ```{r frontier-plot}
-#| fig-cap: "Coverage/accuracy frontier for endpoint abstention, ADEP, 2025-06-05. Each line is one distance threshold; points along it are height thresholds from on-ground only (bottom left) to unrestricted (top right). The production algorithm M0 and the unrestricted endpoint rule M1 are marked. The region above and to the right of M0 is where a method beats it on both axes at once."
+#| fig-cap: "Coverage/accuracy frontier for endpoint abstention, ADEP, 2025-06-05. Each line is one distance threshold; points along it are height thresholds, relaxing left to right from on-ground-only through 5,000 ft AGL to unrestricted. Accuracy holds above 99% across a long plateau and then falls off a cliff once the height test is dropped altogether. The dotted lines mark the production algorithm M0; the region up and to the right of their intersection beats it on both axes at once."
 #| fig-width: 8
 #| fig-height: 5.2
 
