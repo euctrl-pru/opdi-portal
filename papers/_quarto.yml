@@ -1,0 +1,33 @@
+project:
+  type: website
+  output-dir: _site
+
+# Papers are a separate Quarto project from the portal site: they render on
+# their own, are linked from content/resources.qmd, and are excluded from the
+# parent project's render list so a paper draft can never break the site build.
+
+website:
+  title: "OPDI Papers"
+  navbar:
+    left:
+      - href: index.qmd
+        text: Papers
+      - href: https://www.eurocontrol.int/opdi
+        text: OPDI
+
+format:
+  html:
+    theme: cosmo
+    toc: true
+    toc-depth: 3
+    number-sections: true
+    code-fold: true
+    df-print: kable
+
+execute:
+  echo: false
+  warning: false
+  # Every figure reads a committed CSV cache. Rendering must never need S3
+  # credentials, a Spark cluster or a database -- refresh the cache with
+  #   python benchmarks/export_results.py     (in the opdi repo)
+  freeze: auto
