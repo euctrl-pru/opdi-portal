@@ -60,11 +60,14 @@ findings, in increasing order of consequence:
 
 Every figure below is computed on a **single day, 2025-06-05**
 (`r format(methods$n_ground_truth[1], big.mark = ",")` ground-truth flights,
-35.4 million state vectors). Full-month comparisons for 2024-06 and 2025-06 are
-in preparation and will replace these numbers. The conclusions are stated as
-what one day supports; the ranking of methods is large and consistent enough
-that a month is expected to sharpen rather than overturn it, but that is a
-prediction, not a result.
+35.4 million state vectors). Three-day samples in 2025-06 and 2024-06 are being
+scored and will replace these numbers.
+
+The sample is small in *days*, not in flights: three days is roughly 97,000
+ground-truth flights, which is ample for fitting the two thresholds this study
+ends up recommending. The real exposure is representativeness — day of week,
+weather, seasonal traffic mix — which is why the second sample is a year apart
+rather than adjacent. Read the conclusions as what these days support.
 :::
 
 ## Why this is hard
@@ -388,10 +391,14 @@ This should not be implemented until the full-month results are in.
 
 ## Limitations {#limitations}
 
-- **One day.** Everything here rests on 2025-06-05. Full-month runs for 2024-06
-  and 2025-06 are in preparation; two separate months also allow any tuned
-  parameter to be fitted on one and validated on the other, which is the only
-  honest way to report a tuned threshold.
+- **One day, becoming three plus three.** Everything here rests on 2025-06-05.
+  Three-day samples in 2025-06 and 2024-06 are being scored; fitting the
+  thresholds on one and validating on the other, a year apart, is the only
+  honest way to report a tuned parameter. Full-month sampling was considered
+  and dropped: it costs ~12 hours of cluster time and ~100 GB to reduce a
+  sampling error that is already small relative to the effect sizes here — the
+  gap between M7 and the production algorithm is four percentage points of
+  coverage and one of accuracy, not a fraction of a point.
 - **No trajectory cleaning.** The state vectors are raw apart from the bounding
   box and decimation. OPDI's cleaning stage has not been applied, and whether
   it helps here is an open question rather than a formality: the stale-broadcast
