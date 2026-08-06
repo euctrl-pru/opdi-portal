@@ -1,0 +1,393 @@
+---
+title: "Detecting departure and destination aerodromes from ADS-B"
+subtitle: "Version 3 — what the residual errors are made of"
+author: "EUROCONTROL Performance Review Unit"
+date: last-modified
+---
+
+```{r setup}
+#| include: false
+library(knitr)
+library(ggplot2)
+
+cache <- function(f) {
+  p <- file.path("data", f)
+  if (!file.exists(p)) return(NULL)
+  read.csv(p, stringsAsFactors = FALSE)
+}
+methods <- cache("method_comparison.csv")
+sweep   <- cache("abstention_sweep.csv")
+attrib  <- cache("cascade_attribution.csv")
+apt     <- cache("per_airport.csv")
+errs    <- cache("error_pairs.csv")
+trackq  <- cache("track_quality.csv")
+
+# pandas writes booleans as "True"/"False"; read.csv keeps them character and
+# R's == FALSE then silently matches nothing.
+as_bool <- function(x) if (is.logical(x)) x else tolower(as.character(x)) %in% c("true","1","t")
+for (d in c("methods","sweep")) if (!is.null(get(d)) && "cleaned" %in% names(get(d))) {
+  tmp <- get(d); tmp$cleaned <- as_bool(tmp$cleaned); assign(d, tmp)
+}
+if (!is.null(apt)) apt$in_scope <- as_bool(apt$in_scope)
+if (!is.null(errs)) errs$sched_to_unsched <- as_bool(errs$sched_to_unsched)
+
+MONTHS <- sort(unique(methods$month))
+DEFAULT_SP <- 15
+pct <- function(x) ifelse(is.na(x), "—", sprintf("%.2f%%", 100 * x))
+pp  <- function(x) ifelse(is.na(x), "—", sprintf("%+.2f pp", 100 * x))
+
+# Main configuration: the default penalty, default (non per-side) variant.
+base <- function() {
+  d <- methods[methods$sched_penalty_nm == DEFAULT_SP & methods$variant == "default", ]
+  d[order(d$month, -d$adep_overall), ]
+}
+m <- function(meth, field, month) {
+  d <- base(); d <- d[d$method == meth & d$month == month, ]
+  if (nrow(d) == 0) return(NA_real_); d[[field]][1]
+}
+```
+
+## Summary {.unnumbered}
+
+Version 3 follows a review of [version 2](../adep-ades-detection-v2/index.html).
+Auditing V2 against its own outputs found four review points only partly
+delivered and one delivered with a defect. Fixing them changed the results and,
+more usefully, changed what the *remaining* errors are made of.
+
+Three things came out of it.
+
+**The out-of-area rule was pre-empting good answers.** The border test won
+unconditionally over a qualifying aerodrome match, so Ponta Delgada — which sits
+about 8 NM inside the western edge of the ingestion box — had its departures
+labelled "out of area" with the aircraft still on the runway. A qualifying
+aerodrome now wins and the border label is the fallback.
+
+**Six of the seven most frequent departure errors were the same mistake:** a
+scheduled civil airport losing to an adjacent military airfield. Izmir to Çiğli
+Airbase, Naples to Grazzanise, Cagliari to Decimomannu, Catania to Sigonella,
+Gdańsk to Cewice — 7 to 25 NM apart, and in every case the truth had scheduled
+service and the prediction did not. Ranking candidates on a distance penalised
+for aerodromes without scheduled service removes that class of error entirely.
+
+**Out-of-area is reported separately now, and it does not work as well as V2
+implied.** Precision is high — when the rule says out-of-area it is right about
+93% of the time — but recall is only 10 to 15%. The concept is right and the
+geometric test is weak, for a reason given in @sec-ooa.
+
+```{r headline}
+h <- do.call(rbind, lapply(MONTHS, function(mo) do.call(rbind, lapply(
+  c("M0_current","M7_abstain"), function(mm) data.frame(
+    Sample = mo, Method = mm,
+    `ADEP cov` = pct(m(mm,"adep_coverage",mo)), `ADEP acc` = pct(m(mm,"adep_accuracy",mo)),
+    `in-area cov` = pct(m(mm,"adep_inarea_coverage",mo)),
+    `in-area acc` = pct(m(mm,"adep_inarea_accuracy",mo)),
+    check.names = FALSE)))))
+kable(h, align = "llrrrr",
+      caption = "Departure detection: the production algorithm against endpoint abstention, headline and with out-of-area stripped out.")
+```
+
+## What changed since version 2 {.unnumbered}
+
+::: {.callout-important}
+* **Out-of-area precedence fixed** — an aerodrome match now beats the border label.
+* **Scheduled-service tie-break added** — candidates ranked on distance penalised
+  for aerodromes without scheduled service, swept rather than assumed.
+* **Out-of-area reported explicitly** — recall, precision and in-area figures
+  beside the headline, so naming skill and abstention skill cannot be conflated.
+* **Per-side thresholds actually run** — and found not to help (@sec-perside).
+* **Residual errors analysed** rather than described (@sec-errors).
+
+Version 1 and version 2 remain published unchanged. Their numbers are not
+restated here and are not comparable to these, because the scoring changed.
+:::
+
+## Reporting out-of-area {#sec-ooa}
+
+A flight from Dubai to Amsterdam has a departure aerodrome that no European
+ADS-B feed can name: the aircraft entered the area already airborne. V2 made
+`OOA` a valid answer and a valid truth, which was right. What it did not do was
+report the two abilities separately, and they are different abilities — naming
+an aerodrome, and recognising that no aerodrome can be named.
+
+That matters because roughly one departure in twelve is genuinely out of area,
+so a method could buy accuracy by labelling liberally and an undecomposed table
+would show only the improvement.
+
+```{r ooa-table}
+o <- do.call(rbind, lapply(MONTHS, function(mo) do.call(rbind, lapply(
+  c("M7_abstain","M8_extrapolate"), function(mm) data.frame(
+    Sample = mo, Method = mm,
+    `truly OOA` = pct(m(mm,"adep_gt_ooa_share",mo)),
+    `labelled OOA` = pct(m(mm,"adep_pred_ooa_share",mo)),
+    `OOA recall` = pct(m(mm,"adep_ooa_recall",mo)),
+    `OOA precision` = pct(m(mm,"adep_ooa_precision",mo)),
+    check.names = FALSE)))))
+kable(o, align = "llrrrr",
+      caption = "Out-of-area detection for departures. Only M7 and M8 emit the label; the other methods never do, so their recall is zero by construction.")
+```
+
+High precision, low recall. The rule fires when a track *endpoint* sits within
+30 NM of the bounding box edge — but an inbound flight's first recorded sample
+appears wherever a receiver happens to pick it up, which is usually well inside
+the boundary rather than at it. Most out-of-area departures therefore never look
+like border cases at all.
+
+The concept is sound; the geometric test is the wrong instrument. A phase-based
+test would fit the physics better: a track whose first sample is **already in
+the cruise, neither near an aerodrome nor descending toward one**, has an origin
+outside the observed area regardless of where it is. That is not implemented
+here and is the clearest single improvement available (@sec-limitations).
+
+## The military-airfield confusion {#sec-sched}
+
+The most frequent departure errors in version 2 formed one pattern:
+
+| Truth (scheduled) | Predicted (not scheduled) | Apart |
+|---|---|---|
+| LTBJ Izmir | LTBL Çiğli Airbase | 14.9 NM |
+| LIRN Naples | LIRM Grazzanise Air Base | 14.1 NM |
+| LIEE Cagliari | LIED Decimomannu Air Base | 7.2 NM |
+| LICC Catania | LICZ Sigonella Navy Air Base | 7.9 NM |
+| EPGD Gdańsk | EPCE Cewice Naval Air Base | 24.6 NM |
+
+: In every case the truth had scheduled service and the prediction did not. {tbl-colwidths="[34,46,20]"}
+
+A departing aircraft's first recorded fix is often already a few miles into the
+climb, and where a military field sits between the airport and the departure
+track, the nearest-aerodrome rule takes it. Aviation knowledge resolves this
+without any new data: a commercial flight almost certainly used the aerodrome
+with scheduled service.
+
+Candidates are therefore ranked on **effective distance** — real distance plus a
+fixed penalty for aerodromes without scheduled service — so a military field has
+to be clearly nearest rather than merely nearest. A penalty of zero reproduces
+the unbiased ranking exactly, which is why it is swept.
+
+```{r sched-sweep}
+#| fig-cap: "Accuracy against the scheduled-service penalty, both samples and both sides. Coverage moves by less than 0.6 pp across the whole range, so this is very nearly a free choice; the curve peaking and turning is what shows the penalty is correcting a bias rather than simply favouring larger aerodromes."
+#| fig-width: 8
+#| fig-height: 4.2
+sp <- methods[methods$method == "M7_abstain" & methods$variant == "default", ]
+long <- rbind(
+  data.frame(month = sp$month, penalty = sp$sched_penalty_nm,
+             accuracy = sp$adep_accuracy, side = "ADEP"),
+  data.frame(month = sp$month, penalty = sp$sched_penalty_nm,
+             accuracy = sp$ades_accuracy, side = "ADES"))
+ggplot(long, aes(penalty, accuracy, colour = month)) +
+  geom_line(linewidth = 0.7) + geom_point(size = 2) +
+  facet_wrap(~side, scales = "free_y") +
+  scale_x_continuous("Penalty applied to aerodromes without scheduled service (NM)") +
+  scale_y_continuous("Accuracy", labels = scales::percent) +
+  scale_colour_manual(values = c("2024-06" = "#1b6ca8", "2025-06" = "#c1522b"), name = NULL) +
+  theme_minimal(base_size = 11) +
+  theme(panel.grid.minor = element_blank(), strip.text = element_text(face = "bold"))
+```
+
+Accuracy peaks between 10 and 15 NM on both sides in both samples, then turns
+over. Coverage falls by under 0.6 pp across the entire range. **10 NM is the
+defensible choice** — it is at or within a whisker of the peak in all four
+curves, and the flat top means the exact value is not load-bearing.
+
+## Where the remaining errors are {#sec-errors}
+
+The tie-break does not reduce errors uniformly. It removes one class and
+introduces another, and the honest way to report that is by composition.
+
+```{r error-composition}
+ec <- errs[errs$side == "adep", ]
+tot <- sum(ec$n)
+cls <- data.frame(
+  Class = c("Scheduled → unscheduled (the class the tie-break targets)",
+            "Unscheduled → scheduled (the tie-break's own cost)",
+            "Truth out-of-area, an aerodrome named",
+            "Truth an aerodrome, labelled out-of-area"),
+  Flights = c(
+    sum(ec$n[ec$sched_to_unsched]),
+    sum(ec$n[ec$t_scheduled != "yes" & ec$p_scheduled == "yes"]),
+    sum(ec$n[ec$truth == "OOA"]),
+    sum(ec$n[ec$predicted == "OOA"])),
+  check.names = FALSE)
+cls$Share <- pct(cls$Flights / tot)
+kable(cls, align = "lrr",
+      caption = sprintf("Composition of the %s most frequent departure errors after the tie-break.", format(tot, big.mark = ",")))
+```
+
+The class the tie-break targets is now **empty**. What dominates instead is its
+mirror image: genuine movements at non-scheduled aerodromes — Biggin Hill,
+Northolt — pulled to the nearby hub. That is the price of the preference, it is
+visible, and it is smaller than what it replaced, which is why accuracy rose.
+
+```{r error-table}
+e <- head(ec[order(-ec$n), ], 12)
+kable(data.frame(
+  Sample = e$month, Truth = e$truth, Predicted = e$predicted,
+  Flights = format(e$n, big.mark = ","),
+  Apart = ifelse(is.na(e$apart_nm) | e$truth == "OOA" | e$predicted == "OOA",
+                 "—", sprintf("%.1f NM", e$apart_nm)),
+  check.names = FALSE),
+  align = "lllrr",
+  caption = "Most frequent departure confusions after the fixes.")
+```
+
+Two further groups are visible and neither is addressable by threshold tuning.
+**Long-range misassignments** — Larnaca predicted as Beirut, 112 NM apart — are
+tracks whose first sample is far from either, where nearest-aerodrome has no
+real information. **Dense terminal areas** — Biggin Hill against London City at
+10.5 NM, Cannes against Nice at 13.1 NM — need runway-level discrimination,
+which the HexAero layouts OPDI already computes could provide and this study
+does not use.
+
+## Per-side thresholds do not help {#sec-perside}
+
+Version 2 noted that departures and arrivals behave differently and suggested
+fitting their thresholds separately. Doing it properly: fit each side's
+threshold on **2024-06** by taking the most coverage available subject to
+beating the production algorithm's accuracy, then apply to **2025-06**.
+
+Both sides select the **same** cell, 40 NM and 15,000 ft AGL. The frontier's
+shape is similar enough on the two sides that no separation emerges, so the
+asymmetry between departures and arrivals is not something a threshold can fix —
+it is in how much information the endpoint carries, not in where the cut-off
+should sit.
+
+```{r perside}
+ps <- methods[methods$variant == "perside", ]
+if (nrow(ps)) {
+  d <- methods[methods$method == "M7_abstain" & methods$variant == "default" &
+               methods$sched_penalty_nm == DEFAULT_SP & methods$month == ps$month[1], ]
+  m0 <- methods[methods$method == "M0_current" & methods$variant == "default" &
+                methods$sched_penalty_nm == DEFAULT_SP & methods$month == ps$month[1], ]
+  kable(data.frame(
+    Configuration = c("Production (M0)", "M7 default (20 NM / 15,000 ft)",
+                      "M7 fitted on 2024-06 (40 NM / 15,000 ft)"),
+    `ADEP cov` = pct(c(m0$adep_coverage, d$adep_coverage, ps$adep_coverage)),
+    `ADEP acc` = pct(c(m0$adep_accuracy, d$adep_accuracy, ps$adep_accuracy)),
+    `ADES cov` = pct(c(m0$ades_coverage, d$ades_coverage, ps$ades_coverage)),
+    `ADES acc` = pct(c(m0$ades_accuracy, d$ades_accuracy, ps$ades_accuracy)),
+    check.names = FALSE),
+    align = "lrrrr",
+    caption = sprintf("Validation on %s of thresholds fitted on the other sample.", ps$month[1]))
+}
+```
+
+The fitted point transfers **for departures** — more coverage at better accuracy
+than production, on a sample it was not fitted to. It does not transfer for
+arrivals: it buys coverage at a real cost in accuracy. This is the third
+independent time this study has found that arrivals resist what works for
+departures.
+
+## Everything else, unchanged
+
+The cascade still collapses onto its fallback rung, the aircraft denylist still
+outperforms the allowlist it replaced, trajectory extrapolation still fails on
+arrivals, cleaning is still incompatible with endpoint-based arrival detection,
+and `track_id` still merges and fragments flights at the rates version 2
+measured. Those results are unaffected by the changes here and are not repeated;
+see [version 2](../adep-ades-detection-v2/index.html).
+
+```{r full-table}
+b <- base()
+kable(data.frame(
+  Sample = b$month, Method = b$method,
+  `ADEP cov` = pct(b$adep_coverage), `ADEP acc` = pct(b$adep_accuracy),
+  `ADES cov` = pct(b$ades_coverage), `ADES acc` = pct(b$ades_accuracy),
+  `ADEP in-area cov` = pct(b$adep_inarea_coverage),
+  `ADEP in-area acc` = pct(b$adep_inarea_accuracy),
+  check.names = FALSE),
+  align = "llrrrrrr",
+  caption = "All methods, both samples, at the default configuration.")
+```
+
+## Recommendations {#sec-recommendations}
+
+### Already implemented and validated in this study
+
+These need no further research. They are in `benchmarks/adep_ades.py` and are
+measured above.
+
+| Change | Evidence |
+|---|---|
+| Treat out-of-area as an answer, not a silence | @sec-ooa |
+| Prefer a qualifying aerodrome over the border label | @sec-ooa |
+| Rank candidates with a scheduled-service penalty (10 NM) | @sec-sched |
+| Drop only *confirmed* non-aeroplanes; keep unidentified airframes | V2 |
+| Restrict candidates to large and medium aerodromes | V2 |
+| Report naming skill and abstention skill separately | @sec-ooa |
+
+### Outstanding in the production pipeline
+
+None of the above has been applied to `src/opdi/pipeline/flights.py`. The
+production flight list still uses the altitude-trend vote and still emits a
+null for both "outside the observed area" and "not determined". A patch
+proposal follows so that the change can be reviewed rather than assumed.
+
+## Production patch proposal {#sec-patch}
+
+Scope is `src/opdi/pipeline/flights.py`. `tracks.py` is untouched, so
+`track_id` continuity with every published release is unaffected — this changes
+the flight list, not track construction.
+
+**Replace** `_categorize_landing_take_off`, which counts the sign of a 5-sample
+rolling-mean altitude difference and drops anything ambiguous, with the endpoint
+rule:
+
+1. Take the first and last state vector of the track.
+2. Find the nearest aerodrome by **effective distance** — great-circle distance
+   plus 10 NM for aerodromes without scheduled service — among large and medium
+   aerodromes only.
+3. Emit that aerodrome when the endpoint is within 20 NM of it and no more than
+   15,000 ft above its elevation, or is flagged `on_ground`.
+4. Otherwise, if the endpoint lies within 30 NM of the ingestion boundary, emit
+   the out-of-area marker.
+5. Otherwise emit null.
+
+**Add two columns** to the flight list, `adep_source` and `ades_source`, taking
+`aerodrome`, `out_of_area` or `undetermined`. This is the change with the
+highest value per line: those three states are currently collapsed into a single
+null, and they mean entirely different things to a downstream user.
+
+**Version.** New `version` string for the flight list. Existing event types keep
+theirs, so published v0.0.2 data stays reproducible.
+
+**Aerodrome elevation** comes from OurAirports and is missing for 3.09% of large
+and medium aerodromes. Where it is missing, fall back to the `on_ground` flag
+rather than treating the elevation as sea level — at a 5,000 ft aerodrome that
+error is the entire height threshold.
+
+**Before applying, a reviewer should check:** that arrivals are *not* switched to
+this rule on the strength of the departure result, since arrivals fail to
+replicate every time; that the aerodrome reference used in production carries
+`scheduled_service`; and that the out-of-area marker is agreed with downstream
+consumers before it appears in a published column.
+
+## Limitations {#sec-limitations}
+
+- **Out-of-area recall is 10–15%.** The geometric border test is the wrong
+  instrument; a phase-based test — first sample already in the cruise, not near
+  or descending toward an aerodrome — should be tried next, and is the single
+  clearest improvement available.
+- **The scheduled-service preference has a cost**, and it is now the largest
+  single class of remaining departure errors: genuine movements at Biggin Hill
+  and Northolt pulled to the nearby hub.
+- **Dense terminal areas are unresolved.** Biggin Hill against London City,
+  Cannes against Nice. Runway-level matching using the HexAero layouts OPDI
+  already computes is the obvious next step and is not used here.
+- **Six days**, two three-day samples a year apart.
+- Everything carried over from version 2: surface vehicles cannot be excluded by
+  declaration, `track_id` is taken as given, and cleaning is not applied.
+
+## Reproducing
+
+```bash
+python benchmarks/adep_ades.py --days 2025-06-05 2025-06-06 2025-06-07 \
+    --months 202506 --methods all --sweep-abstain \
+    --error-pairs M7_abstain --per-airport M7_abstain \
+    --diagnose-cascade --control m1 --sched-penalty-nm 15 \
+    --results-dir <dir>
+```
+
+`--results-dir` writes the result tables as CSV to a local directory instead of
+S3. The bucket has a quota, and a write that exceeds it fails at the very end of
+a job — after the numbers are computed and printed but before they are stored.
+
+Rendering this page needs no credentials, no database and no cluster.
