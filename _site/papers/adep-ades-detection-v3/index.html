@@ -162,14 +162,26 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <li><a href="#sec-errors" id="toc-sec-errors" class="nav-link" data-scroll-target="#sec-errors"><span class="header-section-number">3</span> Where the remaining errors are</a></li>
   <li><a href="#sec-perside" id="toc-sec-perside" class="nav-link" data-scroll-target="#sec-perside"><span class="header-section-number">4</span> Per-side thresholds do not help</a></li>
   <li><a href="#everything-else-unchanged" id="toc-everything-else-unchanged" class="nav-link" data-scroll-target="#everything-else-unchanged"><span class="header-section-number">5</span> Everything else, unchanged</a></li>
-  <li><a href="#sec-recommendations" id="toc-sec-recommendations" class="nav-link" data-scroll-target="#sec-recommendations"><span class="header-section-number">6</span> Recommendations</a>
+  <li><a href="#sec-implementation" id="toc-sec-implementation" class="nav-link" data-scroll-target="#sec-implementation"><span class="header-section-number">6</span> How it works in code</a>
   <ul class="collapse">
-  <li><a href="#already-implemented-and-validated-in-this-study" id="toc-already-implemented-and-validated-in-this-study" class="nav-link" data-scroll-target="#already-implemented-and-validated-in-this-study"><span class="header-section-number">6.1</span> Already implemented and validated in this study</a></li>
-  <li><a href="#outstanding-in-the-production-pipeline" id="toc-outstanding-in-the-production-pipeline" class="nav-link" data-scroll-target="#outstanding-in-the-production-pipeline"><span class="header-section-number">6.2</span> Outstanding in the production pipeline</a></li>
+  <li><a href="#building-tracks" id="toc-building-tracks" class="nav-link" data-scroll-target="#building-tracks"><span class="header-section-number">6.1</span> Building tracks</a></li>
+  <li><a href="#finding-candidate-aerodromes" id="toc-finding-candidate-aerodromes" class="nav-link" data-scroll-target="#finding-candidate-aerodromes"><span class="header-section-number">6.2</span> Finding candidate aerodromes</a></li>
+  <li><a href="#endpoints" id="toc-endpoints" class="nav-link" data-scroll-target="#endpoints"><span class="header-section-number">6.3</span> Endpoints</a></li>
+  <li><a href="#ranking-candidates" id="toc-ranking-candidates" class="nav-link" data-scroll-target="#ranking-candidates"><span class="header-section-number">6.4</span> Ranking candidates</a></li>
+  <li><a href="#the-abstention-test" id="toc-the-abstention-test" class="nav-link" data-scroll-target="#the-abstention-test"><span class="header-section-number">6.5</span> The abstention test</a></li>
+  <li><a href="#out-of-area" id="toc-out-of-area" class="nav-link" data-scroll-target="#out-of-area"><span class="header-section-number">6.6</span> Out-of-area</a></li>
+  <li><a href="#extrapolation-m8" id="toc-extrapolation-m8" class="nav-link" data-scroll-target="#extrapolation-m8"><span class="header-section-number">6.7</span> Extrapolation (M8)</a></li>
+  <li><a href="#scoring" id="toc-scoring" class="nav-link" data-scroll-target="#scoring"><span class="header-section-number">6.8</span> Scoring</a></li>
+  <li><a href="#cascade-attribution" id="toc-cascade-attribution" class="nav-link" data-scroll-target="#cascade-attribution"><span class="header-section-number">6.9</span> Cascade attribution</a></li>
   </ul></li>
-  <li><a href="#sec-patch" id="toc-sec-patch" class="nav-link" data-scroll-target="#sec-patch"><span class="header-section-number">7</span> Production patch proposal</a></li>
-  <li><a href="#sec-limitations" id="toc-sec-limitations" class="nav-link" data-scroll-target="#sec-limitations"><span class="header-section-number">8</span> Limitations</a></li>
-  <li><a href="#reproducing" id="toc-reproducing" class="nav-link" data-scroll-target="#reproducing"><span class="header-section-number">9</span> Reproducing</a></li>
+  <li><a href="#sec-recommendations" id="toc-sec-recommendations" class="nav-link" data-scroll-target="#sec-recommendations"><span class="header-section-number">7</span> Recommendations</a>
+  <ul class="collapse">
+  <li><a href="#already-implemented-and-validated-in-this-study" id="toc-already-implemented-and-validated-in-this-study" class="nav-link" data-scroll-target="#already-implemented-and-validated-in-this-study"><span class="header-section-number">7.1</span> Already implemented and validated in this study</a></li>
+  <li><a href="#outstanding-in-the-production-pipeline" id="toc-outstanding-in-the-production-pipeline" class="nav-link" data-scroll-target="#outstanding-in-the-production-pipeline"><span class="header-section-number">7.2</span> Outstanding in the production pipeline</a></li>
+  </ul></li>
+  <li><a href="#sec-patch" id="toc-sec-patch" class="nav-link" data-scroll-target="#sec-patch"><span class="header-section-number">8</span> Production patch proposal</a></li>
+  <li><a href="#sec-limitations" id="toc-sec-limitations" class="nav-link" data-scroll-target="#sec-limitations"><span class="header-section-number">9</span> Limitations</a></li>
+  <li><a href="#reproducing" id="toc-reproducing" class="nav-link" data-scroll-target="#reproducing"><span class="header-section-number">10</span> Reproducing</a></li>
   </ul>
 <div class="quarto-alternate-formats"><h2>Other Formats</h2><ul><li><a href="index.pdf"><i class="bi bi-file-pdf"></i>PDF</a></li></ul></div></nav>
     </div>
@@ -354,7 +366,7 @@ Important
 </div>
 </div>
 <p>High precision, low recall. The rule fires when a track <em>endpoint</em> sits within 30 NM of the bounding box edge — but an inbound flight’s first recorded sample appears wherever a receiver happens to pick it up, which is usually well inside the boundary rather than at it. Most out-of-area departures therefore never look like border cases at all.</p>
-<p>The concept is sound; the geometric test is the wrong instrument. A phase-based test would fit the physics better: a track whose first sample is <strong>already in the cruise, neither near an aerodrome nor descending toward one</strong>, has an origin outside the observed area regardless of where it is. That is not implemented here and is the clearest single improvement available (<a href="#sec-limitations" class="quarto-xref">Section&nbsp;8</a>).</p>
+<p>The concept is sound; the geometric test is the wrong instrument. A phase-based test would fit the physics better: a track whose first sample is <strong>already in the cruise, neither near an aerodrome nor descending toward one</strong>, has an origin outside the observed area regardless of where it is. That is not implemented here and is the clearest single improvement available (<a href="#sec-limitations" class="quarto-xref">Section&nbsp;9</a>).</p>
 </section>
 <section id="sec-sched" class="level2" data-number="2">
 <h2 data-number="2" class="anchored" data-anchor-id="sec-sched"><span class="header-section-number">2</span> The military-airfield confusion</h2>
@@ -622,17 +634,7 @@ Important
 <div class="cell">
 <div class="cell-output-display">
 <table class="caption-top table table-sm table-striped small">
-<caption>All methods, both samples, at the default configuration.</caption>
-<colgroup>
-<col style="width: 8%">
-<col style="width: 16%">
-<col style="width: 9%">
-<col style="width: 9%">
-<col style="width: 9%">
-<col style="width: 9%">
-<col style="width: 18%">
-<col style="width: 18%">
-</colgroup>
+<caption>All methods, both June samples, at the default configuration. In-area figures are in the summary table for M0 and M7; they track the headline closely for every method.</caption>
 <thead>
 <tr class="header">
 <th style="text-align: left;">Sample</th>
@@ -641,180 +643,229 @@ Important
 <th style="text-align: right;">ADEP acc</th>
 <th style="text-align: right;">ADES cov</th>
 <th style="text-align: right;">ADES acc</th>
-<th style="text-align: right;">ADEP in-area cov</th>
-<th style="text-align: right;">ADEP in-area acc</th>
 </tr>
 </thead>
 <tbody>
 <tr class="odd">
-<td style="text-align: left;">2024-06</td>
-<td style="text-align: left;">M8_extrapolate</td>
+<td style="text-align: left;">2024</td>
+<td style="text-align: left;">M8 extrapolate</td>
 <td style="text-align: right;">76.29%</td>
 <td style="text-align: right;">95.53%</td>
 <td style="text-align: right;">53.20%</td>
 <td style="text-align: right;">67.07%</td>
-<td style="text-align: right;">80.35%</td>
-<td style="text-align: right;">96.34%</td>
 </tr>
 <tr class="even">
-<td style="text-align: left;">2024-06</td>
-<td style="text-align: left;">M6_cascade</td>
+<td style="text-align: left;">2024</td>
+<td style="text-align: left;">M6 cascade</td>
 <td style="text-align: right;">85.41%</td>
 <td style="text-align: right;">84.50%</td>
 <td style="text-align: right;">85.39%</td>
 <td style="text-align: right;">75.42%</td>
-<td style="text-align: right;">88.05%</td>
-<td style="text-align: right;">89.03%</td>
 </tr>
 <tr class="odd">
-<td style="text-align: left;">2024-06</td>
-<td style="text-align: left;">M1_traffic</td>
+<td style="text-align: left;">2024</td>
+<td style="text-align: left;">M1 traffic</td>
 <td style="text-align: right;">83.42%</td>
 <td style="text-align: right;">86.51%</td>
 <td style="text-align: right;">81.96%</td>
 <td style="text-align: right;">78.55%</td>
-<td style="text-align: right;">87.45%</td>
-<td style="text-align: right;">89.63%</td>
 </tr>
 <tr class="even">
-<td style="text-align: left;">2024-06</td>
-<td style="text-align: left;">M7_abstain</td>
+<td style="text-align: left;">2024</td>
+<td style="text-align: left;">M7 abstain</td>
 <td style="text-align: right;">72.41%</td>
 <td style="text-align: right;">98.21%</td>
 <td style="text-align: right;">64.41%</td>
 <td style="text-align: right;">95.63%</td>
-<td style="text-align: right;">77.70%</td>
-<td style="text-align: right;">98.35%</td>
 </tr>
 <tr class="odd">
-<td style="text-align: left;">2024-06</td>
-<td style="text-align: left;">M3_vert_rate</td>
+<td style="text-align: left;">2024</td>
+<td style="text-align: left;">M3 vert_rate</td>
 <td style="text-align: right;">63.79%</td>
 <td style="text-align: right;">97.08%</td>
 <td style="text-align: right;">59.97%</td>
 <td style="text-align: right;">95.01%</td>
-<td style="text-align: right;">69.16%</td>
-<td style="text-align: right;">97.27%</td>
 </tr>
 <tr class="even">
-<td style="text-align: left;">2024-06</td>
-<td style="text-align: left;">M5_min_alt</td>
+<td style="text-align: left;">2024</td>
+<td style="text-align: left;">M5 min_alt</td>
 <td style="text-align: right;">79.26%</td>
 <td style="text-align: right;">76.92%</td>
 <td style="text-align: right;">79.05%</td>
 <td style="text-align: right;">72.40%</td>
-<td style="text-align: right;">83.45%</td>
-<td style="text-align: right;">79.36%</td>
 </tr>
 <tr class="odd">
-<td style="text-align: left;">2024-06</td>
-<td style="text-align: left;">M0_current</td>
+<td style="text-align: left;">2024</td>
+<td style="text-align: left;">M0 current</td>
 <td style="text-align: right;">60.66%</td>
 <td style="text-align: right;">97.55%</td>
 <td style="text-align: right;">59.45%</td>
 <td style="text-align: right;">94.40%</td>
-<td style="text-align: right;">65.83%</td>
-<td style="text-align: right;">97.64%</td>
 </tr>
 <tr class="even">
-<td style="text-align: left;">2024-06</td>
-<td style="text-align: left;">M2_on_ground</td>
+<td style="text-align: left;">2024</td>
+<td style="text-align: left;">M2 on_ground</td>
 <td style="text-align: right;">27.33%</td>
 <td style="text-align: right;">97.70%</td>
 <td style="text-align: right;">30.34%</td>
 <td style="text-align: right;">96.41%</td>
-<td style="text-align: right;">29.58%</td>
-<td style="text-align: right;">98.05%</td>
 </tr>
 <tr class="odd">
-<td style="text-align: left;">2025-06</td>
-<td style="text-align: left;">M8_extrapolate</td>
+<td style="text-align: left;">2025</td>
+<td style="text-align: left;">M8 extrapolate</td>
 <td style="text-align: right;">77.41%</td>
 <td style="text-align: right;">95.60%</td>
 <td style="text-align: right;">51.73%</td>
 <td style="text-align: right;">65.15%</td>
-<td style="text-align: right;">82.55%</td>
-<td style="text-align: right;">96.33%</td>
 </tr>
 <tr class="even">
-<td style="text-align: left;">2025-06</td>
-<td style="text-align: left;">M1_traffic</td>
+<td style="text-align: left;">2025</td>
+<td style="text-align: left;">M1 traffic</td>
 <td style="text-align: right;">84.90%</td>
 <td style="text-align: right;">86.97%</td>
 <td style="text-align: right;">83.45%</td>
 <td style="text-align: right;">78.24%</td>
-<td style="text-align: right;">89.34%</td>
-<td style="text-align: right;">90.12%</td>
 </tr>
 <tr class="odd">
-<td style="text-align: left;">2025-06</td>
-<td style="text-align: left;">M6_cascade</td>
+<td style="text-align: left;">2025</td>
+<td style="text-align: left;">M6 cascade</td>
 <td style="text-align: right;">86.95%</td>
 <td style="text-align: right;">84.92%</td>
 <td style="text-align: right;">86.86%</td>
 <td style="text-align: right;">75.19%</td>
-<td style="text-align: right;">89.95%</td>
-<td style="text-align: right;">89.52%</td>
 </tr>
 <tr class="even">
-<td style="text-align: left;">2025-06</td>
-<td style="text-align: left;">M7_abstain</td>
+<td style="text-align: left;">2025</td>
+<td style="text-align: left;">M7 abstain</td>
 <td style="text-align: right;">74.85%</td>
 <td style="text-align: right;">98.24%</td>
 <td style="text-align: right;">63.76%</td>
 <td style="text-align: right;">95.11%</td>
-<td style="text-align: right;">80.05%</td>
-<td style="text-align: right;">98.50%</td>
 </tr>
 <tr class="odd">
-<td style="text-align: left;">2025-06</td>
-<td style="text-align: left;">M3_vert_rate</td>
+<td style="text-align: left;">2025</td>
+<td style="text-align: left;">M3 vert_rate</td>
 <td style="text-align: right;">66.72%</td>
 <td style="text-align: right;">96.90%</td>
 <td style="text-align: right;">62.54%</td>
 <td style="text-align: right;">95.53%</td>
-<td style="text-align: right;">72.65%</td>
-<td style="text-align: right;">97.05%</td>
 </tr>
 <tr class="even">
-<td style="text-align: left;">2025-06</td>
-<td style="text-align: left;">M5_min_alt</td>
+<td style="text-align: left;">2025</td>
+<td style="text-align: left;">M5 min_alt</td>
 <td style="text-align: right;">81.59%</td>
 <td style="text-align: right;">78.17%</td>
 <td style="text-align: right;">81.30%</td>
 <td style="text-align: right;">73.41%</td>
-<td style="text-align: right;">85.99%</td>
-<td style="text-align: right;">80.88%</td>
 </tr>
 <tr class="odd">
-<td style="text-align: left;">2025-06</td>
-<td style="text-align: left;">M0_current</td>
+<td style="text-align: left;">2025</td>
+<td style="text-align: left;">M0 current</td>
 <td style="text-align: right;">63.59%</td>
 <td style="text-align: right;">97.45%</td>
 <td style="text-align: right;">61.97%</td>
 <td style="text-align: right;">95.55%</td>
-<td style="text-align: right;">69.29%</td>
-<td style="text-align: right;">97.53%</td>
 </tr>
 <tr class="even">
-<td style="text-align: left;">2025-06</td>
-<td style="text-align: left;">M2_on_ground</td>
+<td style="text-align: left;">2025</td>
+<td style="text-align: left;">M2 on_ground</td>
 <td style="text-align: right;">28.87%</td>
 <td style="text-align: right;">95.43%</td>
 <td style="text-align: right;">33.38%</td>
 <td style="text-align: right;">92.74%</td>
-<td style="text-align: right;">31.26%</td>
-<td style="text-align: right;">96.10%</td>
 </tr>
 </tbody>
 </table>
 </div>
 </div>
 </section>
-<section id="sec-recommendations" class="level2" data-number="6">
-<h2 data-number="6" class="anchored" data-anchor-id="sec-recommendations"><span class="header-section-number">6</span> Recommendations</h2>
-<section id="already-implemented-and-validated-in-this-study" class="level3" data-number="6.1">
-<h3 data-number="6.1" class="anchored" data-anchor-id="already-implemented-and-validated-in-this-study"><span class="header-section-number">6.1</span> Already implemented and validated in this study</h3>
+<section id="sec-implementation" class="level2" data-number="6">
+<h2 data-number="6" class="anchored" data-anchor-id="sec-implementation"><span class="header-section-number">6</span> How it works in code</h2>
+<p>Everything below is in <code>benchmarks/adep_ades.py</code> and is pure Spark column expressions and window functions — no <code>applyInPandas</code>, no UDFs, matching the convention of the pipeline it is meant to inform. This section is the description a reader needs to check the results or reimplement them.</p>
+<section id="building-tracks" class="level3" data-number="6.1">
+<h3 data-number="6.1" class="anchored" data-anchor-id="building-tracks"><span class="header-section-number">6.1</span> Building tracks</h3>
+<p>State vectors are filtered to aeroplanes and then grouped into tracks by OPDI’s own <code>TrackProcessor._add_track_id</code>, imported and called rather than reimplemented — <code>track_id</code> continuity with every published release depends on it. Tracks are materialised to S3 once per sample and every method reads them back, so all methods see byte-identical input.</p>
+<p>The aircraft filter is a <strong>denylist evaluated on a left join</strong>:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>out <span class="op">=</span> sv.join(db, F.lower(sv.icao24) <span class="op">==</span> F.col(<span class="st">"_ic"</span>), <span class="st">"left"</span>)</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>is_rotorcraft <span class="op">=</span> F.col(<span class="st">"ac_class"</span>).isin([<span class="st">"H"</span>, <span class="st">"G"</span>, <span class="st">"T"</span>])</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>out.<span class="bu">filter</span>(<span class="op">~</span>F.coalesce(is_rotorcraft, F.lit(<span class="va">False</span>)) <span class="op">&amp;</span> ...)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>The <code>coalesce</code> is the whole point. An airframe absent from the aircraft database gets <code>ac_class = NULL</code>, so <code>is_rotorcraft</code> is NULL; without the coalesce the predicate would be NULL and the row would be dropped. Unknown must mean keep, because 34% of state vectors come from airframes the database does not contain.</p>
+</section>
+<section id="finding-candidate-aerodromes" class="level3" data-number="6.2">
+<h3 data-number="6.2" class="anchored" data-anchor-id="finding-candidate-aerodromes"><span class="header-section-number">6.2</span> Finding candidate aerodromes</h3>
+<p>A track-by-aerodrome cross join is intractable, so candidates are bucketed on integer degree cells first. Each aerodrome is replicated into its 3×3 cell neighbourhood at load time, so an equi-join on <code>(cell_lat, cell_lon)</code> cannot miss a match that sits just across a cell boundary, and exact great-circle distance is computed only on the survivors:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>apt.crossJoin(offs)                       <span class="co"># offs = 9 (dy, dx) pairs</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>   .withColumn(<span class="st">"cell_lat"</span>, F.floor(<span class="st">"apt_lat"</span>).cast(<span class="st">"int"</span>) <span class="op">+</span> F.col(<span class="st">"dy"</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>One degree of latitude is 60 NM, so a 3×3 neighbourhood covers any radius up to about 40 NM — which bounds the usable distance threshold and is why the sweep stops there.</p>
+</section>
+<section id="endpoints" class="level3" data-number="6.3">
+<h3 data-number="6.3" class="anchored" data-anchor-id="endpoints"><span class="header-section-number">6.3</span> Endpoints</h3>
+<p>The first and last sample of each track are picked with two row numbers over the same window, forward and reversed, rather than a self-join:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>w <span class="op">=</span> Window.partitionBy(<span class="st">"track_id"</span>).orderBy(<span class="st">"event_time"</span>)</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>sv.withColumn(<span class="st">"_rn"</span>, F.row_number().over(w))</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>  .withColumn(<span class="st">"_rr"</span>, F.row_number().over(w.orderBy(F.col(<span class="st">"event_time"</span>).desc())))</span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>  .<span class="bu">filter</span>((F.col(<span class="st">"_rn"</span>) <span class="op">==</span> <span class="dv">1</span>) <span class="op">|</span> (F.col(<span class="st">"_rr"</span>) <span class="op">==</span> <span class="dv">1</span>))</span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>  .withColumn(<span class="st">"role"</span>, F.when(F.col(<span class="st">"_rn"</span>) <span class="op">==</span> <span class="dv">1</span>, <span class="st">"adep"</span>).otherwise(<span class="st">"ades"</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>The join to aerodromes is a <strong>LEFT</strong> join. An endpoint over open sea has no aerodrome in its cell neighbourhood, and an inner join would discard exactly the endpoints that carry the out-of-area signal before it can be read.</p>
+</section>
+<section id="ranking-candidates" class="level3" data-number="6.4">
+<h3 data-number="6.4" class="anchored" data-anchor-id="ranking-candidates"><span class="header-section-number">6.4</span> Ranking candidates</h3>
+<p>Candidates are ordered by <em>effective</em> distance — real distance plus a fixed penalty for aerodromes without scheduled service (<a href="#sec-sched" class="quarto-xref">Section&nbsp;2</a>):</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>penalty <span class="op">=</span> F.when(F.col(<span class="st">"apt_scheduled"</span>) <span class="op">==</span> <span class="st">"yes"</span>, F.lit(<span class="fl">0.0</span>)) <span class="op">\</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>           .otherwise(F.lit(sched_penalty_nm))</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>eff_nm  <span class="op">=</span> F.col(<span class="st">"dist_nm"</span>) <span class="op">+</span> penalty</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>best    <span class="op">=</span> Window.partitionBy(<span class="st">"track_id"</span>, <span class="st">"role"</span>).orderBy(F.col(<span class="st">"eff_nm"</span>).asc_nulls_last())</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><code>asc_nulls_last</code> matters: an endpoint with no candidate at all still produces a row, with NULL distance, which must sort last rather than first. M1 passes <code>sched_penalty_nm=0</code> so it stays a faithful recreation of <code>traffic</code>’s rule.</p>
+</section>
+<section id="the-abstention-test" class="level3" data-number="6.5">
+<h3 data-number="6.5" class="anchored" data-anchor-id="the-abstention-test"><span class="header-section-number">6.5</span> The abstention test</h3>
+<p>Per side, an aerodrome is emitted only when the endpoint is credibly at it:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>ok <span class="op">=</span> (F.col(<span class="ss">f"</span><span class="sc">{</span>side<span class="sc">}</span><span class="ss">_dist_nm"</span>) <span class="op">&lt;=</span> d) <span class="op">&amp;</span> (</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>    F.col(<span class="ss">f"</span><span class="sc">{</span>side<span class="sc">}</span><span class="ss">_on_ground"</span>)</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>    <span class="op">|</span> (F.col(<span class="ss">f"</span><span class="sc">{</span>side<span class="sc">}</span><span class="ss">_elev_known"</span>) <span class="op">&amp;</span> (F.col(<span class="ss">f"</span><span class="sc">{</span>side<span class="sc">}</span><span class="ss">_agl_ft"</span>) <span class="op">&lt;=</span> h))</span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Three details carry weight. <code>on_ground</code> satisfies the height test on its own, because a missing barometric altitude on the surface is normal. <code>elev_known</code> guards the height comparison, because OurAirports has no elevation for 3.09% of large and medium aerodromes and treating a missing value as sea level is wrong by the entire threshold at a high field. And height is <strong>above field elevation</strong>, not above the ellipsoid:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>F.col(<span class="st">"baro_altitude"</span>) <span class="op">*</span> <span class="fl">3.28084</span> <span class="op">-</span> F.coalesce(F.col(<span class="st">"apt_elev_ft"</span>), F.lit(<span class="fl">0.0</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</section>
+<section id="out-of-area" class="level3" data-number="6.6">
+<h3 data-number="6.6" class="anchored" data-anchor-id="out-of-area"><span class="header-section-number">6.6</span> Out-of-area</h3>
+<p>The border test scales the longitude margin by latitude, because a degree of longitude shrinks toward the pole and an unscaled margin would be twice as strict in northern Norway as in the Canaries:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>dlat <span class="op">=</span> margin_nm <span class="op">/</span> <span class="fl">60.0</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>dlon <span class="op">=</span> dlat <span class="op">/</span> F.greatest(F.cos(F.radians(lat)), F.lit(<span class="fl">0.1</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Precedence is the fix described in the summary — the aerodrome match is tried first and the border label is the fallback:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>F.when(ok, F.col(side)).otherwise(</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>    F.when(F.col(<span class="ss">f"</span><span class="sc">{</span>side<span class="sc">}</span><span class="ss">_at_border"</span>), F.lit(OOA)))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>The border branch deliberately carries <strong>no</strong> height condition. A flight leaving the observed area is at cruise level by definition, so any height cut-off would reject precisely the endpoints the branch exists to catch.</p>
+<p>Ground truth is relabelled symmetrically: an aerodrome outside the bounding box, or an ICAO code that does not resolve in OurAirports, becomes <code>OOA</code>, so the prediction and the truth live in the same alphabet.</p>
+</section>
+<section id="extrapolation-m8" class="level3" data-number="6.7">
+<h3 data-number="6.7" class="anchored" data-anchor-id="extrapolation-m8"><span class="header-section-number">6.7</span> Extrapolation (M8)</h3>
+<p>The projection is a constant-rate continuation over the final five minutes, capped at 60 NM. Time-to-ground is signed so that arrivals descending forward and departures climbing backward both yield a positive number:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>signed_vs <span class="op">=</span> F.when(F.col(<span class="st">"role"</span>) <span class="op">==</span> <span class="st">"ades"</span>, <span class="op">-</span>F.col(<span class="st">"vs_ms"</span>)).otherwise(F.col(<span class="st">"vs_ms"</span>))</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>t_ground  <span class="op">=</span> F.when(signed_vs <span class="op">&gt;</span> <span class="fl">0.5</span>, F.col(<span class="st">"alt_m"</span>) <span class="op">/</span> signed_vs)</span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>reach_nm  <span class="op">=</span> F.least(t_ground <span class="op">*</span> F.col(<span class="st">"gs_ms"</span>) <span class="op">*</span> <span class="fl">0.000539957</span>, F.lit(max_project_nm))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>The <code>&gt; 0.5</code> gate means a track ending in level flight produces no projection at all rather than a division by something near zero. Departures project backwards by adding 180° to the track angle.</p>
+</section>
+<section id="scoring" class="level3" data-number="6.8">
+<h3 data-number="6.8" class="anchored" data-anchor-id="scoring"><span class="header-section-number">6.8</span> Scoring</h3>
+<p>Ground truth is the denominator throughout, so a flight never seen counts as a miss rather than an absent row:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>p <span class="op">=</span> ident.join(pred, <span class="st">"track_id"</span>, <span class="st">"left"</span>)</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>j <span class="op">=</span> gt.join(p, [<span class="st">"icao24"</span>, <span class="st">"callsign"</span>, <span class="st">"day"</span>], <span class="st">"left"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>2.42% of <code>(icao24, callsign, date)</code> keys collide — same-day multi-leg rotations — and are resolved by taking the track whose start is nearest the actual off-block time, rather than leaving it to whichever row the join happened to produce:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>w <span class="op">=</span> Window.partitionBy(<span class="st">"icao24"</span>, <span class="st">"callsign"</span>, <span class="st">"day"</span>, <span class="st">"gt_adep"</span>, <span class="st">"gt_ades"</span>) <span class="op">\</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>          .orderBy(F.<span class="bu">abs</span>(F.unix_timestamp(<span class="st">"t_start"</span>)</span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>                         <span class="op">-</span> F.unix_timestamp(<span class="st">"gt_aobt"</span>)).asc_nulls_last())</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>The out-of-area decomposition then partitions ground truth on <code>gt_&lt;side&gt; == OOA</code> and reports recall and precision on that partition, and coverage and accuracy on its complement. <code>gt_ooa_share</code> comes out identical for every method scored against the same sample, which is the check that the decomposition is correct.</p>
+</section>
+<section id="cascade-attribution" class="level3" data-number="6.9">
+<h3 data-number="6.9" class="anchored" data-anchor-id="cascade-attribution"><span class="header-section-number">6.9</span> Cascade attribution</h3>
+<p><code>diagnose_cascade</code> keeps every rung’s answer side by side rather than collapsing straight to a coalesce, records which rung supplied each answer, and scores that rung against a control <strong>on the same flights</strong>. That is what makes “this rung is 95% accurate” comparable with “the rung it displaced would have been 99% accurate here”, and it is the measurement that showed the vertical-trend methods contribute nothing.</p>
+</section>
+</section>
+<section id="sec-recommendations" class="level2" data-number="7">
+<h2 data-number="7" class="anchored" data-anchor-id="sec-recommendations"><span class="header-section-number">7</span> Recommendations</h2>
+<section id="already-implemented-and-validated-in-this-study" class="level3" data-number="7.1">
+<h3 data-number="7.1" class="anchored" data-anchor-id="already-implemented-and-validated-in-this-study"><span class="header-section-number">7.1</span> Already implemented and validated in this study</h3>
 <p>These need no further research. They are in <code>benchmarks/adep_ades.py</code> and are measured above.</p>
 <table class="caption-top table">
 <colgroup>
@@ -855,13 +906,13 @@ Important
 </tbody>
 </table>
 </section>
-<section id="outstanding-in-the-production-pipeline" class="level3" data-number="6.2">
-<h3 data-number="6.2" class="anchored" data-anchor-id="outstanding-in-the-production-pipeline"><span class="header-section-number">6.2</span> Outstanding in the production pipeline</h3>
+<section id="outstanding-in-the-production-pipeline" class="level3" data-number="7.2">
+<h3 data-number="7.2" class="anchored" data-anchor-id="outstanding-in-the-production-pipeline"><span class="header-section-number">7.2</span> Outstanding in the production pipeline</h3>
 <p>None of the above has been applied to <code>src/opdi/pipeline/flights.py</code>. The production flight list still uses the altitude-trend vote and still emits a null for both “outside the observed area” and “not determined”. A patch proposal follows so that the change can be reviewed rather than assumed.</p>
 </section>
 </section>
-<section id="sec-patch" class="level2" data-number="7">
-<h2 data-number="7" class="anchored" data-anchor-id="sec-patch"><span class="header-section-number">7</span> Production patch proposal</h2>
+<section id="sec-patch" class="level2" data-number="8">
+<h2 data-number="8" class="anchored" data-anchor-id="sec-patch"><span class="header-section-number">8</span> Production patch proposal</h2>
 <p>Scope is <code>src/opdi/pipeline/flights.py</code>. <code>tracks.py</code> is untouched, so <code>track_id</code> continuity with every published release is unaffected — this changes the flight list, not track construction.</p>
 <p><strong>Replace</strong> <code>_categorize_landing_take_off</code>, which counts the sign of a 5-sample rolling-mean altitude difference and drops anything ambiguous, with the endpoint rule:</p>
 <ol type="1">
@@ -876,8 +927,8 @@ Important
 <p><strong>Aerodrome elevation</strong> comes from OurAirports and is missing for 3.09% of large and medium aerodromes. Where it is missing, fall back to the <code>on_ground</code> flag rather than treating the elevation as sea level — at a 5,000 ft aerodrome that error is the entire height threshold.</p>
 <p><strong>Before applying, a reviewer should check:</strong> that arrivals are <em>not</em> switched to this rule on the strength of the departure result, since arrivals fail to replicate every time; that the aerodrome reference used in production carries <code>scheduled_service</code>; and that the out-of-area marker is agreed with downstream consumers before it appears in a published column.</p>
 </section>
-<section id="sec-limitations" class="level2" data-number="8">
-<h2 data-number="8" class="anchored" data-anchor-id="sec-limitations"><span class="header-section-number">8</span> Limitations</h2>
+<section id="sec-limitations" class="level2" data-number="9">
+<h2 data-number="9" class="anchored" data-anchor-id="sec-limitations"><span class="header-section-number">9</span> Limitations</h2>
 <ul>
 <li><strong>Out-of-area recall is 10–15%.</strong> The geometric border test is the wrong instrument; a phase-based test — first sample already in the cruise, not near or descending toward an aerodrome — should be tried next, and is the single clearest improvement available.</li>
 <li><strong>The scheduled-service preference has a cost</strong>, and it is now the largest single class of remaining departure errors: genuine movements at Biggin Hill and Northolt pulled to the nearby hub.</li>
@@ -886,13 +937,13 @@ Important
 <li>Everything carried over from version 2: surface vehicles cannot be excluded by declaration, <code>track_id</code> is taken as given, and cleaning is not applied.</li>
 </ul>
 </section>
-<section id="reproducing" class="level2" data-number="9">
-<h2 data-number="9" class="anchored" data-anchor-id="reproducing"><span class="header-section-number">9</span> Reproducing</h2>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="ex">python</span> benchmarks/adep_ades.py <span class="at">--days</span> 2025-06-05 2025-06-06 2025-06-07 <span class="dt">\</span></span>
-<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>    <span class="at">--months</span> 202506 <span class="at">--methods</span> all <span class="at">--sweep-abstain</span> <span class="dt">\</span></span>
-<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">--error-pairs</span> M7_abstain <span class="at">--per-airport</span> M7_abstain <span class="dt">\</span></span>
-<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">--diagnose-cascade</span> <span class="at">--control</span> m1 <span class="at">--sched-penalty-nm</span> 15 <span class="dt">\</span></span>
-<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">--results-dir</span> <span class="op">&lt;</span>dir<span class="op">&gt;</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<section id="reproducing" class="level2" data-number="10">
+<h2 data-number="10" class="anchored" data-anchor-id="reproducing"><span class="header-section-number">10</span> Reproducing</h2>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb12"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="ex">python</span> benchmarks/adep_ades.py <span class="at">--days</span> 2025-06-05 2025-06-06 2025-06-07 <span class="dt">\</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>    <span class="at">--months</span> 202506 <span class="at">--methods</span> all <span class="at">--sweep-abstain</span> <span class="dt">\</span></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">--error-pairs</span> M7_abstain <span class="at">--per-airport</span> M7_abstain <span class="dt">\</span></span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">--diagnose-cascade</span> <span class="at">--control</span> m1 <span class="at">--sched-penalty-nm</span> 15 <span class="dt">\</span></span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">--results-dir</span> <span class="op">&lt;</span>dir<span class="op">&gt;</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p><code>--results-dir</code> writes the result tables as CSV to a local directory instead of S3. The bucket has a quota, and a write that exceeds it fails at the very end of a job — after the numbers are computed and printed but before they are stored.</p>
 <p>Rendering this page needs no credentials, no database and no cluster.</p>
 
