@@ -947,7 +947,6 @@ Note
 <caption>M7 with and without cleaning, on tracks rebuilt after the boundary fix. Samples whose corrected re-run has not yet completed are omitted rather than shown with superseded numbers.</caption>
 <thead>
 <tr class="header">
-<th style="text-align: left;"></th>
 <th style="text-align: left;">Sample</th>
 <th style="text-align: left;">Cleaning</th>
 <th style="text-align: right;">ADEP cov</th>
@@ -958,7 +957,6 @@ Note
 </thead>
 <tbody>
 <tr class="odd">
-<td style="text-align: left;">1</td>
 <td style="text-align: left;">2024-06</td>
 <td style="text-align: left;">none</td>
 <td style="text-align: right;">72.62%</td>
@@ -967,7 +965,14 @@ Note
 <td style="text-align: right;">94.38%</td>
 </tr>
 <tr class="even">
-<td style="text-align: left;">3</td>
+<td style="text-align: left;">2024-06</td>
+<td style="text-align: left;">applied</td>
+<td style="text-align: right;">67.78%</td>
+<td style="text-align: right;">97.53%</td>
+<td style="text-align: right;">0.68%</td>
+<td style="text-align: right;">88.91%</td>
+</tr>
+<tr class="odd">
 <td style="text-align: left;">2025-06</td>
 <td style="text-align: left;">none</td>
 <td style="text-align: right;">74.98%</td>
@@ -975,8 +980,7 @@ Note
 <td style="text-align: right;">63.97%</td>
 <td style="text-align: right;">94.06%</td>
 </tr>
-<tr class="odd">
-<td style="text-align: left;">4</td>
+<tr class="even">
 <td style="text-align: left;">2025-06</td>
 <td style="text-align: left;">applied</td>
 <td style="text-align: right;">70.17%</td>
@@ -993,7 +997,7 @@ Note
 <h3 data-number="9.2" class="anchored" data-anchor-id="what-cleaning-does-once-the-bug-is-fixed"><span class="header-section-number">9.2</span> What cleaning does once the bug is fixed</h3>
 <p>Rebuilding the cleaned tracks after the fix moves the first-sample loss from 100% to 23.27% — the remainder comes from the isolated-point stage, where a track’s opening sample sits more than 20 s from its next valid neighbour, which is legitimate. Departure detection recovers accordingly.</p>
 <p>Arrival detection does not, and the reason is structural rather than a defect. A track’s <em>last</em> samples genuinely do repeat the last known position as an aircraft fades out of receiver range; those are real stale broadcasts and removing them is correct. But the last sample is precisely what arrival detection reads. After cleaning, 77% of last samples have no position, and the isolated-point stage then removes most of what survives, because the masking has stripped away the neighbours that would have corroborated it.</p>
-<p>The result on 2025-06 is that cleaning costs departures about five points of coverage at <strong>identical</strong> accuracy, and takes arrival coverage from 63.97% to 0.70%.</p>
+<p>The effect is the same size in both samples: cleaning costs departures 4.8 percentage points of coverage at <strong>identical</strong> accuracy (−4.81 pp in 2025-06, −4.84 pp in 2024-06, with accuracy moving by 0.00 and +0.02 pp), and takes arrival coverage from roughly 64% to under 1% in each.</p>
 <p>A useful consistency check: the ADES figures are byte-identical before and after the fix. That is exactly right — the fix changes only a track’s <em>first</em> row, so ADEP recovered from 0.00% while ADES was untouched. Had the arrival numbers moved too, one of the two runs would have been reading stale data.</p>
 <p><strong>Cleaning and endpoint-based arrival detection are therefore incompatible, and not merely badly tuned.</strong> If cleaning is applied for other purposes, the arrival endpoint must be taken from the pre-cleaning data.</p>
 </section>
