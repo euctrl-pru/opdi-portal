@@ -329,6 +329,7 @@ if (!is.null(sweep)) {
     data.frame(month = mo, side = "ADES",
                coverage = m("M0_current","ades_coverage",mo),
                accuracy = m("M0_current","ades_accuracy",mo)))))
+  ref <- ref[!is.na(ref$coverage) & !is.na(ref$accuracy), ]
   ggplot(long, aes(coverage, accuracy, colour = dist, group = dist)) +
     geom_hline(data = ref, aes(yintercept = accuracy), linetype = "dotted", colour = "grey40") +
     geom_vline(data = ref, aes(xintercept = coverage), linetype = "dotted", colour = "grey40") +
@@ -351,6 +352,9 @@ if (!is.null(sweep)) {
       d  <- sweep[sweep$month == mo & sweep$max_endpoint_dist_nm < 1e8, ]
       c0 <- m("M0_current", paste0(sd,"_coverage"), mo)
       a0 <- m("M0_current", paste0(sd,"_accuracy"), mo)
+      # The production baseline may not be scored for a sample yet; without it
+      # "beats production" is undefined, so skip rather than invent a row.
+      if (nrow(d) == 0 || is.na(c0) || is.na(a0)) return(NULL)
       w  <- d[d[[paste0(sd,"_coverage")]] > c0 & d[[paste0(sd,"_accuracy")]] > a0, ]
       if (nrow(w) == 0) return(data.frame(Sample = mo, Side = toupper(sd),
         Cells = sprintf("0/%d", nrow(d)), `Best point` = "—",
@@ -364,7 +368,9 @@ if (!is.null(sweep)) {
         Coverage = pct(b[[paste0(sd,"_coverage")]]), `M0 cov` = pct(c0),
         Accuracy = pct(b[[paste0(sd,"_accuracy")]]), `M0 acc` = pct(a0),
         check.names = FALSE) }))))
-  kable(best, align = "llrlrrrr",
+  if (is.null(best) || nrow(best) == 0) {
+    cat("_Awaiting the re-scored baseline for one sample._")
+  } else kable(best, align = "llrlrrrr",
         caption = "Best operating point per side and sample, chosen independently. Cells counts the grid points that beat production on both axes.")
 }
 ```
@@ -408,12 +414,55 @@ treated as a closed question rather than re-attempted.
 
 ## Ablations
 
-### Trajectory cleaning {#sec-cleaning}
+### Trajectory cleaning found a bug, not a trade-off {#sec-cleaning}
 
 Version 1 did not apply OPDI's cleaning stage and flagged the omission as
-genuinely uncertain: the stale-broadcast filter nulls repeated positions, which
-is exactly what a stationary aircraft at a gate transmits, so cleaning might
-remove the very samples the endpoint rule depends on.
+genuinely uncertain: the stale-broadcast filter NULLs repeated positions, which
+is what a stationary aircraft at a gate transmits, so cleaning might remove the
+samples the endpoint rule depends on.
+
+Applying it produced **0.00% ADEP coverage**. Not a degradation — a total loss.
+That is too extreme to be a trade-off, and it was not.
+
+Measured directly on the cleaned tracks:
+
+```{r cleaning-nulls}
+kable(data.frame(
+  `Sample position` = c("First of track", "Last of track", "Middle samples",
+                        "Rows flagged on_ground"),
+  `Position NULLed` = c("100.00%", "83.52%", "15.37%", "64.03%"),
+  check.names = FALSE), align = "lr",
+  caption = "Share of samples whose latitude was removed by cleaning, 2025-06-05.")
+```
+
+The cause is a boundary defect in `cleaning/native.py`. The stale-broadcast
+stage decides a value was *repeated rather than re-measured* by comparing it
+with its predecessor, and its `changed()` helper required that predecessor to
+exist:
+
+```python
+return F.col(name).isNotNull() & prev.isNotNull() & (F.col(name) != prev)
+```
+
+On a track's first row there is no predecessor, so every column read as
+"unchanged" — and the caller treats "unchanged" as "stale" and NULLs it. A
+sample with nothing before it cannot be a repeat of anything. The port from
+Alligier's `isvar` confused *absence of evidence for a repeat* with *evidence
+of one*; NumPy's NaN convention handles that boundary implicitly and Spark's
+`lag` does not.
+
+Worse, **two unit tests asserted the defect** — one was named
+`test_first_sample_has_no_predecessor_and_is_masked` — so the suite was green
+the whole time. They have been inverted rather than adjusted, since the
+reasoning they encoded is the reasoning that produced the bug, and two
+regression tests added: the opening sample survives, and a genuinely repeated
+position is still masked.
+
+No published data is affected: step 02a writes `osn_tracks_clean`, which
+nothing currently reads. Had the ablation not been run, the defect would have
+been waiting for whoever first enabled cleaning — and it would have silently
+removed the first fix of every track, which is exactly the sample that take-off
+detection and ADEP assignment depend on.
 
 ```{r cleaning-table}
 if (!is.null(methods) && "cleaned" %in% names(methods) && any(methods$cleaned)) {
@@ -425,11 +474,16 @@ if (!is.null(methods) && "cleaned" %in% names(methods) && any(methods$cleaned)) 
       `ADES cov` = pct(m("M7_abstain","ades_coverage",mo,cleaned=cl)),
       `ADES acc` = pct(m("M7_abstain","ades_accuracy",mo,cleaned=cl)),
       check.names = FALSE)))))
-  kable(ab, align = "llrrrr", caption = "M7 with and without the step-02a cleaning stages.")
-} else {
-  cat("_Cleaning ablation still running; this table is populated by the next refresh._")
+  kable(ab, align = "llrrrr",
+        caption = "M7 with and without cleaning. The `applied` rows are from the run that exposed the defect; a corrected re-run is in progress and will replace them.")
 }
 ```
+
+The 83.52% figure for *last* samples is a separate matter and is not a bug: a
+track's final state vectors genuinely do repeat the last known position as an
+aircraft fades out of receiver range. Those are real stale broadcasts, and
+removing them is correct — but it does mean cleaning and endpoint-based arrival
+detection are in genuine tension, which the corrected re-run will quantify.
 
 ### Aerodrome set {#sec-aptset}
 
@@ -532,6 +586,15 @@ if (!is.null(trackq)) {
   cat("_Track-quality measurement still running._")
 }
 ```
+
+The measurements are consistent across both samples and three of them are
+large enough to act on: roughly a fifth of tracks last **longer than 18 hours**
+and so cannot be single flights; about two thirds carry an **untrimmed,
+space-padded callsign**, which is part of the group hash; and roughly a third
+have **no callsign at all**, collapsing every such segment of one airframe into
+a single group separated only by time gaps. Against ground truth, about one
+matched flight in ten is **split across more than one track**, and a few percent
+of tracks **cover more than one flight**.
 
 ### What a version 2 of `track_id` should change
 
