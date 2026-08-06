@@ -474,16 +474,39 @@ if (!is.null(methods) && "cleaned" %in% names(methods) && any(methods$cleaned)) 
       `ADES cov` = pct(m("M7_abstain","ades_coverage",mo,cleaned=cl)),
       `ADES acc` = pct(m("M7_abstain","ades_accuracy",mo,cleaned=cl)),
       check.names = FALSE)))))
+  ab <- ab[!(ab$Cleaning == "applied" & ab$`ADEP cov` == "—"), ]
   kable(ab, align = "llrrrr",
-        caption = "M7 with and without cleaning. The `applied` rows are from the run that exposed the defect; a corrected re-run is in progress and will replace them.")
+        caption = "M7 with and without cleaning, on tracks rebuilt after the boundary fix. Samples whose corrected re-run has not yet completed are omitted rather than shown with superseded numbers.")
 }
 ```
 
-The 83.52% figure for *last* samples is a separate matter and is not a bug: a
-track's final state vectors genuinely do repeat the last known position as an
-aircraft fades out of receiver range. Those are real stale broadcasts, and
-removing them is correct — but it does mean cleaning and endpoint-based arrival
-detection are in genuine tension, which the corrected re-run will quantify.
+### What cleaning does once the bug is fixed
+
+Rebuilding the cleaned tracks after the fix moves the first-sample loss from
+100% to 23.27% — the remainder comes from the isolated-point stage, where a
+track's opening sample sits more than 20 s from its next valid neighbour, which
+is legitimate. Departure detection recovers accordingly.
+
+Arrival detection does not, and the reason is structural rather than a defect.
+A track's *last* samples genuinely do repeat the last known position as an
+aircraft fades out of receiver range; those are real stale broadcasts and
+removing them is correct. But the last sample is precisely what arrival
+detection reads. After cleaning, 77% of last samples have no position, and the
+isolated-point stage then removes most of what survives, because the masking
+has stripped away the neighbours that would have corroborated it.
+
+The result on 2025-06 is that cleaning costs departures about five points of
+coverage at **identical** accuracy, and takes arrival coverage from 63.97% to
+0.70%.
+
+A useful consistency check: the ADES figures are byte-identical before and
+after the fix. That is exactly right — the fix changes only a track's *first*
+row, so ADEP recovered from 0.00% while ADES was untouched. Had the arrival
+numbers moved too, one of the two runs would have been reading stale data.
+
+**Cleaning and endpoint-based arrival detection are therefore incompatible, and
+not merely badly tuned.** If cleaning is applied for other purposes, the arrival
+endpoint must be taken from the pre-cleaning data.
 
 ### Aerodrome set {#sec-aptset}
 

@@ -203,7 +203,8 @@ window.Quarto = {
   <li><a href="#ablations" id="toc-ablations" class="nav-link" data-scroll-target="#ablations"><span class="header-section-number">9</span> Ablations</a>
   <ul class="collapse">
   <li><a href="#sec-cleaning" id="toc-sec-cleaning" class="nav-link" data-scroll-target="#sec-cleaning"><span class="header-section-number">9.1</span> Trajectory cleaning found a bug, not a trade-off</a></li>
-  <li><a href="#sec-aptset" id="toc-sec-aptset" class="nav-link" data-scroll-target="#sec-aptset"><span class="header-section-number">9.2</span> Aerodrome set</a></li>
+  <li><a href="#what-cleaning-does-once-the-bug-is-fixed" id="toc-what-cleaning-does-once-the-bug-is-fixed" class="nav-link" data-scroll-target="#what-cleaning-does-once-the-bug-is-fixed"><span class="header-section-number">9.2</span> What cleaning does once the bug is fixed</a></li>
+  <li><a href="#sec-aptset" id="toc-sec-aptset" class="nav-link" data-scroll-target="#sec-aptset"><span class="header-section-number">9.3</span> Aerodrome set</a></li>
   </ul></li>
   <li><a href="#sec-errors" id="toc-sec-errors" class="nav-link" data-scroll-target="#sec-errors"><span class="header-section-number">10</span> Where the residual errors are</a></li>
   <li><a href="#per-aerodrome-movement-counts" id="toc-per-aerodrome-movement-counts" class="nav-link" data-scroll-target="#per-aerodrome-movement-counts"><span class="header-section-number">11</span> Per-aerodrome movement counts</a></li>
@@ -360,7 +361,7 @@ window.Quarto = {
 </section>
 <section id="sec-aerodromes" class="level3" data-number="2.4">
 <h3 data-number="2.4" class="anchored" data-anchor-id="sec-aerodromes"><span class="header-section-number">2.4</span> Aerodromes</h3>
-<p>Aerodromes come from <strong>OurAirports</strong>. The default set is <code>large_airport</code> and <code>medium_airport</code> only: small airfields and heliports are <strong>excluded</strong>. <a href="#sec-aptset" class="quarto-xref">Section&nbsp;9.2</a> measures what including them does, and the answer is that it makes things worse — which is what “nearby aerodromes compete” means in practice.</p>
+<p>Aerodromes come from <strong>OurAirports</strong>. The default set is <code>large_airport</code> and <code>medium_airport</code> only: small airfields and heliports are <strong>excluded</strong>. <a href="#sec-aptset" class="quarto-xref">Section&nbsp;9.3</a> measures what including them does, and the answer is that it makes things worse — which is what “nearby aerodromes compete” means in practice.</p>
 <p><strong>Aerodrome elevation</strong> also comes from OurAirports (<code>elevation_ft</code>), used to convert barometric altitude to a height above field elevation. It is crowd-sourced and <strong>missing for 3.09% of large and medium aerodromes</strong>. Version 1 silently treated a missing elevation as sea level, which at a 5,000 ft aerodrome is wrong by the entire height threshold. Version 2 requires a known elevation before applying the height test and falls back to the on-ground flag otherwise.</p>
 </section>
 <section id="ground-truth" class="level3" data-number="2.5">
@@ -558,13 +559,83 @@ Note
 </tr>
 <tr class="odd">
 <td style="text-align: left;">2025-06</td>
+<td style="text-align: left;">M8_extrapolate</td>
+<td style="text-align: right;">77.79%</td>
+<td style="text-align: right;">94.92%</td>
+<td style="text-align: right;">73.84%</td>
+<td style="text-align: right;">54.05%</td>
+<td style="text-align: right;">61.12%</td>
+<td style="text-align: right;">33.04%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">2025-06</td>
+<td style="text-align: left;">M1_traffic</td>
+<td style="text-align: right;">84.90%</td>
+<td style="text-align: right;">86.97%</td>
+<td style="text-align: right;">73.84%</td>
+<td style="text-align: right;">83.45%</td>
+<td style="text-align: right;">78.24%</td>
+<td style="text-align: right;">65.29%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">2025-06</td>
+<td style="text-align: left;">M6_cascade</td>
+<td style="text-align: right;">86.95%</td>
+<td style="text-align: right;">84.92%</td>
+<td style="text-align: right;">73.84%</td>
+<td style="text-align: right;">86.86%</td>
+<td style="text-align: right;">75.19%</td>
+<td style="text-align: right;">65.31%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">2025-06</td>
 <td style="text-align: left;">M7_abstain</td>
-<td style="text-align: right;">60.18%</td>
-<td style="text-align: right;">97.62%</td>
-<td style="text-align: right;">58.75%</td>
-<td style="text-align: right;">51.31%</td>
-<td style="text-align: right;">94.18%</td>
-<td style="text-align: right;">48.33%</td>
+<td style="text-align: right;">74.98%</td>
+<td style="text-align: right;">97.61%</td>
+<td style="text-align: right;">73.19%</td>
+<td style="text-align: right;">63.97%</td>
+<td style="text-align: right;">94.06%</td>
+<td style="text-align: right;">60.17%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">2025-06</td>
+<td style="text-align: left;">M3_vert_rate</td>
+<td style="text-align: right;">66.72%</td>
+<td style="text-align: right;">96.90%</td>
+<td style="text-align: right;">64.65%</td>
+<td style="text-align: right;">62.54%</td>
+<td style="text-align: right;">95.53%</td>
+<td style="text-align: right;">59.74%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">2025-06</td>
+<td style="text-align: left;">M5_min_alt</td>
+<td style="text-align: right;">81.59%</td>
+<td style="text-align: right;">78.17%</td>
+<td style="text-align: right;">63.78%</td>
+<td style="text-align: right;">81.30%</td>
+<td style="text-align: right;">73.41%</td>
+<td style="text-align: right;">59.68%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">2025-06</td>
+<td style="text-align: left;">M0_current</td>
+<td style="text-align: right;">63.59%</td>
+<td style="text-align: right;">97.45%</td>
+<td style="text-align: right;">61.97%</td>
+<td style="text-align: right;">61.97%</td>
+<td style="text-align: right;">95.55%</td>
+<td style="text-align: right;">59.21%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">2025-06</td>
+<td style="text-align: left;">M2_on_ground</td>
+<td style="text-align: right;">28.87%</td>
+<td style="text-align: right;">95.43%</td>
+<td style="text-align: right;">27.55%</td>
+<td style="text-align: right;">33.38%</td>
+<td style="text-align: right;">92.74%</td>
+<td style="text-align: right;">30.95%</td>
 </tr>
 </tbody>
 </table>
@@ -744,6 +815,26 @@ Note
 <td style="text-align: right;">94.62%</td>
 <td style="text-align: right;">94.40%</td>
 </tr>
+<tr class="odd">
+<td style="text-align: left;">2025-06</td>
+<td style="text-align: left;">ADEP</td>
+<td style="text-align: right;">18/70</td>
+<td style="text-align: left;">20 NM, 15,000 ft</td>
+<td style="text-align: right;">74.98%</td>
+<td style="text-align: right;">63.59%</td>
+<td style="text-align: right;">97.61%</td>
+<td style="text-align: right;">97.45%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">2025-06</td>
+<td style="text-align: left;">ADES</td>
+<td style="text-align: right;">0/70</td>
+<td style="text-align: left;">—</td>
+<td style="text-align: right;">—</td>
+<td style="text-align: right;">61.97%</td>
+<td style="text-align: right;">—</td>
+<td style="text-align: right;">95.55%</td>
+</tr>
 </tbody>
 </table>
 </div>
@@ -787,18 +878,18 @@ Note
 <tr class="odd">
 <td style="text-align: left;">2025-06</td>
 <td style="text-align: left;">M7_abstain</td>
-<td style="text-align: right;">60.18%</td>
-<td style="text-align: right;">97.62%</td>
-<td style="text-align: right;">51.31%</td>
-<td style="text-align: right;">94.18%</td>
+<td style="text-align: right;">74.98%</td>
+<td style="text-align: right;">97.61%</td>
+<td style="text-align: right;">63.97%</td>
+<td style="text-align: right;">94.06%</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">2025-06</td>
 <td style="text-align: left;">M8_extrapolate</td>
-<td style="text-align: right;">—</td>
-<td style="text-align: right;">—</td>
-<td style="text-align: right;">—</td>
-<td style="text-align: right;">—</td>
+<td style="text-align: right;">77.79%</td>
+<td style="text-align: right;">94.92%</td>
+<td style="text-align: right;">54.05%</td>
+<td style="text-align: right;">61.12%</td>
 </tr>
 </tbody>
 </table>
@@ -853,9 +944,10 @@ Note
 <div class="cell">
 <div class="cell-output-display">
 <table class="caption-top table table-sm table-striped small">
-<caption>M7 with and without cleaning. The <code>applied</code> rows are from the run that exposed the defect; a corrected re-run is in progress and will replace them.</caption>
+<caption>M7 with and without cleaning, on tracks rebuilt after the boundary fix. Samples whose corrected re-run has not yet completed are omitted rather than shown with superseded numbers.</caption>
 <thead>
 <tr class="header">
+<th style="text-align: left;"></th>
 <th style="text-align: left;">Sample</th>
 <th style="text-align: left;">Cleaning</th>
 <th style="text-align: right;">ADEP cov</th>
@@ -866,6 +958,7 @@ Note
 </thead>
 <tbody>
 <tr class="odd">
+<td style="text-align: left;">1</td>
 <td style="text-align: left;">2024-06</td>
 <td style="text-align: left;">none</td>
 <td style="text-align: right;">72.62%</td>
@@ -874,26 +967,20 @@ Note
 <td style="text-align: right;">94.38%</td>
 </tr>
 <tr class="even">
-<td style="text-align: left;">2024-06</td>
-<td style="text-align: left;">applied</td>
-<td style="text-align: right;">0.00%</td>
-<td style="text-align: right;">0.00%</td>
-<td style="text-align: right;">0.68%</td>
-<td style="text-align: right;">88.91%</td>
-</tr>
-<tr class="odd">
+<td style="text-align: left;">3</td>
 <td style="text-align: left;">2025-06</td>
 <td style="text-align: left;">none</td>
-<td style="text-align: right;">60.18%</td>
-<td style="text-align: right;">97.62%</td>
-<td style="text-align: right;">51.31%</td>
-<td style="text-align: right;">94.18%</td>
+<td style="text-align: right;">74.98%</td>
+<td style="text-align: right;">97.61%</td>
+<td style="text-align: right;">63.97%</td>
+<td style="text-align: right;">94.06%</td>
 </tr>
-<tr class="even">
+<tr class="odd">
+<td style="text-align: left;">4</td>
 <td style="text-align: left;">2025-06</td>
 <td style="text-align: left;">applied</td>
-<td style="text-align: right;">0.00%</td>
-<td style="text-align: right;">0.00%</td>
+<td style="text-align: right;">70.17%</td>
+<td style="text-align: right;">97.61%</td>
 <td style="text-align: right;">0.70%</td>
 <td style="text-align: right;">89.82%</td>
 </tr>
@@ -901,10 +988,17 @@ Note
 </table>
 </div>
 </div>
-<p>The 83.52% figure for <em>last</em> samples is a separate matter and is not a bug: a track’s final state vectors genuinely do repeat the last known position as an aircraft fades out of receiver range. Those are real stale broadcasts, and removing them is correct — but it does mean cleaning and endpoint-based arrival detection are in genuine tension, which the corrected re-run will quantify.</p>
 </section>
-<section id="sec-aptset" class="level3" data-number="9.2">
-<h3 data-number="9.2" class="anchored" data-anchor-id="sec-aptset"><span class="header-section-number">9.2</span> Aerodrome set</h3>
+<section id="what-cleaning-does-once-the-bug-is-fixed" class="level3" data-number="9.2">
+<h3 data-number="9.2" class="anchored" data-anchor-id="what-cleaning-does-once-the-bug-is-fixed"><span class="header-section-number">9.2</span> What cleaning does once the bug is fixed</h3>
+<p>Rebuilding the cleaned tracks after the fix moves the first-sample loss from 100% to 23.27% — the remainder comes from the isolated-point stage, where a track’s opening sample sits more than 20 s from its next valid neighbour, which is legitimate. Departure detection recovers accordingly.</p>
+<p>Arrival detection does not, and the reason is structural rather than a defect. A track’s <em>last</em> samples genuinely do repeat the last known position as an aircraft fades out of receiver range; those are real stale broadcasts and removing them is correct. But the last sample is precisely what arrival detection reads. After cleaning, 77% of last samples have no position, and the isolated-point stage then removes most of what survives, because the masking has stripped away the neighbours that would have corroborated it.</p>
+<p>The result on 2025-06 is that cleaning costs departures about five points of coverage at <strong>identical</strong> accuracy, and takes arrival coverage from 63.97% to 0.70%.</p>
+<p>A useful consistency check: the ADES figures are byte-identical before and after the fix. That is exactly right — the fix changes only a track’s <em>first</em> row, so ADEP recovered from 0.00% while ADES was untouched. Had the arrival numbers moved too, one of the two runs would have been reading stale data.</p>
+<p><strong>Cleaning and endpoint-based arrival detection are therefore incompatible, and not merely badly tuned.</strong> If cleaning is applied for other purposes, the arrival endpoint must be taken from the pre-cleaning data.</p>
+</section>
+<section id="sec-aptset" class="level3" data-number="9.3">
+<h3 data-number="9.3" class="anchored" data-anchor-id="sec-aptset"><span class="header-section-number">9.3</span> Aerodrome set</h3>
 <div class="cell">
 <div class="cell-output cell-output-stdout">
 <pre><code>_Aerodrome-set sweep still running; this table is populated by the next refresh._</code></pre>
