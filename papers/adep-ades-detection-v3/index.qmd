@@ -288,15 +288,192 @@ see [version 2](../adep-ades-detection-v2/index.html).
 ```{r full-table}
 b <- base()
 kable(data.frame(
-  Sample = b$month, Method = b$method,
+  Sample = sub("-06$", "", b$month), Method = sub("_", " ", b$method),
   `ADEP cov` = pct(b$adep_coverage), `ADEP acc` = pct(b$adep_accuracy),
   `ADES cov` = pct(b$ades_coverage), `ADES acc` = pct(b$ades_accuracy),
-  `ADEP in-area cov` = pct(b$adep_inarea_coverage),
-  `ADEP in-area acc` = pct(b$adep_inarea_accuracy),
   check.names = FALSE),
-  align = "llrrrrrr",
-  caption = "All methods, both samples, at the default configuration.")
+  align = "llrrrr",
+  caption = "All methods, both June samples, at the default configuration. In-area figures are in the summary table for M0 and M7; they track the headline closely for every method.")
 ```
+
+## How it works in code {#sec-implementation}
+
+Everything below is in `benchmarks/adep_ades.py` and is pure Spark column
+expressions and window functions — no `applyInPandas`, no UDFs, matching the
+convention of the pipeline it is meant to inform. This section is the
+description a reader needs to check the results or reimplement them.
+
+### Building tracks
+
+State vectors are filtered to aeroplanes and then grouped into tracks by OPDI's
+own `TrackProcessor._add_track_id`, imported and called rather than
+reimplemented — `track_id` continuity with every published release depends on
+it. Tracks are materialised to S3 once per sample and every method reads them
+back, so all methods see byte-identical input.
+
+The aircraft filter is a **denylist evaluated on a left join**:
+
+```python
+out = sv.join(db, F.lower(sv.icao24) == F.col("_ic"), "left")
+is_rotorcraft = F.col("ac_class").isin(["H", "G", "T"])
+out.filter(~F.coalesce(is_rotorcraft, F.lit(False)) & ...)
+```
+
+The `coalesce` is the whole point. An airframe absent from the aircraft
+database gets `ac_class = NULL`, so `is_rotorcraft` is NULL; without the
+coalesce the predicate would be NULL and the row would be dropped. Unknown must
+mean keep, because 34% of state vectors come from airframes the database does
+not contain.
+
+### Finding candidate aerodromes
+
+A track-by-aerodrome cross join is intractable, so candidates are bucketed on
+integer degree cells first. Each aerodrome is replicated into its 3×3 cell
+neighbourhood at load time, so an equi-join on `(cell_lat, cell_lon)` cannot
+miss a match that sits just across a cell boundary, and exact great-circle
+distance is computed only on the survivors:
+
+```python
+apt.crossJoin(offs)                       # offs = 9 (dy, dx) pairs
+   .withColumn("cell_lat", F.floor("apt_lat").cast("int") + F.col("dy"))
+```
+
+One degree of latitude is 60 NM, so a 3×3 neighbourhood covers any radius up to
+about 40 NM — which bounds the usable distance threshold and is why the sweep
+stops there.
+
+### Endpoints
+
+The first and last sample of each track are picked with two row numbers over the
+same window, forward and reversed, rather than a self-join:
+
+```python
+w = Window.partitionBy("track_id").orderBy("event_time")
+sv.withColumn("_rn", F.row_number().over(w))
+  .withColumn("_rr", F.row_number().over(w.orderBy(F.col("event_time").desc())))
+  .filter((F.col("_rn") == 1) | (F.col("_rr") == 1))
+  .withColumn("role", F.when(F.col("_rn") == 1, "adep").otherwise("ades"))
+```
+
+The join to aerodromes is a **LEFT** join. An endpoint over open sea has no
+aerodrome in its cell neighbourhood, and an inner join would discard exactly
+the endpoints that carry the out-of-area signal before it can be read.
+
+### Ranking candidates
+
+Candidates are ordered by *effective* distance — real distance plus a fixed
+penalty for aerodromes without scheduled service (@sec-sched):
+
+```python
+penalty = F.when(F.col("apt_scheduled") == "yes", F.lit(0.0)) \
+           .otherwise(F.lit(sched_penalty_nm))
+eff_nm  = F.col("dist_nm") + penalty
+best    = Window.partitionBy("track_id", "role").orderBy(F.col("eff_nm").asc_nulls_last())
+```
+
+`asc_nulls_last` matters: an endpoint with no candidate at all still produces a
+row, with NULL distance, which must sort last rather than first. M1 passes
+`sched_penalty_nm=0` so it stays a faithful recreation of `traffic`'s rule.
+
+### The abstention test
+
+Per side, an aerodrome is emitted only when the endpoint is credibly at it:
+
+```python
+ok = (F.col(f"{side}_dist_nm") <= d) & (
+    F.col(f"{side}_on_ground")
+    | (F.col(f"{side}_elev_known") & (F.col(f"{side}_agl_ft") <= h))
+)
+```
+
+Three details carry weight. `on_ground` satisfies the height test on its own,
+because a missing barometric altitude on the surface is normal. `elev_known`
+guards the height comparison, because OurAirports has no elevation for 3.09% of
+large and medium aerodromes and treating a missing value as sea level is wrong
+by the entire threshold at a high field. And height is **above field
+elevation**, not above the ellipsoid:
+
+```python
+F.col("baro_altitude") * 3.28084 - F.coalesce(F.col("apt_elev_ft"), F.lit(0.0))
+```
+
+### Out-of-area
+
+The border test scales the longitude margin by latitude, because a degree of
+longitude shrinks toward the pole and an unscaled margin would be twice as
+strict in northern Norway as in the Canaries:
+
+```python
+dlat = margin_nm / 60.0
+dlon = dlat / F.greatest(F.cos(F.radians(lat)), F.lit(0.1))
+```
+
+Precedence is the fix described in the summary — the aerodrome match is tried
+first and the border label is the fallback:
+
+```python
+F.when(ok, F.col(side)).otherwise(
+    F.when(F.col(f"{side}_at_border"), F.lit(OOA)))
+```
+
+The border branch deliberately carries **no** height condition. A flight leaving
+the observed area is at cruise level by definition, so any height cut-off would
+reject precisely the endpoints the branch exists to catch.
+
+Ground truth is relabelled symmetrically: an aerodrome outside the bounding box,
+or an ICAO code that does not resolve in OurAirports, becomes `OOA`, so the
+prediction and the truth live in the same alphabet.
+
+### Extrapolation (M8)
+
+The projection is a constant-rate continuation over the final five minutes,
+capped at 60 NM. Time-to-ground is signed so that arrivals descending forward
+and departures climbing backward both yield a positive number:
+
+```python
+signed_vs = F.when(F.col("role") == "ades", -F.col("vs_ms")).otherwise(F.col("vs_ms"))
+t_ground  = F.when(signed_vs > 0.5, F.col("alt_m") / signed_vs)
+reach_nm  = F.least(t_ground * F.col("gs_ms") * 0.000539957, F.lit(max_project_nm))
+```
+
+The `> 0.5` gate means a track ending in level flight produces no projection at
+all rather than a division by something near zero. Departures project backwards
+by adding 180° to the track angle.
+
+### Scoring
+
+Ground truth is the denominator throughout, so a flight never seen counts as a
+miss rather than an absent row:
+
+```python
+p = ident.join(pred, "track_id", "left")
+j = gt.join(p, ["icao24", "callsign", "day"], "left")
+```
+
+2.42% of `(icao24, callsign, date)` keys collide — same-day multi-leg rotations —
+and are resolved by taking the track whose start is nearest the actual off-block
+time, rather than leaving it to whichever row the join happened to produce:
+
+```python
+w = Window.partitionBy("icao24", "callsign", "day", "gt_adep", "gt_ades") \
+          .orderBy(F.abs(F.unix_timestamp("t_start")
+                         - F.unix_timestamp("gt_aobt")).asc_nulls_last())
+```
+
+The out-of-area decomposition then partitions ground truth on
+`gt_<side> == OOA` and reports recall and precision on that partition, and
+coverage and accuracy on its complement. `gt_ooa_share` comes out identical for
+every method scored against the same sample, which is the check that the
+decomposition is correct.
+
+### Cascade attribution
+
+`diagnose_cascade` keeps every rung's answer side by side rather than collapsing
+straight to a coalesce, records which rung supplied each answer, and scores that
+rung against a control **on the same flights**. That is what makes "this rung is
+95% accurate" comparable with "the rung it displaced would have been 99%
+accurate here", and it is the measurement that showed the vertical-trend methods
+contribute nothing.
 
 ## Recommendations {#sec-recommendations}
 
