@@ -1,6 +1,6 @@
 ---
 title: "Detecting departure and destination aerodromes from ADS-B"
-subtitle: "Version 4.1 — detection inside the pipeline"
+subtitle: "Version 4.2 — detection inside the pipeline"
 author: "EUROCONTROL Performance Review Unit"
 date: last-modified
 ---
@@ -21,6 +21,7 @@ modes  <- cache("mode_comparison.csv")
 grid   <- cache("sweep_radius_height.csv")
 pen    <- cache("sweep_penalty.csv")
 apt    <- cache("per_airport.csv")
+typ    <- cache("per_type.csv")
 
 pct <- function(x) ifelse(is.na(x), "—", sprintf("%.2f%%", 100 * x))
 pp  <- function(x) ifelse(is.na(x), "—", sprintf("%+.2f pp", 100 * x))
@@ -100,21 +101,34 @@ unchanged.
 :::
 
 ::: {.callout-note collapse="true"}
-## What changed in 4.1
+## What changed since version 4
 
-No new computation — 4.1 reports more of the same sweep. Every headline number
-is unchanged.
+Every headline number is unchanged throughout. The point releases report more
+of what version 4 already computed, plus one new aggregation.
 
-* Results are now given for **both roles on all four measures**: arrival
-  overall correctness and both in-area figures were computed but not printed.
-* The sweep is plotted **on accuracy as well as coverage**, for departures and
-  arrivals. This is the substantive addition: accuracy peaks near the ground
-  and falls as height is admitted, so the coverage view alone overstates the
-  case for a high threshold (@sec-accuracy-sweep).
-* The per-aerodrome cross-check names the **mode and parameters** it was
-  produced at, extends to the **30 busiest** aerodromes, and separates the
-  out-of-area bucket from the movement-count ratio it was distorting.
-* Figure captions are generated from the data rather than written by hand.
+**4.2**
+
+* A breakdown **by class of ground-truth aerodrome** (@sec-per-type) — the one
+  new computation. It surfaces the sharpest finding in the study: on small
+  aerodromes and heliports the method is wrong **every single time it answers**,
+  because the detection reference contains large and medium aerodromes only.
+* Overall correctness is reported in the **radius and penalty sweeps**, not
+  only in the results table.
+* The per-aerodrome cross-check extends to the **100 busiest**, and now covers
+  **arrivals as well as departures**.
+
+**4.1**
+
+* Results given for **both roles on all four measures**: arrival overall
+  correctness and both in-area figures were computed but not printed.
+* The sweep plotted **on accuracy as well as coverage**, for both roles.
+  Accuracy peaks near the ground and falls as height is admitted, so the
+  coverage view alone overstates the case for a high threshold
+  (@sec-accuracy-sweep).
+* The cross-check names the **mode and parameters** it was produced at, and
+  separates the out-of-area bucket from the movement-count ratio it was
+  distorting.
+* Figure captions generated from the data rather than written by hand.
 :::
 
 ## What the pipeline does before any method runs {#sec-preprocessing}
@@ -411,15 +425,16 @@ sweep_plot("accuracy", "Accuracy")
 ```
 
 ```{r radius-cost}
-r <- grid[grid$height_ft == OP_HEIGHT, c("radius_nm","adep_coverage","adep_accuracy",
-                                         "ades_coverage","ades_accuracy")]
+r <- grid[grid$height_ft == OP_HEIGHT, ]
 r <- r[order(r$radius_nm), ]
 kable(data.frame(
   `Max radius` = paste0(r$radius_nm, " NM"),
   `ADEP cov` = pct(r$adep_coverage), `ADEP acc` = pct(r$adep_accuracy),
+  `ADEP ovr` = pct(r$adep_overall),
   `ADES cov` = pct(r$ades_coverage), `ADES acc` = pct(r$ades_accuracy),
-  check.names = FALSE), align = "lrrrr",
-  caption = sprintf("Detection radius at a fixed %s ft abstention height. Coverage saturates by about 30 NM for departures and 40 NM for arrivals; beyond that a wider radius trades accuracy for almost no coverage.",
+  `ADES ovr` = pct(r$ades_overall),
+  check.names = FALSE), align = "lrrrrrr",
+  caption = sprintf("Detection radius at a fixed %s ft abstention height. *ovr* is overall correctness, coverage x accuracy. Coverage saturates by about 30 NM for departures and 40 NM for arrivals; beyond that a wider radius trades accuracy for almost no coverage, and overall correctness turns over.",
                     format(OP_HEIGHT, big.mark = ",", trim = TRUE)))
 ```
 
@@ -490,12 +505,15 @@ the accuracy view shows it is mildly *positive* rather than merely harmless.
 **Overall correctness is what reconciles them.** Coverage rises steeply with
 height and accuracy falls gently, so their product keeps rising for departures
 across the whole range — which is why
-`r pct(g(OP_RADIUS,OP_HEIGHT,"adep_coverage") * g(OP_RADIUS,OP_HEIGHT,"adep_accuracy"))`
-at `r format(OP_HEIGHT, big.mark=",")` ft beats
-`r pct(g(OP_RADIUS,2000,"adep_coverage") * g(OP_RADIUS,2000,"adep_accuracy"))`
-at 2,000 ft despite the lower accuracy. A user who cares about a trustworthy
-label rather than a complete one should read the accuracy panel and pick a much
-lower height than the one recommended here.
+`r pct(g(OP_RADIUS,OP_HEIGHT,"adep_overall"))` at
+`r format(OP_HEIGHT, big.mark=",")` ft beats
+`r pct(g(OP_RADIUS,2000,"adep_overall"))` at 2,000 ft despite the lower
+accuracy. Arrivals are closer to turning over —
+`r pct(g(OP_RADIUS,OP_HEIGHT,"ades_overall"))` against
+`r pct(g(OP_RADIUS,2000,"ades_overall"))` — which is the same asymmetry again.
+A user who cares about a trustworthy label rather than a complete one should
+read the accuracy panel and pick a much lower height than the one recommended
+here.
 
 ## Preferring aerodromes with scheduled service {#sec-penalty}
 
@@ -521,9 +539,12 @@ p <- pen[order(pen$penalty_nm), ]
 kable(data.frame(
   Penalty = paste0(p$penalty_nm, " NM"),
   `ADEP cov` = pct(p$adep_coverage), `ADEP acc` = pct(p$adep_accuracy),
+  `ADEP ovr` = pct(p$adep_overall),
   `ADES cov` = pct(p$ades_coverage), `ADES acc` = pct(p$ades_accuracy),
-  check.names = FALSE), align = "lrrrr",
-  caption = "Scheduled-service penalty at 40 NM and 15,000 ft. A penalty of 0 reproduces the unbiased ranking exactly and is the control.")
+  `ADES ovr` = pct(p$ades_overall),
+  check.names = FALSE), align = "lrrrrrr",
+  caption = sprintf("Scheduled-service penalty at %g NM and %s ft. *ovr* is overall correctness. A penalty of 0 reproduces the unbiased ranking exactly and is the control.",
+                    OP_RADIUS, format(OP_HEIGHT, big.mark = ",", trim = TRUE)))
 ```
 
 The gain is
@@ -532,6 +553,10 @@ of departure accuracy** and
 **`r pp(p$ades_accuracy[p$penalty_nm==10] - p$ades_accuracy[p$penalty_nm==0])`
 of arrival accuracy**, for a coverage change of
 `r pp(p$adep_coverage[p$penalty_nm==10] - p$adep_coverage[p$penalty_nm==0])`.
+Overall correctness moves with it —
+`r pp(p$adep_overall[p$penalty_nm==10] - p$adep_overall[p$penalty_nm==0])` and
+`r pp(p$ades_overall[p$penalty_nm==10] - p$ades_overall[p$penalty_nm==0])` —
+which is what makes this the one parameter in the study with no trade attached.
 
 Two features make this trustworthy rather than a lucky constant. The control at
 penalty 0 reproduces the unbiased ranking, so the effect is attributable. And
@@ -645,21 +670,99 @@ if (!is.null(apt)) {
 }
 ```
 
+### By class of aerodrome {#sec-per-type}
+
+Every headline figure averages over populations that behave nothing like each
+other. The detection reference holds **large and medium aerodromes only**, so
+flights whose true aerodrome is a small field or a heliport cannot be named
+correctly at any radius or height. Grouping ground truth by its OurAirports
+class separates that from detection skill.
+
+```{r per-type}
+if (!is.null(typ)) {
+  t <- typ[order(typ$role, -typ$n_truth), ]
+  kable(data.frame(
+    Movements = t$role,
+    Class = gsub("_", " ", t$apt_type),
+    Aerodromes = format(t$n_aerodromes, big.mark = ","),
+    Flights = format(t$n_truth, big.mark = ","),
+    Coverage = pct(t$coverage),
+    Accuracy = pct(t$accuracy),
+    Overall = pct(t$overall),
+    check.names = FALSE), row.names = FALSE, align = "llrrrrr",
+    caption = sprintf("Coverage and accuracy by the class of the *ground-truth* aerodrome, from the `endpoint` flight list at %s. Classes are OurAirports types. The detection reference contains large and medium aerodromes only.", OP))
+}
+```
+
+```{r per-type-vals}
+#| include: false
+tv <- function(rl, cl, f) {
+  v <- typ[[f]][typ$role == rl & typ$apt_type == cl]
+  if (length(v) == 0) NA_real_ else v[1]
+}
+small_n <- sum(typ$n_truth[typ$apt_type %in% c("small_airport", "heliport")])
+small_ans <- sum(typ$n_answered[typ$apt_type %in% c("small_airport", "heliport")])
+```
+
+**Small aerodromes and heliports are answered confidently and wrongly, every
+time.** Accuracy on both classes is exactly zero, on
+`r pct(tv("departures","small_airport","coverage"))` coverage for small
+airports and `r pct(tv("departures","heliport","coverage"))` for heliports.
+That is not a near-miss rate: the reference cannot name these aerodromes, so
+when the endpoint happens to fall within `r OP_RADIUS` NM of some large or
+medium field below `r format(OP_HEIGHT, big.mark=",")` ft, the rule names that
+one instead. Across both roles, `r format(small_ans, big.mark=",")` of
+`r format(small_n, big.mark=",")` such flights get an answer and none of them
+are right.
+
+The absolute cost is small — under half a point of the sample — but the shape
+of the error matters more than its size. **These are not abstentions; they are
+false statements**, and nothing in the output distinguishes them from the
+`r pct(tv("departures","large_airport","accuracy"))` of correct large-airport
+departures. Two fixes are available and neither is implemented here: extend the
+reference to small aerodromes so they can be named, or make abstention aware of
+what the reference contains, so an endpoint nearest to an aerodrome the
+reference omits produces silence rather than its neighbour.
+
+**Between the classes the reference does hold, the difference is real but
+ordinary.** Departures at large airports run
+`r pct(tv("departures","large_airport","coverage"))` coverage at
+`r pct(tv("departures","large_airport","accuracy"))` accuracy, against
+`r pct(tv("departures","medium_airport","coverage"))` and
+`r pct(tv("departures","medium_airport","accuracy"))` at medium ones. Since
+large airports are `r pct(tv("departures","large_airport","n_truth") / N_GT)`
+of the sample, the headline figures are very close to the large-airport figures
+and should not be read as applying uniformly.
+
 ```{r per-airport-top}
 if (!is.null(apt)) {
   # OOA is excluded: it is not an aerodrome, and its counts are reported in
   # their own right in the out-of-area section.
-  top <- apt[apt$role == "departures" & apt$airport != "OOA", ]
-  top <- head(top[order(-top$n_truth), ], 30)
-  kable(data.frame(
-    Aerodrome = top$airport,
-    `NM departures` = format(top$n_truth, big.mark = ","),
-    `OPDI assigned` = format(top$n_assigned, big.mark = ","),
-    `Count ratio` = sprintf("%.2f", top$count_ratio),
-    Recall = pct(top$recall),
-    check.names = FALSE), align = "lrrrr",
-    caption = sprintf("The 30 busiest aerodromes by Network Manager departures, against the `endpoint` flight list at %s. Out-of-area is excluded -- it is not an aerodrome and is reported separately in @sec-ooa. *Count ratio* is OPDI movements divided by Network Manager movements, so it can sit near 1 even when the individual flights are wrong; *recall* is the share of Network Manager departures OPDI put at this aerodrome, and is the stricter measure.", OP))
+  top_n <- function(rl, n = 100) {
+    d <- apt[apt$role == rl & apt$airport != "OOA", ]
+    head(d[order(-d$n_truth), ], n)
+  }
+  top_table <- function(rl, label) {
+    top <- top_n(rl)
+    kable(data.frame(
+      Aerodrome = top$airport,
+      `NM movements` = format(top$n_truth, big.mark = ","),
+      `OPDI assigned` = format(top$n_assigned, big.mark = ","),
+      `Count ratio` = sprintf("%.2f", top$count_ratio),
+      Recall = pct(top$recall),
+      check.names = FALSE), row.names = FALSE, align = "lrrrr",
+      caption = sprintf("The 100 busiest aerodromes by Network Manager %s, against the `endpoint` flight list at %s. Out-of-area is excluded -- it is not an aerodrome and is reported separately in @sec-ooa. *Count ratio* is OPDI movements divided by Network Manager movements, so it can sit near 1 even when the individual flights are wrong; *recall* is the share of Network Manager %s OPDI put at this aerodrome, and is the stricter measure.",
+                        label, OP, label))
+  }
 }
+```
+
+```{r per-airport-top-dep}
+if (!is.null(apt)) top_table("departures", "departures")
+```
+
+```{r per-airport-top-arr}
+if (!is.null(apt)) top_table("arrivals", "arrivals")
 ```
 
 The error is an **undercount** rather than an overcount, which is the
@@ -671,17 +774,75 @@ names.
 
 ```{r recall-scale}
 #| include: false
-dep30 <- apt[apt$role == "departures" & apt$airport != "OOA", ]
-dep30 <- dep30[order(-dep30$n_truth), ]
-r30 <- head(dep30$recall, 30)
+depall <- apt[apt$role == "departures" & apt$airport != "OOA", ]
+depall <- depall[order(-depall$n_truth), ]
+r100 <- head(depall$recall, 100)
+share100 <- sum(head(depall$n_truth, 100)) / sum(depall$n_truth)
 ```
 
-Recall also scales sharply with aerodrome size. Across the busiest thirty it
-runs from `r pct(min(r30))` to `r pct(max(r30))`, against a median of
-`r pct(median(dep30$recall, na.rm = TRUE))` over all `r nrow(dep30)` aerodromes
-with departures in the sample. The flight list is therefore substantially more
+Recall also scales sharply with aerodrome size. Across the hundred busiest —
+`r pct(share100)` of all departures in the sample — the median is
+`r pct(median(r100))` and the quartiles are `r pct(quantile(r100, 0.25))` and
+`r pct(quantile(r100, 0.75))`, against a median of
+`r pct(median(depall$recall, na.rm = TRUE))` over all `r nrow(depall)`
+aerodromes with departures. The flight list is therefore substantially more
 complete at large aerodromes than small ones, which matters before comparing
-across aerodrome classes.
+across aerodrome classes — and @sec-per-type says why.
+
+### Busy aerodromes that fail outright {#sec-outliers}
+
+Extending the listing from thirty rows to a hundred exposes something the
+shorter view could not: a handful of genuinely busy aerodromes where the method
+does not merely lose a few movements but fails almost completely.
+
+```{r outliers}
+#| include: false
+top100 <- do.call(rbind, lapply(c("departures","arrivals"), function(rl) {
+  d <- apt[apt$role == rl & apt$airport != "OOA", ]
+  head(d[order(-d$n_truth), ], 100)
+}))
+top100$answered <- top100$n_predicted_here / top100$n_truth
+bad      <- top100[top100$recall < 0.5, ]
+unseen   <- bad[bad$answered < 0.25, ]
+misnamed <- bad[bad$answered >= 0.25, ]
+# One accessor for the worked examples, so no figure is transcribed by hand.
+w <- function(ap, rl, f) apt[[f]][apt$role == rl & apt$airport == ap]
+```
+
+`r nrow(bad)` of the two hundred rows above sit below 50% recall —
+`r sum(bad$role == "departures")` departure aerodromes and
+`r sum(bad$role == "arrivals")` arrival ones. They split cleanly into two kinds
+of failure:
+
+* **Never seen** (`r nrow(unseen)` rows). Under a quarter of their flights get
+  an answer at all: Gran Canaria departures return
+  `r format(w("GCLP","departures","n_predicted_here"), big.mark=",")` answers
+  against `r format(w("GCLP","departures","n_truth"), big.mark=",")` movements,
+  and Hurghada none at all. These cluster where ADS-B receiver coverage is
+  thin — the Canaries, North Africa, the Caucasus, Anatolia. No detection rule
+  can recover a flight with no low-altitude trajectory.
+* **Seen and misnamed** (`r nrow(misnamed)` rows). The trajectory is there and
+  the answer is wrong. Bilbao arrivals are answered
+  `r pct(w("LEBB","arrivals","n_predicted_here") / w("LEBB","arrivals","n_truth"))`
+  of the time and only
+  `r format(w("LEBB","arrivals","n_correct"), big.mark=",")` of
+  `r format(w("LEBB","arrivals","n_truth"), big.mark=",")` land on Bilbao.
+
+Tenerife North is the cleanest warning about reading count ratios. It is
+assigned `r format(w("GCXO","arrivals","n_assigned"), big.mark=",")` arrivals
+against `r format(w("GCXO","arrivals","n_truth"), big.mark=",")` true ones — a
+count ratio of `r sprintf("%.2f", w("GCXO","arrivals","count_ratio"))`, which
+looks like a well-measured aerodrome — while its recall is
+`r pct(w("GCXO","arrivals","recall"))`. Almost every movement it is credited
+with belongs somewhere else, and the totals cancel the error exactly as
+@sec-crosscheck warned they could.
+
+Every aerodrome in both groups is a `large_airport` with scheduled service and
+is present in the detection reference, so neither failure is the reference gap
+of @sec-per-type. The first group is a data limitation and is not fixable here.
+The second is a detection failure at aerodromes large enough to matter, it is
+concentrated rather than scattered, and **this study has not diagnosed it** —
+it is the most promising lead the cross-check produces.
 
 ## Recommendation
 
@@ -704,6 +865,14 @@ Today all three are a single null in the published flight list, and they mean
 entirely different things to a consumer. This is the highest-value change per
 line of code in the whole study.
 
+**Make abstention aware of what the reference contains.** Flights to and from
+small aerodromes and heliports are answered about half the time and are wrong
+every time (@sec-per-type). They are a small share of movements but they are
+false statements rather than gaps, and they are indistinguishable in the output
+from correct answers. Either extend the reference to small aerodromes or abstain
+when the nearest candidate is far enough away to suggest the real aerodrome is
+one the reference does not hold.
+
 ## Limitations {#sec-limitations}
 
 * **Three days**, one sample. Versions 2 and 3 used two samples a year apart;
@@ -712,6 +881,9 @@ line of code in the whole study.
   here have not been validated on a second period.
 * **Out-of-area recall is low.** The geometric border test is the wrong
   instrument; the phase-based test in @sec-ooa is the successor.
+* **The detection reference holds large and medium aerodromes only**, so
+  accuracy on any other class is zero by construction rather than by
+  measurement. The per-class table quantifies this; it does not fix it.
 * **The scheduled-service preference has a cost** that these accuracy figures
   include but do not itemise: movements at non-scheduled aerodromes are pulled
   to nearby hubs.
