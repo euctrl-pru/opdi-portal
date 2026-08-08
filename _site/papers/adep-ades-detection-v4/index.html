@@ -1,0 +1,1325 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.10.18">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="author" content="EUROCONTROL Performance Review Unit">
+<meta name="dcterms.date" content="2026-08-08">
+
+<title>Detecting departure and destination aerodromes from ADS-B – OPDI Papers</title>
+<style>
+/* Default styles provided by pandoc.
+** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+*/
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: 1.5em;}
+div.column{flex: auto;}
+@media screen {
+div.columns{gap: min(4vw, 1.5em);}
+div.column{overflow-x: auto;}
+}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../site_libs/quarto-nav/headroom.min.js"></script>
+<script src="../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../">
+<script src="../site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="../site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="../site_libs/quarto-html/popper.min.js"></script>
+<script src="../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../site_libs/quarto-html/quarto-syntax-highlighting-64a204ab8560d761af7679ceaba22944.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../site_libs/bootstrap/bootstrap-3fc44999f41da3927fa35e4e05887fd4.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "navbar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "end",
+  "type": "overlay",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+
+  <script src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6"></script>
+  <script defer="" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-chtml.js" type="text/javascript"></script>
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN" && texText && texText.data) {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
+
+</head>
+
+<body class="nav-fixed quarto-light">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+    <nav class="navbar navbar-expand-lg " data-bs-theme="dark">
+      <div class="navbar-container container-fluid">
+      <div class="navbar-brand-container mx-auto">
+    <a class="navbar-brand" href="../index.html">
+    <span class="navbar-title">OPDI Papers</span>
+    </a>
+  </div>
+            <div id="quarto-search" class="" title="Search"></div>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" role="menu" aria-expanded="false" aria-label="Toggle navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+  <span class="navbar-toggler-icon"></span>
+</button>
+          <div class="collapse navbar-collapse" id="navbarCollapse">
+            <ul class="navbar-nav navbar-nav-scroll me-auto">
+  <li class="nav-item">
+    <a class="nav-link" href="../index.html"> 
+<span class="menu-text">Papers</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="https://www.eurocontrol.int/opdi"> 
+<span class="menu-text">OPDI</span></a>
+  </li>  
+</ul>
+          </div> <!-- /navcollapse -->
+            <div class="quarto-navbar-tools">
+</div>
+      </div> <!-- /container-fluid -->
+    </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
+<!-- sidebar -->
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#summary" id="toc-summary" class="nav-link active" data-scroll-target="#summary">Summary</a></li>
+  <li><a href="#sec-preprocessing" id="toc-sec-preprocessing" class="nav-link" data-scroll-target="#sec-preprocessing"><span class="header-section-number">1</span> What the pipeline does before any method runs</a></li>
+  <li><a href="#sec-metrics" id="toc-sec-metrics" class="nav-link" data-scroll-target="#sec-metrics"><span class="header-section-number">2</span> How the metrics work</a>
+  <ul class="collapse">
+  <li><a href="#precision-and-recall-for-out-of-area" id="toc-precision-and-recall-for-out-of-area" class="nav-link" data-scroll-target="#precision-and-recall-for-out-of-area"><span class="header-section-number">2.1</span> Precision and recall, for out-of-area</a></li>
+  <li><a href="#in-area-coverage-and-accuracy" id="toc-in-area-coverage-and-accuracy" class="nav-link" data-scroll-target="#in-area-coverage-and-accuracy"><span class="header-section-number">2.2</span> In-area coverage and accuracy</a></li>
+  </ul></li>
+  <li><a href="#sec-modes" id="toc-sec-modes" class="nav-link" data-scroll-target="#sec-modes"><span class="header-section-number">3</span> The three modes</a>
+  <ul class="collapse">
+  <li><a href="#trend-the-current-production-algorithm" id="toc-trend-the-current-production-algorithm" class="nav-link" data-scroll-target="#trend-the-current-production-algorithm"><span class="header-section-number">3.1</span> <code>trend</code> — the current production algorithm</a></li>
+  <li><a href="#nearest-the-traffic-librarys-rule" id="toc-nearest-the-traffic-librarys-rule" class="nav-link" data-scroll-target="#nearest-the-traffic-librarys-rule"><span class="header-section-number">3.2</span> <code>nearest</code> — the <em>traffic</em> library’s rule</a></li>
+  <li><a href="#endpoint-nearest-with-abstention" id="toc-endpoint-nearest-with-abstention" class="nav-link" data-scroll-target="#endpoint-nearest-with-abstention"><span class="header-section-number">3.3</span> <code>endpoint</code> — nearest, with abstention</a></li>
+  </ul></li>
+  <li><a href="#results" id="toc-results" class="nav-link" data-scroll-target="#results"><span class="header-section-number">4</span> Results</a></li>
+  <li><a href="#sec-radius" id="toc-sec-radius" class="nav-link" data-scroll-target="#sec-radius"><span class="header-section-number">5</span> What a distance cap costs</a></li>
+  <li><a href="#sec-penalty" id="toc-sec-penalty" class="nav-link" data-scroll-target="#sec-penalty"><span class="header-section-number">6</span> Preferring aerodromes with scheduled service</a></li>
+  <li><a href="#sec-ooa" id="toc-sec-ooa" class="nav-link" data-scroll-target="#sec-ooa"><span class="header-section-number">7</span> Out-of-area</a>
+  <ul class="collapse">
+  <li><a href="#how-it-is-derived" id="toc-how-it-is-derived" class="nav-link" data-scroll-target="#how-it-is-derived"><span class="header-section-number">7.1</span> How it is derived</a></li>
+  <li><a href="#what-it-does-to-the-numbers" id="toc-what-it-does-to-the-numbers" class="nav-link" data-scroll-target="#what-it-does-to-the-numbers"><span class="header-section-number">7.2</span> What it does to the numbers</a></li>
+  </ul></li>
+  <li><a href="#sec-crosscheck" id="toc-sec-crosscheck" class="nav-link" data-scroll-target="#sec-crosscheck"><span class="header-section-number">8</span> Cross-check against the reference</a></li>
+  <li><a href="#recommendation" id="toc-recommendation" class="nav-link" data-scroll-target="#recommendation"><span class="header-section-number">9</span> Recommendation</a></li>
+  <li><a href="#sec-limitations" id="toc-sec-limitations" class="nav-link" data-scroll-target="#sec-limitations"><span class="header-section-number">10</span> Limitations</a></li>
+  <li><a href="#reproducing" id="toc-reproducing" class="nav-link" data-scroll-target="#reproducing"><span class="header-section-number">11</span> Reproducing</a></li>
+  </ul>
+<div class="quarto-alternate-formats"><h2>Other Formats</h2><ul><li><a href="index.pdf"><i class="bi bi-file-pdf"></i>PDF</a></li></ul></div></nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Detecting departure and destination aerodromes from ADS-B</h1>
+<p class="subtitle lead">Version 4 — detection inside the pipeline</p>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    <div>
+    <div class="quarto-title-meta-heading">Author</div>
+    <div class="quarto-title-meta-contents">
+             <p>EUROCONTROL Performance Review Unit </p>
+          </div>
+  </div>
+    
+    <div>
+    <div class="quarto-title-meta-heading">Published</div>
+    <div class="quarto-title-meta-contents">
+      <p class="date">August 8, 2026</p>
+    </div>
+  </div>
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<section id="summary" class="level2 unnumbered">
+<h2 class="unnumbered anchored" data-anchor-id="summary">Summary</h2>
+<p>Versions 1–3 of this study ran outside the OPDI pipeline. They reimplemented aerodrome proximity with their own coordinate grid, which made every recommendation awkward to adopt: the findings were expressed in nautical miles while production ranks by H3 cell membership, so acting on them meant re-deriving rather than transcribing.</p>
+<p>Version 4 moves detection <strong>into the pipeline</strong>. Three modes now share one candidate-detection stage — H3 as the index, exact great-circle distance as the comparison — and are selected by a <code>mode</code> parameter on the production function. The pipeline ran end to end on three days of 2025-06, producing a real flight list scored against Network Manager ground truth.</p>
+<p>Three results:</p>
+<p><strong>Endpoint abstention buys +12.47 pp of departure coverage for -0.84 pp of accuracy.</strong> A real trade, not a free win — and a different conclusion from version 3, for a reason worth stating up front.</p>
+<p><strong>The detection radius barely matters; the height threshold is everything.</strong> Extending the radius from 40 NM to 110 NM changes departure coverage by +0.20 pp.&nbsp;Raising the height cut-off from on-ground-only to unrestricted changes it by more than fifty points. A distance cap costs almost nothing, which is worth knowing because it is the parameter most likely to be tuned.</p>
+<p><strong>Preferring aerodromes with scheduled service is close to free.</strong> Ranking candidates on a distance penalised for aerodromes without scheduled service gains <strong>+0.67 pp of departure accuracy</strong> and <strong>+1.24 pp of arrival accuracy</strong>, at no measurable cost in coverage.</p>
+<div class="callout callout-style-default callout-important callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Important</span>The production baseline improved too
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>Version 3 concluded that endpoint abstention beat production on <em>both</em> coverage and accuracy. That no longer holds, and the reason is not that abstention got worse — it is that <strong>the baseline got better</strong>. Running the altitude-trend algorithm on H3 candidates with exact distances lifts its departure accuracy from 97.45% in version 3 to 98.82% here.</p>
+<p>The comparison in this version is therefore harder and fairer than the one before it. Version 3’s numbers are not comparable to these and remain published unchanged.</p>
+</div>
+</div>
+</section>
+<section id="sec-preprocessing" class="level2" data-number="1">
+<h2 data-number="1" class="anchored" data-anchor-id="sec-preprocessing"><span class="header-section-number">1</span> What the pipeline does before any method runs</h2>
+<p>The population a method is judged on is fixed long before the method executes. Each stage below discards something, and what survives is what detection sees.</p>
+<p><strong>1. Ingest</strong> (<code>ingestion/osn_statevectors.py</code>). Hourly partitions are read from the OpenSky archive and immediately filtered to the European bounding box <code>(-25.87, 26.75, 49.66, 70.26)</code> and decimated to one sample every 5 s. Both filters are applied <em>before</em> anything is written. For the three days here that turned roughly 60 GB of raw feed into <strong>142,630,930 state vectors</strong>.</p>
+<p><em>What is discarded:</em> everything outside Europe, and four samples in five. The 5 s decimation is the reason a track’s “first sample” can be several seconds into the take-off roll rather than at the stand.</p>
+<p><strong>2. Track construction</strong> (<code>pipeline/tracks.py</code>). State vectors are grouped into tracks by <code>SHA2(icao24 ‖ callsign)</code> and split on a gap of over 30 minutes, or over 15 minutes below 5,000 ft. Each sample is also indexed into H3 cells at resolutions 7 and 12.</p>
+<p><em>What is discarded:</em> nothing, but the grouping decides what counts as one flight. Version 2 measured the consequences — roughly one matched flight in ten is split across more than one track, and a few percent of tracks cover more than one flight.</p>
+<p><strong>3. Aerodrome zones</strong> (<code>reference/h3_airport_zones.py</code>). Each aerodrome is surrounded by concentric rings of H3 res-7 cells: 5 NM steps out to 40 NM, then 10 NM steps to 110 NM. Every cell carries the ring band it belongs to, so a consumer chooses its own radius at read time. <strong>33,751,619 (aerodrome, cell) rows</strong> for the 1,353 large and medium aerodromes in the area.</p>
+<p><em>Why it reaches 110 NM:</em> the same table serves ASMA ring crossings at 40 and 100 NM. Detection uses a fraction of it.</p>
+<p><strong>4. Endpoint candidates</strong> (<code>pipeline/flights.py</code>). For each track, the first and last sample are matched against the zone table on <code>h3_res_7</code>, and the exact great-circle distance to each candidate aerodrome is computed. The result is cached as <code>opdi_endpoint_candidates</code> — <strong>7,491,655 rows</strong>.</p>
+<p>This is the step that makes the sweeps in this paper affordable. Deriving candidates from state vectors is expensive; once cached, changing a threshold is a filter and a re-rank over a few million rows rather than a pass over 142 million. Reducing to the two endpoint samples <em>before</em> the join is also what makes the full 110 NM reach cheap — about a million rows to match, not the whole month.</p>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Note</span>H3 as an index, distance as the comparison
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>The H3 join answers “which aerodromes are plausibly near this sample” in one equi-join, without a spatial cross product. It does not answer “how near”, because a cell inside a 40 NM ring can still be more than 40 NM from the aerodrome. So every candidate is then measured exactly, and the distance — not the cell — decides.</p>
+</div>
+</div>
+</section>
+<section id="sec-metrics" class="level2" data-number="2">
+<h2 data-number="2" class="anchored" data-anchor-id="sec-metrics"><span class="header-section-number">2</span> How the metrics work</h2>
+<p>This study turns on the difference between measures that are easy to conflate, so each is defined before any number appears.</p>
+<p>Let <span class="math inline">\(G\)</span> be the ground-truth flights and <span class="math inline">\(A \subseteq G\)</span> those the method answered.</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 33%">
+<col style="width: 33%">
+<col style="width: 33%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Measure</th>
+<th>Definition</th>
+<th>The question it answers</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>Coverage</strong></td>
+<td><span class="math inline">\(\lvert A \rvert / \lvert G \rvert\)</span></td>
+<td>How often does it say <em>something</em>?</td>
+</tr>
+<tr class="even">
+<td><strong>Accuracy</strong></td>
+<td><span class="math inline">\(\lvert \text{correct} \rvert / \lvert A \rvert\)</span></td>
+<td>When it speaks, how often is it right?</td>
+</tr>
+<tr class="odd">
+<td><strong>Overall correctness</strong></td>
+<td><span class="math inline">\(\lvert \text{correct} \rvert / \lvert G \rvert\)</span></td>
+<td>Of everything, how much did it get right?</td>
+</tr>
+</tbody>
+</table>
+<p>A flight whose trajectory was never seen counts against coverage. That is deliberate: ground truth is the denominator throughout, so “we had no data” is a miss rather than an excluded row.</p>
+<p><strong>Accuracy alone is close to meaningless here.</strong> It says nothing about how often a method speaks, so a method that answers rarely and cautiously can post a better accuracy than one doing far more useful work. Consider two methods on the same flights:</p>
+<div class="cell">
+<div class="cell-output-display">
+<table class="caption-top table table-sm table-striped small">
+<caption>Accuracy favours the cautious method; overall correctness shows the eager one labels more than twice as many flights correctly.</caption>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Method</th>
+<th style="text-align: right;">Coverage</th>
+<th style="text-align: right;">Accuracy</th>
+<th style="text-align: right;">Overall correctness</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">Cautious</td>
+<td style="text-align: right;">40.00%</td>
+<td style="text-align: right;">99.00%</td>
+<td style="text-align: right;">39.60%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Eager</td>
+<td style="text-align: right;">95.00%</td>
+<td style="text-align: right;">88.00%</td>
+<td style="text-align: right;">83.60%</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<p>Neither is simply better — they suit different uses. A flight list that downstream users treat as authoritative may well prefer the cautious one. The point is that <strong>no single number decides it</strong>, which is why all three are reported throughout.</p>
+<section id="precision-and-recall-for-out-of-area" class="level3" data-number="2.1">
+<h3 data-number="2.1" class="anchored" data-anchor-id="precision-and-recall-for-out-of-area"><span class="header-section-number">2.1</span> Precision and recall, for out-of-area</h3>
+<p>Some flights have an origin or destination outside the observed area entirely. “Out of area” is therefore a legitimate <em>answer</em>, not a failure — and how well a method identifies those cases is measured with the standard pair:</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 33%">
+<col style="width: 33%">
+<col style="width: 33%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Measure</th>
+<th>Definition</th>
+<th>The question it answers</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>Precision</strong></td>
+<td>of flights <em>labelled</em> out-of-area, the fraction that were</td>
+<td>When it says out-of-area, is it right?</td>
+</tr>
+<tr class="even">
+<td><strong>Recall</strong></td>
+<td>of flights that <em>were</em> out-of-area, the fraction it labelled</td>
+<td>Of the cases out there, how many did it catch?</td>
+</tr>
+</tbody>
+</table>
+<p>Precision is accuracy computed on one label instead of all of them. Recall has no counterpart in the table above, and it is the one that matters here: <strong>high precision with low recall means a method is right when it fires but rarely fires</strong>.</p>
+<p>In the standard confusion-matrix vocabulary, with “out-of-area” as the positive class: precision is <span class="math inline">\(TP/(TP+FP)\)</span> and recall is <span class="math inline">\(TP/(TP+FN)\)</span>. Coverage has no confusion-matrix equivalent, because it measures whether the method produced <em>any</em> label rather than which one.</p>
+</section>
+<section id="in-area-coverage-and-accuracy" class="level3" data-number="2.2">
+<h3 data-number="2.2" class="anchored" data-anchor-id="in-area-coverage-and-accuracy"><span class="header-section-number">2.2</span> In-area coverage and accuracy</h3>
+<p>Because roughly one flight in twelve is genuinely out of area, a method could raise its apparent accuracy simply by labelling out-of-area liberally. So the same two measures are also reported <strong>restricted to flights whose truth is a real aerodrome</strong> — detection skill with the free wins removed. When headline and in-area figures diverge, the gap is exactly the contribution of out-of-area labelling.</p>
+</section>
+</section>
+<section id="sec-modes" class="level2" data-number="3">
+<h2 data-number="3" class="anchored" data-anchor-id="sec-modes"><span class="header-section-number">3</span> The three modes</h2>
+<p>All three read the same cached candidates. They differ in what evidence they consult and, more importantly, in when they are willing to stay silent.</p>
+<section id="trend-the-current-production-algorithm" class="level3" data-number="3.1">
+<h3 data-number="3.1" class="anchored" data-anchor-id="trend-the-current-production-algorithm"><span class="header-section-number">3.1</span> <code>trend</code> — the current production algorithm</h3>
+<p><em>Evidence:</em> every state vector below <strong>FL40</strong> that falls inside an aerodrome’s detection zone, currently 30 NM.</p>
+<p><em>Rule:</em> for each (track, aerodrome) pair, smooth altitude over a 5-sample window, count how often the smoothed value rises versus falls, and require a margin of 4 either way. A positive margin is a take-off, negative a landing.</p>
+<p><em>Abstains when:</em> the margin is within ±4 — classified <code>ambiguous</code> and <strong>the flight is dropped entirely</strong>.</p>
+<p><em>Failure mode:</em> a flight seen only above FL40 near its origin, or with a noisy altitude trace, silently loses its aerodrome. The FL40 gate is the binding constraint, not the 30 NM radius.</p>
+</section>
+<section id="nearest-the-traffic-librarys-rule" class="level3" data-number="3.2">
+<h3 data-number="3.2" class="anchored" data-anchor-id="nearest-the-traffic-librarys-rule"><span class="header-section-number">3.2</span> <code>nearest</code> — the <em>traffic</em> library’s rule</h3>
+<p><em>Evidence:</em> the track’s first and last sample. Nothing else — no altitude, no ground state, no trend.</p>
+<p><em>Rule:</em> name the nearest aerodrome by effective distance.</p>
+<p><em>Abstains when:</em> never, except when no candidate exists at all.</p>
+<p><em>Failure mode:</em> it answers just as confidently for a track that begins in the cruise as for one that begins at a stand. Its coverage is the highest of any method and its accuracy the lowest, and both facts have the same cause.</p>
+</section>
+<section id="endpoint-nearest-with-abstention" class="level3" data-number="3.3">
+<h3 data-number="3.3" class="anchored" data-anchor-id="endpoint-nearest-with-abstention"><span class="header-section-number">3.3</span> <code>endpoint</code> — nearest, with abstention</h3>
+<p><em>Evidence:</em> the same two samples, plus their height above <strong>field elevation</strong> and their <code>on_ground</code> flag.</p>
+<p><em>Rule:</em> name the nearest aerodrome, but only if the endpoint is within <code>radius_nm</code> <strong>and</strong> either below <code>height_ft</code> above that aerodrome’s elevation or flagged on the ground. Otherwise, if the endpoint lies near the boundary of the observed area, answer out-of-area. Otherwise answer nothing.</p>
+<p><em>Why height above field elevation:</em> a fixed altitude cut-off means nothing at an aerodrome sitting at 5,000 ft. Elevation comes from OurAirports and is missing for about 3% of large and medium aerodromes; where it is missing the height test is skipped and only the ground flag can satisfy the rule, rather than silently comparing against sea level.</p>
+<p><em>Failure mode:</em> it inherits <code>nearest</code>’s naming and therefore its confusions between neighbouring aerodromes; the abstention only decides <em>whether</em> to answer, never <em>what</em> to answer.</p>
+</section>
+</section>
+<section id="results" class="level2" data-number="4">
+<h2 data-number="4" class="anchored" data-anchor-id="results"><span class="header-section-number">4</span> Results</h2>
+<div class="cell">
+<div class="cell-output-display">
+<table class="caption-top table table-sm table-striped small">
+<caption>The three modes on 95,116 ground-truth flights, 2025-06-05 to 07.</caption>
+<colgroup>
+<col style="width: 12%">
+<col style="width: 12%">
+<col style="width: 12%">
+<col style="width: 18%">
+<col style="width: 12%">
+<col style="width: 12%">
+<col style="width: 17%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Mode</th>
+<th style="text-align: right;">ADEP cov</th>
+<th style="text-align: right;">ADEP acc</th>
+<th style="text-align: right;">ADEP overall</th>
+<th style="text-align: right;">ADES cov</th>
+<th style="text-align: right;">ADES acc</th>
+<th style="text-align: right;">in-area acc</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">trend</td>
+<td style="text-align: right;">68.72%</td>
+<td style="text-align: right;">98.82%</td>
+<td style="text-align: right;">67.91%</td>
+<td style="text-align: right;">68.06%</td>
+<td style="text-align: right;">97.87%</td>
+<td style="text-align: right;">98.95%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">nearest</td>
+<td style="text-align: right;">91.68%</td>
+<td style="text-align: right;">87.78%</td>
+<td style="text-align: right;">80.48%</td>
+<td style="text-align: right;">88.56%</td>
+<td style="text-align: right;">79.41%</td>
+<td style="text-align: right;">91.17%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">endpoint</td>
+<td style="text-align: right;">81.20%</td>
+<td style="text-align: right;">97.98%</td>
+<td style="text-align: right;">79.55%</td>
+<td style="text-align: right;">69.97%</td>
+<td style="text-align: right;">95.10%</td>
+<td style="text-align: right;">98.41%</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<p><code>endpoint</code> sits between the two by construction, and that is the whole design: it keeps <code>nearest</code>’s naming rule and adds <code>trend</code>’s willingness to stay silent. It answers +12.47 pp more departures than production for -0.84 pp of accuracy.</p>
+<p>Whether that trade is worth taking is a policy question rather than a technical one. A flight list treated as authoritative may prefer production’s caution; an analysis needing volume may not.</p>
+<p>Arrivals remain weaker than departures on every measure, as in all previous versions. A departure’s first sample is at or near a stand, with the aircraft stationary shortly before. An arrival’s last sample is more often a loss of reception during descent than a landing, and can be anywhere on the approach.</p>
+</section>
+<section id="sec-radius" class="level2" data-number="5">
+<h2 data-number="5" class="anchored" data-anchor-id="sec-radius"><span class="header-section-number">5</span> What a distance cap costs</h2>
+<p>The sweep varies the detection radius and the abstention height independently, 90 combinations in all, over the cached candidates.</p>
+<div class="cell">
+<div class="cell-output-display">
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="index_files/figure-html/sweep-plot-1.png" class="img-fluid figure-img" width="768"></p>
+<figcaption>Departure coverage against abstention height, one line per detection radius. Every radius of 20 NM or more traces the same curve: at 5,000 ft they sit between 74.4% and 74.6%, a spread of two tenths of a point across a five-fold change in radius. Only 5 NM and, slightly, 10 NM fall short, and that gap widens as the height threshold rises — a tight radius costs more when more of the sky is admitted. The shape of the curve belongs to the height axis; the radius only sets how much of it is reachable.</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<div class="cell">
+<div class="cell-output-display">
+<table class="caption-top table table-sm table-striped small">
+<caption>Detection radius at a fixed 15,000 ft abstention height. Coverage saturates by about 30 NM; beyond that a wider radius trades a little accuracy for almost no coverage.</caption>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Max radius</th>
+<th style="text-align: right;">ADEP cov</th>
+<th style="text-align: right;">ADEP acc</th>
+<th style="text-align: right;">ADES cov</th>
+<th style="text-align: right;">ADES acc</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">5 NM</td>
+<td style="text-align: right;">71.62%</td>
+<td style="text-align: right;">99.07%</td>
+<td style="text-align: right;">58.79%</td>
+<td style="text-align: right;">98.64%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">10 NM</td>
+<td style="text-align: right;">76.74%</td>
+<td style="text-align: right;">98.77%</td>
+<td style="text-align: right;">62.36%</td>
+<td style="text-align: right;">97.87%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">20 NM</td>
+<td style="text-align: right;">80.07%</td>
+<td style="text-align: right;">98.44%</td>
+<td style="text-align: right;">66.78%</td>
+<td style="text-align: right;">96.65%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">30 NM</td>
+<td style="text-align: right;">80.96%</td>
+<td style="text-align: right;">98.16%</td>
+<td style="text-align: right;">69.10%</td>
+<td style="text-align: right;">95.63%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">40 NM</td>
+<td style="text-align: right;">81.20%</td>
+<td style="text-align: right;">97.98%</td>
+<td style="text-align: right;">69.97%</td>
+<td style="text-align: right;">95.10%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">60 NM</td>
+<td style="text-align: right;">81.36%</td>
+<td style="text-align: right;">97.79%</td>
+<td style="text-align: right;">70.29%</td>
+<td style="text-align: right;">94.80%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">80 NM</td>
+<td style="text-align: right;">81.39%</td>
+<td style="text-align: right;">97.75%</td>
+<td style="text-align: right;">70.38%</td>
+<td style="text-align: right;">94.69%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">100 NM</td>
+<td style="text-align: right;">81.40%</td>
+<td style="text-align: right;">97.75%</td>
+<td style="text-align: right;">70.38%</td>
+<td style="text-align: right;">94.67%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">110 NM</td>
+<td style="text-align: right;">81.40%</td>
+<td style="text-align: right;">97.75%</td>
+<td style="text-align: right;">70.38%</td>
+<td style="text-align: right;">94.67%</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<p><strong>A cap costs almost nothing.</strong> Going from 40 NM to the full 110 NM reach changes departure coverage by +0.20 pp and accuracy by -0.23 pp.&nbsp;The useful range is 20–40 NM; below that coverage falls away quickly, above it nothing happens.</p>
+<p>The picture is the same for every radius at or above 20 NM: at 5,000 ft they span 74.4% to 74.6%, two tenths of a point across a five-fold change. Only the 5 NM and 10 NM lines fall away, and they fall further as the height threshold rises, because a tight radius costs more once more of the sky is admitted.</p>
+<p><strong>Height is the parameter that matters.</strong> At 40 NM, coverage runs from 31.21% with the on-ground-only rule, through 67.05% at 2,000 ft, to 81.20% at 15,000 ft. That is over fifty points from one axis against a fraction of a point from the other.</p>
+<p>Two endpoints of the sweep serve as sanity checks, and both behave as they should: at height 0 the rule reduces to “endpoint on the ground” and gives 31.21%, close to what a surface-samples-only method achieved in earlier versions; with height unrestricted and a wide radius it reaches 91.41%, close to <code>nearest</code>’s 91.68%, which is what it should converge to.</p>
+</section>
+<section id="sec-penalty" class="level2" data-number="6">
+<h2 data-number="6" class="anchored" data-anchor-id="sec-penalty"><span class="header-section-number">6</span> Preferring aerodromes with scheduled service</h2>
+<p>Version 3 found that the most frequent departure errors formed one pattern: a scheduled civil airport losing to an adjacent military airfield — Izmir to Çiğli Airbase, Naples to Grazzanise, Cagliari to Decimomannu, Catania to Sigonella, Gdańsk to Cewice, all between 7 and 25 NM apart.</p>
+<p>The mechanism is straightforward. With 5 s sampling a departing aircraft’s first recorded fix is already into the climb and displaced along the departure track. Where a military field lies between the airport and that track, it is genuinely the nearest aerodrome — the rule is not malfunctioning, it is answering the question it was asked.</p>
+<p>Aviation knowledge resolves it without new data: a commercial flight almost certainly used the aerodrome with scheduled service. Candidates are therefore ranked on <strong>effective distance</strong> — true distance plus a fixed penalty for aerodromes without scheduled service — so a military field must be <em>clearly</em> nearest rather than merely nearest.</p>
+<div class="cell">
+<div class="cell-output-display">
+<table class="caption-top table table-sm table-striped small">
+<caption>Scheduled-service penalty at 40 NM and 15,000 ft. A penalty of 0 reproduces the unbiased ranking exactly and is the control.</caption>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Penalty</th>
+<th style="text-align: right;">ADEP cov</th>
+<th style="text-align: right;">ADEP acc</th>
+<th style="text-align: right;">ADES cov</th>
+<th style="text-align: right;">ADES acc</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">0 NM</td>
+<td style="text-align: right;">81.20%</td>
+<td style="text-align: right;">97.31%</td>
+<td style="text-align: right;">70.00%</td>
+<td style="text-align: right;">93.85%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">5 NM</td>
+<td style="text-align: right;">81.20%</td>
+<td style="text-align: right;">97.72%</td>
+<td style="text-align: right;">69.99%</td>
+<td style="text-align: right;">94.31%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">10 NM</td>
+<td style="text-align: right;">81.20%</td>
+<td style="text-align: right;">97.98%</td>
+<td style="text-align: right;">69.97%</td>
+<td style="text-align: right;">95.10%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">15 NM</td>
+<td style="text-align: right;">81.19%</td>
+<td style="text-align: right;">97.90%</td>
+<td style="text-align: right;">69.92%</td>
+<td style="text-align: right;">94.88%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">20 NM</td>
+<td style="text-align: right;">81.20%</td>
+<td style="text-align: right;">97.68%</td>
+<td style="text-align: right;">69.91%</td>
+<td style="text-align: right;">94.80%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">30 NM</td>
+<td style="text-align: right;">81.19%</td>
+<td style="text-align: right;">97.59%</td>
+<td style="text-align: right;">69.82%</td>
+<td style="text-align: right;">94.84%</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<p>The gain is <strong>+0.67 pp of departure accuracy</strong> and <strong>+1.24 pp of arrival accuracy</strong>, for a coverage change of -0.01 pp.</p>
+<p>Two features make this trustworthy rather than a lucky constant. The control at penalty 0 reproduces the unbiased ranking, so the effect is attributable. And the curve <strong>peaks and turns</strong> — accuracy is best around 10 NM and declines above it. A penalty that merely favoured larger aerodromes would improve monotonically; one that corrects a specific bias should overshoot, and this does.</p>
+<div class="callout callout-style-default callout-warning callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Warning</span>It is not free — the cost is a mirror error
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>Version 3 measured what this preference breaks: genuine movements at non-scheduled aerodromes get pulled to the nearby hub — Biggin Hill to London City, Northolt to Heathrow. In that analysis the mirror error became the <strong>largest single class of remaining departure error</strong>, at roughly 59% of them.</p>
+<p>The net is favourable, and the accuracy figures above include the cost. But a flight list built this way will systematically under-report movements at non-scheduled aerodromes, and anyone analysing general aviation or military traffic should know that before using it.</p>
+</div>
+</div>
+</section>
+<section id="sec-ooa" class="level2" data-number="7">
+<h2 data-number="7" class="anchored" data-anchor-id="sec-ooa"><span class="header-section-number">7</span> Out-of-area</h2>
+<p>A flight from Dubai to Amsterdam has a departure aerodrome that no European ADS-B feed can name: the aircraft entered the observed area already airborne. Scoring that as a detection failure understates every method. Treating “out of area” as an answer is an accounting correction, not a detection improvement.</p>
+<section id="how-it-is-derived" class="level3" data-number="7.1">
+<h3 data-number="7.1" class="anchored" data-anchor-id="how-it-is-derived"><span class="header-section-number">7.1</span> How it is derived</h3>
+<p><strong>On the ground-truth side</strong>, an aerodrome is relabelled <code>OOA</code> when its coordinates fall outside the ingestion bounding box, <strong>or</strong> when its ICAO code does not resolve in OurAirports. The unresolvable codes are overwhelmingly non-European, and a code that cannot be located is one no trajectory endpoint could have been matched to. This is what puts prediction and truth in the same alphabet.</p>
+<p><strong>On the prediction side</strong>, an endpoint within 30 NM of the bounding box edge is labelled out-of-area. The longitude margin is scaled by <span class="math inline">\(1/\cos(\text{lat})\)</span>: a degree of longitude shrinks toward the pole, so an unscaled margin would be roughly twice as strict in northern Norway as in the Canaries.</p>
+<p><strong>Precedence is aerodrome first, border second.</strong> The opposite order looks equivalent and is not — version 3 found Ponta Delgada, which sits about 8 NM inside the western edge, having its departures labelled out-of-area with the aircraft still on the runway. Being near the boundary means “out of area” only when there is nothing better to say.</p>
+<p><strong>The border test carries no height condition.</strong> A flight leaving the observed area is at cruise level by definition, so any height cut-off would reject exactly the endpoints the branch exists to catch.</p>
+</section>
+<section id="what-it-does-to-the-numbers" class="level3" data-number="7.2">
+<h3 data-number="7.2" class="anchored" data-anchor-id="what-it-does-to-the-numbers"><span class="header-section-number">7.2</span> What it does to the numbers</h3>
+<div class="cell">
+<div class="cell-output-display">
+<table class="caption-top table table-sm table-striped small">
+<caption>Out-of-area for departures. Only <code>endpoint</code> emits the label; the others never do, so their recall is zero by construction.</caption>
+<colgroup>
+<col style="width: 10%">
+<col style="width: 12%">
+<col style="width: 15%">
+<col style="width: 13%">
+<col style="width: 17%">
+<col style="width: 15%">
+<col style="width: 14%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Mode</th>
+<th style="text-align: right;">truly OOA</th>
+<th style="text-align: right;">labelled OOA</th>
+<th style="text-align: right;">OOA recall</th>
+<th style="text-align: right;">OOA precision</th>
+<th style="text-align: right;">headline acc</th>
+<th style="text-align: right;">in-area acc</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">trend</td>
+<td style="text-align: right;">8.30%</td>
+<td style="text-align: right;">0.00%</td>
+<td style="text-align: right;">0.00%</td>
+<td style="text-align: right;">0.00%</td>
+<td style="text-align: right;">98.82%</td>
+<td style="text-align: right;">98.95%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">nearest</td>
+<td style="text-align: right;">8.30%</td>
+<td style="text-align: right;">0.00%</td>
+<td style="text-align: right;">0.00%</td>
+<td style="text-align: right;">0.00%</td>
+<td style="text-align: right;">87.78%</td>
+<td style="text-align: right;">91.17%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">endpoint</td>
+<td style="text-align: right;">8.30%</td>
+<td style="text-align: right;">0.74%</td>
+<td style="text-align: right;">7.94%</td>
+<td style="text-align: right;">89.44%</td>
+<td style="text-align: right;">97.98%</td>
+<td style="text-align: right;">98.41%</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<p><code>truly OOA</code> is a property of the sample, not of the method, so it must be identical across all three rows — that it is confirms the decomposition is being computed correctly rather than being a per-method artefact.</p>
+<p>The gap between headline and in-area accuracy shows how much out-of-area labelling contributes. It is small here, which is the honest reading: the mechanism is right but the geometric test catches only part of what is there. Version 3 measured this directly at <strong>92–94% precision against 10–15% recall</strong> — when the rule fires it is almost always correct, but it rarely fires. An inbound flight’s first recorded sample appears wherever a receiver happens to catch it, which is usually well inside the boundary rather than at it.</p>
+<p><strong>The concept is right and the instrument is wrong.</strong> A phase-based test would fit the physics better: a track whose first sample is already in the cruise, neither near an aerodrome nor descending toward one, has an origin outside the observed area regardless of where it sits. That is the clearest single improvement available and is not implemented here.</p>
+</section>
+</section>
+<section id="sec-crosscheck" class="level2" data-number="8">
+<h2 data-number="8" class="anchored" data-anchor-id="sec-crosscheck"><span class="header-section-number">8</span> Cross-check against the reference</h2>
+<p>Flight-level accuracy can hide errors that cancel: a departure misattributed from A to B leaves both counts wrong and the total right. Movement counts per aerodrome are what an operational user reads, so they are checked separately.</p>
+<div class="cell">
+<div class="cell-output-display">
+<table class="caption-top table table-sm table-striped small">
+<caption><code>endpoint</code> movement counts against Network Manager. A count ratio below 1 is an undercount.</caption>
+<colgroup>
+<col style="width: 14%">
+<col style="width: 14%">
+<col style="width: 15%">
+<col style="width: 18%">
+<col style="width: 37%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Movements</th>
+<th style="text-align: right;">Aerodromes</th>
+<th style="text-align: right;">Count ratio</th>
+<th style="text-align: right;">Median recall</th>
+<th style="text-align: right;">Median recall, 50+ movements</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">departures</td>
+<td style="text-align: right;">825</td>
+<td style="text-align: right;">0.810</td>
+<td style="text-align: right;">80.00%</td>
+<td style="text-align: right;">97.33%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">arrivals</td>
+<td style="text-align: right;">806</td>
+<td style="text-align: right;">0.695</td>
+<td style="text-align: right;">60.00%</td>
+<td style="text-align: right;">84.00%</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div class="cell">
+<div class="cell-output-display">
+<table class="caption-top table table-sm table-striped small">
+<caption>Busiest aerodromes by Network Manager departures.</caption>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Aerodrome</th>
+<th style="text-align: right;">NM departures</th>
+<th style="text-align: right;">OPDI assigned</th>
+<th style="text-align: right;">Count ratio</th>
+<th style="text-align: right;">Recall</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">OOA</td>
+<td style="text-align: right;">7,892</td>
+<td style="text-align: right;">701</td>
+<td style="text-align: right;">0.09</td>
+<td style="text-align: right;">7.94%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">LTFM</td>
+<td style="text-align: right;">2,282</td>
+<td style="text-align: right;">2,211</td>
+<td style="text-align: right;">0.97</td>
+<td style="text-align: right;">96.49%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">EHAM</td>
+<td style="text-align: right;">2,148</td>
+<td style="text-align: right;">2,165</td>
+<td style="text-align: right;">1.01</td>
+<td style="text-align: right;">99.77%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">EDDF</td>
+<td style="text-align: right;">2,094</td>
+<td style="text-align: right;">2,087</td>
+<td style="text-align: right;">1.00</td>
+<td style="text-align: right;">99.43%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">LFPG</td>
+<td style="text-align: right;">2,084</td>
+<td style="text-align: right;">2,071</td>
+<td style="text-align: right;">0.99</td>
+<td style="text-align: right;">98.85%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">EGLL</td>
+<td style="text-align: right;">2,001</td>
+<td style="text-align: right;">2,024</td>
+<td style="text-align: right;">1.01</td>
+<td style="text-align: right;">99.35%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">LEMD</td>
+<td style="text-align: right;">1,773</td>
+<td style="text-align: right;">1,761</td>
+<td style="text-align: right;">0.99</td>
+<td style="text-align: right;">99.21%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">LEBL</td>
+<td style="text-align: right;">1,591</td>
+<td style="text-align: right;">1,582</td>
+<td style="text-align: right;">0.99</td>
+<td style="text-align: right;">99.25%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">EDDM</td>
+<td style="text-align: right;">1,573</td>
+<td style="text-align: right;">1,567</td>
+<td style="text-align: right;">1.00</td>
+<td style="text-align: right;">99.43%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">LIRF</td>
+<td style="text-align: right;">1,449</td>
+<td style="text-align: right;">1,445</td>
+<td style="text-align: right;">1.00</td>
+<td style="text-align: right;">99.65%</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<p>The error is an <strong>undercount</strong> rather than an overcount, which is the correctable direction: a systematic shortfall can be adjusted for, an inflated count cannot. Recall also scales with aerodrome size, so the flight list is substantially more complete at large aerodromes than small ones — worth knowing before comparing across aerodrome classes.</p>
+</section>
+<section id="recommendation" class="level2" data-number="9">
+<h2 data-number="9" class="anchored" data-anchor-id="recommendation"><span class="header-section-number">9</span> Recommendation</h2>
+<p><strong>Adopt <code>endpoint</code> for departures if coverage matters more than the last point of accuracy.</strong> It adds +12.47 pp of coverage for -0.84 pp, and it is a smaller algorithm than the one it replaces — no smoothing window, no margin parameter, no per-aerodrome vote. If accuracy is paramount, keep <code>trend</code>; it is genuinely the more accurate rule now.</p>
+<p><strong>Use 20–40 NM and a scheduled-service penalty of 10 NM.</strong> Both are on plateaus, so neither is delicate.</p>
+<p><strong>Do not change the arrivals algorithm on this evidence.</strong> Arrivals are weaker on every measure and every version of this study has found the same.</p>
+<p><strong>Publish the provenance column.</strong> <code>adep_source</code> / <code>ades_source</code> distinguish “named an aerodrome”, “outside the observed area” and “could not determine”. Today all three are a single null in the published flight list, and they mean entirely different things to a consumer. This is the highest-value change per line of code in the whole study.</p>
+</section>
+<section id="sec-limitations" class="level2" data-number="10">
+<h2 data-number="10" class="anchored" data-anchor-id="sec-limitations"><span class="header-section-number">10</span> Limitations</h2>
+<ul>
+<li><strong>Three days</strong>, one sample. Versions 2 and 3 used two samples a year apart; this version re-runs the whole pipeline, which is expensive, so it uses one. The mode ranking is robust across earlier versions, but the exact figures here have not been validated on a second period.</li>
+<li><strong>Out-of-area recall is low.</strong> The geometric border test is the wrong instrument; the phase-based test in <a href="#sec-ooa" class="quarto-xref">Section&nbsp;7</a> is the successor.</li>
+<li><strong>The scheduled-service preference has a cost</strong> that these accuracy figures include but do not itemise: movements at non-scheduled aerodromes are pulled to nearby hubs.</li>
+<li><strong>The sweep re-implements the endpoint rule</strong> as a DataFrame operation instead of calling the pipeline’s <code>classify_endpoints</code>, because a sweep cell needs only <code>(track_id, adep, ades)</code> while the pipeline method builds a whole flight list. The headline <code>endpoint</code> row <em>does</em> come from the pipeline path, so a divergence between the two would surface as the sweep disagreeing with its own mode — but this is a duplication and worth removing.</li>
+<li><strong><code>track_id</code> is taken as given</strong>, with the fragmentation and merging rates version 2 measured.</li>
+</ul>
+</section>
+<section id="reproducing" class="level2" data-number="11">
+<h2 data-number="11" class="anchored" data-anchor-id="reproducing"><span class="header-section-number">11</span> Reproducing</h2>
+<p>Reference zones, state vectors and tracks, in the <code>opdi</code> repository:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="va">RANGE</span><span class="op">=</span><span class="st">"--env opensky --start 2025-06-05 --end 2025-06-08"</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="ex">opdi</span> run <span class="va">$RANGE</span> <span class="at">--step</span> 00a   <span class="co"># zones: 5 NM bands to 110 NM</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="ex">opdi</span> run <span class="va">$RANGE</span> <span class="at">--step</span> 01    <span class="co"># state vectors, bbox and 5 s applied at ingest</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="ex">opdi</span> run <span class="va">$RANGE</span> <span class="at">--step</span> 02    <span class="co"># tracks, with H3 res 7 and 12</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Candidates once, then a flight list per mode:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> datetime <span class="im">import</span> date</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> opdi.pipeline.flights <span class="im">import</span> FlightListProcessor</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>fp <span class="op">=</span> FlightListProcessor(spark, config)</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>fp.build_endpoint_candidates(date(<span class="dv">2025</span>, <span class="dv">6</span>, <span class="dv">1</span>))</span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> mode <span class="kw">in</span> (<span class="st">"trend"</span>, <span class="st">"nearest"</span>, <span class="st">"endpoint"</span>):</span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>    fp.process_dai(date(<span class="dv">2025</span>, <span class="dv">6</span>, <span class="dv">1</span>), mode<span class="op">=</span>mode, skip_if_processed<span class="op">=</span><span class="va">False</span>,</span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>                   abstention_radius_nm<span class="op">=</span><span class="dv">40</span>, abstention_height_ft<span class="op">=</span><span class="dv">15000</span>,</span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>                   sched_penalty_nm<span class="op">=</span><span class="dv">10</span>,</span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>                   table_name<span class="op">=</span><span class="ss">f"research/flight_list_</span><span class="sc">{</span>mode<span class="sc">}</span><span class="ss">"</span>,</span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>                   write_mode<span class="op">=</span><span class="st">"overwrite"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Scoring and both sweeps. This runs locally: the inputs are small once the candidates are cached, and the cluster namespace is shared.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb3"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="ex">python</span> benchmarks/benchmark_modes.py <span class="at">--months</span> 202506 <span class="dt">\</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>    <span class="at">--days</span> 2025-06-05 2025-06-06 2025-06-07 <span class="at">--local</span> <span class="at">--results-dir</span> <span class="op">&lt;</span>dir<span class="op">&gt;</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Rendering this page needs no credentials, no database and no cluster.</p>
+
+
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp('/' + window.location.host + '/');
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+</div> <!-- /content -->
+
+
+
+
+</body></html>
