@@ -225,7 +225,7 @@ window.Quarto = {
 <header id="title-block-header" class="quarto-title-block default">
 <div class="quarto-title">
 <h1 class="title">Detecting departure and destination aerodromes from ADS-B</h1>
-<p class="subtitle lead">Version 4.2 — detection inside the pipeline</p>
+<p class="subtitle lead">Version 4.3 — detection inside the pipeline</p>
 </div>
 
 
@@ -288,7 +288,11 @@ window.Quarto = {
 </div>
 <div id="callout-2" class="callout-2-contents callout-collapse collapse">
 <div class="callout-body-container callout-body">
-<p>Every headline number is unchanged throughout. The point releases report more of what version 4 already computed, plus one new aggregation.</p>
+<p>Every headline number is unchanged throughout. The point releases report more of what version 4 already computed, plus two new computations.</p>
+<p><strong>4.3</strong></p>
+<ul>
+<li>The height sweep runs to <strong>40,000 ft</strong> rather than stopping at 20,000. At 20,000 ft six points of departure coverage still separated the curve from the unrestricted case, so the old grid cut it off mid-rise and left the reader to guess where it flattened.</li>
+</ul>
 <p><strong>4.2</strong></p>
 <ul>
 <li>A breakdown <strong>by class of ground-truth aerodrome</strong> (<a href="#sec-per-type" class="quarto-xref">Section&nbsp;8.1</a>) — the one new computation. It surfaces the sharpest finding in the study: on small aerodromes and heliports the method is wrong <strong>every single time it answers</strong>, because the detection reference contains large and medium aerodromes only.</li>
@@ -551,7 +555,7 @@ window.Quarto = {
 </section>
 <section id="sec-radius" class="level2" data-number="5">
 <h2 data-number="5" class="anchored" data-anchor-id="sec-radius"><span class="header-section-number">5</span> What a distance cap costs</h2>
-<p>The sweep varies the detection radius and the abstention height independently, 90 combinations in all, over the cached candidates.</p>
+<p>The sweep varies the detection radius and the abstention height independently, 126 combinations in all, over the cached candidates. Height runs from on-ground-only to 40,000 ft above field elevation — past typical cruise, so the curve is followed to where it flattens — plus an unrestricted case as the limit.</p>
 <p>Both measures are plotted for both roles, because the two axes do not merely differ in strength — they pull in opposite directions, and a coverage-only view hides that entirely.</p>
 <div class="cell">
 <div class="cell-output-display">
@@ -576,7 +580,7 @@ window.Quarto = {
 <div class="cell">
 <div class="cell-output-display">
 <table class="caption-top table table-sm table-striped small">
-<caption>Detection radius at a fixed 15,000 ft abstention height. <em>ovr</em> is overall correctness, coverage x accuracy. Coverage saturates by about 30 NM for departures and 40 NM for arrivals; beyond that a wider radius trades accuracy for almost no coverage, and overall correctness turns over.</caption>
+<caption>Detection radius at a fixed 15,000 ft abstention height. <em>ovr</em> is overall correctness, coverage x accuracy. Coverage saturates by about 30 NM for departures and 40 NM for arrivals; beyond that a wider radius trades accuracy for almost no coverage, and overall correctness flattens rather than turning – the radius has no interior optimum on this axis, unlike the height (<a href="#sec-accuracy-sweep" class="quarto-xref">Section&nbsp;5.1</a>).</caption>
 <colgroup>
 <col style="width: 16%">
 <col style="width: 13%">
@@ -688,13 +692,30 @@ window.Quarto = {
 <p><strong>Height is the parameter that matters.</strong> At 40 NM, departure coverage runs from 31.21% with the on-ground-only rule, through 67.05% at 2,000 ft, to 81.20% at 15,000 ft. That is over fifty points from one axis against a fraction of a point from the other.</p>
 <p>Arrivals behave the same way with less room: from 36.01% to 69.97% over the same range. They also saturate later in radius — at 15,000 ft a 20 NM cap costs departures +1.32 pp of coverage but arrivals +3.61 pp, because an arrival’s last recorded sample is further from the aerodrome than a departure’s first.</p>
 <p>Two endpoints of the sweep serve as sanity checks, and both behave as they should: at height 0 the rule reduces to “endpoint on the ground” and gives 31.21%, close to what a surface-samples-only method achieved in earlier versions; with height unrestricted and a wide radius it reaches 91.41%, close to <code>nearest</code>’s 91.68%, which is what it should converge to.</p>
+<p><strong>The curve does flatten, and the grid now reaches the flat part.</strong> At 40 NM the last measured height is within +0.06 pp of the unrestricted case for departures and +0.36 pp for arrivals, so a threshold at cruise level is indistinguishable from no threshold at all. The steepest remaining step is between 30,000 and 35,000 ft — +4.08 pp of arrival coverage in one 5,000 ft band, which is where first and last contact at cruise gets admitted.</p>
 <section id="sec-accuracy-sweep" class="level3" data-number="5.1">
 <h3 data-number="5.1" class="anchored" data-anchor-id="sec-accuracy-sweep"><span class="header-section-number">5.1</span> What the coverage view hides</h3>
 <p>Read on accuracy, the same grid tells a different story, and the two together are what actually determines an operating point.</p>
 <p><strong>Accuracy peaks near the ground, then declines.</strong> At 40 NM, departure accuracy is highest at 2,000 ft (98.98%) and arrival accuracy at 500 ft (98.57%). By 15,000 ft they have given up -1.00 pp and -3.47 pp respectively. Every foot of extra height admits endpoints that are further into the climb or descent, and those are exactly the endpoints most likely to sit nearer a neighbouring aerodrome than the real one.</p>
 <p><strong>Arrivals pay roughly three times as much for the same height.</strong> That ratio is the single clearest statement of why this study has never recommended changing the arrivals algorithm: the same parameter that is nearly free for departures is expensive for arrivals, so one operating point cannot serve both well.</p>
 <p><strong>The radius matters for accuracy even where it does not for coverage.</strong> Above 40 NM a wider radius buys essentially no coverage, but it keeps costing accuracy: at 15,000 ft, going from 5 NM to 110 NM costs -1.32 pp of departure accuracy and -3.97 pp of arrival accuracy. This is the real argument for a cap. Version 4 justified one on the grounds that it costs almost no coverage; the accuracy view shows it is mildly <em>positive</em> rather than merely harmless.</p>
-<p><strong>Overall correctness is what reconciles them.</strong> Coverage rises steeply with height and accuracy falls gently, so their product keeps rising for departures across the whole range — which is why 79.55% at 15,000 ft beats 66.36% at 2,000 ft despite the lower accuracy. Arrivals are closer to turning over — 66.54% against 58.70% — which is the same asymmetry again. A user who cares about a trustworthy label rather than a complete one should read the accuracy panel and pick a much lower height than the one recommended here.</p>
+<p><strong>Overall correctness is what reconciles them, and it has a maximum.</strong> Coverage rises steeply with height while accuracy falls gently, so their product rises for a long way: at 40 NM departure overall correctness runs from 66.36% at 2,000 ft to 79.55% at 15,000 ft. But it does not rise forever. It peaks at <strong>25,000 ft</strong> (80.41%) and declines above that, as the accuracy loss finally outruns the coverage gain.</p>
+<div class="callout callout-style-default callout-warning callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Warning</span>Version 4.2 got this wrong, and the extended grid is why
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>Version 4.2 stated that the product “keeps rising for departures across the whole range”. That was true of the range it measured — the sweep stopped at 20,000 ft, below the turning point — and false of the parameter. Extending the grid to 40,000 ft was what exposed it. The claim is withdrawn.</p>
+</div>
+</div>
+<p>The maximum is shallow, which is the practical point: 80.41% at its peak against 79.55% at the recommended 15,000 ft, a difference of +0.86 pp.&nbsp;Buying it costs -1.67 pp of accuracy, so the recommendation does not move.</p>
+<p>Arrivals never turn over inside the grid: overall correctness is still climbing at 40,000 ft (69.26% against 66.54% at 15,000 ft). Arrival coverage is so far from its ceiling that admitting more of it still pays, which is the same asymmetry once more.</p>
+<p>A user who cares about a trustworthy label rather than a complete one should ignore all of this and read the accuracy panel, where the optimum sits near the ground.</p>
 </section>
 </section>
 <section id="sec-penalty" class="level2" data-number="6">
