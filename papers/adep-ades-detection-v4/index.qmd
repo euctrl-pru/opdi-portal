@@ -1,6 +1,6 @@
 ---
 title: "Detecting departure and destination aerodromes from ADS-B"
-subtitle: "Version 4 — detection inside the pipeline"
+subtitle: "Version 4.1 — detection inside the pipeline"
 author: "EUROCONTROL Performance Review Unit"
 date: last-modified
 ---
@@ -37,6 +37,16 @@ g <- function(r, h, field) {
 }
 UNRESTRICTED <- max(grid$height_ft)
 N_GT <- modes$n_ground_truth[1]
+
+# The operating point the three flight lists were produced at. Read out of the
+# sweep frames rather than typed, so a re-run cannot leave the prose behind:
+# the penalty sweep holds radius and height fixed, the radius x height sweep
+# holds the penalty fixed, and between them they pin all three.
+OP_RADIUS  <- pen$radius_nm[1]
+OP_HEIGHT  <- pen$height_ft[1]
+OP_PENALTY <- grid$penalty_nm[1]
+OP <- sprintf("%g NM detection radius, %s ft abstention height, %g NM scheduled-service penalty",
+              OP_RADIUS, format(OP_HEIGHT, big.mark = ",", trim = TRUE), OP_PENALTY)
 ```
 
 ## Summary {.unnumbered}
@@ -87,6 +97,24 @@ from 97.45% in version 3 to `r pct(m("trend","adep_accuracy"))` here.
 The comparison in this version is therefore harder and fairer than the one
 before it. Version 3's numbers are not comparable to these and remain published
 unchanged.
+:::
+
+::: {.callout-note collapse="true"}
+## What changed in 4.1
+
+No new computation — 4.1 reports more of the same sweep. Every headline number
+is unchanged.
+
+* Results are now given for **both roles on all four measures**: arrival
+  overall correctness and both in-area figures were computed but not printed.
+* The sweep is plotted **on accuracy as well as coverage**, for departures and
+  arrivals. This is the substantive addition: accuracy peaks near the ground
+  and falls as height is admitted, so the coverage view alone overstates the
+  case for a high threshold (@sec-accuracy-sweep).
+* The per-aerodrome cross-check names the **mode and parameters** it was
+  produced at, extends to the **30 busiest** aerodromes, and separates the
+  out-of-area bucket from the movement-count ratio it was distorting.
+* Figure captions are generated from the data rather than written by hand.
 :::
 
 ## What the pipeline does before any method runs {#sec-preprocessing}
@@ -273,15 +301,23 @@ answer, never *what* to answer.
 ## Results
 
 ```{r mode-table}
-tab <- do.call(rbind, lapply(c("trend", "nearest", "endpoint"), function(md) data.frame(
-  Mode = md,
-  `ADEP cov` = pct(m(md, "adep_coverage")), `ADEP acc` = pct(m(md, "adep_accuracy")),
-  `ADEP overall` = pct(m(md, "adep_overall")),
-  `ADES cov` = pct(m(md, "ades_coverage")), `ADES acc` = pct(m(md, "ades_accuracy")),
-  `in-area acc` = pct(m(md, "adep_inarea_accuracy")),
-  check.names = FALSE)))
-kable(tab, align = "lrrrrrr",
-      caption = sprintf("The three modes on %s ground-truth flights, 2025-06-05 to 07.", format(N_GT, big.mark=",")))
+# Split by role rather than widening: departures and arrivals each get the full
+# set -- coverage, accuracy, overall correctness and the in-area restriction --
+# so no measure is reported for one role and silently omitted for the other.
+tab <- do.call(rbind, lapply(c(adep = "departures", ades = "arrivals"), function(rl) {
+  pre <- if (rl == "departures") "adep" else "ades"
+  do.call(rbind, lapply(c("trend", "nearest", "endpoint"), function(md) data.frame(
+    Movements = rl, Mode = md,
+    Coverage = pct(m(md, paste0(pre, "_coverage"))),
+    Accuracy = pct(m(md, paste0(pre, "_accuracy"))),
+    Overall  = pct(m(md, paste0(pre, "_overall"))),
+    `In-area cov` = pct(m(md, paste0(pre, "_inarea_coverage"))),
+    `In-area acc` = pct(m(md, paste0(pre, "_inarea_accuracy"))),
+    check.names = FALSE)))
+}))
+kable(tab, row.names = FALSE, align = "llrrrrr",
+      caption = sprintf("The three modes on %s ground-truth flights, 2025-06-05 to 07. Overall correctness is coverage x accuracy. Produced at %s.",
+                        format(N_GT, big.mark = ","), OP))
 ```
 
 `endpoint` sits between the two by construction, and that is the whole design:
@@ -304,34 +340,87 @@ reception during descent than a landing, and can be anywhere on the approach.
 The sweep varies the detection radius and the abstention height independently,
 90 combinations in all, over the cached candidates.
 
-```{r sweep-plot}
-#| fig-cap: "Departure coverage against abstention height, one line per detection radius. Every radius of 20 NM or more traces the same curve: at 5,000 ft they sit between 74.4% and 74.6%, a spread of two tenths of a point across a five-fold change in radius. Only 5 NM and, slightly, 10 NM fall short, and that gap widens as the height threshold rises — a tight radius costs more when more of the sky is admitted. The shape of the curve belongs to the height axis; the radius only sets how much of it is reachable."
-#| fig-width: 8
-#| fig-height: 4.6
+Both measures are plotted for both roles, because the two axes do not merely
+differ in strength — they pull in opposite directions, and a coverage-only view
+hides that entirely.
+
+```{r sweep-setup}
+#| include: false
 d <- grid[grid$height_ft < UNRESTRICTED, ]
 d$radius <- factor(d$radius_nm, levels = sort(unique(d$radius_nm)),
                    labels = paste0(sort(unique(d$radius_nm)), " NM"))
-ggplot(d, aes(height_ft, adep_coverage, colour = radius, group = radius)) +
-  geom_line(linewidth = 0.6) + geom_point(size = 1.4) +
-  scale_x_continuous("Abstention height above field elevation (ft)",
-                     breaks = c(0, 5000, 10000, 15000, 20000),
-                     labels = scales::comma) +
-  scale_y_continuous("ADEP coverage", labels = scales::percent) +
-  scale_colour_viridis_d("Detection radius", end = 0.9) +
-  theme_minimal(base_size = 11) +
-  theme(panel.grid.minor = element_blank())
+
+# Long form, so departures and arrivals become facets of one figure and can be
+# read against each other on a shared pair of axes.
+sweep_plot <- function(measure, ylab) {
+  x <- rbind(
+    data.frame(d[c("height_ft", "radius")], Movements = "Departures",
+               value = d[[paste0("adep_", measure)]]),
+    data.frame(d[c("height_ft", "radius")], Movements = "Arrivals",
+               value = d[[paste0("ades_", measure)]]))
+  x$Movements <- factor(x$Movements, levels = c("Departures", "Arrivals"))
+  ggplot(x, aes(height_ft, value, colour = radius, group = radius)) +
+    geom_line(linewidth = 0.6) + geom_point(size = 1.1) +
+    facet_wrap(~ Movements) +
+    scale_x_continuous("Abstention height above field elevation (ft)",
+                       breaks = c(0, 10000, 20000), labels = scales::comma) +
+    scale_y_continuous(ylab, labels = scales::percent) +
+    scale_colour_viridis_d("Detection radius", end = 0.9) +
+    theme_minimal(base_size = 11) +
+    theme(panel.grid.minor = element_blank())
+}
+
+# Captions are built from the data for the same reason the tables are: an
+# earlier revision of this page carried a hand-written caption that the numbers
+# had already contradicted.
+sat <- function(pre, r) g(110, OP_HEIGHT, paste0(pre, "_coverage")) -
+                        g(r,   OP_HEIGHT, paste0(pre, "_coverage"))
+peak <- function(pre) {
+  v <- d[d$radius_nm == OP_RADIUS, ]
+  v <- v[order(v$height_ft), ]
+  h <- v$height_ft[which.max(v[[paste0(pre, "_accuracy")]])]
+  c(height = h, acc = max(v[[paste0(pre, "_accuracy")]]),
+    drop = max(v[[paste0(pre, "_accuracy")]]) - g(OP_RADIUS, OP_HEIGHT, paste0(pre, "_accuracy")))
+}
+pk_dep <- peak("adep"); pk_arr <- peak("ades")
+spread <- function(pre) g(5, OP_HEIGHT, paste0(pre, "_accuracy")) -
+                        g(110, OP_HEIGHT, paste0(pre, "_accuracy"))
+
+cap_cov <- sprintf(
+  "Coverage against abstention height, one line per detection radius. The shape of the curve belongs to the height axis in both panels; the radius only sets how much of it is reachable, and arrivals need more of it than departures. At %s ft a 20 NM radius still leaves %s of departure coverage and %s of arrival coverage on the table against the full 110 NM reach, while at %g NM both are within half a point of it.",
+  format(OP_HEIGHT, big.mark = ",", trim = TRUE),
+  pp(sat("adep", 20)), pp(sat("ades", 20)), OP_RADIUS)
+
+cap_acc <- sprintf(
+  "Accuracy against abstention height, same axes. This is the figure the coverage plot hides. Accuracy peaks close to the ground -- at %g NM, departures at %s ft and arrivals at %s ft -- and every foot admitted above that is bought with correctness: %s for departures by %s ft, %s for arrivals. The radius, which barely touches coverage above 40 NM, spreads accuracy at %s ft by %s for departures and %s for arrivals.",
+  OP_RADIUS,
+  format(pk_dep["height"], big.mark = ",", trim = TRUE),
+  format(pk_arr["height"], big.mark = ",", trim = TRUE),
+  pp(-pk_dep["drop"]), format(OP_HEIGHT, big.mark = ",", trim = TRUE),
+  pp(-pk_arr["drop"]),
+  format(OP_HEIGHT, big.mark = ",", trim = TRUE),
+  pp(spread("adep")), pp(spread("ades")))
+```
+
+```{r sweep-plot-cov, fig.cap=cap_cov, fig.width=8, fig.height=4}
+sweep_plot("coverage", "Coverage")
+```
+
+```{r sweep-plot-acc, fig.cap=cap_acc, fig.width=8, fig.height=4}
+sweep_plot("accuracy", "Accuracy")
 ```
 
 ```{r radius-cost}
-r <- grid[grid$height_ft == 15000, c("radius_nm","adep_coverage","adep_accuracy",
-                                     "ades_coverage","ades_accuracy")]
+r <- grid[grid$height_ft == OP_HEIGHT, c("radius_nm","adep_coverage","adep_accuracy",
+                                         "ades_coverage","ades_accuracy")]
 r <- r[order(r$radius_nm), ]
 kable(data.frame(
   `Max radius` = paste0(r$radius_nm, " NM"),
   `ADEP cov` = pct(r$adep_coverage), `ADEP acc` = pct(r$adep_accuracy),
   `ADES cov` = pct(r$ades_coverage), `ADES acc` = pct(r$ades_accuracy),
   check.names = FALSE), align = "lrrrr",
-  caption = "Detection radius at a fixed 15,000 ft abstention height. Coverage saturates by about 30 NM; beyond that a wider radius trades a little accuracy for almost no coverage.")
+  caption = sprintf("Detection radius at a fixed %s ft abstention height. Coverage saturates by about 30 NM for departures and 40 NM for arrivals; beyond that a wider radius trades accuracy for almost no coverage.",
+                    format(OP_HEIGHT, big.mark = ",", trim = TRUE)))
 ```
 
 **A cap costs almost nothing.** Going from 40 NM to the full 110 NM reach
@@ -341,23 +430,72 @@ by `r pp(g(110,15000,"adep_accuracy") - g(40,15000,"adep_accuracy"))`. The
 useful range is 20–40 NM; below that coverage falls away quickly, above it
 nothing happens.
 
-The picture is the same for every radius at or above 20 NM: at 5,000 ft they
-span 74.4% to 74.6%, two tenths of a point across a five-fold change. Only the
-5 NM and 10 NM lines fall away, and they fall further as the height threshold
-rises, because a tight radius costs more once more of the sky is admitted.
+Every radius at or above 20 NM traces effectively the same coverage curve: at
+5,000 ft they span `r pct(g(20,5000,"adep_coverage"))` to
+`r pct(g(110,5000,"adep_coverage"))`, about a point across a five-fold change.
+Only the 5 NM and 10 NM lines fall away, and they fall further as the height
+threshold rises, because a tight radius costs more once more of the sky is
+admitted.
 
-**Height is the parameter that matters.** At 40 NM, coverage runs from
-`r pct(g(40,0,"adep_coverage"))` with the on-ground-only rule, through
-`r pct(g(40,2000,"adep_coverage"))` at 2,000 ft, to
-`r pct(g(40,15000,"adep_coverage"))` at 15,000 ft. That is over fifty points
-from one axis against a fraction of a point from the other.
+**Height is the parameter that matters.** At `r OP_RADIUS` NM, departure
+coverage runs from `r pct(g(OP_RADIUS,0,"adep_coverage"))` with the
+on-ground-only rule, through `r pct(g(OP_RADIUS,2000,"adep_coverage"))` at
+2,000 ft, to `r pct(g(OP_RADIUS,OP_HEIGHT,"adep_coverage"))` at
+`r format(OP_HEIGHT, big.mark=",")` ft. That is over fifty points from one axis
+against a fraction of a point from the other.
+
+Arrivals behave the same way with less room: from
+`r pct(g(OP_RADIUS,0,"ades_coverage"))` to
+`r pct(g(OP_RADIUS,OP_HEIGHT,"ades_coverage"))` over the same range. They also
+saturate later in radius — at `r format(OP_HEIGHT, big.mark=",")` ft a 20 NM cap
+costs departures `r pp(sat("adep", 20))` of coverage but arrivals
+`r pp(sat("ades", 20))`, because an arrival's last recorded sample is further
+from the aerodrome than a departure's first.
 
 Two endpoints of the sweep serve as sanity checks, and both behave as they
 should: at height 0 the rule reduces to "endpoint on the ground" and gives
-`r pct(g(40,0,"adep_coverage"))`, close to what a surface-samples-only method
-achieved in earlier versions; with height unrestricted and a wide radius it
-reaches `r pct(g(110,UNRESTRICTED,"adep_coverage"))`, close to `nearest`'s
+`r pct(g(OP_RADIUS,0,"adep_coverage"))`, close to what a surface-samples-only
+method achieved in earlier versions; with height unrestricted and a wide radius
+it reaches `r pct(g(110,UNRESTRICTED,"adep_coverage"))`, close to `nearest`'s
 `r pct(m("nearest","adep_coverage"))`, which is what it should converge to.
+
+### What the coverage view hides {#sec-accuracy-sweep}
+
+Read on accuracy, the same grid tells a different story, and the two together
+are what actually determines an operating point.
+
+**Accuracy peaks near the ground, then declines.** At `r OP_RADIUS` NM,
+departure accuracy is highest at `r format(pk_dep["height"], big.mark=",")` ft
+(`r pct(pk_dep["acc"])`) and arrival accuracy at
+`r format(pk_arr["height"], big.mark=",")` ft (`r pct(pk_arr["acc"])`). By
+`r format(OP_HEIGHT, big.mark=",")` ft they have given up
+`r pp(-pk_dep["drop"])` and `r pp(-pk_arr["drop"])` respectively. Every foot of
+extra height admits endpoints that are further into the climb or descent, and
+those are exactly the endpoints most likely to sit nearer a neighbouring
+aerodrome than the real one.
+
+**Arrivals pay roughly three times as much for the same height.** That ratio is
+the single clearest statement of why this study has never recommended changing
+the arrivals algorithm: the same parameter that is nearly free for departures
+is expensive for arrivals, so one operating point cannot serve both well.
+
+**The radius matters for accuracy even where it does not for coverage.** Above
+40 NM a wider radius buys essentially no coverage, but it keeps costing
+accuracy: at `r format(OP_HEIGHT, big.mark=",")` ft, going from 5 NM to 110 NM
+costs `r pp(-spread("adep"))` of departure accuracy and
+`r pp(-spread("ades"))` of arrival accuracy. This is the real argument for a
+cap. Version 4 justified one on the grounds that it costs almost no coverage;
+the accuracy view shows it is mildly *positive* rather than merely harmless.
+
+**Overall correctness is what reconciles them.** Coverage rises steeply with
+height and accuracy falls gently, so their product keeps rising for departures
+across the whole range — which is why
+`r pct(g(OP_RADIUS,OP_HEIGHT,"adep_coverage") * g(OP_RADIUS,OP_HEIGHT,"adep_accuracy"))`
+at `r format(OP_HEIGHT, big.mark=",")` ft beats
+`r pct(g(OP_RADIUS,2000,"adep_coverage") * g(OP_RADIUS,2000,"adep_accuracy"))`
+at 2,000 ft despite the lower accuracy. A user who cares about a trustworthy
+label rather than a complete one should read the accuracy panel and pick a much
+lower height than the one recommended here.
 
 ## Preferring aerodromes with scheduled service {#sec-penalty}
 
@@ -492,23 +630,27 @@ if (!is.null(apt)) {
   ia <- apt[!is.na(apt$n_truth) & apt$n_truth > 0, ]
   s <- do.call(rbind, lapply(c("departures","arrivals"), function(rl) {
     d <- ia[ia$role == rl, ]
-    b <- d[d$n_truth >= 50, ]
+    a <- d[d$airport != "OOA", ]         # real aerodromes only
+    b <- a[a$n_truth >= 50, ]
     data.frame(Movements = rl,
-      Aerodromes = nrow(d),
+      Aerodromes = nrow(a),
       `Count ratio` = sprintf("%.3f", sum(d$n_assigned) / sum(d$n_truth)),
-      `Median recall` = pct(median(d$recall, na.rm = TRUE)),
+      `Excl. OOA` = sprintf("%.3f", sum(a$n_assigned) / sum(a$n_truth)),
+      `Median recall` = pct(median(a$recall, na.rm = TRUE)),
       `Median recall, 50+ movements` = pct(median(b$recall, na.rm = TRUE)),
       check.names = FALSE)
   }))
-  kable(s, align = "lrrrr",
-        caption = "`endpoint` movement counts against Network Manager. A count ratio below 1 is an undercount.")
+  kable(s, row.names = FALSE, align = "lrrrrr",
+        caption = sprintf("Movement counts against Network Manager, from the `endpoint` flight list at %s. A count ratio below 1 is an undercount. The second ratio drops the out-of-area bucket, whose own recall is poor (@sec-ooa) and which otherwise carries the shortfall of every unlabelled flight.", OP))
 }
 ```
 
 ```{r per-airport-top}
 if (!is.null(apt)) {
-  top <- apt[apt$role == "departures", ]
-  top <- head(top[order(-top$n_truth), ], 10)
+  # OOA is excluded: it is not an aerodrome, and its counts are reported in
+  # their own right in the out-of-area section.
+  top <- apt[apt$role == "departures" & apt$airport != "OOA", ]
+  top <- head(top[order(-top$n_truth), ], 30)
   kable(data.frame(
     Aerodrome = top$airport,
     `NM departures` = format(top$n_truth, big.mark = ","),
@@ -516,15 +658,30 @@ if (!is.null(apt)) {
     `Count ratio` = sprintf("%.2f", top$count_ratio),
     Recall = pct(top$recall),
     check.names = FALSE), align = "lrrrr",
-    caption = "Busiest aerodromes by Network Manager departures.")
+    caption = sprintf("The 30 busiest aerodromes by Network Manager departures, against the `endpoint` flight list at %s. Out-of-area is excluded -- it is not an aerodrome and is reported separately in @sec-ooa. *Count ratio* is OPDI movements divided by Network Manager movements, so it can sit near 1 even when the individual flights are wrong; *recall* is the share of Network Manager departures OPDI put at this aerodrome, and is the stricter measure.", OP))
 }
 ```
 
 The error is an **undercount** rather than an overcount, which is the
 correctable direction: a systematic shortfall can be adjusted for, an inflated
-count cannot. Recall also scales with aerodrome size, so the flight list is
-substantially more complete at large aerodromes than small ones — worth knowing
-before comparing across aerodrome classes.
+count cannot. Roughly six points of it are the out-of-area bucket rather than
+per-aerodrome detection failure — flights the method never labelled land
+nowhere, so they show up as missing movements at whichever aerodrome the truth
+names.
+
+```{r recall-scale}
+#| include: false
+dep30 <- apt[apt$role == "departures" & apt$airport != "OOA", ]
+dep30 <- dep30[order(-dep30$n_truth), ]
+r30 <- head(dep30$recall, 30)
+```
+
+Recall also scales sharply with aerodrome size. Across the busiest thirty it
+runs from `r pct(min(r30))` to `r pct(max(r30))`, against a median of
+`r pct(median(dep30$recall, na.rm = TRUE))` over all `r nrow(dep30)` aerodromes
+with departures in the sample. The flight list is therefore substantially more
+complete at large aerodromes than small ones, which matters before comparing
+across aerodrome classes.
 
 ## Recommendation
 
