@@ -1,6 +1,6 @@
 ---
 title: "Detecting departure and destination aerodromes from ADS-B"
-subtitle: "Version 4.2 — detection inside the pipeline"
+subtitle: "Version 4.3 — detection inside the pipeline"
 author: "EUROCONTROL Performance Review Unit"
 date: last-modified
 ---
@@ -104,7 +104,14 @@ unchanged.
 ## What changed since version 4
 
 Every headline number is unchanged throughout. The point releases report more
-of what version 4 already computed, plus one new aggregation.
+of what version 4 already computed, plus two new computations.
+
+**4.3**
+
+* The height sweep runs to **40,000 ft** rather than stopping at 20,000. At
+  20,000 ft six points of departure coverage still separated the curve from
+  the unrestricted case, so the old grid cut it off mid-rise and left the
+  reader to guess where it flattened.
 
 **4.2**
 
@@ -352,7 +359,11 @@ reception during descent than a landing, and can be anywhere on the approach.
 ## What a distance cap costs {#sec-radius}
 
 The sweep varies the detection radius and the abstention height independently,
-90 combinations in all, over the cached candidates.
+`r nrow(grid)` combinations in all, over the cached candidates. Height runs from
+on-ground-only to
+`r format(max(grid$height_ft[grid$height_ft < UNRESTRICTED]), big.mark=",")` ft
+above field elevation — past typical cruise, so the curve is followed to where
+it flattens — plus an unrestricted case as the limit.
 
 Both measures are plotted for both roles, because the two axes do not merely
 differ in strength — they pull in opposite directions, and a coverage-only view
@@ -377,7 +388,7 @@ sweep_plot <- function(measure, ylab) {
     geom_line(linewidth = 0.6) + geom_point(size = 1.1) +
     facet_wrap(~ Movements) +
     scale_x_continuous("Abstention height above field elevation (ft)",
-                       breaks = c(0, 10000, 20000), labels = scales::comma) +
+                       breaks = c(0, 20000, 40000), labels = scales::comma) +
     scale_y_continuous(ylab, labels = scales::percent) +
     scale_colour_viridis_d("Detection radius", end = 0.9) +
     theme_minimal(base_size = 11) +
@@ -434,7 +445,7 @@ kable(data.frame(
   `ADES cov` = pct(r$ades_coverage), `ADES acc` = pct(r$ades_accuracy),
   `ADES ovr` = pct(r$ades_overall),
   check.names = FALSE), align = "lrrrrrr",
-  caption = sprintf("Detection radius at a fixed %s ft abstention height. *ovr* is overall correctness, coverage x accuracy. Coverage saturates by about 30 NM for departures and 40 NM for arrivals; beyond that a wider radius trades accuracy for almost no coverage, and overall correctness turns over.",
+  caption = sprintf("Detection radius at a fixed %s ft abstention height. *ovr* is overall correctness, coverage x accuracy. Coverage saturates by about 30 NM for departures and 40 NM for arrivals; beyond that a wider radius trades accuracy for almost no coverage, and overall correctness flattens rather than turning -- the radius has no interior optimum on this axis, unlike the height (@sec-accuracy-sweep).",
                     format(OP_HEIGHT, big.mark = ",", trim = TRUE)))
 ```
 
@@ -474,6 +485,17 @@ method achieved in earlier versions; with height unrestricted and a wide radius
 it reaches `r pct(g(110,UNRESTRICTED,"adep_coverage"))`, close to `nearest`'s
 `r pct(m("nearest","adep_coverage"))`, which is what it should converge to.
 
+**The curve does flatten, and the grid now reaches the flat part.** At
+`r OP_RADIUS` NM the last measured height is within
+`r pp(g(OP_RADIUS,UNRESTRICTED,"adep_coverage") - g(OP_RADIUS,max(grid$height_ft[grid$height_ft < UNRESTRICTED]),"adep_coverage"))`
+of the unrestricted case for departures and
+`r pp(g(OP_RADIUS,UNRESTRICTED,"ades_coverage") - g(OP_RADIUS,max(grid$height_ft[grid$height_ft < UNRESTRICTED]),"ades_coverage"))`
+for arrivals, so a threshold at cruise level is indistinguishable from no
+threshold at all. The steepest remaining step is between 30,000 and 35,000 ft —
+`r pp(g(OP_RADIUS,35000,"ades_coverage") - g(OP_RADIUS,30000,"ades_coverage"))`
+of arrival coverage in one 5,000 ft band, which is where first and last contact
+at cruise gets admitted.
+
 ### What the coverage view hides {#sec-accuracy-sweep}
 
 Read on accuracy, the same grid tells a different story, and the two together
@@ -502,18 +524,54 @@ costs `r pp(-spread("adep"))` of departure accuracy and
 cap. Version 4 justified one on the grounds that it costs almost no coverage;
 the accuracy view shows it is mildly *positive* rather than merely harmless.
 
-**Overall correctness is what reconciles them.** Coverage rises steeply with
-height and accuracy falls gently, so their product keeps rising for departures
-across the whole range — which is why
+```{r overall-peak}
+#| include: false
+fin  <- grid[grid$height_ft < UNRESTRICTED, ]
+op_r <- fin[fin$radius_nm == OP_RADIUS, ]
+op_r <- op_r[order(op_r$height_ft), ]
+pk   <- function(f) op_r$height_ft[which.max(op_r[[f]])]
+HMAX <- max(fin$height_ft)
+```
+
+**Overall correctness is what reconciles them, and it has a maximum.** Coverage
+rises steeply with height while accuracy falls gently, so their product rises
+for a long way: at `r OP_RADIUS` NM departure overall correctness runs from
+`r pct(g(OP_RADIUS,2000,"adep_overall"))` at 2,000 ft to
 `r pct(g(OP_RADIUS,OP_HEIGHT,"adep_overall"))` at
-`r format(OP_HEIGHT, big.mark=",")` ft beats
-`r pct(g(OP_RADIUS,2000,"adep_overall"))` at 2,000 ft despite the lower
-accuracy. Arrivals are closer to turning over —
-`r pct(g(OP_RADIUS,OP_HEIGHT,"ades_overall"))` against
-`r pct(g(OP_RADIUS,2000,"ades_overall"))` — which is the same asymmetry again.
+`r format(OP_HEIGHT, big.mark=",")` ft. But it does not rise forever. It peaks
+at **`r format(pk("adep_overall"), big.mark=",")` ft**
+(`r pct(max(op_r$adep_overall))`) and declines above that, as the accuracy loss
+finally outruns the coverage gain.
+
+::: {.callout-warning}
+## Version 4.2 got this wrong, and the extended grid is why
+
+Version 4.2 stated that the product "keeps rising for departures across the
+whole range". That was true of the range it measured — the sweep stopped at
+20,000 ft, below the turning point — and false of the parameter. Extending the
+grid to `r format(HMAX, big.mark=",")` ft was what exposed it. The claim is
+withdrawn.
+:::
+
+The maximum is shallow, which is the practical point:
+`r pct(max(op_r$adep_overall))` at its peak against
+`r pct(g(OP_RADIUS,OP_HEIGHT,"adep_overall"))` at the recommended
+`r format(OP_HEIGHT, big.mark=",")` ft, a difference of
+`r pp(max(op_r$adep_overall) - g(OP_RADIUS,OP_HEIGHT,"adep_overall"))`. Buying
+it costs `r pp(g(OP_RADIUS,pk("adep_overall"),"adep_accuracy") - g(OP_RADIUS,OP_HEIGHT,"adep_accuracy"))`
+of accuracy, so the recommendation does not move.
+
+Arrivals never turn over inside the grid: overall correctness is still climbing
+at `r format(HMAX, big.mark=",")` ft
+(`r pct(g(OP_RADIUS,HMAX,"ades_overall"))` against
+`r pct(g(OP_RADIUS,OP_HEIGHT,"ades_overall"))` at
+`r format(OP_HEIGHT, big.mark=",")` ft). Arrival coverage is so far from its
+ceiling that admitting more of it still pays, which is the same asymmetry once
+more.
+
 A user who cares about a trustworthy label rather than a complete one should
-read the accuracy panel and pick a much lower height than the one recommended
-here.
+ignore all of this and read the accuracy panel, where the optimum sits near the
+ground.
 
 ## Preferring aerodromes with scheduled service {#sec-penalty}
 
