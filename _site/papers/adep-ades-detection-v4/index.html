@@ -208,7 +208,11 @@ window.Quarto = {
   <li><a href="#how-it-is-derived" id="toc-how-it-is-derived" class="nav-link" data-scroll-target="#how-it-is-derived"><span class="header-section-number">7.1</span> How it is derived</a></li>
   <li><a href="#what-it-does-to-the-numbers" id="toc-what-it-does-to-the-numbers" class="nav-link" data-scroll-target="#what-it-does-to-the-numbers"><span class="header-section-number">7.2</span> What it does to the numbers</a></li>
   </ul></li>
-  <li><a href="#sec-crosscheck" id="toc-sec-crosscheck" class="nav-link" data-scroll-target="#sec-crosscheck"><span class="header-section-number">8</span> Cross-check against the reference</a></li>
+  <li><a href="#sec-crosscheck" id="toc-sec-crosscheck" class="nav-link" data-scroll-target="#sec-crosscheck"><span class="header-section-number">8</span> Cross-check against the reference</a>
+  <ul class="collapse">
+  <li><a href="#sec-per-type" id="toc-sec-per-type" class="nav-link" data-scroll-target="#sec-per-type"><span class="header-section-number">8.1</span> By class of aerodrome</a></li>
+  <li><a href="#sec-outliers" id="toc-sec-outliers" class="nav-link" data-scroll-target="#sec-outliers"><span class="header-section-number">8.2</span> Busy aerodromes that fail outright</a></li>
+  </ul></li>
   <li><a href="#recommendation" id="toc-recommendation" class="nav-link" data-scroll-target="#recommendation"><span class="header-section-number">9</span> Recommendation</a></li>
   <li><a href="#sec-limitations" id="toc-sec-limitations" class="nav-link" data-scroll-target="#sec-limitations"><span class="header-section-number">10</span> Limitations</a></li>
   <li><a href="#reproducing" id="toc-reproducing" class="nav-link" data-scroll-target="#reproducing"><span class="header-section-number">11</span> Reproducing</a></li>
@@ -221,7 +225,7 @@ window.Quarto = {
 <header id="title-block-header" class="quarto-title-block default">
 <div class="quarto-title">
 <h1 class="title">Detecting departure and destination aerodromes from ADS-B</h1>
-<p class="subtitle lead">Version 4.1 — detection inside the pipeline</p>
+<p class="subtitle lead">Version 4.2 — detection inside the pipeline</p>
 </div>
 
 
@@ -278,18 +282,25 @@ window.Quarto = {
 <i class="callout-icon"></i>
 </div>
 <div class="callout-title-container flex-fill">
-<span class="screen-reader-only">Note</span>What changed in 4.1
+<span class="screen-reader-only">Note</span>What changed since version 4
 </div>
 <div class="callout-btn-toggle d-inline-block border-0 py-1 ps-1 pe-0 float-end"><i class="callout-toggle"></i></div>
 </div>
 <div id="callout-2" class="callout-2-contents callout-collapse collapse">
 <div class="callout-body-container callout-body">
-<p>No new computation — 4.1 reports more of the same sweep. Every headline number is unchanged.</p>
+<p>Every headline number is unchanged throughout. The point releases report more of what version 4 already computed, plus one new aggregation.</p>
+<p><strong>4.2</strong></p>
 <ul>
-<li>Results are now given for <strong>both roles on all four measures</strong>: arrival overall correctness and both in-area figures were computed but not printed.</li>
-<li>The sweep is plotted <strong>on accuracy as well as coverage</strong>, for departures and arrivals. This is the substantive addition: accuracy peaks near the ground and falls as height is admitted, so the coverage view alone overstates the case for a high threshold (<a href="#sec-accuracy-sweep" class="quarto-xref">Section&nbsp;5.1</a>).</li>
-<li>The per-aerodrome cross-check names the <strong>mode and parameters</strong> it was produced at, extends to the <strong>30 busiest</strong> aerodromes, and separates the out-of-area bucket from the movement-count ratio it was distorting.</li>
-<li>Figure captions are generated from the data rather than written by hand.</li>
+<li>A breakdown <strong>by class of ground-truth aerodrome</strong> (<a href="#sec-per-type" class="quarto-xref">Section&nbsp;8.1</a>) — the one new computation. It surfaces the sharpest finding in the study: on small aerodromes and heliports the method is wrong <strong>every single time it answers</strong>, because the detection reference contains large and medium aerodromes only.</li>
+<li>Overall correctness is reported in the <strong>radius and penalty sweeps</strong>, not only in the results table.</li>
+<li>The per-aerodrome cross-check extends to the <strong>100 busiest</strong>, and now covers <strong>arrivals as well as departures</strong>.</li>
+</ul>
+<p><strong>4.1</strong></p>
+<ul>
+<li>Results given for <strong>both roles on all four measures</strong>: arrival overall correctness and both in-area figures were computed but not printed.</li>
+<li>The sweep plotted <strong>on accuracy as well as coverage</strong>, for both roles. Accuracy peaks near the ground and falls as height is admitted, so the coverage view alone overstates the case for a high threshold (<a href="#sec-accuracy-sweep" class="quarto-xref">Section&nbsp;5.1</a>).</li>
+<li>The cross-check names the <strong>mode and parameters</strong> it was produced at, and separates the out-of-area bucket from the movement-count ratio it was distorting.</li>
+<li>Figure captions generated from the data rather than written by hand.</li>
 </ul>
 </div>
 </div>
@@ -565,14 +576,25 @@ window.Quarto = {
 <div class="cell">
 <div class="cell-output-display">
 <table class="caption-top table table-sm table-striped small">
-<caption>Detection radius at a fixed 15,000 ft abstention height. Coverage saturates by about 30 NM for departures and 40 NM for arrivals; beyond that a wider radius trades accuracy for almost no coverage.</caption>
+<caption>Detection radius at a fixed 15,000 ft abstention height. <em>ovr</em> is overall correctness, coverage x accuracy. Coverage saturates by about 30 NM for departures and 40 NM for arrivals; beyond that a wider radius trades accuracy for almost no coverage, and overall correctness turns over.</caption>
+<colgroup>
+<col style="width: 16%">
+<col style="width: 13%">
+<col style="width: 13%">
+<col style="width: 13%">
+<col style="width: 13%">
+<col style="width: 13%">
+<col style="width: 13%">
+</colgroup>
 <thead>
 <tr class="header">
 <th style="text-align: left;">Max radius</th>
 <th style="text-align: right;">ADEP cov</th>
 <th style="text-align: right;">ADEP acc</th>
+<th style="text-align: right;">ADEP ovr</th>
 <th style="text-align: right;">ADES cov</th>
 <th style="text-align: right;">ADES acc</th>
+<th style="text-align: right;">ADES ovr</th>
 </tr>
 </thead>
 <tbody>
@@ -580,64 +602,82 @@ window.Quarto = {
 <td style="text-align: left;">5 NM</td>
 <td style="text-align: right;">71.62%</td>
 <td style="text-align: right;">99.07%</td>
+<td style="text-align: right;">70.95%</td>
 <td style="text-align: right;">58.79%</td>
 <td style="text-align: right;">98.64%</td>
+<td style="text-align: right;">57.99%</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">10 NM</td>
 <td style="text-align: right;">76.74%</td>
 <td style="text-align: right;">98.77%</td>
+<td style="text-align: right;">75.79%</td>
 <td style="text-align: right;">62.36%</td>
 <td style="text-align: right;">97.87%</td>
+<td style="text-align: right;">61.03%</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">20 NM</td>
 <td style="text-align: right;">80.07%</td>
 <td style="text-align: right;">98.44%</td>
+<td style="text-align: right;">78.82%</td>
 <td style="text-align: right;">66.78%</td>
 <td style="text-align: right;">96.65%</td>
+<td style="text-align: right;">64.54%</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">30 NM</td>
 <td style="text-align: right;">80.96%</td>
 <td style="text-align: right;">98.16%</td>
+<td style="text-align: right;">79.47%</td>
 <td style="text-align: right;">69.10%</td>
 <td style="text-align: right;">95.63%</td>
+<td style="text-align: right;">66.08%</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">40 NM</td>
 <td style="text-align: right;">81.20%</td>
 <td style="text-align: right;">97.98%</td>
+<td style="text-align: right;">79.55%</td>
 <td style="text-align: right;">69.97%</td>
 <td style="text-align: right;">95.10%</td>
+<td style="text-align: right;">66.54%</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">60 NM</td>
 <td style="text-align: right;">81.36%</td>
 <td style="text-align: right;">97.79%</td>
+<td style="text-align: right;">79.56%</td>
 <td style="text-align: right;">70.29%</td>
 <td style="text-align: right;">94.80%</td>
+<td style="text-align: right;">66.63%</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">80 NM</td>
 <td style="text-align: right;">81.39%</td>
 <td style="text-align: right;">97.75%</td>
+<td style="text-align: right;">79.57%</td>
 <td style="text-align: right;">70.38%</td>
 <td style="text-align: right;">94.69%</td>
+<td style="text-align: right;">66.64%</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">100 NM</td>
 <td style="text-align: right;">81.40%</td>
 <td style="text-align: right;">97.75%</td>
+<td style="text-align: right;">79.57%</td>
 <td style="text-align: right;">70.38%</td>
 <td style="text-align: right;">94.67%</td>
+<td style="text-align: right;">66.64%</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">110 NM</td>
 <td style="text-align: right;">81.40%</td>
 <td style="text-align: right;">97.75%</td>
+<td style="text-align: right;">79.57%</td>
 <td style="text-align: right;">70.38%</td>
 <td style="text-align: right;">94.67%</td>
+<td style="text-align: right;">66.64%</td>
 </tr>
 </tbody>
 </table>
@@ -654,7 +694,7 @@ window.Quarto = {
 <p><strong>Accuracy peaks near the ground, then declines.</strong> At 40 NM, departure accuracy is highest at 2,000 ft (98.98%) and arrival accuracy at 500 ft (98.57%). By 15,000 ft they have given up -1.00 pp and -3.47 pp respectively. Every foot of extra height admits endpoints that are further into the climb or descent, and those are exactly the endpoints most likely to sit nearer a neighbouring aerodrome than the real one.</p>
 <p><strong>Arrivals pay roughly three times as much for the same height.</strong> That ratio is the single clearest statement of why this study has never recommended changing the arrivals algorithm: the same parameter that is nearly free for departures is expensive for arrivals, so one operating point cannot serve both well.</p>
 <p><strong>The radius matters for accuracy even where it does not for coverage.</strong> Above 40 NM a wider radius buys essentially no coverage, but it keeps costing accuracy: at 15,000 ft, going from 5 NM to 110 NM costs -1.32 pp of departure accuracy and -3.97 pp of arrival accuracy. This is the real argument for a cap. Version 4 justified one on the grounds that it costs almost no coverage; the accuracy view shows it is mildly <em>positive</em> rather than merely harmless.</p>
-<p><strong>Overall correctness is what reconciles them.</strong> Coverage rises steeply with height and accuracy falls gently, so their product keeps rising for departures across the whole range — which is why 79.55% at 15,000 ft beats 66.36% at 2,000 ft despite the lower accuracy. A user who cares about a trustworthy label rather than a complete one should read the accuracy panel and pick a much lower height than the one recommended here.</p>
+<p><strong>Overall correctness is what reconciles them.</strong> Coverage rises steeply with height and accuracy falls gently, so their product keeps rising for departures across the whole range — which is why 79.55% at 15,000 ft beats 66.36% at 2,000 ft despite the lower accuracy. Arrivals are closer to turning over — 66.54% against 58.70% — which is the same asymmetry again. A user who cares about a trustworthy label rather than a complete one should read the accuracy panel and pick a much lower height than the one recommended here.</p>
 </section>
 </section>
 <section id="sec-penalty" class="level2" data-number="6">
@@ -665,14 +705,16 @@ window.Quarto = {
 <div class="cell">
 <div class="cell-output-display">
 <table class="caption-top table table-sm table-striped small">
-<caption>Scheduled-service penalty at 40 NM and 15,000 ft. A penalty of 0 reproduces the unbiased ranking exactly and is the control.</caption>
+<caption>Scheduled-service penalty at 40 NM and 15,000 ft. <em>ovr</em> is overall correctness. A penalty of 0 reproduces the unbiased ranking exactly and is the control.</caption>
 <thead>
 <tr class="header">
 <th style="text-align: left;">Penalty</th>
 <th style="text-align: right;">ADEP cov</th>
 <th style="text-align: right;">ADEP acc</th>
+<th style="text-align: right;">ADEP ovr</th>
 <th style="text-align: right;">ADES cov</th>
 <th style="text-align: right;">ADES acc</th>
+<th style="text-align: right;">ADES ovr</th>
 </tr>
 </thead>
 <tbody>
@@ -680,49 +722,61 @@ window.Quarto = {
 <td style="text-align: left;">0 NM</td>
 <td style="text-align: right;">81.20%</td>
 <td style="text-align: right;">97.31%</td>
+<td style="text-align: right;">79.02%</td>
 <td style="text-align: right;">70.00%</td>
 <td style="text-align: right;">93.85%</td>
+<td style="text-align: right;">65.70%</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">5 NM</td>
 <td style="text-align: right;">81.20%</td>
 <td style="text-align: right;">97.72%</td>
+<td style="text-align: right;">79.35%</td>
 <td style="text-align: right;">69.99%</td>
 <td style="text-align: right;">94.31%</td>
+<td style="text-align: right;">66.01%</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">10 NM</td>
 <td style="text-align: right;">81.20%</td>
 <td style="text-align: right;">97.98%</td>
+<td style="text-align: right;">79.55%</td>
 <td style="text-align: right;">69.97%</td>
 <td style="text-align: right;">95.10%</td>
+<td style="text-align: right;">66.54%</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">15 NM</td>
 <td style="text-align: right;">81.19%</td>
 <td style="text-align: right;">97.90%</td>
+<td style="text-align: right;">79.49%</td>
 <td style="text-align: right;">69.92%</td>
 <td style="text-align: right;">94.88%</td>
+<td style="text-align: right;">66.35%</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">20 NM</td>
 <td style="text-align: right;">81.20%</td>
 <td style="text-align: right;">97.68%</td>
+<td style="text-align: right;">79.32%</td>
 <td style="text-align: right;">69.91%</td>
 <td style="text-align: right;">94.80%</td>
+<td style="text-align: right;">66.27%</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">30 NM</td>
 <td style="text-align: right;">81.19%</td>
 <td style="text-align: right;">97.59%</td>
+<td style="text-align: right;">79.23%</td>
 <td style="text-align: right;">69.82%</td>
 <td style="text-align: right;">94.84%</td>
+<td style="text-align: right;">66.22%</td>
 </tr>
 </tbody>
 </table>
 </div>
 </div>
-<p>The gain is <strong>+0.67 pp of departure accuracy</strong> and <strong>+1.24 pp of arrival accuracy</strong>, for a coverage change of -0.01 pp.</p>
+<p>The gain is <strong>+0.67 pp of departure accuracy</strong> and <strong>+1.24 pp of arrival accuracy</strong>, for a coverage change of -0.01 pp. Overall correctness moves with it — +0.54 pp and +0.84 pp — which is what makes this the one parameter in the study with no trade attached.</p>
 <p>Two features make this trustworthy rather than a lucky constant. The control at penalty 0 reproduces the unbiased ranking, so the effect is attributable. And the curve <strong>peaks and turns</strong> — accuracy is best around 10 NM and declines above it. A penalty that merely favoured larger aerodromes would improve monotonically; one that corrects a specific bias should overshoot, and this does.</p>
 <div class="callout callout-style-default callout-warning callout-titled">
 <div class="callout-header d-flex align-content-center">
@@ -858,14 +912,139 @@ window.Quarto = {
 </table>
 </div>
 </div>
+<section id="sec-per-type" class="level3" data-number="8.1">
+<h3 data-number="8.1" class="anchored" data-anchor-id="sec-per-type"><span class="header-section-number">8.1</span> By class of aerodrome</h3>
+<p>Every headline figure averages over populations that behave nothing like each other. The detection reference holds <strong>large and medium aerodromes only</strong>, so flights whose true aerodrome is a small field or a heliport cannot be named correctly at any radius or height. Grouping ground truth by its OurAirports class separates that from detection skill.</p>
 <div class="cell">
 <div class="cell-output-display">
 <table class="caption-top table table-sm table-striped small">
-<caption>The 30 busiest aerodromes by Network Manager departures, against the <code>endpoint</code> flight list at 40 NM detection radius, 15,000 ft abstention height, 10 NM scheduled-service penalty. Out-of-area is excluded – it is not an aerodrome and is reported separately in <a href="#sec-ooa" class="quarto-xref">Section&nbsp;7</a>. <em>Count ratio</em> is OPDI movements divided by Network Manager movements, so it can sit near 1 even when the individual flights are wrong; <em>recall</em> is the share of Network Manager departures OPDI put at this aerodrome, and is the stricter measure.</caption>
+<caption>Coverage and accuracy by the class of the <em>ground-truth</em> aerodrome, from the <code>endpoint</code> flight list at 40 NM detection radius, 15,000 ft abstention height, 10 NM scheduled-service penalty. Classes are OurAirports types. The detection reference contains large and medium aerodromes only.</caption>
+<colgroup>
+<col style="width: 15%">
+<col style="width: 21%">
+<col style="width: 15%">
+<col style="width: 11%">
+<col style="width: 12%">
+<col style="width: 12%">
+<col style="width: 11%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Movements</th>
+<th style="text-align: left;">Class</th>
+<th style="text-align: right;">Aerodromes</th>
+<th style="text-align: right;">Flights</th>
+<th style="text-align: right;">Coverage</th>
+<th style="text-align: right;">Accuracy</th>
+<th style="text-align: right;">Overall</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">arrivals</td>
+<td style="text-align: left;">large airport</td>
+<td style="text-align: right;">331</td>
+<td style="text-align: right;">80,683</td>
+<td style="text-align: right;">76.11%</td>
+<td style="text-align: right;">96.27%</td>
+<td style="text-align: right;">73.27%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">arrivals</td>
+<td style="text-align: left;">out of area</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">7,964</td>
+<td style="text-align: right;">5.12%</td>
+<td style="text-align: right;">37.99%</td>
+<td style="text-align: right;">1.95%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">arrivals</td>
+<td style="text-align: left;">medium airport</td>
+<td style="text-align: right;">346</td>
+<td style="text-align: right;">5,983</td>
+<td style="text-align: right;">74.88%</td>
+<td style="text-align: right;">89.55%</td>
+<td style="text-align: right;">67.06%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">arrivals</td>
+<td style="text-align: left;">small airport</td>
+<td style="text-align: right;">70</td>
+<td style="text-align: right;">352</td>
+<td style="text-align: right;">57.67%</td>
+<td style="text-align: right;">0.00%</td>
+<td style="text-align: right;">0.00%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">arrivals</td>
+<td style="text-align: left;">heliport</td>
+<td style="text-align: right;">58</td>
+<td style="text-align: right;">134</td>
+<td style="text-align: right;">36.57%</td>
+<td style="text-align: right;">0.00%</td>
+<td style="text-align: right;">0.00%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">departures</td>
+<td style="text-align: left;">large airport</td>
+<td style="text-align: right;">331</td>
+<td style="text-align: right;">80,661</td>
+<td style="text-align: right;">88.37%</td>
+<td style="text-align: right;">99.14%</td>
+<td style="text-align: right;">87.60%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">departures</td>
+<td style="text-align: left;">out of area</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">7,892</td>
+<td style="text-align: right;">12.34%</td>
+<td style="text-align: right;">64.37%</td>
+<td style="text-align: right;">7.94%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">departures</td>
+<td style="text-align: left;">medium airport</td>
+<td style="text-align: right;">352</td>
+<td style="text-align: right;">6,069</td>
+<td style="text-align: right;">78.22%</td>
+<td style="text-align: right;">92.21%</td>
+<td style="text-align: right;">72.12%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">departures</td>
+<td style="text-align: left;">small airport</td>
+<td style="text-align: right;">76</td>
+<td style="text-align: right;">361</td>
+<td style="text-align: right;">49.58%</td>
+<td style="text-align: right;">0.00%</td>
+<td style="text-align: right;">0.00%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">departures</td>
+<td style="text-align: left;">heliport</td>
+<td style="text-align: right;">65</td>
+<td style="text-align: right;">133</td>
+<td style="text-align: right;">39.10%</td>
+<td style="text-align: right;">0.00%</td>
+<td style="text-align: right;">0.00%</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<p><strong>Small aerodromes and heliports are answered confidently and wrongly, every time.</strong> Accuracy on both classes is exactly zero, on 49.58% coverage for small airports and 39.10% for heliports. That is not a near-miss rate: the reference cannot name these aerodromes, so when the endpoint happens to fall within 40 NM of some large or medium field below 15,000 ft, the rule names that one instead. Across both roles, 483 of 980 such flights get an answer and none of them are right.</p>
+<p>The absolute cost is small — under half a point of the sample — but the shape of the error matters more than its size. <strong>These are not abstentions; they are false statements</strong>, and nothing in the output distinguishes them from the 99.14% of correct large-airport departures. Two fixes are available and neither is implemented here: extend the reference to small aerodromes so they can be named, or make abstention aware of what the reference contains, so an endpoint nearest to an aerodrome the reference omits produces silence rather than its neighbour.</p>
+<p><strong>Between the classes the reference does hold, the difference is real but ordinary.</strong> Departures at large airports run 88.37% coverage at 99.14% accuracy, against 78.22% and 92.21% at medium ones. Since large airports are 84.80% of the sample, the headline figures are very close to the large-airport figures and should not be read as applying uniformly.</p>
+<div class="cell">
+<div class="cell-output-display">
+<table class="caption-top table table-sm table-striped small">
+<caption>The 100 busiest aerodromes by Network Manager departures, against the <code>endpoint</code> flight list at 40 NM detection radius, 15,000 ft abstention height, 10 NM scheduled-service penalty. Out-of-area is excluded – it is not an aerodrome and is reported separately in <a href="#sec-ooa" class="quarto-xref">Section&nbsp;7</a>. <em>Count ratio</em> is OPDI movements divided by Network Manager movements, so it can sit near 1 even when the individual flights are wrong; <em>recall</em> is the share of Network Manager departures OPDI put at this aerodrome, and is the stricter measure.</caption>
 <thead>
 <tr class="header">
 <th style="text-align: left;">Aerodrome</th>
-<th style="text-align: right;">NM departures</th>
+<th style="text-align: right;">NM movements</th>
 <th style="text-align: right;">OPDI assigned</th>
 <th style="text-align: right;">Count ratio</th>
 <th style="text-align: right;">Recall</th>
@@ -1082,12 +1261,1232 @@ window.Quarto = {
 <td style="text-align: right;">0.99</td>
 <td style="text-align: right;">98.15%</td>
 </tr>
+<tr class="odd">
+<td style="text-align: left;">LFMN</td>
+<td style="text-align: right;">707</td>
+<td style="text-align: right;">695</td>
+<td style="text-align: right;">0.98</td>
+<td style="text-align: right;">98.02%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">LSGG</td>
+<td style="text-align: right;">680</td>
+<td style="text-align: right;">688</td>
+<td style="text-align: right;">1.01</td>
+<td style="text-align: right;">99.41%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">LKPR</td>
+<td style="text-align: right;">667</td>
+<td style="text-align: right;">659</td>
+<td style="text-align: right;">0.99</td>
+<td style="text-align: right;">98.20%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">EFHK</td>
+<td style="text-align: right;">659</td>
+<td style="text-align: right;">660</td>
+<td style="text-align: right;">1.00</td>
+<td style="text-align: right;">99.09%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">LEAL</td>
+<td style="text-align: right;">599</td>
+<td style="text-align: right;">598</td>
+<td style="text-align: right;">1.00</td>
+<td style="text-align: right;">99.83%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">LHBP</td>
+<td style="text-align: right;">578</td>
+<td style="text-align: right;">554</td>
+<td style="text-align: right;">0.96</td>
+<td style="text-align: right;">95.67%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">EGPH</td>
+<td style="text-align: right;">577</td>
+<td style="text-align: right;">569</td>
+<td style="text-align: right;">0.99</td>
+<td style="text-align: right;">98.61%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">EGGW</td>
+<td style="text-align: right;">550</td>
+<td style="text-align: right;">551</td>
+<td style="text-align: right;">1.00</td>
+<td style="text-align: right;">99.82%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">EDDH</td>
+<td style="text-align: right;">538</td>
+<td style="text-align: right;">537</td>
+<td style="text-align: right;">1.00</td>
+<td style="text-align: right;">98.14%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">GCLP</td>
+<td style="text-align: right;">520</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">0.00</td>
+<td style="text-align: right;">0.00%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">EDDK</td>
+<td style="text-align: right;">515</td>
+<td style="text-align: right;">502</td>
+<td style="text-align: right;">0.97</td>
+<td style="text-align: right;">97.28%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">LLBG</td>
+<td style="text-align: right;">513</td>
+<td style="text-align: right;">509</td>
+<td style="text-align: right;">0.99</td>
+<td style="text-align: right;">97.66%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">LPPR</td>
+<td style="text-align: right;">513</td>
+<td style="text-align: right;">508</td>
+<td style="text-align: right;">0.99</td>
+<td style="text-align: right;">98.83%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">LROP</td>
+<td style="text-align: right;">504</td>
+<td style="text-align: right;">493</td>
+<td style="text-align: right;">0.98</td>
+<td style="text-align: right;">97.82%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">LEIB</td>
+<td style="text-align: right;">495</td>
+<td style="text-align: right;">490</td>
+<td style="text-align: right;">0.99</td>
+<td style="text-align: right;">98.99%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">EGBB</td>
+<td style="text-align: right;">474</td>
+<td style="text-align: right;">468</td>
+<td style="text-align: right;">0.99</td>
+<td style="text-align: right;">98.73%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">LIML</td>
+<td style="text-align: right;">458</td>
+<td style="text-align: right;">452</td>
+<td style="text-align: right;">0.99</td>
+<td style="text-align: right;">98.47%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">LIME</td>
+<td style="text-align: right;">453</td>
+<td style="text-align: right;">450</td>
+<td style="text-align: right;">0.99</td>
+<td style="text-align: right;">99.34%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">LIRN</td>
+<td style="text-align: right;">449</td>
+<td style="text-align: right;">337</td>
+<td style="text-align: right;">0.75</td>
+<td style="text-align: right;">74.61%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">LFML</td>
+<td style="text-align: right;">444</td>
+<td style="text-align: right;">440</td>
+<td style="text-align: right;">0.99</td>
+<td style="text-align: right;">98.87%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">EDDS</td>
+<td style="text-align: right;">440</td>
+<td style="text-align: right;">418</td>
+<td style="text-align: right;">0.95</td>
+<td style="text-align: right;">94.32%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">LGIR</td>
+<td style="text-align: right;">424</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">0.00</td>
+<td style="text-align: right;">0.24%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">LIPZ</td>
+<td style="text-align: right;">412</td>
+<td style="text-align: right;">409</td>
+<td style="text-align: right;">0.99</td>
+<td style="text-align: right;">99.03%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">LFLL</td>
+<td style="text-align: right;">411</td>
+<td style="text-align: right;">417</td>
+<td style="text-align: right;">1.01</td>
+<td style="text-align: right;">97.81%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">LPFR</td>
+<td style="text-align: right;">405</td>
+<td style="text-align: right;">399</td>
+<td style="text-align: right;">0.99</td>
+<td style="text-align: right;">98.52%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">LYBE</td>
+<td style="text-align: right;">394</td>
+<td style="text-align: right;">391</td>
+<td style="text-align: right;">0.99</td>
+<td style="text-align: right;">98.73%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">LICC</td>
+<td style="text-align: right;">390</td>
+<td style="text-align: right;">382</td>
+<td style="text-align: right;">0.98</td>
+<td style="text-align: right;">97.69%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">LTAC</td>
+<td style="text-align: right;">381</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">0.00</td>
+<td style="text-align: right;">0.00%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">LIPE</td>
+<td style="text-align: right;">380</td>
+<td style="text-align: right;">375</td>
+<td style="text-align: right;">0.99</td>
+<td style="text-align: right;">98.68%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">LCLK</td>
+<td style="text-align: right;">368</td>
+<td style="text-align: right;">352</td>
+<td style="text-align: right;">0.96</td>
+<td style="text-align: right;">95.38%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">EPKK</td>
+<td style="text-align: right;">360</td>
+<td style="text-align: right;">348</td>
+<td style="text-align: right;">0.97</td>
+<td style="text-align: right;">96.39%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">GMMN</td>
+<td style="text-align: right;">360</td>
+<td style="text-align: right;">387</td>
+<td style="text-align: right;">1.07</td>
+<td style="text-align: right;">87.78%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">EGGD</td>
+<td style="text-align: right;">359</td>
+<td style="text-align: right;">356</td>
+<td style="text-align: right;">0.99</td>
+<td style="text-align: right;">98.89%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">LEVC</td>
+<td style="text-align: right;">355</td>
+<td style="text-align: right;">341</td>
+<td style="text-align: right;">0.96</td>
+<td style="text-align: right;">96.06%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">LFSB</td>
+<td style="text-align: right;">354</td>
+<td style="text-align: right;">354</td>
+<td style="text-align: right;">1.00</td>
+<td style="text-align: right;">98.59%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">ENBR</td>
+<td style="text-align: right;">349</td>
+<td style="text-align: right;">366</td>
+<td style="text-align: right;">1.05</td>
+<td style="text-align: right;">98.28%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">LTBJ</td>
+<td style="text-align: right;">346</td>
+<td style="text-align: right;">275</td>
+<td style="text-align: right;">0.79</td>
+<td style="text-align: right;">79.48%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">EGPF</td>
+<td style="text-align: right;">344</td>
+<td style="text-align: right;">328</td>
+<td style="text-align: right;">0.95</td>
+<td style="text-align: right;">93.60%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">LGRP</td>
+<td style="text-align: right;">340</td>
+<td style="text-align: right;">334</td>
+<td style="text-align: right;">0.98</td>
+<td style="text-align: right;">95.88%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">LMML</td>
+<td style="text-align: right;">326</td>
+<td style="text-align: right;">325</td>
+<td style="text-align: right;">1.00</td>
+<td style="text-align: right;">99.39%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">GCTS</td>
+<td style="text-align: right;">321</td>
+<td style="text-align: right;">11</td>
+<td style="text-align: right;">0.03</td>
+<td style="text-align: right;">0.00%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">GCXO</td>
+<td style="text-align: right;">319</td>
+<td style="text-align: right;">367</td>
+<td style="text-align: right;">1.15</td>
+<td style="text-align: right;">96.24%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">LATI</td>
+<td style="text-align: right;">316</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">0.00</td>
+<td style="text-align: right;">0.00%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">LICJ</td>
+<td style="text-align: right;">310</td>
+<td style="text-align: right;">288</td>
+<td style="text-align: right;">0.93</td>
+<td style="text-align: right;">92.58%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">EBCI</td>
+<td style="text-align: right;">304</td>
+<td style="text-align: right;">304</td>
+<td style="text-align: right;">1.00</td>
+<td style="text-align: right;">100.00%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">BIKF</td>
+<td style="text-align: right;">297</td>
+<td style="text-align: right;">331</td>
+<td style="text-align: right;">1.11</td>
+<td style="text-align: right;">98.99%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">ELLX</td>
+<td style="text-align: right;">294</td>
+<td style="text-align: right;">292</td>
+<td style="text-align: right;">0.99</td>
+<td style="text-align: right;">99.32%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">LFBO</td>
+<td style="text-align: right;">293</td>
+<td style="text-align: right;">291</td>
+<td style="text-align: right;">0.99</td>
+<td style="text-align: right;">98.63%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">LGTS</td>
+<td style="text-align: right;">279</td>
+<td style="text-align: right;">271</td>
+<td style="text-align: right;">0.97</td>
+<td style="text-align: right;">96.77%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">GMMX</td>
+<td style="text-align: right;">278</td>
+<td style="text-align: right;">88</td>
+<td style="text-align: right;">0.32</td>
+<td style="text-align: right;">30.94%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">LEZL</td>
+<td style="text-align: right;">275</td>
+<td style="text-align: right;">273</td>
+<td style="text-align: right;">0.99</td>
+<td style="text-align: right;">99.27%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">EVRA</td>
+<td style="text-align: right;">273</td>
+<td style="text-align: right;">271</td>
+<td style="text-align: right;">0.99</td>
+<td style="text-align: right;">98.90%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">LTBS</td>
+<td style="text-align: right;">273</td>
+<td style="text-align: right;">219</td>
+<td style="text-align: right;">0.80</td>
+<td style="text-align: right;">80.22%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">LBSF</td>
+<td style="text-align: right;">272</td>
+<td style="text-align: right;">169</td>
+<td style="text-align: right;">0.62</td>
+<td style="text-align: right;">62.13%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">GCRR</td>
+<td style="text-align: right;">269</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">0.00</td>
+<td style="text-align: right;">0.00%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">EGNX</td>
+<td style="text-align: right;">267</td>
+<td style="text-align: right;">265</td>
+<td style="text-align: right;">0.99</td>
+<td style="text-align: right;">98.50%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">EPKT</td>
+<td style="text-align: right;">259</td>
+<td style="text-align: right;">249</td>
+<td style="text-align: right;">0.96</td>
+<td style="text-align: right;">96.14%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">HEGN</td>
+<td style="text-align: right;">257</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">0.00</td>
+<td style="text-align: right;">0.00%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">UGTB</td>
+<td style="text-align: right;">257</td>
+<td style="text-align: right;">199</td>
+<td style="text-align: right;">0.77</td>
+<td style="text-align: right;">61.87%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">LFRS</td>
+<td style="text-align: right;">256</td>
+<td style="text-align: right;">254</td>
+<td style="text-align: right;">0.99</td>
+<td style="text-align: right;">98.83%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">EDDP</td>
+<td style="text-align: right;">256</td>
+<td style="text-align: right;">257</td>
+<td style="text-align: right;">1.00</td>
+<td style="text-align: right;">99.61%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">EPGD</td>
+<td style="text-align: right;">248</td>
+<td style="text-align: right;">39</td>
+<td style="text-align: right;">0.16</td>
+<td style="text-align: right;">15.73%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">LGKR</td>
+<td style="text-align: right;">244</td>
+<td style="text-align: right;">212</td>
+<td style="text-align: right;">0.87</td>
+<td style="text-align: right;">84.84%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">HECA</td>
+<td style="text-align: right;">244</td>
+<td style="text-align: right;">42</td>
+<td style="text-align: right;">0.17</td>
+<td style="text-align: right;">17.21%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">EGAA</td>
+<td style="text-align: right;">239</td>
+<td style="text-align: right;">240</td>
+<td style="text-align: right;">1.00</td>
+<td style="text-align: right;">100.00%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">ENZV</td>
+<td style="text-align: right;">236</td>
+<td style="text-align: right;">174</td>
+<td style="text-align: right;">0.74</td>
+<td style="text-align: right;">67.80%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">LEBB</td>
+<td style="text-align: right;">234</td>
+<td style="text-align: right;">174</td>
+<td style="text-align: right;">0.74</td>
+<td style="text-align: right;">73.50%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">LFPB</td>
+<td style="text-align: right;">230</td>
+<td style="text-align: right;">230</td>
+<td style="text-align: right;">1.00</td>
+<td style="text-align: right;">98.70%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">LIEO</td>
+<td style="text-align: right;">228</td>
+<td style="text-align: right;">195</td>
+<td style="text-align: right;">0.86</td>
+<td style="text-align: right;">85.53%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">LIBD</td>
+<td style="text-align: right;">228</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">0.00</td>
+<td style="text-align: right;">0.00%</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div class="cell">
+<div class="cell-output-display">
+<table class="caption-top table table-sm table-striped small">
+<caption>The 100 busiest aerodromes by Network Manager arrivals, against the <code>endpoint</code> flight list at 40 NM detection radius, 15,000 ft abstention height, 10 NM scheduled-service penalty. Out-of-area is excluded – it is not an aerodrome and is reported separately in <a href="#sec-ooa" class="quarto-xref">Section&nbsp;7</a>. <em>Count ratio</em> is OPDI movements divided by Network Manager movements, so it can sit near 1 even when the individual flights are wrong; <em>recall</em> is the share of Network Manager arrivals OPDI put at this aerodrome, and is the stricter measure.</caption>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Aerodrome</th>
+<th style="text-align: right;">NM movements</th>
+<th style="text-align: right;">OPDI assigned</th>
+<th style="text-align: right;">Count ratio</th>
+<th style="text-align: right;">Recall</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">LTFM</td>
+<td style="text-align: right;">2,258</td>
+<td style="text-align: right;">1,647</td>
+<td style="text-align: right;">0.73</td>
+<td style="text-align: right;">72.85%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">EHAM</td>
+<td style="text-align: right;">2,136</td>
+<td style="text-align: right;">1,766</td>
+<td style="text-align: right;">0.83</td>
+<td style="text-align: right;">82.49%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">EDDF</td>
+<td style="text-align: right;">2,091</td>
+<td style="text-align: right;">1,609</td>
+<td style="text-align: right;">0.77</td>
+<td style="text-align: right;">76.66%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">LFPG</td>
+<td style="text-align: right;">2,066</td>
+<td style="text-align: right;">1,546</td>
+<td style="text-align: right;">0.75</td>
+<td style="text-align: right;">74.54%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">EGLL</td>
+<td style="text-align: right;">1,986</td>
+<td style="text-align: right;">1,183</td>
+<td style="text-align: right;">0.60</td>
+<td style="text-align: right;">57.85%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">LEMD</td>
+<td style="text-align: right;">1,786</td>
+<td style="text-align: right;">1,357</td>
+<td style="text-align: right;">0.76</td>
+<td style="text-align: right;">74.92%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">LEBL</td>
+<td style="text-align: right;">1,597</td>
+<td style="text-align: right;">1,411</td>
+<td style="text-align: right;">0.88</td>
+<td style="text-align: right;">88.17%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">EDDM</td>
+<td style="text-align: right;">1,571</td>
+<td style="text-align: right;">1,313</td>
+<td style="text-align: right;">0.84</td>
+<td style="text-align: right;">83.45%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">LTAI</td>
+<td style="text-align: right;">1,437</td>
+<td style="text-align: right;">994</td>
+<td style="text-align: right;">0.69</td>
+<td style="text-align: right;">68.89%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">LEPA</td>
+<td style="text-align: right;">1,436</td>
+<td style="text-align: right;">1,386</td>
+<td style="text-align: right;">0.97</td>
+<td style="text-align: right;">96.24%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">LIRF</td>
+<td style="text-align: right;">1,433</td>
+<td style="text-align: right;">1,189</td>
+<td style="text-align: right;">0.83</td>
+<td style="text-align: right;">82.76%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">LGAV</td>
+<td style="text-align: right;">1,317</td>
+<td style="text-align: right;">1,128</td>
+<td style="text-align: right;">0.86</td>
+<td style="text-align: right;">83.45%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">EGKK</td>
+<td style="text-align: right;">1,220</td>
+<td style="text-align: right;">994</td>
+<td style="text-align: right;">0.81</td>
+<td style="text-align: right;">81.39%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">EIDW</td>
+<td style="text-align: right;">1,188</td>
+<td style="text-align: right;">965</td>
+<td style="text-align: right;">0.81</td>
+<td style="text-align: right;">81.14%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">LSZH</td>
+<td style="text-align: right;">1,160</td>
+<td style="text-align: right;">978</td>
+<td style="text-align: right;">0.84</td>
+<td style="text-align: right;">83.97%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">EKCH</td>
+<td style="text-align: right;">1,152</td>
+<td style="text-align: right;">1,007</td>
+<td style="text-align: right;">0.87</td>
+<td style="text-align: right;">87.41%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">LOWW</td>
+<td style="text-align: right;">1,145</td>
+<td style="text-align: right;">896</td>
+<td style="text-align: right;">0.78</td>
+<td style="text-align: right;">78.17%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">LTFJ</td>
+<td style="text-align: right;">1,138</td>
+<td style="text-align: right;">925</td>
+<td style="text-align: right;">0.81</td>
+<td style="text-align: right;">80.67%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">LPPT</td>
+<td style="text-align: right;">1,001</td>
+<td style="text-align: right;">764</td>
+<td style="text-align: right;">0.76</td>
+<td style="text-align: right;">76.32%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">LFPO</td>
+<td style="text-align: right;">991</td>
+<td style="text-align: right;">888</td>
+<td style="text-align: right;">0.90</td>
+<td style="text-align: right;">89.51%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">LIMC</td>
+<td style="text-align: right;">967</td>
+<td style="text-align: right;">757</td>
+<td style="text-align: right;">0.78</td>
+<td style="text-align: right;">77.56%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">ENGM</td>
+<td style="text-align: right;">940</td>
+<td style="text-align: right;">877</td>
+<td style="text-align: right;">0.93</td>
+<td style="text-align: right;">92.66%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">EGCC</td>
+<td style="text-align: right;">924</td>
+<td style="text-align: right;">619</td>
+<td style="text-align: right;">0.67</td>
+<td style="text-align: right;">66.99%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">EGSS</td>
+<td style="text-align: right;">888</td>
+<td style="text-align: right;">773</td>
+<td style="text-align: right;">0.87</td>
+<td style="text-align: right;">86.49%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">EPWA</td>
+<td style="text-align: right;">880</td>
+<td style="text-align: right;">705</td>
+<td style="text-align: right;">0.80</td>
+<td style="text-align: right;">79.77%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">EBBR</td>
+<td style="text-align: right;">871</td>
+<td style="text-align: right;">733</td>
+<td style="text-align: right;">0.84</td>
+<td style="text-align: right;">83.47%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">LEMG</td>
+<td style="text-align: right;">861</td>
+<td style="text-align: right;">789</td>
+<td style="text-align: right;">0.92</td>
+<td style="text-align: right;">91.64%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">ESSA</td>
+<td style="text-align: right;">841</td>
+<td style="text-align: right;">709</td>
+<td style="text-align: right;">0.84</td>
+<td style="text-align: right;">83.83%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">EDDB</td>
+<td style="text-align: right;">840</td>
+<td style="text-align: right;">763</td>
+<td style="text-align: right;">0.91</td>
+<td style="text-align: right;">89.88%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">EDDL</td>
+<td style="text-align: right;">751</td>
+<td style="text-align: right;">666</td>
+<td style="text-align: right;">0.89</td>
+<td style="text-align: right;">88.15%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">LFMN</td>
+<td style="text-align: right;">710</td>
+<td style="text-align: right;">657</td>
+<td style="text-align: right;">0.93</td>
+<td style="text-align: right;">91.97%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">LSGG</td>
+<td style="text-align: right;">670</td>
+<td style="text-align: right;">625</td>
+<td style="text-align: right;">0.93</td>
+<td style="text-align: right;">91.64%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">EFHK</td>
+<td style="text-align: right;">666</td>
+<td style="text-align: right;">577</td>
+<td style="text-align: right;">0.87</td>
+<td style="text-align: right;">85.59%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">LKPR</td>
+<td style="text-align: right;">657</td>
+<td style="text-align: right;">571</td>
+<td style="text-align: right;">0.87</td>
+<td style="text-align: right;">86.45%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">LEAL</td>
+<td style="text-align: right;">599</td>
+<td style="text-align: right;">572</td>
+<td style="text-align: right;">0.95</td>
+<td style="text-align: right;">95.49%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">EGPH</td>
+<td style="text-align: right;">584</td>
+<td style="text-align: right;">506</td>
+<td style="text-align: right;">0.87</td>
+<td style="text-align: right;">85.96%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">LHBP</td>
+<td style="text-align: right;">577</td>
+<td style="text-align: right;">238</td>
+<td style="text-align: right;">0.41</td>
+<td style="text-align: right;">41.07%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">EGGW</td>
+<td style="text-align: right;">552</td>
+<td style="text-align: right;">479</td>
+<td style="text-align: right;">0.87</td>
+<td style="text-align: right;">86.41%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">EDDH</td>
+<td style="text-align: right;">532</td>
+<td style="text-align: right;">488</td>
+<td style="text-align: right;">0.92</td>
+<td style="text-align: right;">90.04%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">GCLP</td>
+<td style="text-align: right;">521</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">0.00</td>
+<td style="text-align: right;">0.00%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">LLBG</td>
+<td style="text-align: right;">516</td>
+<td style="text-align: right;">409</td>
+<td style="text-align: right;">0.79</td>
+<td style="text-align: right;">74.03%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">LPPR</td>
+<td style="text-align: right;">512</td>
+<td style="text-align: right;">435</td>
+<td style="text-align: right;">0.85</td>
+<td style="text-align: right;">84.77%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">EDDK</td>
+<td style="text-align: right;">509</td>
+<td style="text-align: right;">443</td>
+<td style="text-align: right;">0.87</td>
+<td style="text-align: right;">85.66%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">LEIB</td>
+<td style="text-align: right;">509</td>
+<td style="text-align: right;">493</td>
+<td style="text-align: right;">0.97</td>
+<td style="text-align: right;">96.66%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">LROP</td>
+<td style="text-align: right;">509</td>
+<td style="text-align: right;">463</td>
+<td style="text-align: right;">0.91</td>
+<td style="text-align: right;">90.77%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">EGBB</td>
+<td style="text-align: right;">466</td>
+<td style="text-align: right;">388</td>
+<td style="text-align: right;">0.83</td>
+<td style="text-align: right;">83.26%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">LIML</td>
+<td style="text-align: right;">465</td>
+<td style="text-align: right;">445</td>
+<td style="text-align: right;">0.96</td>
+<td style="text-align: right;">94.62%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">LIME</td>
+<td style="text-align: right;">460</td>
+<td style="text-align: right;">419</td>
+<td style="text-align: right;">0.91</td>
+<td style="text-align: right;">91.09%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">LIRN</td>
+<td style="text-align: right;">447</td>
+<td style="text-align: right;">335</td>
+<td style="text-align: right;">0.75</td>
+<td style="text-align: right;">73.60%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">LFML</td>
+<td style="text-align: right;">445</td>
+<td style="text-align: right;">391</td>
+<td style="text-align: right;">0.88</td>
+<td style="text-align: right;">87.64%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">EDDS</td>
+<td style="text-align: right;">433</td>
+<td style="text-align: right;">377</td>
+<td style="text-align: right;">0.87</td>
+<td style="text-align: right;">86.84%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">LGIR</td>
+<td style="text-align: right;">430</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">0.00</td>
+<td style="text-align: right;">0.00%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">LFLL</td>
+<td style="text-align: right;">412</td>
+<td style="text-align: right;">386</td>
+<td style="text-align: right;">0.94</td>
+<td style="text-align: right;">90.53%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">LIPZ</td>
+<td style="text-align: right;">409</td>
+<td style="text-align: right;">370</td>
+<td style="text-align: right;">0.90</td>
+<td style="text-align: right;">89.98%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">LPFR</td>
+<td style="text-align: right;">407</td>
+<td style="text-align: right;">392</td>
+<td style="text-align: right;">0.96</td>
+<td style="text-align: right;">96.31%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">LYBE</td>
+<td style="text-align: right;">395</td>
+<td style="text-align: right;">342</td>
+<td style="text-align: right;">0.87</td>
+<td style="text-align: right;">86.33%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">LICC</td>
+<td style="text-align: right;">391</td>
+<td style="text-align: right;">356</td>
+<td style="text-align: right;">0.91</td>
+<td style="text-align: right;">91.05%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">LIPE</td>
+<td style="text-align: right;">376</td>
+<td style="text-align: right;">359</td>
+<td style="text-align: right;">0.95</td>
+<td style="text-align: right;">95.21%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">LTAC</td>
+<td style="text-align: right;">374</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">0.00</td>
+<td style="text-align: right;">0.00%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">LCLK</td>
+<td style="text-align: right;">367</td>
+<td style="text-align: right;">338</td>
+<td style="text-align: right;">0.92</td>
+<td style="text-align: right;">91.55%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">EGGD</td>
+<td style="text-align: right;">360</td>
+<td style="text-align: right;">303</td>
+<td style="text-align: right;">0.84</td>
+<td style="text-align: right;">84.17%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">ENBR</td>
+<td style="text-align: right;">357</td>
+<td style="text-align: right;">356</td>
+<td style="text-align: right;">1.00</td>
+<td style="text-align: right;">93.00%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">GMMN</td>
+<td style="text-align: right;">357</td>
+<td style="text-align: right;">336</td>
+<td style="text-align: right;">0.94</td>
+<td style="text-align: right;">71.99%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">LEVC</td>
+<td style="text-align: right;">357</td>
+<td style="text-align: right;">333</td>
+<td style="text-align: right;">0.93</td>
+<td style="text-align: right;">93.00%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">EPKK</td>
+<td style="text-align: right;">356</td>
+<td style="text-align: right;">250</td>
+<td style="text-align: right;">0.70</td>
+<td style="text-align: right;">70.22%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">LFSB</td>
+<td style="text-align: right;">352</td>
+<td style="text-align: right;">322</td>
+<td style="text-align: right;">0.91</td>
+<td style="text-align: right;">91.48%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">LGRP</td>
+<td style="text-align: right;">346</td>
+<td style="text-align: right;">312</td>
+<td style="text-align: right;">0.90</td>
+<td style="text-align: right;">87.57%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">EGPF</td>
+<td style="text-align: right;">346</td>
+<td style="text-align: right;">299</td>
+<td style="text-align: right;">0.86</td>
+<td style="text-align: right;">85.55%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">LTBJ</td>
+<td style="text-align: right;">341</td>
+<td style="text-align: right;">275</td>
+<td style="text-align: right;">0.81</td>
+<td style="text-align: right;">80.65%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">LMML</td>
+<td style="text-align: right;">326</td>
+<td style="text-align: right;">310</td>
+<td style="text-align: right;">0.95</td>
+<td style="text-align: right;">94.79%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">GCTS</td>
+<td style="text-align: right;">323</td>
+<td style="text-align: right;">97</td>
+<td style="text-align: right;">0.30</td>
+<td style="text-align: right;">21.98%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">LATI</td>
+<td style="text-align: right;">323</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">0.00</td>
+<td style="text-align: right;">0.00%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">GCXO</td>
+<td style="text-align: right;">320</td>
+<td style="text-align: right;">316</td>
+<td style="text-align: right;">0.99</td>
+<td style="text-align: right;">23.75%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">LICJ</td>
+<td style="text-align: right;">314</td>
+<td style="text-align: right;">291</td>
+<td style="text-align: right;">0.93</td>
+<td style="text-align: right;">92.04%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">EBCI</td>
+<td style="text-align: right;">303</td>
+<td style="text-align: right;">285</td>
+<td style="text-align: right;">0.94</td>
+<td style="text-align: right;">94.06%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">BIKF</td>
+<td style="text-align: right;">296</td>
+<td style="text-align: right;">165</td>
+<td style="text-align: right;">0.56</td>
+<td style="text-align: right;">29.39%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">ELLX</td>
+<td style="text-align: right;">294</td>
+<td style="text-align: right;">226</td>
+<td style="text-align: right;">0.77</td>
+<td style="text-align: right;">76.53%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">LFBO</td>
+<td style="text-align: right;">290</td>
+<td style="text-align: right;">278</td>
+<td style="text-align: right;">0.96</td>
+<td style="text-align: right;">95.17%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">LGTS</td>
+<td style="text-align: right;">281</td>
+<td style="text-align: right;">264</td>
+<td style="text-align: right;">0.94</td>
+<td style="text-align: right;">93.95%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">LTBS</td>
+<td style="text-align: right;">280</td>
+<td style="text-align: right;">228</td>
+<td style="text-align: right;">0.81</td>
+<td style="text-align: right;">81.07%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">GMMX</td>
+<td style="text-align: right;">279</td>
+<td style="text-align: right;">57</td>
+<td style="text-align: right;">0.20</td>
+<td style="text-align: right;">19.35%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">EVRA</td>
+<td style="text-align: right;">278</td>
+<td style="text-align: right;">221</td>
+<td style="text-align: right;">0.79</td>
+<td style="text-align: right;">78.78%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">LEZL</td>
+<td style="text-align: right;">276</td>
+<td style="text-align: right;">255</td>
+<td style="text-align: right;">0.92</td>
+<td style="text-align: right;">92.39%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">GCRR</td>
+<td style="text-align: right;">269</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">0.00</td>
+<td style="text-align: right;">0.00%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">LBSF</td>
+<td style="text-align: right;">267</td>
+<td style="text-align: right;">89</td>
+<td style="text-align: right;">0.33</td>
+<td style="text-align: right;">32.58%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">EDDP</td>
+<td style="text-align: right;">261</td>
+<td style="text-align: right;">224</td>
+<td style="text-align: right;">0.86</td>
+<td style="text-align: right;">84.67%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">HEGN</td>
+<td style="text-align: right;">258</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">0.00</td>
+<td style="text-align: right;">0.00%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">LFRS</td>
+<td style="text-align: right;">257</td>
+<td style="text-align: right;">237</td>
+<td style="text-align: right;">0.92</td>
+<td style="text-align: right;">92.22%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">EPKT</td>
+<td style="text-align: right;">257</td>
+<td style="text-align: right;">211</td>
+<td style="text-align: right;">0.82</td>
+<td style="text-align: right;">82.10%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">UGTB</td>
+<td style="text-align: right;">257</td>
+<td style="text-align: right;">101</td>
+<td style="text-align: right;">0.39</td>
+<td style="text-align: right;">21.79%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">EGNX</td>
+<td style="text-align: right;">255</td>
+<td style="text-align: right;">206</td>
+<td style="text-align: right;">0.81</td>
+<td style="text-align: right;">79.61%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">LIEO</td>
+<td style="text-align: right;">252</td>
+<td style="text-align: right;">212</td>
+<td style="text-align: right;">0.84</td>
+<td style="text-align: right;">83.33%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">LGKR</td>
+<td style="text-align: right;">247</td>
+<td style="text-align: right;">222</td>
+<td style="text-align: right;">0.90</td>
+<td style="text-align: right;">68.02%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">EGAA</td>
+<td style="text-align: right;">246</td>
+<td style="text-align: right;">223</td>
+<td style="text-align: right;">0.91</td>
+<td style="text-align: right;">90.65%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">EPGD</td>
+<td style="text-align: right;">244</td>
+<td style="text-align: right;">10</td>
+<td style="text-align: right;">0.04</td>
+<td style="text-align: right;">1.64%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">ENZV</td>
+<td style="text-align: right;">236</td>
+<td style="text-align: right;">130</td>
+<td style="text-align: right;">0.55</td>
+<td style="text-align: right;">46.61%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">LEBB</td>
+<td style="text-align: right;">235</td>
+<td style="text-align: right;">53</td>
+<td style="text-align: right;">0.23</td>
+<td style="text-align: right;">16.17%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">LTFE</td>
+<td style="text-align: right;">232</td>
+<td style="text-align: right;">187</td>
+<td style="text-align: right;">0.81</td>
+<td style="text-align: right;">80.17%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">HECA</td>
+<td style="text-align: right;">231</td>
+<td style="text-align: right;">82</td>
+<td style="text-align: right;">0.35</td>
+<td style="text-align: right;">34.20%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">LIBD</td>
+<td style="text-align: right;">229</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">0.00</td>
+<td style="text-align: right;">0.00%</td>
+</tr>
 </tbody>
 </table>
 </div>
 </div>
 <p>The error is an <strong>undercount</strong> rather than an overcount, which is the correctable direction: a systematic shortfall can be adjusted for, an inflated count cannot. Roughly six points of it are the out-of-area bucket rather than per-aerodrome detection failure — flights the method never labelled land nowhere, so they show up as missing movements at whichever aerodrome the truth names.</p>
-<p>Recall also scales sharply with aerodrome size. Across the busiest thirty it runs from 95.94% to 99.77%, against a median of 80.00% over all 824 aerodromes with departures in the sample. The flight list is therefore substantially more complete at large aerodromes than small ones, which matters before comparing across aerodrome classes.</p>
+<p>Recall also scales sharply with aerodrome size. Across the hundred busiest — 74.96% of all departures in the sample — the median is 98.24% and the quartiles are 95.60% and 99.04%, against a median of 80.00% over all 824 aerodromes with departures. The flight list is therefore substantially more complete at large aerodromes than small ones, which matters before comparing across aerodrome classes — and <a href="#sec-per-type" class="quarto-xref">Section&nbsp;8.1</a> says why.</p>
+</section>
+<section id="sec-outliers" class="level3" data-number="8.2">
+<h3 data-number="8.2" class="anchored" data-anchor-id="sec-outliers"><span class="header-section-number">8.2</span> Busy aerodromes that fail outright</h3>
+<p>Extending the listing from thirty rows to a hundred exposes something the shorter view could not: a handful of genuinely busy aerodromes where the method does not merely lose a few movements but fails almost completely.</p>
+<p>29 of the two hundred rows above sit below 50% recall — 11 departure aerodromes and 18 arrival ones. They split cleanly into two kinds of failure:</p>
+<ul>
+<li><strong>Never seen</strong> (19 rows). Under a quarter of their flights get an answer at all: Gran Canaria departures return 24 answers against 520 movements, and Hurghada none at all. These cluster where ADS-B receiver coverage is thin — the Canaries, North Africa, the Caucasus, Anatolia. No detection rule can recover a flight with no low-altitude trajectory.</li>
+<li><strong>Seen and misnamed</strong> (10 rows). The trajectory is there and the answer is wrong. Bilbao arrivals are answered 90.64% of the time and only 38 of 235 land on Bilbao.</li>
+</ul>
+<p>Tenerife North is the cleanest warning about reading count ratios. It is assigned 316 arrivals against 320 true ones — a count ratio of 0.99, which looks like a well-measured aerodrome — while its recall is 23.75%. Almost every movement it is credited with belongs somewhere else, and the totals cancel the error exactly as <a href="#sec-crosscheck" class="quarto-xref">Section&nbsp;8</a> warned they could.</p>
+<p>Every aerodrome in both groups is a <code>large_airport</code> with scheduled service and is present in the detection reference, so neither failure is the reference gap of <a href="#sec-per-type" class="quarto-xref">Section&nbsp;8.1</a>. The first group is a data limitation and is not fixable here. The second is a detection failure at aerodromes large enough to matter, it is concentrated rather than scattered, and <strong>this study has not diagnosed it</strong> — it is the most promising lead the cross-check produces.</p>
+</section>
 </section>
 <section id="recommendation" class="level2" data-number="9">
 <h2 data-number="9" class="anchored" data-anchor-id="recommendation"><span class="header-section-number">9</span> Recommendation</h2>
@@ -1095,12 +2494,14 @@ window.Quarto = {
 <p><strong>Use 20–40 NM and a scheduled-service penalty of 10 NM.</strong> Both are on plateaus, so neither is delicate.</p>
 <p><strong>Do not change the arrivals algorithm on this evidence.</strong> Arrivals are weaker on every measure and every version of this study has found the same.</p>
 <p><strong>Publish the provenance column.</strong> <code>adep_source</code> / <code>ades_source</code> distinguish “named an aerodrome”, “outside the observed area” and “could not determine”. Today all three are a single null in the published flight list, and they mean entirely different things to a consumer. This is the highest-value change per line of code in the whole study.</p>
+<p><strong>Make abstention aware of what the reference contains.</strong> Flights to and from small aerodromes and heliports are answered about half the time and are wrong every time (<a href="#sec-per-type" class="quarto-xref">Section&nbsp;8.1</a>). They are a small share of movements but they are false statements rather than gaps, and they are indistinguishable in the output from correct answers. Either extend the reference to small aerodromes or abstain when the nearest candidate is far enough away to suggest the real aerodrome is one the reference does not hold.</p>
 </section>
 <section id="sec-limitations" class="level2" data-number="10">
 <h2 data-number="10" class="anchored" data-anchor-id="sec-limitations"><span class="header-section-number">10</span> Limitations</h2>
 <ul>
 <li><strong>Three days</strong>, one sample. Versions 2 and 3 used two samples a year apart; this version re-runs the whole pipeline, which is expensive, so it uses one. The mode ranking is robust across earlier versions, but the exact figures here have not been validated on a second period.</li>
 <li><strong>Out-of-area recall is low.</strong> The geometric border test is the wrong instrument; the phase-based test in <a href="#sec-ooa" class="quarto-xref">Section&nbsp;7</a> is the successor.</li>
+<li><strong>The detection reference holds large and medium aerodromes only</strong>, so accuracy on any other class is zero by construction rather than by measurement. The per-class table quantifies this; it does not fix it.</li>
 <li><strong>The scheduled-service preference has a cost</strong> that these accuracy figures include but do not itemise: movements at non-scheduled aerodromes are pulled to nearby hubs.</li>
 <li><strong>The sweep re-implements the endpoint rule</strong> as a DataFrame operation instead of calling the pipeline’s <code>classify_endpoints</code>, because a sweep cell needs only <code>(track_id, adep, ades)</code> while the pipeline method builds a whole flight list. The headline <code>endpoint</code> row <em>does</em> come from the pipeline path, so a divergence between the two would surface as the sweep disagreeing with its own mode — but this is a duplication and worth removing.</li>
 <li><strong><code>track_id</code> is taken as given</strong>, with the fragmentation and merging rates version 2 measured.</li>
