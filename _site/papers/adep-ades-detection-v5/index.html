@@ -192,9 +192,14 @@ window.Quarto = {
   <li><a href="#sec-compare" id="toc-sec-compare" class="nav-link" data-scroll-target="#sec-compare"><span class="header-section-number">5</span> The comparison that matters</a></li>
   <li><a href="#sec-vertical" id="toc-sec-vertical" class="nav-link" data-scroll-target="#sec-vertical"><span class="header-section-number">6</span> Why the vertical channel is dead</a></li>
   <li><a href="#sec-recommendation" id="toc-sec-recommendation" class="nav-link" data-scroll-target="#sec-recommendation"><span class="header-section-number">7</span> Recommendation</a></li>
-  <li><a href="#sec-ruled-out" id="toc-sec-ruled-out" class="nav-link" data-scroll-target="#sec-ruled-out"><span class="header-section-number">8</span> What is now ruled out</a></li>
-  <li><a href="#sec-limitations" id="toc-sec-limitations" class="nav-link" data-scroll-target="#sec-limitations"><span class="header-section-number">9</span> Limitations</a></li>
-  <li><a href="#sec-reproducing" id="toc-sec-reproducing" class="nav-link" data-scroll-target="#sec-reproducing"><span class="header-section-number">10</span> Reproducing</a></li>
+  <li><a href="#sec-whole" id="toc-sec-whole" class="nav-link" data-scroll-target="#sec-whole"><span class="header-section-number">8</span> Bearing on the whole sample</a>
+  <ul class="collapse">
+  <li><a href="#sec-domain" id="toc-sec-domain" class="nav-link" data-scroll-target="#sec-domain"><span class="header-section-number">8.1</span> Why: the measure is out of domain on flights that landed</a></li>
+  <li><a href="#sec-naming" id="toc-sec-naming" class="nav-link" data-scroll-target="#sec-naming"><span class="header-section-number">8.2</span> Rerank refutes the naming-rule argument</a></li>
+  </ul></li>
+  <li><a href="#sec-ruled-out" id="toc-sec-ruled-out" class="nav-link" data-scroll-target="#sec-ruled-out"><span class="header-section-number">9</span> What is now ruled out</a></li>
+  <li><a href="#sec-limitations" id="toc-sec-limitations" class="nav-link" data-scroll-target="#sec-limitations"><span class="header-section-number">10</span> Limitations</a></li>
+  <li><a href="#sec-reproducing" id="toc-sec-reproducing" class="nav-link" data-scroll-target="#sec-reproducing"><span class="header-section-number">11</span> Reproducing</a></li>
   </ul>
 <div class="quarto-alternate-formats"><h2>Other Formats</h2><ul><li><a href="index.pdf"><i class="bi bi-file-pdf"></i>PDF</a></li></ul></div></nav>
     </div>
@@ -204,7 +209,7 @@ window.Quarto = {
 <header id="title-block-header" class="quarto-title-block default">
 <div class="quarto-title">
 <h1 class="title">Detecting departure and destination aerodromes from ADS-B</h1>
-<p class="subtitle lead">Version 5 — why arrivals are hard, and what recovers part of them</p>
+<p class="subtitle lead">Version 5.1 — why arrivals are hard, and what recovers part of them</p>
 </div>
 
 
@@ -953,8 +958,177 @@ window.Quarto = {
 <p><strong>Validate on a second period before publishing the change.</strong> Everything here is one three-day sample, and the gate was chosen from that sample. 91.15% remains the ceiling regardless.</p>
 <p><strong>And out-of-area is still the larger prize.</strong> It is 24.53% of the arrival deficit against the 1.34% this recovers. The bearing test is worth having; it is not the main event.</p>
 </section>
-<section id="sec-ruled-out" class="level2" data-number="8">
-<h2 data-number="8" class="anchored" data-anchor-id="sec-ruled-out"><span class="header-section-number">8</span> What is now ruled out</h2>
+<section id="sec-whole" class="level2" data-number="8">
+<h2 data-number="8" class="anchored" data-anchor-id="sec-whole"><span class="header-section-number">8</span> Bearing on the whole sample</h2>
+<p>Used as a rescue, the bearing test can only <em>add</em> answers. That is a structural limit rather than a property of the data: a flight the abstention already accepts is untouched, so the 2,870 arrivals the base rule gets <strong>wrong</strong> were unreachable by every variant in <a href="#sec-compare" class="quarto-xref">Section&nbsp;5</a>. No rescue can raise accuracy.</p>
+<p>Applying the test to every flight opens three questions the rescue framing cannot ask.</p>
+<ul>
+<li><strong>Veto</strong> — require alignment on flights the gate accepts, so bearing can remove answers. The only variant that can raise accuracy.</li>
+<li><strong>Replace</strong> — alignment instead of the distance and height gate, testing whether that box carries anything the course does not.</li>
+<li><strong>Rerank</strong> — choose <em>which</em> aerodrome by alignment rather than by effective distance. Version 4.5 argued the abstention is a gate and never a naming rule, and that arrivals fail by misnaming; this is the naming rule that argument implies.</li>
+</ul>
+<div class="cell">
+<div class="cell-output-display">
+<table class="caption-top table table-sm table-striped small">
+<caption>Arrivals: the bearing test used four ways. Only the rescue helps; the other three are catastrophic.</caption>
+<colgroup>
+<col style="width: 41%">
+<col style="width: 12%">
+<col style="width: 12%">
+<col style="width: 10%">
+<col style="width: 13%">
+<col style="width: 10%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Model</th>
+<th style="text-align: right;">Coverage</th>
+<th style="text-align: right;">Accuracy</th>
+<th style="text-align: right;">Overall</th>
+<th style="text-align: right;">d correct</th>
+<th style="text-align: right;">d wrong</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">base</td>
+<td style="text-align: right;">69.10%</td>
+<td style="text-align: right;">95.63%</td>
+<td style="text-align: right;">66.08%</td>
+<td style="text-align: right;">—</td>
+<td style="text-align: right;">—</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">rescue: gate OR align&lt;=0.1</td>
+<td style="text-align: right;">69.66%</td>
+<td style="text-align: right;">95.52%</td>
+<td style="text-align: right;">66.54%</td>
+<td style="text-align: right;">436</td>
+<td style="text-align: right;">97</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">rescue: gate OR align&lt;=3.0</td>
+<td style="text-align: right;">70.75%</td>
+<td style="text-align: right;">94.93%</td>
+<td style="text-align: right;">67.16%</td>
+<td style="text-align: right;">1,020</td>
+<td style="text-align: right;">544</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">veto: gate AND align&lt;=3.0</td>
+<td style="text-align: right;">22.78%</td>
+<td style="text-align: right;">98.17%</td>
+<td style="text-align: right;">22.36%</td>
+<td style="text-align: right;">-41,585</td>
+<td style="text-align: right;">-2,473</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">veto: gate AND align&lt;=0.1</td>
+<td style="text-align: right;">11.67%</td>
+<td style="text-align: right;">97.30%</td>
+<td style="text-align: right;">11.36%</td>
+<td style="text-align: right;">-52,052</td>
+<td style="text-align: right;">-2,570</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">replace: align&lt;=3.0 only</td>
+<td style="text-align: right;">24.42%</td>
+<td style="text-align: right;">95.95%</td>
+<td style="text-align: right;">23.44%</td>
+<td style="text-align: right;">-40,565</td>
+<td style="text-align: right;">-1,929</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">replace: align&lt;=0.1 only</td>
+<td style="text-align: right;">12.23%</td>
+<td style="text-align: right;">96.59%</td>
+<td style="text-align: right;">11.82%</td>
+<td style="text-align: right;">-51,616</td>
+<td style="text-align: right;">-2,473</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">rerank by alignment, then gate</td>
+<td style="text-align: right;">35.81%</td>
+<td style="text-align: right;">86.50%</td>
+<td style="text-align: right;">30.97%</td>
+<td style="text-align: right;">-33,396</td>
+<td style="text-align: right;">1,729</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">rerank, gate OR align&lt;=0.1</td>
+<td style="text-align: right;">37.42%</td>
+<td style="text-align: right;">84.44%</td>
+<td style="text-align: right;">31.60%</td>
+<td style="text-align: right;">-32,800</td>
+<td style="text-align: right;">2,667</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<p><strong>All three fail, and not marginally.</strong> The veto costs 41,585 correct arrivals at 3°. Replace costs 40,565. Rerank costs 33,396 correct labels <em>and</em> adds 1,729 wrong ones, dropping accuracy from 95.63% to 86.50%.</p>
+<section id="sec-domain" class="level3" data-number="8.1">
+<h3 data-number="8.1" class="anchored" data-anchor-id="sec-domain"><span class="header-section-number">8.1</span> Why: the measure is out of domain on flights that landed</h3>
+<p>The diagnosis is not that alignment is a weak signal. It is that the flights the gate already accepts are the wrong population to ask.</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 20%">
+<col style="width: 20%">
+<col style="width: 20%">
+<col style="width: 20%">
+<col style="width: 20%">
+</colgroup>
+<thead>
+<tr class="header">
+<th></th>
+<th>no course computable</th>
+<th>median alignment</th>
+<th>within 3°</th>
+<th>on ground at the endpoint</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>gate accepts</td>
+<td>23.8%</td>
+<td><strong>21°</strong></td>
+<td>18.4%</td>
+<td><strong>43.1%</strong></td>
+</tr>
+<tr class="even">
+<td>gate refuses</td>
+<td>24.3%</td>
+<td>53°</td>
+<td>5.2%</td>
+<td>0.6%</td>
+</tr>
+</tbody>
+</table>
+<p><strong>43% of accepted arrivals are on the ground at their endpoint.</strong> For those, the last seven minutes are the approach, the landing roll and the taxi to stand — and the “course” over that window is dominated by ground manoeuvring, which points wherever the taxiways happen to run. A further quarter have no computable course at all. A veto at 3° therefore rejects roughly four in five flights it should keep.</p>
+<p>The bearing test was developed on the abstained block, where every endpoint is airborne and en route by construction. <strong>Its domain is airborne endpoints, and the flights the gate accepts are mostly not that.</strong> Used as a rescue it never leaves its domain, which is why it works there and nowhere else.</p>
+</section>
+<section id="sec-naming" class="level3" data-number="8.2">
+<h3 data-number="8.2" class="anchored" data-anchor-id="sec-naming"><span class="header-section-number">8.2</span> Rerank refutes the naming-rule argument</h3>
+<p>The reranking result deserves its own note, because version 4.5 predicted the opposite. Its argument was that the abstention decides only <em>whether</em> to answer and never <em>what</em> to answer, that arrivals fail predominantly by misnaming, and that a trajectory-based naming rule was therefore the most promising fix available.</p>
+<p>Ranking candidates by alignment instead of distance is that rule, and it is far worse than ranking by distance. The reason is geometric: <strong>an aerodrome 200 NM directly ahead is perfectly aligned.</strong> Alignment has no sense of scale, so as a ranking criterion it systematically prefers distant aerodromes that happen to lie on the track. Distance was doing enormous work that the argument did not credit.</p>
+<p>Alignment is a <strong>filter over distance-ranked candidates</strong>, not a ranking criterion. That is what the rescue variant does, and it is the only form in which the signal is worth anything.</p>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Note</span>A small correction to <a href="#sec-compare" class="quarto-xref">Section&nbsp;5</a>
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>The whole-sample run computes alignment without requiring an altitude, because alignment is purely horizontal; <a href="#sec-compare" class="quarto-xref">Section&nbsp;5</a>’s figures came from a routine that also fitted the vertical slope and so discarded samples with no altitude. The rescue numbers here are consequently a little higher — 436 correct against 425 at the same gate. The direction and the recommendation are unchanged; the earlier figures were conservative.</p>
+</div>
+</div>
+</section>
+</section>
+<section id="sec-ruled-out" class="level2" data-number="9">
+<h2 data-number="9" class="anchored" data-anchor-id="sec-ruled-out"><span class="header-section-number">9</span> What is now ruled out</h2>
 <p>Recorded so it is not re-attempted:</p>
 <ul>
 <li><strong>Relaxing the abstention thresholds</strong> — priced at 0.39:1 (<a href="#sec-hard" class="quarto-xref">Section&nbsp;3</a>).</li>
@@ -962,10 +1136,11 @@ window.Quarto = {
 <li><strong>Bucket decimation</strong> — the state-vector study measured +55 correct arrivals per day for a change that rewrites <code>track_id</code> for every published row.</li>
 <li><strong>Vertical rate, in any form</strong> (<a href="#sec-vertical" class="quarto-xref">Section&nbsp;6</a>).</li>
 <li><strong>Trajectory extrapolation</strong> — version 2 and the 2025 PRC report, independently.</li>
+<li><strong>Bearing as a veto, a replacement, or a naming rule</strong> (<a href="#sec-whole" class="quarto-xref">Section&nbsp;8</a>). Only the rescue form works, and only because it stays inside the measure’s domain.</li>
 </ul>
 </section>
-<section id="sec-limitations" class="level2" data-number="9">
-<h2 data-number="9" class="anchored" data-anchor-id="sec-limitations"><span class="header-section-number">9</span> Limitations</h2>
+<section id="sec-limitations" class="level2" data-number="10">
+<h2 data-number="10" class="anchored" data-anchor-id="sec-limitations"><span class="header-section-number">10</span> Limitations</h2>
 <ul>
 <li><strong>One sample.</strong> Three days, 2025-06-05 to 07. The operating points were chosen as the argmax over 120 grid cells of that same sample, so the ratios are optimistic. The 2° and 3° columns peak cleanly at 7 minutes, which is why the <em>region</em> is credible; the specific numbers are not validated.</li>
 <li><strong>Two measurement bugs were found in this work</strong>, both by sanity checks rather than by anything failing: <code>angle_between</code> used <code>%</code>, and Spark’s remainder keeps the sign of the dividend, so bearings 20° apart measured 340° whenever the pair straddled north — the tell was a median alignment of 186° on a 0–180° scale. And the altitude slope divided an altitude change by an elapsed time drawn from different rows, because <code>min_by</code> skips nulls where <code>min</code> does not. Both are fixed; both had already produced numbers that were reported before being caught.</li>
@@ -973,8 +1148,8 @@ window.Quarto = {
 <li><strong><code>nearest</code> and <code>endpoint</code> are assumed to answer identically where both answer</strong>, which underpins <a href="#sec-hard" class="quarto-xref">Section&nbsp;3</a>. It follows from both ranking on the same effective distance, but it is an argument, not a measurement.</li>
 </ul>
 </section>
-<section id="sec-reproducing" class="level2" data-number="10">
-<h2 data-number="10" class="anchored" data-anchor-id="sec-reproducing"><span class="header-section-number">10</span> Reproducing</h2>
+<section id="sec-reproducing" class="level2" data-number="11">
+<h2 data-number="11" class="anchored" data-anchor-id="sec-reproducing"><span class="header-section-number">11</span> Reproducing</h2>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co"># the abstained block, its motion profile, and the angle x window sweep</span></span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="ex">python</span> benchmarks/abstained_vertical.py <span class="at">--results-dir</span> <span class="op">&lt;</span>dir<span class="op">&gt;</span></span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a></span>

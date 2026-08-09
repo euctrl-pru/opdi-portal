@@ -1,6 +1,6 @@
 ---
 title: "Detecting departure and destination aerodromes from ADS-B"
-subtitle: "Version 5 — why arrivals are hard, and what recovers part of them"
+subtitle: "Version 5.1 — why arrivals are hard, and what recovers part of them"
 author: "EUROCONTROL Performance Review Unit"
 date: last-modified
 ---
@@ -24,6 +24,19 @@ sweep <- cache("angle_sweep.csv")
 prof  <- cache("motion_profile.csv")
 vm    <- cache("vertical_measure.csv")
 cmp   <- cache("model_compare.csv")
+whole <- cache("whole_sample.csv")
+
+# The whole-sample experiment, scored the same way.
+ws <- function(model, role, field) whole[[paste0(role, "_", field)]][whole$model == model]
+wcnt <- function(model, role) {
+  ans <- round(ws(model, role, "coverage") * N_GT)
+  cor <- round(ws(model, role, "overall")  * N_GT)
+  list(ans = ans, cor = cor, wrong = ans - cor)
+}
+wdelta <- function(model, role) {
+  b <- wcnt("base", role); x <- wcnt(model, role)
+  list(dc = x$cor - b$cor, dw = x$wrong - b$wrong)
+}
 
 pct <- function(x) ifelse(is.na(x), "—", sprintf("%.2f%%", 100 * x))
 pp  <- function(x) ifelse(is.na(x), "—", sprintf("%+.2f pp", 100 * x))
@@ -230,14 +243,16 @@ informative.
 
 ```{r sweep-matrix}
 s <- sweep[sweep$side == "arrival", ]
-A <- c(1, 2, 3, 5, 10, 20, 30)
-W <- sort(unique(s$window_min))
-mat <- do.call(rbind, lapply(W, function(w) {
+# Local names, deliberately not single capitals: chunks share one
+# environment, and a bare W here once clobbered an accessor defined in setup.
+angles_sw <- c(1, 2, 3, 5, 10, 20, 30)
+wins_sw <- sort(unique(s$window_min))
+mat <- do.call(rbind, lapply(wins_sw, function(w) {
   data.frame(Window = paste0(w, " min"),
-             setNames(lapply(A, function(a) {
+             setNames(lapply(angles_sw, function(a) {
                v <- s$ratio[s$window_min == w & s$angle_deg == a]
                if (length(v) == 0 || is.na(v)) "—" else sprintf("%.2f", v)
-             }), paste0(A, "°")),
+             }), paste0(angles_sw, "°")),
              check.names = FALSE)
 }))
 kable(mat, row.names = FALSE, align = "lrrrrrrr",
@@ -442,6 +457,106 @@ one three-day sample, and the gate was chosen from that sample.
 deficit against the `r pct(delta(BEAR, "ades")$dc / sum(t$missing))` this
 recovers. The bearing test is worth having; it is not the main event.
 
+## Bearing on the whole sample {#sec-whole}
+
+Used as a rescue, the bearing test can only *add* answers. That is a structural
+limit rather than a property of the data: a flight the abstention already
+accepts is untouched, so the
+`r num(round(C(BASE,"ades","coverage")*N_GT) - round(C(BASE,"ades","overall")*N_GT))`
+arrivals the base rule gets **wrong** were unreachable by every variant in
+@sec-compare. No rescue can raise accuracy.
+
+Applying the test to every flight opens three questions the rescue framing
+cannot ask.
+
+* **Veto** — require alignment on flights the gate accepts, so bearing can
+  remove answers. The only variant that can raise accuracy.
+* **Replace** — alignment instead of the distance and height gate, testing
+  whether that box carries anything the course does not.
+* **Rerank** — choose *which* aerodrome by alignment rather than by effective
+  distance. Version 4.5 argued the abstention is a gate and never a naming
+  rule, and that arrivals fail by misnaming; this is the naming rule that
+  argument implies.
+
+```{r whole-table}
+sel <- c("base",
+         "rescue: gate OR align<=0.1", "rescue: gate OR align<=3.0",
+         "veto: gate AND align<=3.0", "veto: gate AND align<=0.1",
+         "replace: align<=3.0 only", "replace: align<=0.1 only",
+         "rerank by alignment, then gate", "rerank, gate OR align<=0.1")
+kable(do.call(rbind, lapply(sel, function(md) {
+  d <- wdelta(md, "ades")
+  data.frame(Model = md,
+             Coverage = pct(ws(md, "ades", "coverage")),
+             Accuracy = pct(ws(md, "ades", "accuracy")),
+             Overall  = pct(ws(md, "ades", "overall")),
+             `d correct` = if (md == "base") "—" else sprintf("%+s", num(d$dc)),
+             `d wrong`   = if (md == "base") "—" else sprintf("%+s", num(d$dw)),
+             check.names = FALSE)
+})), row.names = FALSE, align = "lrrrrr",
+  caption = "Arrivals: the bearing test used four ways. Only the rescue helps; the other three are catastrophic.")
+```
+
+**All three fail, and not marginally.** The veto costs
+`r num(-wdelta("veto: gate AND align<=3.0", "ades")$dc)` correct arrivals at 3°.
+Replace costs `r num(-wdelta("replace: align<=3.0 only", "ades")$dc)`. Rerank
+costs `r num(-wdelta("rerank by alignment, then gate", "ades")$dc)` correct
+labels *and* adds `r num(wdelta("rerank by alignment, then gate", "ades")$dw)`
+wrong ones, dropping accuracy from `r pct(ws("base","ades","accuracy"))` to
+`r pct(ws("rerank by alignment, then gate","ades","accuracy"))`.
+
+### Why: the measure is out of domain on flights that landed {#sec-domain}
+
+The diagnosis is not that alignment is a weak signal. It is that the flights the
+gate already accepts are the wrong population to ask.
+
+| | no course computable | median alignment | within 3° | on ground at the endpoint |
+|---|---|---|---|---|
+| gate accepts | 23.8% | **21°** | 18.4% | **43.1%** |
+| gate refuses | 24.3% | 53° | 5.2% | 0.6% |
+
+**43% of accepted arrivals are on the ground at their endpoint.** For those, the
+last seven minutes are the approach, the landing roll and the taxi to stand —
+and the "course" over that window is dominated by ground manoeuvring, which
+points wherever the taxiways happen to run. A further quarter have no computable
+course at all. A veto at 3° therefore rejects roughly four in five flights it
+should keep.
+
+The bearing test was developed on the abstained block, where every endpoint is
+airborne and en route by construction. **Its domain is airborne endpoints, and
+the flights the gate accepts are mostly not that.** Used as a rescue it never
+leaves its domain, which is why it works there and nowhere else.
+
+### Rerank refutes the naming-rule argument {#sec-naming}
+
+The reranking result deserves its own note, because version 4.5 predicted the
+opposite. Its argument was that the abstention decides only *whether* to answer
+and never *what* to answer, that arrivals fail predominantly by misnaming, and
+that a trajectory-based naming rule was therefore the most promising fix
+available.
+
+Ranking candidates by alignment instead of distance is that rule, and it is far
+worse than ranking by distance. The reason is geometric: **an aerodrome 200 NM
+directly ahead is perfectly aligned.** Alignment has no sense of scale, so as a
+ranking criterion it systematically prefers distant aerodromes that happen to lie
+on the track. Distance was doing enormous work that the argument did not credit.
+
+Alignment is a **filter over distance-ranked candidates**, not a ranking
+criterion. That is what the rescue variant does, and it is the only form in
+which the signal is worth anything.
+
+::: {.callout-note}
+## A small correction to @sec-compare
+
+The whole-sample run computes alignment without requiring an altitude, because
+alignment is purely horizontal; @sec-compare's figures came from a routine that
+also fitted the vertical slope and so discarded samples with no altitude. The
+rescue numbers here are consequently a little higher —
+`r num(wdelta("rescue: gate OR align<=0.1", "ades")$dc)` correct against
+`r num(delta(BEAR, "ades")$dc)` at the same gate. The direction and the
+recommendation are unchanged; the earlier figures were conservative.
+:::
+
 ## What is now ruled out {#sec-ruled-out}
 
 Recorded so it is not re-attempted:
@@ -456,6 +571,8 @@ Recorded so it is not re-attempted:
 * **Vertical rate, in any form** (@sec-vertical).
 * **Trajectory extrapolation** — version 2 and the 2025 PRC report,
   independently.
+* **Bearing as a veto, a replacement, or a naming rule** (@sec-whole). Only the
+  rescue form works, and only because it stays inside the measure's domain.
 
 ## Limitations {#sec-limitations}
 
