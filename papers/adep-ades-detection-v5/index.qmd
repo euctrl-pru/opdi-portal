@@ -289,6 +289,21 @@ kable(mk("adep"), row.names = FALSE, align = "lrrrrrrr",
       caption = "Departures, the same models. Every gate is a loss.")
 ```
 
+Because the bearing test only ever *adds* answers — a flight that already passed
+the abstention is untouched, and the aerodrome named is the same candidate
+either way — every newly answered flight falls in exactly one of the two delta
+columns. Their sum is the number of flights the gate rescued, and
+
+$$\text{accuracy on the rescued} = \frac{\Delta\text{correct}}{\Delta\text{correct} + \Delta\text{wrong}}$$
+
+is how often the gate is right *when it overrides the abstention*. It is not the
+model's accuracy, which is swamped by the flights the change never touched: at
+3° the gate is right `r pct(delta(BEAR3,"ades")$dc / (delta(BEAR3,"ades")$dc + delta(BEAR3,"ades")$dw))`
+of the time on the `r num(delta(BEAR3,"ades")$dc + delta(BEAR3,"ades")$dw)` flights
+it rescues, while the model's accuracy reads `r pct(C(BEAR3,"ades","accuracy"))`.
+The benchmark to hold it against is `r pct(GUESS_OK / ABSTAINED)` —
+what guessing blind on that population scores (@sec-hard).
+
 **The gate must be tight, and tighter than seems physical.** The ratio climbs
 monotonically as the gate narrows — `r sprintf("%.2f:1", delta(BEAR3,"ades")$ratio)`
 at 3°, `r sprintf("%.2f:1", delta(BEAR1,"ades")$ratio)` at 1°,
@@ -341,8 +356,9 @@ applied to departures.**
 
 The abstained-block sweep reports `r sprintf("%.2f:1", sweep$ratio[sweep$side=="arrival" & sweep$window_min==7 & sweep$angle_deg==3])`
 at 7 min / 3°. The same rule on the full population gives
-`r sprintf("%.2f:1", delta(BEAR, "ades")$ratio)`. The difference is entirely the
-out-of-area flights the block analysis filtered out and the population cannot.
+`r sprintf("%.2f:1", delta(BEAR3, "ades")$ratio)` — the same gate, the same
+rule, a third less. The difference is entirely the out-of-area flights the block
+analysis filtered out and the population cannot.
 
 The lesson generalises: a rule evaluated on the subset it was designed for will
 beat its own field performance, and by a wide margin. Every ratio quoted in
