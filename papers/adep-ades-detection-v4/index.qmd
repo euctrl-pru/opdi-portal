@@ -1,6 +1,6 @@
 ---
 title: "Detecting departure and destination aerodromes from ADS-B"
-subtitle: "Version 4.3 — detection inside the pipeline"
+subtitle: "Version 4.5 — detection inside the pipeline"
 author: "EUROCONTROL Performance Review Unit"
 date: last-modified
 ---
@@ -22,6 +22,7 @@ grid   <- cache("sweep_radius_height.csv")
 pen    <- cache("sweep_penalty.csv")
 apt    <- cache("per_airport.csv")
 typ    <- cache("per_type.csv")
+cone   <- cache("sweep_cone.csv")
 
 pct <- function(x) ifelse(is.na(x), "—", sprintf("%.2f%%", 100 * x))
 pp  <- function(x) ifelse(is.na(x), "—", sprintf("%+.2f pp", 100 * x))
@@ -48,6 +49,34 @@ OP_HEIGHT  <- pen$height_ft[1]
 OP_PENALTY <- grid$penalty_nm[1]
 OP <- sprintf("%g NM detection radius, %s ft abstention height, %g NM scheduled-service penalty",
               OP_RADIUS, format(OP_HEIGHT, big.mark = ",", trim = TRUE), OP_PENALTY)
+
+# --- flight counts -------------------------------------------------------
+# Rates hide the size of a trade; counts do not. Everything below is derived
+# from the same coverage/overall pair the rest of the paper uses, so the two
+# views can never disagree.
+cnt <- function(cov, ovr) {
+  ans <- round(cov * N_GT); cor <- round(ovr * N_GT)
+  list(answered = ans, correct = cor, wrong = ans - cor, silent = N_GT - ans)
+}
+cell <- function(r, h, role) {
+  x <- grid[grid$radius_nm == r & grid$height_ft == h, ]
+  if (nrow(x) == 0) return(NULL)
+  c(cnt(x[[paste0(role, "_coverage")]][1], x[[paste0(role, "_overall")]][1]),
+    list(cov = x[[paste0(role, "_coverage")]][1],
+         acc = x[[paste0(role, "_accuracy")]][1],
+         ovr = x[[paste0(role, "_overall")]][1]))
+}
+prod_cell <- function(role) c(
+  cnt(m("trend", paste0(role, "_coverage")), m("trend", paste0(role, "_overall"))),
+  list(cov = m("trend", paste0(role, "_coverage")),
+       acc = m("trend", paste0(role, "_accuracy")),
+       ovr = m("trend", paste0(role, "_overall"))))
+num <- function(x) format(x, big.mark = ",", trim = TRUE)
+sgn <- function(x) sprintf("%+s", format(x, big.mark = ",", trim = TRUE))
+
+#: The grid the operating-point discussion is argued over.
+SEL_R <- c(20, 30, 40)
+SEL_H <- c(15000, 20000, 25000, 30000)
 ```
 
 ## Summary {.unnumbered}
@@ -104,7 +133,19 @@ unchanged.
 ## What changed since version 4
 
 Every headline number is unchanged throughout. The point releases report more
-of what version 4 already computed, plus two new computations.
+of what version 4 already computed, plus three new computations.
+
+**4.5**
+
+* A **result analysis** that picks an operating point and argues for it
+  (@sec-operating-point), in flights rather than percentages, separately for
+  departures and arrivals. It finds the currently published parameters are past
+  break-even, and that no arrival setting beats production.
+* **Why no single metric can choose** the parameters — each of coverage,
+  accuracy and overall correctness is maximised at a degenerate corner
+  (@sec-op-metrics).
+* **An approach cone tested against the rectangle** (@sec-cone), and what
+  `endpoint` could borrow from `trend` for arrivals (@sec-hybrid).
 
 **4.3**
 
@@ -901,6 +942,472 @@ of @sec-per-type. The first group is a data limitation and is not fixable here.
 The second is a detection failure at aerodromes large enough to matter, it is
 concentrated rather than scattered, and **this study has not diagnosed it** —
 it is the most promising lead the cross-check produces.
+
+## Choosing the operating point {#sec-operating-point}
+
+The sections above establish how each parameter behaves. This one picks values,
+and argues for them in flights rather than in percentages — because a rate
+conceals the size of what is being traded. "−0.84 pp of accuracy" and "792 more
+wrong aerodromes in three days" are the same fact, and only one of them can be
+weighed against anything.
+
+All counts are out of `r num(N_GT)` ground-truth flights per role, over
+2025-06-05 to 07. *Answered* is what the method labelled, *correct* is what it
+labelled right, *wrong* is what it labelled wrong, *silent* is what it declined.
+The last three columns compare against production (`trend`).
+
+```{r opt-table-fn}
+#| include: false
+optable <- function(role) {
+  p <- prod_cell(role)
+  rows <- list(data.frame(
+    Parameters = "trend (production)",
+    Cov = pct(p$cov), Acc = pct(p$acc), Ovr = pct(p$ovr),
+    Answered = num(p$answered), Correct = num(p$correct),
+    Wrong = num(p$wrong), Silent = num(p$silent),
+    `d correct` = "—", `d wrong` = "—", `Gain:err` = "—",
+    check.names = FALSE))
+  for (h in SEL_H) for (r in SEL_R) {
+    x <- cell(r, h, role); if (is.null(x)) next
+    dc <- x$correct - p$correct; dw <- x$wrong - p$wrong
+    ratio <- if (dw > 0 && dc > 0) sprintf("%.1f:1", dc / dw) else "—"
+    rows[[length(rows) + 1]] <- data.frame(
+      Parameters = sprintf("%g NM / %s ft", r, format(h, big.mark = ",")),
+      Cov = pct(x$cov), Acc = pct(x$acc), Ovr = pct(x$ovr),
+      Answered = num(x$answered), Correct = num(x$correct),
+      Wrong = num(x$wrong), Silent = num(x$silent),
+      `d correct` = sgn(dc), `d wrong` = sgn(dw), `Gain:err` = ratio,
+      check.names = FALSE)
+  }
+  do.call(rbind, rows)
+}
+```
+
+::: {.content-visible when-format="pdf"}
+```{=latex}
+\small
+```
+:::
+
+```{r opt-table-dep}
+kable(optable("adep"), row.names = FALSE, align = "lrrrrrrrrrr",
+      caption = sprintf("Departures: the parameter grid in rates and in flights, against production. Penalty fixed at %g NM. *Gain:err* is extra correct labels per extra wrong label, against production.", OP_PENALTY))
+```
+
+```{r opt-table-arr}
+kable(optable("ades"), row.names = FALSE, align = "lrrrrrrrrrr",
+      caption = sprintf("Arrivals: the same grid. Note that most cells produce *fewer* correct labels than production while adding wrong ones. Penalty fixed at %g NM.", OP_PENALTY))
+```
+
+::: {.content-visible when-format="pdf"}
+```{=latex}
+\normalsize
+```
+:::
+
+### Departures: every cell wins, but the marginal return collapses {#sec-op-dep}
+
+```{r dep-ladder}
+#| include: false
+LADDER <- list(c(20,5000), c(20,8000), c(20,10000), c(20,15000),
+               c(30,15000), c(40,15000), c(40,20000), c(40,25000), c(40,30000))
+ladder <- function(role) {
+  p <- prod_cell(role); prev <- p; lab <- "production"
+  out <- list()
+  for (rh in LADDER) {
+    x <- cell(rh[1], rh[2], role)
+    dc <- x$correct - prev$correct; dw <- x$wrong - prev$wrong
+    out[[length(out)+1]] <- data.frame(
+      Step = sprintf("%s to %g NM / %s ft", lab, rh[1], format(rh[2], big.mark=",")),
+      `d correct` = sgn(dc), `d wrong` = sgn(dw),
+      Marginal = if (dc <= 0) "loss" else if (dw <= 0) "free" else sprintf("%.2f:1", dc/dw),
+      check.names = FALSE)
+    prev <- x; lab <- sprintf("%g NM / %s ft", rh[1], format(rh[2], big.mark=","))
+  }
+  do.call(rbind, out)
+}
+dl <- ladder("adep")
+```
+
+Every cell in the table beats production. That is not the question. The question
+is what each successive loosening *buys*, and the answer is that it collapses.
+
+```{r dep-ladder-table}
+kable(dl, row.names = FALSE, align = "lrrr",
+      caption = "Departures: each step of loosening, and its marginal return. *Marginal* is extra correct labels per extra wrong label for that step alone, not against production.")
+```
+
+Two readings of the same table. Against production, every cell looks excellent —
+the worst ratio in the grid is still better than three correct labels per error.
+Step by step, the picture inverts: the first move off production is nearly free,
+and by the wide-and-high end each additional correct label costs more than one
+additional error.
+
+Note where the currently published operating point sits. Going from 30 NM to
+40 NM at `r format(OP_HEIGHT, big.mark=",")` ft adds
+`r sgn(cell(40,OP_HEIGHT,"adep")$correct - cell(30,OP_HEIGHT,"adep")$correct)`
+correct labels and
+`r sgn(cell(40,OP_HEIGHT,"adep")$wrong - cell(30,OP_HEIGHT,"adep")$wrong)`
+wrong ones. **The published parameters are already past break-even**, which the
+percentage view never showed because it is a 0.18 pp change in accuracy.
+
+### Arrivals: nothing in the grid earns its place {#sec-op-arr}
+
+```{r arr-cost}
+#| include: false
+p_arr <- prod_cell("ades")
+arrcost <- do.call(rbind, lapply(list(c(30,15000),c(40,15000),c(40,20000),c(40,25000),c(40,30000)), function(rh) {
+  x <- cell(rh[1], rh[2], "ades")
+  dc <- x$correct - p_arr$correct; dw <- x$wrong - p_arr$wrong
+  data.frame(Cell = sprintf("%g NM / %s ft", rh[1], format(rh[2], big.mark=",")),
+             `d correct` = sgn(dc), `d wrong` = sgn(dw),
+             `Errors per correct gained` = if (dc > 0) sprintf("%.1f", dw/dc) else "gains none",
+             check.names = FALSE)
+}))
+n_worse <- sum(sapply(SEL_H, function(h) sum(sapply(SEL_R, function(r) {
+  x <- cell(r, h, "ades"); !is.null(x) && x$correct < p_arr$correct }))))
+```
+
+Arrivals invert the departure result completely.
+**`r n_worse` of the `r length(SEL_R)*length(SEL_H)` cells produce fewer correct
+arrival labels than production**, while every one of them produces more wrong
+ones. The cells that do gain correct labels buy them at a ruinous rate:
+
+```{r arr-cost-table}
+kable(arrcost, row.names = FALSE, align = "lrrr",
+      caption = "Arrivals: what each cell costs against production. Cells omitted from the ratio column produce fewer correct labels than production and so gain nothing to price.")
+```
+
+The best arrival cell in the entire grid, 40 NM / 30,000 ft, gains
+`r sgn(cell(40,30000,"ades")$correct - p_arr$correct)` correct labels and adds
+`r sgn(cell(40,30000,"ades")$wrong - p_arr$wrong)` wrong ones. There is no
+exchange rate under which that is a good trade. **`endpoint` should not replace
+`trend` for arrivals at any setting measured here** — and @sec-hybrid asks why,
+and what could be done about it.
+
+### Why no single metric can make this choice {#sec-op-metrics}
+
+```{r argmax}
+#| include: false
+best_of <- function(role, metric) {
+  f <- paste0(role, "_", metric)
+  x <- grid[which.max(grid[[f]]), ]
+  list(lab = sprintf("%g NM / %s", x$radius_nm,
+                     if (x$height_ft >= UNRESTRICTED) "unrestricted"
+                     else paste0(format(x$height_ft, big.mark=","), " ft")),
+       cov = x[[paste0(role,"_coverage")]], acc = x[[paste0(role,"_accuracy")]],
+       ovr = x[[paste0(role,"_overall")]])
+}
+argrow <- function(role, metric, label) {
+  b <- best_of(role, metric)
+  data.frame(Optimising = label, Parameters = b$lab,
+             Coverage = pct(b$cov), Accuracy = pct(b$acc), Overall = pct(b$ovr),
+             check.names = FALSE)
+}
+argtab <- function(role) rbind(
+  argrow(role, "coverage", "coverage"),
+  argrow(role, "accuracy", "accuracy"),
+  argrow(role, "overall",  "overall"),
+  data.frame(Optimising = "—", Parameters = "trend (production)",
+             Coverage = pct(m("trend", paste0(role,"_coverage"))),
+             Accuracy = pct(m("trend", paste0(role,"_accuracy"))),
+             Overall  = pct(m("trend", paste0(role,"_overall"))), check.names = FALSE),
+  data.frame(Optimising = "—", Parameters = "nearest (no abstention)",
+             Coverage = pct(m("nearest", paste0(role,"_coverage"))),
+             Accuracy = pct(m("nearest", paste0(role,"_accuracy"))),
+             Overall  = pct(m("nearest", paste0(role,"_overall"))), check.names = FALSE))
+cr <- function(role, a, b) cor(grid[[paste0(role,"_",a)]], grid[[paste0(role,"_",b)]])
+flat <- function(role) {
+  f <- grid[[paste0(role,"_overall")]]
+  near <- grid[max(f) - f <= 0.005, ]
+  list(n = nrow(near), rmin = min(near$radius_nm), rmax = max(near$radius_nm),
+       hmin = min(near$height_ft), hmax = max(near$height_ft[near$height_ft < UNRESTRICTED]))
+}
+fd <- flat("adep")
+```
+
+A natural instinct is to let one number decide. It cannot, and it is worth
+seeing why before trusting any headline figure.
+
+```{r argmax-dep}
+kable(argtab("adep"), row.names = FALSE, align = "llrrr",
+      caption = "Departures: the best cell in the whole grid under each metric taken alone.")
+```
+
+```{r argmax-arr}
+kable(argtab("ades"), row.names = FALSE, align = "llrrr",
+      caption = "Arrivals: the same. Note that no `endpoint` cell reaches `nearest`'s overall correctness.")
+```
+
+Each of these is degenerate in its own way.
+
+**Maximising accuracy produces a rule quieter than the one it replaces.** The
+best-accuracy departure cell answers `r pct(best_of("adep","coverage")$cov*0+best_of("adep","accuracy")$cov)`
+of flights against production's `r pct(m("trend","adep_coverage"))`. It is more
+accurate and *less useful*: fewer flights labelled, for a fraction of a point.
+For arrivals it is starker still, at
+`r pct(best_of("ades","accuracy")$cov)` coverage.
+
+**Maximising coverage switches abstention off.** The best-coverage cell reaches
+`r pct(best_of("adep","coverage")$cov)` against `nearest`'s
+`r pct(m("nearest","adep_coverage"))` — the residual is only the aerodromes
+with no elevation in OurAirports. At that setting `endpoint` *is* `nearest`,
+and the reason for choosing it has been configured away.
+
+**Maximising overall correctness is maximising coverage in disguise.** Across
+the grid, overall correctness correlates
+**`r sprintf("%+.3f", cr("adep","overall","coverage"))` with coverage** and
+**`r sprintf("%+.3f", cr("adep","overall","accuracy"))` with accuracy** for
+departures (`r sprintf("%+.3f", cr("ades","overall","coverage"))` and
+`r sprintf("%+.3f", cr("ades","overall","accuracy"))` for arrivals). Coverage
+spans `r pct(max(grid$adep_coverage) - min(grid$adep_coverage))` across the
+grid and accuracy only
+`r pct(max(grid$adep_accuracy) - min(grid$adep_accuracy))`, so the product
+tracks the wider factor. And for arrivals the verdict of overall correctness is
+explicitly *do not abstain*: `nearest` scores
+`r pct(m("nearest","ades_overall"))`, above every `endpoint` cell.
+
+**It is also too flat to discriminate.** `r fd$n` of the `r nrow(grid)`
+departure cells sit within half a point of the best overall correctness,
+spanning `r fd$rmin`–`r fd$rmax` NM and
+`r format(fd$hmin, big.mark=",")`–`r format(fd$hmax, big.mark=",")` ft. Those
+statistically indistinguishable cells differ by **thousands of wrong labels**.
+Overall correctness cannot see the thing that separates them.
+
+### The exchange rate, and the choice {#sec-op-choice}
+
+What remains is a policy question that the data can inform but not settle: how
+many extra wrong labels is one extra correct label worth?
+
+There is a structural asymmetry that argues for pricing errors above correct
+answers. **A wrong aerodrome corrupts two movement counts** — the aerodrome that
+loses the flight and the aerodrome that wrongly gains it — and it is invisible
+to a consumer, indistinguishable from a correct label. **A silent flight
+depresses one count and is explicit**: it arrives as a null the consumer can
+filter, and @sec-crosscheck's undercount is correctable in a way an inflated
+count is not. Tenerife North makes the point concretely: a count ratio of
+`r sprintf("%.2f", apt$count_ratio[apt$role=="arrivals" & apt$airport=="GCXO"])`
+that looks healthy, on a recall of
+`r pct(apt$recall[apt$role=="arrivals" & apt$airport=="GCXO"])`.
+
+On that reasoning an error is worth at least two correct labels, and the
+departure ladder stops at the last step above 2:1.
+
+::: {.callout-tip}
+## The operating point this study recommends
+
+**Departures: `endpoint` at 30 NM, `r format(OP_HEIGHT, big.mark=",")` ft,
+`r OP_PENALTY` NM scheduled-service penalty.**
+`r sgn(cell(30,OP_HEIGHT,"adep")$correct - prod_cell("adep")$correct)` correct
+departure labels against production for
+`r sgn(cell(30,OP_HEIGHT,"adep")$wrong - prod_cell("adep")$wrong)` wrong ones.
+
+**Arrivals: keep `trend`.** Nothing measured here improves on it, and the
+cells that add correct labels add errors seven to seventeen times faster.
+
+At a stricter exchange rate the departure answer moves inward — 5:1 gives
+20 NM / 10,000 ft, 10:1 gives 20 NM / 8,000 ft — and at 1:1 it moves out to
+40 NM / 20,000 ft. The rate is the decision; the parameters follow from it.
+:::
+
+The penalty of `r OP_PENALTY` NM is carried over from @sec-penalty, where it was
+swept at `r OP_RADIUS` NM and `r format(OP_HEIGHT, big.mark=",")` ft. It has not
+been re-verified at 30 NM, and should be before this is published.
+
+## What `endpoint` could borrow from `trend` {#sec-hybrid}
+
+@sec-op-arr leaves an uncomfortable result: for arrivals, the algorithm this
+study has been arguing for loses to the one it proposed to replace, at every
+setting measured. That is worth understanding rather than working around,
+because the reason points at what a better rule would look like.
+
+### Why `trend` wins arrivals {#sec-why-trend}
+
+The two rules differ in how much of the trajectory they read.
+
+**`endpoint` reads one sample.** The first or last fix of the track, its
+distance to each candidate, its height above field elevation, its ground flag.
+Nothing else.
+
+**`trend` reads every sample below FL40 inside the zone.** For each
+(track, aerodrome) pair it smooths altitude over five samples and counts rises
+against falls. It sees a descent, not a point.
+
+For departures that difference barely matters. A departure's first sample is
+near the field whatever else is true, so one sample locates it almost as well as
+fifty — which is why `endpoint` beats `trend` on departures by
+`r sgn(cell(30,OP_HEIGHT,"adep")$correct - prod_cell("adep")$correct)` correct
+labels.
+
+For arrivals it matters a great deal, for the reason @sec-radius identified:
+**an arrival's last sample is where reception died, which is a property of the
+receiver network rather than of the flight.** The samples *before* it still
+describe an approach. `endpoint` throws them away; `trend` uses them.
+
+There is a second difference, and it is the more important one. `trend`'s
+altitude vote is evaluated **per candidate aerodrome** — it asks "is this
+aircraft descending toward *this* aerodrome", which discriminates between
+candidates. `endpoint`'s thresholds are a **gate**: as @sec-modes puts it, the
+abstention decides *whether* to answer, never *what* to answer. Naming is left
+entirely to effective distance.
+
+That matters because the dominant arrival failure is misnaming, not silence.
+@sec-outliers found Bilbao answering
+`r pct(apt$n_predicted_here[apt$role=="arrivals" & apt$airport=="LEBB"] / apt$n_truth[apt$role=="arrivals" & apt$airport=="LEBB"])`
+of its arrivals and placing only
+`r num(apt$n_correct[apt$role=="arrivals" & apt$airport=="LEBB"])` of
+`r num(apt$n_truth[apt$role=="arrivals" & apt$airport=="LEBB"])` correctly.
+**No gate can fix a naming error.** Tightening the thresholds makes the rule
+answer less; it does not make it answer better.
+
+### Tested: an approach cone instead of a rectangle {#sec-cone}
+
+The first idea to try is the cheapest, because it needs no new data — only a
+different shape for the same two numbers.
+
+The current rule accepts an endpoint inside `radius_nm` **and** below
+`height_ft`, treating distance and height as independent. On an approach they
+are not: an aircraft descending toward an aerodrome trades height for distance
+at roughly a constant rate. The 3° glideslope is 318 ft/NM and the "three times
+the flight level" descent rule of thumb is about 333 ft/NM. So the endpoints
+that genuinely belong to an aerodrome should lie in a **cone**,
+`agl_ft ≤ k · dist_nm`, not a box.
+
+The two shapes disagree in both corners:
+
+* **close and high** is inside the box, outside the cone. An aircraft at
+  15,000 ft overhead an aerodrome is overflying it. The box accepts this, and it
+  is a pure source of wrong labels.
+* **far and low** is outside the box, inside the cone. An arrival whose
+  reception dies at 8,000 ft and 30 NM is on profile and is a good candidate.
+
+```{r cone-table}
+if (!is.null(cone)) {
+  cn <- cone[cone$radius_nm == 40, ]
+  cn <- cn[order(cn$slope_ft_nm), ]
+  # The only fair comparison between two rule shapes is at equal coverage:
+  # interpolate the box's accuracy along height at the same radius.
+  boxacc <- function(role, cov) {
+    b <- grid[grid$radius_nm == 40, ]
+    b <- b[order(b[[paste0(role, "_coverage")]]), ]
+    cs <- b[[paste0(role, "_coverage")]]; as_ <- b[[paste0(role, "_accuracy")]]
+    if (cov <= min(cs) || cov >= max(cs)) return(NA_real_)
+    approx(cs, as_, xout = cov)$y
+  }
+  ba_d <- sapply(cn$adep_coverage, function(c) boxacc("adep", c))
+  ba_a <- sapply(cn$ades_coverage, function(c) boxacc("ades", c))
+  kable(data.frame(
+    `Slope` = paste0(cn$slope_ft_nm, " ft/NM"),
+    `ADEP cov` = pct(cn$adep_coverage), `ADEP acc` = pct(cn$adep_accuracy),
+    `box acc` = pct(ba_d), `cone gain` = pp(cn$adep_accuracy - ba_d),
+    `ADES cov` = pct(cn$ades_coverage), `ADES acc` = pct(cn$ades_accuracy),
+    `box acc ` = pct(ba_a), `cone gain ` = pp(cn$ades_accuracy - ba_a),
+    check.names = FALSE), row.names = FALSE, align = "lrrrrrrrr",
+    caption = "The approach cone at a 40 NM outer cap, against the rectangle **at matched coverage** -- the only fair comparison between two acceptance shapes. *box acc* is the rectangle's accuracy interpolated to the cone's coverage; *cone gain* is positive where the cone is better.")
+}
+```
+
+```{r cone-worst}
+#| include: false
+worst_dep <- NA_real_
+if (!is.null(cone)) {
+  b <- grid[grid$radius_nm == 40, ]; b <- b[order(b$adep_coverage), ]
+  cd <- cone[cone$radius_nm == 40, ]
+  ba <- approx(b$adep_coverage, b$adep_accuracy, xout = cd$adep_coverage)$y
+  worst_dep <- max(ba - cd$adep_accuracy, na.rm = TRUE)
+}
+```
+
+**It does not work.** For departures the cone is worse at every slope — by up to
+`r sprintf("%.2f pp", 100 * worst_dep)` of accuracy at matched coverage. For arrivals it is a wash: negative at most slopes, and the largest
+positive figure is a tenth of a point, which is noise on this sample.
+
+The departure failure is physical and worth stating, because it explains why the
+box is the right shape there. **Climb gradients are far steeper than descent
+gradients.** A departure 10 NM out is routinely at 6,000–8,000 ft — 600 to
+800 ft/NM, against the glideslope's 318 — so a cone tuned to descent excludes
+precisely the departures it should keep. The box's permissiveness close to the
+field is not an oversight; it is what departures need. To reach the coverage the
+box gives at `r format(OP_HEIGHT, big.mark=",")` ft, the cone needs a slope
+above 1,000 ft/NM, at which point it is no longer a cone in any meaningful sense.
+
+::: {.callout-important}
+## The negative result that matters most
+
+Neither shape closes the arrival gap. At the coverage where production sits, the
+cone reaches
+`r if (!is.null(cone)) pct(cone$ades_accuracy[cone$radius_nm==40 & cone$slope_ft_nm==650]) else "—"`
+accuracy against `trend`'s `r pct(m("trend","ades_accuracy"))`.
+
+Box and cone are both **acceptance regions defined on the distance and height of
+a single endpoint**, and this experiment suggests that family is exhausted. No
+rearrangement of those two numbers recovers what `trend` has. The remaining
+gains have to come from somewhere else: **more evidence**, or **a naming rule**.
+:::
+
+### Untested, in order of expected value {#sec-untested}
+
+**1. A descent-direction tie-break — a naming rule, not a gate.** Rank
+candidates by effective distance as now, but when the top two are within a small
+margin, break the tie on which aerodrome the aircraft is descending *toward*,
+using the vertical rate at the endpoint and the bearing to each candidate. This
+is the smallest piece of `trend` that can be borrowed, and it is the only
+proposal here that attacks misnaming. It fires only on the ambiguous pairs, so
+it cannot damage the flights that are already unambiguous — which is exactly the
+property @sec-penalty found made the scheduled-service penalty safe. The
+candidate cache would need `vert_rate` and a bearing, both available in the
+state vectors at no join cost.
+
+**2. Closest approach below FL40, instead of the last sample.** Replace "the
+last fix" with "the fix of closest approach among those below FL40". For an
+arrival whose reception fails on the approach, the closest approach is a far
+better locator than the last recorded point. The cost is real: the candidate
+builder currently emits two rows per track, which is what makes the sweeps in
+this paper affordable (@sec-preprocessing), and this would emit more. A middle
+course is to keep the two endpoints and add the closest-approach fix as a third.
+
+**3. Re-testing the cascade — but read version 1 first.** The obvious move is to
+take `trend`'s answer when it has one and fall through to `endpoint`. **Version 1
+tested exactly this and it failed**, and the way it failed is the caution: every
+rung had *negative lift*, meaning the trend rungs fired on easy flights where
+nearest was already right, and overwrote better answers. The cascade collapsed
+onto its fallback rung.
+
+Whether that still holds is an open question rather than a settled one, because
+version 1 measured it in the pre-H3 architecture and on departures, and this
+version's arrival result is new. The diagnostic is cheap and decisive: attribute
+each cascade answer to the rung that supplied it, and score that rung against
+`endpoint` **on the same flights**. If `trend`'s arrival advantage comes from
+answering *different* flights, a cascade will help; if it comes from being
+better on *shared* flights, `trend` should simply replace `endpoint` for
+arrivals, which is what @sec-op-arr already recommends. Version 1's harness has
+the attribution code (`--diagnose-cascade`).
+
+::: {.callout-warning}
+## Not this: extrapolating the trajectory
+
+The intuitive fix for an arrival whose reception dies at 8,000 ft is to project
+the descent forward to the ground. **Do not.** Version 2 of this study
+implemented trajectory extrapolation and it failed, and the 2025 PRC Data
+Challenge reached the same conclusion independently and more strongly:
+*"attempts to complete the trajectory always lead to worse result"*. Two
+independent negative results on the same idea is enough.
+:::
+
+### Should any of this apply to departures too? {#sec-hybrid-dep}
+
+The tie-break of proposal 1 should, and for the same reason it helps arrivals:
+@sec-penalty showed the largest identified departure error class was a
+neighbouring-aerodrome confusion, and the scheduled-service penalty only fixed
+the subset where the neighbour was military. A descent-direction test —
+inverted, a *climb*-direction test — discriminates on physics rather than on
+aerodrome metadata, and would catch confusions the penalty cannot.
+
+Proposals 2 and 3 should not. Departures do not have the evidence problem: one
+sample already locates them, `endpoint` already beats `trend` there by
+`r sgn(cell(30,OP_HEIGHT,"adep")$correct - prod_cell("adep")$correct)` correct
+labels, and adding trajectory evidence to a rule that is not short of evidence
+is how the version 1 cascade lost accuracy.
 
 ## Recommendation
 
