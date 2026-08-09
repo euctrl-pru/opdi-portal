@@ -111,6 +111,35 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   }
 }</script>
 
+  <script src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6"></script>
+  <script defer="" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-chtml.js" type="text/javascript"></script>
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN" && texText && texText.data) {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
 
 </head>
 
@@ -786,6 +815,9 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </table>
 </div>
 </div>
+<p>Because the bearing test only ever <em>adds</em> answers — a flight that already passed the abstention is untouched, and the aerodrome named is the same candidate either way — every newly answered flight falls in exactly one of the two delta columns. Their sum is the number of flights the gate rescued, and</p>
+<p><span class="math display">\[\text{accuracy on the rescued} = \frac{\Delta\text{correct}}{\Delta\text{correct} + \Delta\text{wrong}}\]</span></p>
+<p>is how often the gate is right <em>when it overrides the abstention</em>. It is not the model’s accuracy, which is swamped by the flights the change never touched: at 3° the gate is right 63.67% of the time on the 1,503 flights it rescues, while the model’s accuracy reads 94.92%. The benchmark to hold it against is 28.27% — what guessing blind on that population scores (<a href="#sec-hard" class="quarto-xref">Section&nbsp;3</a>).</p>
 <p><strong>The gate must be tight, and tighter than seems physical.</strong> The ratio climbs monotonically as the gate narrows — 1.75:1 at 3°, 2.14:1 at 1°, 4.38:1 at 0.1° — and accuracy on the rescued flights rises with it, from 63.67% to 81.42%. Under 2:1 pricing the best gate is the tightest tested.</p>
 <div class="callout callout-style-default callout-note callout-titled">
 <div class="callout-header d-flex align-content-center">
@@ -814,7 +846,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 </div>
 <div class="callout-body-container callout-body">
-<p>The abstained-block sweep reports 2.52:1 at 7 min / 3°. The same rule on the full population gives 4.38:1. The difference is entirely the out-of-area flights the block analysis filtered out and the population cannot.</p>
+<p>The abstained-block sweep reports 2.52:1 at 7 min / 3°. The same rule on the full population gives 1.75:1 — the same gate, the same rule, a third less. The difference is entirely the out-of-area flights the block analysis filtered out and the population cannot.</p>
 <p>The lesson generalises: a rule evaluated on the subset it was designed for will beat its own field performance, and by a wide margin. Every ratio quoted in <a href="#sec-bearing" class="quarto-xref">Section&nbsp;4</a> should be read as an upper bound.</p>
 </div>
 </div>
