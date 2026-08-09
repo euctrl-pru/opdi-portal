@@ -60,9 +60,16 @@ delta <- function(model, role) {
   dc <- x$cor - b$cor; dw <- x$wrong - b$wrong
   list(dc = dc, dw = dw, ratio = if (dw > 0 && dc > 0) dc / dw else NA_real_)
 }
-BEAR <- "+bearing 7 min / 3 deg"
+BEAR   <- "+bearing 7 min / 0.10 deg"     # the recommended gate
+BEAR1  <- "+bearing 7 min / 1 deg"
+BEAR3  <- "+bearing 7 min / 3 deg"
 BEAR30 <- "+bearing 30 min / 1 deg"
-RATE <- "+bearing 7 min / 3 deg +rate"
+RATE   <- "+bearing 7 min / 1 deg +rate"
+# Net value of a gate when an error is priced at `k` correct labels -- the
+# exchange-rate reasoning of version 4.5, applied to choose among gates.
+net <- function(model, role, k = 2) {
+  d <- delta(model, role); d$dc - k * d$dw
+}
 ```
 
 ## Summary {.unnumbered}
@@ -88,11 +95,14 @@ lost one. But guessing on the refused flights scores
 doing its job.
 
 **One new signal beats that, and it is horizontal.** Whether the aircraft's
-course *points at* the candidate aerodrome recovers
-`r num(delta(BEAR, "ades")$dc)` correct arrivals for
+course *points at* the candidate aerodrome, measured tightly enough, recovers
+`r num(delta(BEAR, "ades")$dc)` correct arrivals for only
 `r num(delta(BEAR, "ades")$dw)` new errors —
-`r sprintf("%.2f:1", delta(BEAR, "ades")$ratio)`. Vertical rate recovers
-nothing, and adding it to the bearing test makes things worse.
+**`r sprintf("%.2f:1", delta(BEAR, "ades")$ratio)`**, comfortably past the 2:1
+exchange rate version 4.5 argued for. This is the first change in the study to
+clear that bar. It applies to arrivals only: on departures the same test loses
+at `r sprintf("%.2f:1", delta(BEAR, "adep")$ratio)`. Vertical rate recovers
+nothing, and adding it to the bearing test destroys most of the gain.
 
 There is a single reason for that asymmetry, and it is the most useful thing in
 this paper:
@@ -262,29 +272,62 @@ honest test is the whole population.
 ```{r compare}
 mk <- function(role) do.call(rbind, lapply(cmp$model, function(md) {
   x <- cnt(md, role); d <- delta(md, role)
-  data.frame(Model = md,
+  data.frame(Model = sub("^\\+bearing ", "", md),
              Coverage = pct(C(md, role, "coverage")),
              Accuracy = pct(C(md, role, "accuracy")),
              Overall  = pct(C(md, role, "overall")),
-             Correct = num(x$cor), Wrong = num(x$wrong),
              `d correct` = if (md == BASE) "—" else sprintf("%+s", num(d$dc)),
              `d wrong`   = if (md == BASE) "—" else sprintf("%+s", num(d$dw)),
              Ratio = if (md == BASE) "—" else
                if (is.na(d$ratio)) "worse" else sprintf("%.2f:1", d$ratio),
+             `Net @2:1` = if (md == BASE) "—" else sprintf("%+s", num(net(md, role))),
              check.names = FALSE)
 }))
-kable(mk("ades"), row.names = FALSE, align = "lrrrrrrrr",
-      caption = sprintf("Arrivals, all %s ground-truth flights. Ratio is extra correct labels per extra wrong label against the base rule.", num(N_GT)))
-kable(mk("adep"), row.names = FALSE, align = "lrrrrrrrr",
-      caption = "Departures, the same models. Bearing is actively harmful here.")
+kable(mk("ades"), row.names = FALSE, align = "lrrrrrrr",
+      caption = sprintf("Arrivals, all %s ground-truth flights. *Net @2:1* prices each new error at two correct labels, the exchange rate of version 4.5; positive means the gate is worth adopting on that reasoning.", num(N_GT)))
+kable(mk("adep"), row.names = FALSE, align = "lrrrrrrr",
+      caption = "Departures, the same models. Every gate is a loss.")
 ```
 
-**Arrivals gain.** `r BEAR` adds `r num(delta(BEAR, "ades")$dc)` correct labels
-for `r num(delta(BEAR, "ades")$dw)` errors,
-`r sprintf("%.2f:1", delta(BEAR, "ades")$ratio)`. The wider
-`r BEAR30` adds `r num(delta(BEAR30, "ades")$dc)` for
-`r num(delta(BEAR30, "ades")$dw)`,
-`r sprintf("%.2f:1", delta(BEAR30, "ades")$ratio)` — more volume, worse rate.
+**The gate must be tight, and tighter than seems physical.** The ratio climbs
+monotonically as the gate narrows — `r sprintf("%.2f:1", delta(BEAR3,"ades")$ratio)`
+at 3°, `r sprintf("%.2f:1", delta(BEAR1,"ades")$ratio)` at 1°,
+`r sprintf("%.2f:1", delta(BEAR,"ades")$ratio)` at 0.1° — and accuracy on the
+rescued flights rises with it, from
+`r pct(delta(BEAR3,"ades")$dc / (delta(BEAR3,"ades")$dc + delta(BEAR3,"ades")$dw))`
+to `r pct(delta(BEAR,"ades")$dc / (delta(BEAR,"ades")$dc + delta(BEAR,"ades")$dw))`.
+Under 2:1 pricing the best gate is the tightest tested.
+
+::: {.callout-note}
+## A prediction this refuted
+
+Before running the sub-degree gates we argued they could not help. A runway
+complex spans 2–4 km, which from 40 NM subtends 2–3°, so a gate below a degree
+is tighter than the target: it should stop selecting for "heading to this
+airport" and start selecting for "aimed at the arbitrary reference coordinate
+OurAirports publishes". Accuracy was predicted to plateau and counts to collapse
+into noise.
+
+Accuracy did not plateau. It rose from
+`r pct(delta(BEAR3,"ades")$dc / (delta(BEAR3,"ades")$dc + delta(BEAR3,"ades")$dw))`
+at 3° to
+`r pct(delta(BEAR,"ades")$dc / (delta(BEAR,"ades")$dc + delta(BEAR,"ades")$dw))`
+at 0.1°, monotonically, on `r num(delta(BEAR,"ades")$dc + delta(BEAR,"ades")$dw)`
+flights — not a handful.
+
+The reasoning was wrong about what the gate selects. It is not resolving which
+runway an aircraft is aimed at; it is separating tracks *deliberately* pointed
+at a field, over a long straight leg, from tracks that happen to line up by
+coincidence. Coincidental alignment is common at 3° and rare at 0.1°, and that
+is the whole of the discrimination.
+:::
+
+**Volume and rate trade against each other, and the rate wins.** The widest
+gate tested, `r BEAR30`, recovers `r num(delta(BEAR30, "ades")$dc)` correct
+labels — five times the tightest — but at
+`r sprintf("%.2f:1", delta(BEAR30, "ades")$ratio)` it costs
+`r num(-net(BEAR30, "ades"))` on the 2:1 reckoning. Chasing volume here is what
+the exchange rate exists to prevent.
 
 **Departures lose.** The same test adds `r num(delta(BEAR, "adep")$dc)` correct
 departures for `r num(delta(BEAR, "adep")$dw)` errors,
@@ -349,28 +392,39 @@ help — **it discards flights the bearing test correctly rescued.**
 
 ## Recommendation {#sec-recommendation}
 
-**Do not adopt the bearing test yet.** At
-`r sprintf("%.2f:1", delta(BEAR, "ades")$ratio)` for arrivals it sits below the
-2:1 exchange rate version 4.5 argued for, on the reasoning that a wrong
-aerodrome corrupts two movement counts while a silence corrupts one and is
-visible. It is the closest anything has come, and the first signal to beat the
-abstained block at all, but it is not over the line.
+**Adopt the bearing test for arrivals, at a tight gate.** `r BEAR` recovers
+`r num(delta(BEAR, "ades")$dc)` correct arrival labels for
+`r num(delta(BEAR, "ades")$dw)` new errors —
+`r sprintf("%.2f:1", delta(BEAR, "ades")$ratio)`, against the 2:1 bar. Arrival
+coverage rises `r pp(C(BEAR,"ades","coverage") - C(BASE,"ades","coverage"))`
+and overall correctness
+`r pp(C(BEAR,"ades","overall") - C(BASE,"ades","overall"))`, for
+`r pp(C(BEAR,"ades","accuracy") - C(BASE,"ades","accuracy"))` of accuracy.
 
-**Do not apply it to departures under any circumstances.**
-`r sprintf("%.2f:1", delta(BEAR, "adep")$ratio)` is a clear loss.
+This is the first change this study has recommended adopting since version 4
+moved detection into the pipeline, and the first to clear the exchange rate on
+its own terms rather than by argument.
 
-**Do not pursue vertical rate on this data.** The measurement is not marginal;
-the channel is noise.
+**Do not apply it to departures.** Every gate tested is a loss, the best at
+`r sprintf("%.2f:1", max(sapply(cmp$model[grepl("bearing", cmp$model) & !grepl("rate", cmp$model)], function(m) delta(m,"adep")$ratio), na.rm=TRUE))`.
+Departures are not short of evidence, and adding evidence to a rule that is not
+short of it costs accuracy.
 
-**Refine the bearing estimate before re-testing.** The current course is a
-two-point bearing across the window. Fitting it by regression, and gating on the
-stability of that fit rather than on window length, should raise the ratio — the
-1° gate is currently winning despite a noisy input, not because of one. If that
-brings arrivals above 2:1, the case changes.
+**Do not pursue vertical rate on this data.** Adding it to the bearing test cuts
+the arrival gain from `r num(delta(BEAR1, "ades")$dc)` correct to
+`r num(delta(RATE, "ades")$dc)` and the ratio from
+`r sprintf("%.2f:1", delta(BEAR1, "ades")$ratio)` to
+`r sprintf("%.2f:1", delta(RATE, "ades")$ratio)`. It discards flights the
+bearing test correctly rescued.
 
-**And do out-of-area first regardless.** It is `r pct(t$missing[t$apt_type == "out of area"] / sum(t$missing))`
-of the arrival deficit against the `r pct(GUESS_OK / sum(t$missing))` this
-recovers, and unlike the abstained block nobody has shown it is hard.
+**Validate on a second period before publishing the change.** Everything here is
+one three-day sample, and the gate was chosen from that sample.
+`r pct(1 - NO_CAND / IN_ARR)` remains the ceiling regardless.
+
+**And out-of-area is still the larger prize.** It is
+`r pct(t$missing[t$apt_type == "out of area"] / sum(t$missing))` of the arrival
+deficit against the `r pct(delta(BEAR, "ades")$dc / sum(t$missing))` this
+recovers. The bearing test is worth having; it is not the main event.
 
 ## What is now ruled out {#sec-ruled-out}
 
