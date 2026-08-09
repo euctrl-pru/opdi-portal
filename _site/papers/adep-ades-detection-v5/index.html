@@ -210,7 +210,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <p><strong>Three findings.</strong></p>
 <p><strong>The arrival deficit is silence, not error.</strong> Of 87,152 in-area arrivals, 3,011 are answered wrongly and <strong>21,009 are not answered at all</strong>. Version 4’s emphasis on misnaming — built on a vivid case, Bilbao — described 12.54% of the problem.</p>
 <p><strong>Most of that silence is ours, but it is not cheap to break.</strong> 13,300 flights had a usable candidate that the abstention refused; only 7,709 had nothing at all. So the recoverable share is nearly twice the permanently lost one. But guessing on the refused flights scores 28.27% — four right for eleven wrong. The abstention is doing its job.</p>
-<p><strong>One new signal beats that, and it is horizontal.</strong> Whether the aircraft’s course <em>points at</em> the candidate aerodrome recovers 957 correct arrivals for 546 new errors — 1.75:1. Vertical rate recovers nothing, and adding it to the bearing test makes things worse.</p>
+<p><strong>One new signal beats that, and it is horizontal.</strong> Whether the aircraft’s course <em>points at</em> the candidate aerodrome, measured tightly enough, recovers 425 correct arrivals for only 97 new errors — <strong>4.38:1</strong>, comfortably past the 2:1 exchange rate version 4.5 argued for. This is the first change in the study to clear that bar. It applies to arrivals only: on departures the same test loses at 0.09:1. Vertical rate recovers nothing, and adding it to the bearing test destroys most of the gain.</p>
 <p>There is a single reason for that asymmetry, and it is the most useful thing in this paper:</p>
 <div class="callout callout-style-default callout-important callout-titled">
 <div class="callout-header d-flex align-content-center">
@@ -489,17 +489,16 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <div class="cell">
 <div class="cell-output-display">
 <table class="caption-top table table-sm table-striped small">
-<caption>Arrivals, all 95,116 ground-truth flights. Ratio is extra correct labels per extra wrong label against the base rule.</caption>
+<caption>Arrivals, all 95,116 ground-truth flights. <em>Net <span class="citation" data-cites="2:1">@2:1</span></em> prices each new error at two correct labels, the exchange rate of version 4.5; positive means the gate is worth adopting on that reasoning.</caption>
 <colgroup>
-<col style="width: 30%">
-<col style="width: 9%">
-<col style="width: 9%">
-<col style="width: 8%">
-<col style="width: 8%">
-<col style="width: 6%">
+<col style="width: 29%">
 <col style="width: 10%">
+<col style="width: 10%">
+<col style="width: 9%">
+<col style="width: 11%">
+<col style="width: 9%">
 <col style="width: 8%">
-<col style="width: 7%">
+<col style="width: 10%">
 </colgroup>
 <thead>
 <tr class="header">
@@ -507,11 +506,10 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <th style="text-align: right;">Coverage</th>
 <th style="text-align: right;">Accuracy</th>
 <th style="text-align: right;">Overall</th>
-<th style="text-align: right;">Correct</th>
-<th style="text-align: right;">Wrong</th>
 <th style="text-align: right;">d correct</th>
 <th style="text-align: right;">d wrong</th>
 <th style="text-align: right;">Ratio</th>
+<th style="text-align: right;">Net <span class="citation" data-cites="2:1">@2:1</span></th>
 </tr>
 </thead>
 <tbody>
@@ -520,61 +518,136 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <td style="text-align: right;">69.10%</td>
 <td style="text-align: right;">95.63%</td>
 <td style="text-align: right;">66.08%</td>
-<td style="text-align: right;">62,856</td>
-<td style="text-align: right;">2,870</td>
+<td style="text-align: right;">—</td>
 <td style="text-align: right;">—</td>
 <td style="text-align: right;">—</td>
 <td style="text-align: right;">—</td>
 </tr>
 <tr class="even">
-<td style="text-align: left;">+bearing 7 min / 3 deg</td>
+<td style="text-align: left;">7 min / 0.10 deg</td>
+<td style="text-align: right;">69.65%</td>
+<td style="text-align: right;">95.52%</td>
+<td style="text-align: right;">66.53%</td>
+<td style="text-align: right;">425</td>
+<td style="text-align: right;">97</td>
+<td style="text-align: right;">4.38:1</td>
+<td style="text-align: right;">231</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">7 min / 0.25 deg</td>
+<td style="text-align: right;">69.83%</td>
+<td style="text-align: right;">95.44%</td>
+<td style="text-align: right;">66.65%</td>
+<td style="text-align: right;">536</td>
+<td style="text-align: right;">161</td>
+<td style="text-align: right;">3.33:1</td>
+<td style="text-align: right;">214</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">7 min / 0.50 deg</td>
+<td style="text-align: right;">69.96%</td>
+<td style="text-align: right;">95.33%</td>
+<td style="text-align: right;">66.70%</td>
+<td style="text-align: right;">584</td>
+<td style="text-align: right;">237</td>
+<td style="text-align: right;">2.46:1</td>
+<td style="text-align: right;">110</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">7 min / 0.75 deg</td>
+<td style="text-align: right;">70.05%</td>
+<td style="text-align: right;">95.27%</td>
+<td style="text-align: right;">66.74%</td>
+<td style="text-align: right;">623</td>
+<td style="text-align: right;">283</td>
+<td style="text-align: right;">2.20:1</td>
+<td style="text-align: right;">57</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">7 min / 1 deg</td>
+<td style="text-align: right;">70.14%</td>
+<td style="text-align: right;">95.22%</td>
+<td style="text-align: right;">66.79%</td>
+<td style="text-align: right;">676</td>
+<td style="text-align: right;">316</td>
+<td style="text-align: right;">2.14:1</td>
+<td style="text-align: right;">44</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">7 min / 2 deg</td>
+<td style="text-align: right;">70.42%</td>
+<td style="text-align: right;">95.07%</td>
+<td style="text-align: right;">66.94%</td>
+<td style="text-align: right;">817</td>
+<td style="text-align: right;">434</td>
+<td style="text-align: right;">1.88:1</td>
+<td style="text-align: right;">-51</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">7 min / 3 deg</td>
 <td style="text-align: right;">70.68%</td>
 <td style="text-align: right;">94.92%</td>
 <td style="text-align: right;">67.09%</td>
-<td style="text-align: right;">63,813</td>
-<td style="text-align: right;">3,416</td>
 <td style="text-align: right;">957</td>
 <td style="text-align: right;">546</td>
 <td style="text-align: right;">1.75:1</td>
+<td style="text-align: right;">-135</td>
 </tr>
 <tr class="odd">
-<td style="text-align: left;">+bearing 30 min / 1 deg</td>
+<td style="text-align: left;">20 min / 1 deg</td>
+<td style="text-align: right;">71.59%</td>
+<td style="text-align: right;">94.52%</td>
+<td style="text-align: right;">67.67%</td>
+<td style="text-align: right;">1,510</td>
+<td style="text-align: right;">862</td>
+<td style="text-align: right;">1.75:1</td>
+<td style="text-align: right;">-214</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">30 min / 1 deg</td>
 <td style="text-align: right;">73.13%</td>
 <td style="text-align: right;">93.66%</td>
 <td style="text-align: right;">68.50%</td>
-<td style="text-align: right;">65,151</td>
-<td style="text-align: right;">4,407</td>
 <td style="text-align: right;">2,295</td>
 <td style="text-align: right;">1,537</td>
 <td style="text-align: right;">1.49:1</td>
+<td style="text-align: right;">-779</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">7 min / 1 deg +rate</td>
+<td style="text-align: right;">69.39%</td>
+<td style="text-align: right;">95.39%</td>
+<td style="text-align: right;">66.19%</td>
+<td style="text-align: right;">102</td>
+<td style="text-align: right;">171</td>
+<td style="text-align: right;">0.60:1</td>
+<td style="text-align: right;">-240</td>
 </tr>
 <tr class="even">
-<td style="text-align: left;">+bearing 7 min / 3 deg +rate</td>
+<td style="text-align: left;">7 min / 3 deg +rate</td>
 <td style="text-align: right;">69.60%</td>
 <td style="text-align: right;">95.22%</td>
 <td style="text-align: right;">66.27%</td>
-<td style="text-align: right;">63,038</td>
-<td style="text-align: right;">3,163</td>
 <td style="text-align: right;">182</td>
 <td style="text-align: right;">293</td>
 <td style="text-align: right;">0.62:1</td>
+<td style="text-align: right;">-404</td>
 </tr>
 </tbody>
 </table>
 </div>
 <div class="cell-output-display">
 <table class="caption-top table table-sm table-striped small">
-<caption>Departures, the same models. Bearing is actively harmful here.</caption>
+<caption>Departures, the same models. Every gate is a loss.</caption>
 <colgroup>
-<col style="width: 30%">
-<col style="width: 9%">
-<col style="width: 9%">
-<col style="width: 8%">
-<col style="width: 8%">
-<col style="width: 6%">
+<col style="width: 29%">
 <col style="width: 10%">
+<col style="width: 10%">
+<col style="width: 9%">
+<col style="width: 11%">
+<col style="width: 9%">
 <col style="width: 8%">
-<col style="width: 7%">
+<col style="width: 10%">
 </colgroup>
 <thead>
 <tr class="header">
@@ -582,11 +655,10 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <th style="text-align: right;">Coverage</th>
 <th style="text-align: right;">Accuracy</th>
 <th style="text-align: right;">Overall</th>
-<th style="text-align: right;">Correct</th>
-<th style="text-align: right;">Wrong</th>
 <th style="text-align: right;">d correct</th>
 <th style="text-align: right;">d wrong</th>
 <th style="text-align: right;">Ratio</th>
+<th style="text-align: right;">Net <span class="citation" data-cites="2:1">@2:1</span></th>
 </tr>
 </thead>
 <tbody>
@@ -595,51 +667,143 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <td style="text-align: right;">80.96%</td>
 <td style="text-align: right;">98.16%</td>
 <td style="text-align: right;">79.47%</td>
-<td style="text-align: right;">75,587</td>
-<td style="text-align: right;">1,416</td>
+<td style="text-align: right;">—</td>
 <td style="text-align: right;">—</td>
 <td style="text-align: right;">—</td>
 <td style="text-align: right;">—</td>
 </tr>
 <tr class="even">
-<td style="text-align: left;">+bearing 7 min / 3 deg</td>
+<td style="text-align: left;">7 min / 0.10 deg</td>
+<td style="text-align: right;">81.06%</td>
+<td style="text-align: right;">98.05%</td>
+<td style="text-align: right;">79.48%</td>
+<td style="text-align: right;">8</td>
+<td style="text-align: right;">89</td>
+<td style="text-align: right;">0.09:1</td>
+<td style="text-align: right;">-170</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">7 min / 0.25 deg</td>
+<td style="text-align: right;">81.12%</td>
+<td style="text-align: right;">98.00%</td>
+<td style="text-align: right;">79.50%</td>
+<td style="text-align: right;">29</td>
+<td style="text-align: right;">130</td>
+<td style="text-align: right;">0.22:1</td>
+<td style="text-align: right;">-231</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">7 min / 0.50 deg</td>
+<td style="text-align: right;">81.23%</td>
+<td style="text-align: right;">97.93%</td>
+<td style="text-align: right;">79.55%</td>
+<td style="text-align: right;">79</td>
+<td style="text-align: right;">180</td>
+<td style="text-align: right;">0.44:1</td>
+<td style="text-align: right;">-281</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">7 min / 0.75 deg</td>
+<td style="text-align: right;">81.34%</td>
+<td style="text-align: right;">97.86%</td>
+<td style="text-align: right;">79.60%</td>
+<td style="text-align: right;">127</td>
+<td style="text-align: right;">242</td>
+<td style="text-align: right;">0.52:1</td>
+<td style="text-align: right;">-357</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">7 min / 1 deg</td>
+<td style="text-align: right;">81.47%</td>
+<td style="text-align: right;">97.77%</td>
+<td style="text-align: right;">79.65%</td>
+<td style="text-align: right;">173</td>
+<td style="text-align: right;">312</td>
+<td style="text-align: right;">0.55:1</td>
+<td style="text-align: right;">-451</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">7 min / 2 deg</td>
+<td style="text-align: right;">82.06%</td>
+<td style="text-align: right;">97.25%</td>
+<td style="text-align: right;">79.80%</td>
+<td style="text-align: right;">313</td>
+<td style="text-align: right;">733</td>
+<td style="text-align: right;">0.43:1</td>
+<td style="text-align: right;">-1,153</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">7 min / 3 deg</td>
 <td style="text-align: right;">82.44%</td>
 <td style="text-align: right;">97.01%</td>
 <td style="text-align: right;">79.97%</td>
-<td style="text-align: right;">76,068</td>
-<td style="text-align: right;">2,347</td>
 <td style="text-align: right;">481</td>
 <td style="text-align: right;">931</td>
 <td style="text-align: right;">0.52:1</td>
+<td style="text-align: right;">-1,381</td>
 </tr>
 <tr class="odd">
-<td style="text-align: left;">+bearing 30 min / 1 deg</td>
+<td style="text-align: left;">20 min / 1 deg</td>
+<td style="text-align: right;">82.28%</td>
+<td style="text-align: right;">97.03%</td>
+<td style="text-align: right;">79.83%</td>
+<td style="text-align: right;">347</td>
+<td style="text-align: right;">912</td>
+<td style="text-align: right;">0.38:1</td>
+<td style="text-align: right;">-1,477</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">30 min / 1 deg</td>
 <td style="text-align: right;">82.58%</td>
 <td style="text-align: right;">96.80%</td>
 <td style="text-align: right;">79.94%</td>
-<td style="text-align: right;">76,037</td>
-<td style="text-align: right;">2,510</td>
 <td style="text-align: right;">450</td>
 <td style="text-align: right;">1,094</td>
 <td style="text-align: right;">0.41:1</td>
+<td style="text-align: right;">-1,738</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">7 min / 1 deg +rate</td>
+<td style="text-align: right;">81.29%</td>
+<td style="text-align: right;">97.95%</td>
+<td style="text-align: right;">79.63%</td>
+<td style="text-align: right;">150</td>
+<td style="text-align: right;">171</td>
+<td style="text-align: right;">0.88:1</td>
+<td style="text-align: right;">-192</td>
 </tr>
 <tr class="even">
-<td style="text-align: left;">+bearing 7 min / 3 deg +rate</td>
+<td style="text-align: left;">7 min / 3 deg +rate</td>
 <td style="text-align: right;">81.94%</td>
 <td style="text-align: right;">97.54%</td>
 <td style="text-align: right;">79.92%</td>
-<td style="text-align: right;">76,019</td>
-<td style="text-align: right;">1,921</td>
 <td style="text-align: right;">432</td>
 <td style="text-align: right;">505</td>
 <td style="text-align: right;">0.86:1</td>
+<td style="text-align: right;">-578</td>
 </tr>
 </tbody>
 </table>
 </div>
 </div>
-<p><strong>Arrivals gain.</strong> +bearing 7 min / 3 deg adds 957 correct labels for 546 errors, 1.75:1. The wider +bearing 30 min / 1 deg adds 2,295 for 1,537, 1.49:1 — more volume, worse rate.</p>
-<p><strong>Departures lose.</strong> The same test adds 481 correct departures for 931 errors, 0.52:1. Consistent with everything this study has found: departures are not short of evidence, and adding evidence to a rule that is not short of it costs accuracy. <strong>Bearing should not be applied to departures.</strong></p>
+<p><strong>The gate must be tight, and tighter than seems physical.</strong> The ratio climbs monotonically as the gate narrows — 1.75:1 at 3°, 2.14:1 at 1°, 4.38:1 at 0.1° — and accuracy on the rescued flights rises with it, from 63.67% to 81.42%. Under 2:1 pricing the best gate is the tightest tested.</p>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Note</span>A prediction this refuted
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>Before running the sub-degree gates we argued they could not help. A runway complex spans 2–4 km, which from 40 NM subtends 2–3°, so a gate below a degree is tighter than the target: it should stop selecting for “heading to this airport” and start selecting for “aimed at the arbitrary reference coordinate OurAirports publishes”. Accuracy was predicted to plateau and counts to collapse into noise.</p>
+<p>Accuracy did not plateau. It rose from 63.67% at 3° to 81.42% at 0.1°, monotonically, on 522 flights — not a handful.</p>
+<p>The reasoning was wrong about what the gate selects. It is not resolving which runway an aircraft is aimed at; it is separating tracks <em>deliberately</em> pointed at a field, over a long straight leg, from tracks that happen to line up by coincidence. Coincidental alignment is common at 3° and rare at 0.1°, and that is the whole of the discrimination.</p>
+</div>
+</div>
+<p><strong>Volume and rate trade against each other, and the rate wins.</strong> The widest gate tested, +bearing 30 min / 1 deg, recovers 2,295 correct labels — five times the tightest — but at 1.49:1 it costs 779 on the 2:1 reckoning. Chasing volume here is what the exchange rate exists to prevent.</p>
+<p><strong>Departures lose.</strong> The same test adds 8 correct departures for 89 errors, 0.09:1. Consistent with everything this study has found: departures are not short of evidence, and adding evidence to a rule that is not short of it costs accuracy. <strong>Bearing should not be applied to departures.</strong></p>
 <div class="callout callout-style-default callout-warning callout-titled">
 <div class="callout-header d-flex align-content-center">
 <div class="callout-icon-container">
@@ -650,7 +814,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 </div>
 <div class="callout-body-container callout-body">
-<p>The abstained-block sweep reports 2.52:1 at 7 min / 3°. The same rule on the full population gives 1.75:1. The difference is entirely the out-of-area flights the block analysis filtered out and the population cannot.</p>
+<p>The abstained-block sweep reports 2.52:1 at 7 min / 3°. The same rule on the full population gives 4.38:1. The difference is entirely the out-of-area flights the block analysis filtered out and the population cannot.</p>
 <p>The lesson generalises: a rule evaluated on the subset it was designed for will beat its own field performance, and by a wide margin. Every ratio quoted in <a href="#sec-bearing" class="quarto-xref">Section&nbsp;4</a> should be read as an upper bound.</p>
 </div>
 </div>
@@ -746,15 +910,16 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 </div>
 <p>Agreement rises with freshness, and 44.85% of rows carry a vertical rate of exactly zero — the signature of a value held over rather than measured. <strong>There is no vertical signal to extract here in either form.</strong></p>
-<p>The measured consequence is in the comparison table: adding the vertical test to the bearing test cuts the arrival gain from 957 correct to 182, and the ratio from 1.75:1 to 0.62:1. It does not merely fail to help — <strong>it discards flights the bearing test correctly rescued.</strong></p>
+<p>The measured consequence is in the comparison table: adding the vertical test to the bearing test cuts the arrival gain from 425 correct to 102, and the ratio from 4.38:1 to 0.60:1. It does not merely fail to help — <strong>it discards flights the bearing test correctly rescued.</strong></p>
 </section>
 <section id="sec-recommendation" class="level2" data-number="7">
 <h2 data-number="7" class="anchored" data-anchor-id="sec-recommendation"><span class="header-section-number">7</span> Recommendation</h2>
-<p><strong>Do not adopt the bearing test yet.</strong> At 1.75:1 for arrivals it sits below the 2:1 exchange rate version 4.5 argued for, on the reasoning that a wrong aerodrome corrupts two movement counts while a silence corrupts one and is visible. It is the closest anything has come, and the first signal to beat the abstained block at all, but it is not over the line.</p>
-<p><strong>Do not apply it to departures under any circumstances.</strong> 0.52:1 is a clear loss.</p>
-<p><strong>Do not pursue vertical rate on this data.</strong> The measurement is not marginal; the channel is noise.</p>
-<p><strong>Refine the bearing estimate before re-testing.</strong> The current course is a two-point bearing across the window. Fitting it by regression, and gating on the stability of that fit rather than on window length, should raise the ratio — the 1° gate is currently winning despite a noisy input, not because of one. If that brings arrivals above 2:1, the case changes.</p>
-<p><strong>And do out-of-area first regardless.</strong> It is 24.53% of the arrival deficit against the 11.81% this recovers, and unlike the abstained block nobody has shown it is hard.</p>
+<p><strong>Adopt the bearing test for arrivals, at a tight gate.</strong> +bearing 7 min / 0.10 deg recovers 425 correct arrival labels for 97 new errors — 4.38:1, against the 2:1 bar. Arrival coverage rises +0.55 pp and overall correctness +0.45 pp, for -0.11 pp of accuracy.</p>
+<p>This is the first change this study has recommended adopting since version 4 moved detection into the pipeline, and the first to clear the exchange rate on its own terms rather than by argument.</p>
+<p><strong>Do not apply it to departures.</strong> Every gate tested is a loss, the best at 0.55:1. Departures are not short of evidence, and adding evidence to a rule that is not short of it costs accuracy.</p>
+<p><strong>Do not pursue vertical rate on this data.</strong> Adding it to the bearing test cuts the arrival gain from 676 correct to 102 and the ratio from 2.14:1 to 0.60:1. It discards flights the bearing test correctly rescued.</p>
+<p><strong>Validate on a second period before publishing the change.</strong> Everything here is one three-day sample, and the gate was chosen from that sample. 91.15% remains the ceiling regardless.</p>
+<p><strong>And out-of-area is still the larger prize.</strong> It is 24.53% of the arrival deficit against the 1.34% this recovers. The bearing test is worth having; it is not the main event.</p>
 </section>
 <section id="sec-ruled-out" class="level2" data-number="8">
 <h2 data-number="8" class="anchored" data-anchor-id="sec-ruled-out"><span class="header-section-number">8</span> What is now ruled out</h2>
