@@ -1,0 +1,1022 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.10.18">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="author" content="EUROCONTROL Performance Review Unit">
+<meta name="dcterms.date" content="2026-08-09">
+
+<title>Thinning state vectors, and what the archive actually contains – OPDI Papers</title>
+<style>
+/* Default styles provided by pandoc.
+** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+*/
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: 1.5em;}
+div.column{flex: auto;}
+@media screen {
+div.columns{gap: min(4vw, 1.5em);}
+div.column{overflow-x: auto;}
+}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../site_libs/quarto-nav/headroom.min.js"></script>
+<script src="../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../">
+<script src="../site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="../site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="../site_libs/quarto-html/popper.min.js"></script>
+<script src="../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../site_libs/quarto-html/quarto-syntax-highlighting-64a204ab8560d761af7679ceaba22944.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../site_libs/bootstrap/bootstrap-3fc44999f41da3927fa35e4e05887fd4.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "navbar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "end",
+  "type": "overlay",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+
+
+</head>
+
+<body class="nav-fixed quarto-light">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+    <nav class="navbar navbar-expand-lg " data-bs-theme="dark">
+      <div class="navbar-container container-fluid">
+      <div class="navbar-brand-container mx-auto">
+    <a class="navbar-brand" href="../index.html">
+    <span class="navbar-title">OPDI Papers</span>
+    </a>
+  </div>
+            <div id="quarto-search" class="" title="Search"></div>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" role="menu" aria-expanded="false" aria-label="Toggle navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+  <span class="navbar-toggler-icon"></span>
+</button>
+          <div class="collapse navbar-collapse" id="navbarCollapse">
+            <ul class="navbar-nav navbar-nav-scroll me-auto">
+  <li class="nav-item">
+    <a class="nav-link" href="../index.html"> 
+<span class="menu-text">Papers</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="https://www.eurocontrol.int/opdi"> 
+<span class="menu-text">OPDI</span></a>
+  </li>  
+</ul>
+          </div> <!-- /navcollapse -->
+            <div class="quarto-navbar-tools">
+</div>
+      </div> <!-- /container-fluid -->
+    </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
+<!-- sidebar -->
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#summary" id="toc-summary" class="nav-link active" data-scroll-target="#summary">Summary</a></li>
+  <li><a href="#what-was-measured" id="toc-what-was-measured" class="nav-link" data-scroll-target="#what-was-measured"><span class="header-section-number">1</span> What was measured</a></li>
+  <li><a href="#result-1-the-two-rules-are-indistinguishable" id="toc-result-1-the-two-rules-are-indistinguishable" class="nav-link" data-scroll-target="#result-1-the-two-rules-are-indistinguishable"><span class="header-section-number">2</span> Result 1: the two rules are indistinguishable</a></li>
+  <li><a href="#result-2-the-effect-exists-in-the-right-place-at-the-wrong-size" id="toc-result-2-the-effect-exists-in-the-right-place-at-the-wrong-size" class="nav-link" data-scroll-target="#result-2-the-effect-exists-in-the-right-place-at-the-wrong-size"><span class="header-section-number">3</span> Result 2: the effect exists, in the right place, at the wrong size</a></li>
+  <li><a href="#result-3-what-the-row-counts-were-hiding" id="toc-result-3-what-the-row-counts-were-hiding" class="nav-link" data-scroll-target="#result-3-what-the-row-counts-were-hiding"><span class="header-section-number">4</span> Result 3: what the row counts were hiding</a>
+  <ul class="collapse">
+  <li><a href="#the-asymmetry-between-the-two-ends-of-a-track" id="toc-the-asymmetry-between-the-two-ends-of-a-track" class="nav-link" data-scroll-target="#the-asymmetry-between-the-two-ends-of-a-track"><span class="header-section-number">4.1</span> The asymmetry between the two ends of a track</a></li>
+  </ul></li>
+  <li><a href="#what-to-do-with-this" id="toc-what-to-do-with-this" class="nav-link" data-scroll-target="#what-to-do-with-this"><span class="header-section-number">5</span> What to do with this</a></li>
+  <li><a href="#limitations" id="toc-limitations" class="nav-link" data-scroll-target="#limitations"><span class="header-section-number">6</span> Limitations</a></li>
+  <li><a href="#reproducing" id="toc-reproducing" class="nav-link" data-scroll-target="#reproducing"><span class="header-section-number">7</span> Reproducing</a></li>
+  </ul>
+<div class="quarto-alternate-formats"><h2>Other Formats</h2><ul><li><a href="index.pdf"><i class="bi bi-file-pdf"></i>PDF</a></li></ul></div></nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Thinning state vectors, and what the archive actually contains</h1>
+<p class="subtitle lead">Why the 5 s decimation rule is not the problem, and what is</p>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    <div>
+    <div class="quarto-title-meta-heading">Author</div>
+    <div class="quarto-title-meta-contents">
+             <p>EUROCONTROL Performance Review Unit </p>
+          </div>
+  </div>
+    
+    <div>
+    <div class="quarto-title-meta-heading">Published</div>
+    <div class="quarto-title-meta-contents">
+      <p class="date">August 9, 2026</p>
+    </div>
+  </div>
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<section id="summary" class="level2 unnumbered">
+<h2 class="unnumbered anchored" data-anchor-id="summary">Summary</h2>
+<p>The ingest thins OpenSky state vectors to roughly one sample every 5 s with a modulo filter, <code>event_time % 5 == 0</code>. That is a <strong>fixed-phase</strong> sampler: it keeps a row only if one exists at the single second per window congruent to zero. Where reception is intermittent — low altitude, long range, the edge of the receiver network — the phase of the data is arbitrary, so the filter should delete far more than it is supposed to. Since version 4 of the <a href="../adep-ades-detection-v4/index.html">ADEP/ADES study</a> found arrivals much harder than departures, and arrivals are exactly the flights whose evidence sits in that sparse region, the filter was a plausible cause.</p>
+<p><strong>It is not.</strong> Measured on three hours of raw archive, a correct bin-based sampler keeps 1.002× the rows of the modulo filter — 17,467 rows out of 7,820,363, or 0.22%. The hypothesis fails because its premise does: the OpenSky <code>state_vectors</code> table is not a record of receptions but a <strong>complete 1 Hz grid</strong>, with the last known position carried forward when nothing is heard.</p>
+<p>The experiment then found what the row counts were hiding. Positions in that grid are often old, and the staleness is wildly asymmetric between the two ends of a track:</p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th></th>
+<th>median position age</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>first</strong> row of an aircraft</td>
+<td><strong>0 s</strong></td>
+</tr>
+<tr class="even">
+<td><strong>last</strong> row of an aircraft</td>
+<td><strong>190 s</strong></td>
+</tr>
+</tbody>
+</table>
+<p>A departure’s first fix is fresh by construction. An arrival’s last fix, at the median, carries a position measured <strong>190 s earlier</strong> — at approach speed, five to eight nautical miles back down the approach. 55.10% of last fixes are more than 30 s stale.</p>
+<p>That is not a bug to fix in the decimation rule. It is a measurement of how early reception ends, and it quantifies the asymmetry version 4 could only assert. It also suggests something the detection can act on, because <code>last_pos_update</code> is already ingested and read by nothing.</p>
+</section>
+<section id="what-was-measured" class="level2" data-number="1">
+<h2 data-number="1" class="anchored" data-anchor-id="what-was-measured"><span class="header-section-number">1</span> What was measured</h2>
+<p>Three hourly partitions of <code>s3a://opensky-hdfs-backup/tables_v4/state_vectors</code>, 2025-06-05 06:00–09:00 UTC, filtered to the OPDI bounding box and nothing else: <strong>39,139,623 rows</strong>. Both rules were then applied to identical input, with a cold read from S3 each time so the comparison includes the I/O the production job actually pays.</p>
+<p><strong>Modulo (current).</strong> Keep the row where <code>event_time % 5 == 0</code>. A narrow filter; no shuffle.</p>
+<p><strong>Bucket (proposed).</strong> Bin time into <code>floor(t/5)</code> and keep one row per non-empty bin, via <code>max</code> over a struct with <code>event_time</code> first — a hash aggregate with map-side partial aggregation, native Spark throughout.</p>
+</section>
+<section id="result-1-the-two-rules-are-indistinguishable" class="level2" data-number="2">
+<h2 data-number="2" class="anchored" data-anchor-id="result-1-the-two-rules-are-indistinguishable"><span class="header-section-number">2</span> Result 1: the two rules are indistinguishable</h2>
+<div class="cell">
+<div class="cell-output-display">
+<table class="caption-top table table-sm table-striped small">
+<caption>Both rules on 39,139,623 rows, three hours of archive. The S3 read is common to both, so the difference net of it is the cost of the shuffle.</caption>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Rule</th>
+<th style="text-align: right;">Rows</th>
+<th style="text-align: right;">Wall clock</th>
+<th style="text-align: right;">Net of the read</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">bbox only (baseline)</td>
+<td style="text-align: right;">39,139,623</td>
+<td style="text-align: right;">26.4 s</td>
+<td style="text-align: right;">—</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">modulo (current)</td>
+<td style="text-align: right;">7,820,363</td>
+<td style="text-align: right;">26.8 s</td>
+<td style="text-align: right;">+0.4 s</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">bucket (proposed)</td>
+<td style="text-align: right;">7,837,830</td>
+<td style="text-align: right;">30.2 s</td>
+<td style="text-align: right;">+3.8 s</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<p>The bucket rule keeps 1.002× the rows. The modulo filter retains 1/5.005 of its input — within a whisker of the exactly one-in-five it would keep if every second carried a row.</p>
+<p>The density measurement confirms why:</p>
+<div class="cell">
+<div class="cell-output-display">
+<table class="caption-top table table-sm table-striped small">
+<caption>Fraction of each minute’s 60 seconds carrying a row, per aircraft-minute. The archive is a dense grid, not a log of receptions.</caption>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Rows per aircraft-minute</th>
+<th style="text-align: right;">Aircraft-minutes</th>
+<th style="text-align: right;">Share</th>
+<th style="text-align: right;">Mean density</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">&lt;0.1 (sparse)</td>
+<td style="text-align: right;">1,513</td>
+<td style="text-align: right;">0.23%</td>
+<td style="text-align: right;">0.051</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">0.1-0.3</td>
+<td style="text-align: right;">3,765</td>
+<td style="text-align: right;">0.57%</td>
+<td style="text-align: right;">0.192</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">0.3-0.5</td>
+<td style="text-align: right;">3,877</td>
+<td style="text-align: right;">0.59%</td>
+<td style="text-align: right;">0.392</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">0.5-0.7</td>
+<td style="text-align: right;">3,959</td>
+<td style="text-align: right;">0.60%</td>
+<td style="text-align: right;">0.592</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">0.7-0.9</td>
+<td style="text-align: right;">4,055</td>
+<td style="text-align: right;">0.61%</td>
+<td style="text-align: right;">0.793</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">0.9-1.0 (dense)</td>
+<td style="text-align: right;">644,745</td>
+<td style="text-align: right;">97.41%</td>
+<td style="text-align: right;">1.000</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<p>97.41% of aircraft-minutes are at least 90% populated. The sparse-coverage model that motivated this experiment applies to a few percent of the data.</p>
+<div class="callout callout-style-default callout-important callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Important</span>The arithmetic was right; the premise was wrong
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>The predicted gain was 2–5×, derived from a model in which a second carries a row with probability <em>p</em> &lt; 1. Measured <em>p</em> is ≈ 1.0. Everything downstream of that assumption — retention ratios, endpoint-lag formulae, loss probabilities — described a feed that does not exist. The model was not tested before it was believed; this experiment is what testing it looks like.</p>
+</div>
+</div>
+</section>
+<section id="result-2-the-effect-exists-in-the-right-place-at-the-wrong-size" class="level2" data-number="3">
+<h2 data-number="3" class="anchored" data-anchor-id="result-2-the-effect-exists-in-the-right-place-at-the-wrong-size"><span class="header-section-number">3</span> Result 2: the effect exists, in the right place, at the wrong size</h2>
+<p>The extra rows are not distributed evenly. They concentrate exactly where the hypothesis said they would.</p>
+<div class="cell">
+<div class="cell-output-display">
+<table class="caption-top table table-sm table-striped small">
+<caption>Rows the bucket rule rescues, by altitude. <em>Rescue rate</em> is extra rows over retained rows; <em>over-rep</em> is the share of rescued rows against the share of all rows, so above 1 means they concentrate there.</caption>
+<colgroup>
+<col style="width: 19%">
+<col style="width: 13%">
+<col style="width: 8%">
+<col style="width: 16%">
+<col style="width: 13%">
+<col style="width: 15%">
+<col style="width: 12%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Band (ft)</th>
+<th style="text-align: right;">Rows</th>
+<th style="text-align: right;">Extra</th>
+<th style="text-align: right;">Rescue rate</th>
+<th style="text-align: right;">% of rows</th>
+<th style="text-align: right;">% of extra</th>
+<th style="text-align: right;">Over-rep</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">(null)</td>
+<td style="text-align: right;">748,206</td>
+<td style="text-align: right;">3,197</td>
+<td style="text-align: right;">0.43%</td>
+<td style="text-align: right;">9.57%</td>
+<td style="text-align: right;">18.30%</td>
+<td style="text-align: right;">1.91x</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">0-2,000</td>
+<td style="text-align: right;">571,978</td>
+<td style="text-align: right;">2,811</td>
+<td style="text-align: right;">0.49%</td>
+<td style="text-align: right;">7.31%</td>
+<td style="text-align: right;">16.09%</td>
+<td style="text-align: right;">2.20x</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">2,000-5,000</td>
+<td style="text-align: right;">570,432</td>
+<td style="text-align: right;">1,270</td>
+<td style="text-align: right;">0.22%</td>
+<td style="text-align: right;">7.29%</td>
+<td style="text-align: right;">7.27%</td>
+<td style="text-align: right;">1.00x</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">5,000-10,000</td>
+<td style="text-align: right;">520,655</td>
+<td style="text-align: right;">979</td>
+<td style="text-align: right;">0.19%</td>
+<td style="text-align: right;">6.66%</td>
+<td style="text-align: right;">5.60%</td>
+<td style="text-align: right;">0.84x</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">10,000-20,000</td>
+<td style="text-align: right;">786,552</td>
+<td style="text-align: right;">1,372</td>
+<td style="text-align: right;">0.17%</td>
+<td style="text-align: right;">10.06%</td>
+<td style="text-align: right;">7.85%</td>
+<td style="text-align: right;">0.78x</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">20,000-30,000</td>
+<td style="text-align: right;">813,690</td>
+<td style="text-align: right;">1,264</td>
+<td style="text-align: right;">0.16%</td>
+<td style="text-align: right;">10.40%</td>
+<td style="text-align: right;">7.24%</td>
+<td style="text-align: right;">0.70x</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">30,000+</td>
+<td style="text-align: right;">3,808,850</td>
+<td style="text-align: right;">6,574</td>
+<td style="text-align: right;">0.17%</td>
+<td style="text-align: right;">48.70%</td>
+<td style="text-align: right;">37.64%</td>
+<td style="text-align: right;">0.77x</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<p>The rescue rate runs monotonically from <strong>0.49% at 0–2,000 ft</strong> down to <strong>0.16% at 20–30,000 ft</strong> — a 3.2× gradient from the surface to cruise. The lowest band is 2.20× over-represented among the rescued rows and the null-altitude band — largely surface traffic — 1.91×. Every band above 5,000 ft is at or below parity.</p>
+<p>So the mechanism is real and it is altitude-dependent in the predicted direction. It is also <strong>0.22% of the data</strong>, which cannot explain an eleven-point coverage gap. Direction confirmed, magnitude irrelevant.</p>
+<p>The endpoint check agrees: of 8,220 aircraft, modulo erased 3 (0.04%) entirely, and its last retained row sits a median of 4 s behind the true last row — about a quarter of a nautical mile.</p>
+<p><strong>On this evidence the decimation rule should not be changed.</strong> It costs +13% in wall clock, it would break <code>track_id</code> continuity with every published dataset, and it buys 0.22% more rows.</p>
+</section>
+<section id="result-3-what-the-row-counts-were-hiding" class="level2" data-number="4">
+<h2 data-number="4" class="anchored" data-anchor-id="result-3-what-the-row-counts-were-hiding"><span class="header-section-number">4</span> Result 3: what the row counts were hiding</h2>
+<p>The archive fills every second, but it fills them by <strong>carrying the last known position forward</strong>. <code>lastPosUpdate</code> records when the position was actually measured, so <code>age = event_time − lastPosUpdate</code> is how old the position in a row is. A row can be present and carry nothing new.</p>
+<div class="cell">
+<div class="cell-output-display">
+<table class="caption-top table table-sm table-striped small">
+<caption>Age of the position carried by each row, by altitude. The mean is not shown: the distribution is bimodal – mostly fresh, with a heavy stale tail – and the mean describes neither part.</caption>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Band (ft)</th>
+<th style="text-align: right;">Rows</th>
+<th style="text-align: right;">Median age</th>
+<th style="text-align: right;">p90</th>
+<th style="text-align: right;">p99</th>
+<th style="text-align: right;">&gt; 5 s</th>
+<th style="text-align: right;">&gt; 30 s</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">(null)</td>
+<td style="text-align: right;">3,743,758</td>
+<td style="text-align: right;">6 s</td>
+<td style="text-align: right;">186 s</td>
+<td style="text-align: right;">296 s</td>
+<td style="text-align: right;">51.40%</td>
+<td style="text-align: right;">32.30%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">0-2,000</td>
+<td style="text-align: right;">2,861,939</td>
+<td style="text-align: right;">2 s</td>
+<td style="text-align: right;">203 s</td>
+<td style="text-align: right;">295 s</td>
+<td style="text-align: right;">43.40%</td>
+<td style="text-align: right;">33.20%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">2,000-5,000</td>
+<td style="text-align: right;">2,854,850</td>
+<td style="text-align: right;">0 s</td>
+<td style="text-align: right;">28 s</td>
+<td style="text-align: right;">266 s</td>
+<td style="text-align: right;">15.60%</td>
+<td style="text-align: right;">10.00%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">5,000-10,000</td>
+<td style="text-align: right;">2,605,554</td>
+<td style="text-align: right;">0 s</td>
+<td style="text-align: right;">5 s</td>
+<td style="text-align: right;">293 s</td>
+<td style="text-align: right;">10.20%</td>
+<td style="text-align: right;">7.30%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">10,000-20,000</td>
+<td style="text-align: right;">3,936,633</td>
+<td style="text-align: right;">0 s</td>
+<td style="text-align: right;">2 s</td>
+<td style="text-align: right;">329 s</td>
+<td style="text-align: right;">8.20%</td>
+<td style="text-align: right;">6.00%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">20,000-30,000</td>
+<td style="text-align: right;">4,072,494</td>
+<td style="text-align: right;">0 s</td>
+<td style="text-align: right;">1 s</td>
+<td style="text-align: right;">394 s</td>
+<td style="text-align: right;">5.90%</td>
+<td style="text-align: right;">4.30%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">30,000+</td>
+<td style="text-align: right;">19,064,395</td>
+<td style="text-align: right;">0 s</td>
+<td style="text-align: right;">2 s</td>
+<td style="text-align: right;">868 s</td>
+<td style="text-align: right;">8.20%</td>
+<td style="text-align: right;">5.80%</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<p>At cruise, positions are fresh: 4.30% of rows above 20,000 ft are more than 30 s old. <strong>Below 2,000 ft that rises to 33.20%, and on the surface to 32.30%.</strong> A third of all low-altitude rows carry a position measured more than half a minute earlier.</p>
+<p>This is the user-visible form of intermittent low-altitude coverage. It does not appear as missing rows because OpenSky fills the gap for us.</p>
+<section id="the-asymmetry-between-the-two-ends-of-a-track" class="level3" data-number="4.1">
+<h3 data-number="4.1" class="anchored" data-anchor-id="the-asymmetry-between-the-two-ends-of-a-track"><span class="header-section-number">4.1</span> The asymmetry between the two ends of a track</h3>
+<div class="cell">
+<div class="cell-output-display">
+<table class="caption-top table table-sm table-striped small">
+<caption>Position age at the two ends of each aircraft’s presence in the window. This is the sharpest asymmetry in the study.</caption>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Endpoint</th>
+<th style="text-align: right;">N</th>
+<th style="text-align: right;">Median age</th>
+<th style="text-align: right;">p90</th>
+<th style="text-align: right;">p99</th>
+<th style="text-align: right;">&gt; 30 s</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">first row of an aircraft</td>
+<td style="text-align: right;">8,220</td>
+<td style="text-align: right;">0 s</td>
+<td style="text-align: right;">2 s</td>
+<td style="text-align: right;">9 s</td>
+<td style="text-align: right;">0.60%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">last row of an aircraft</td>
+<td style="text-align: right;">8,218</td>
+<td style="text-align: right;">190 s</td>
+<td style="text-align: right;">305 s</td>
+<td style="text-align: right;">1263 s</td>
+<td style="text-align: right;">55.10%</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<p><strong>A departure’s first fix is fresh by construction</strong> — an aircraft enters the table when it is first heard, so there is no earlier position to carry forward. Median age 0 s, 0.60% older than 30 s.</p>
+<p><strong>An arrival’s last fix is stale by construction</strong> — the aircraft stays in the table after it stops being heard, padded with its last known position until it times out. Median age <strong>190 s</strong>, and <strong>55.10%</strong> older than 30 s.</p>
+<p>At 150 kt on final approach, 190 s is about 8 NM.</p>
+<div class="callout callout-style-default callout-warning callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Warning</span>What this does and does not mean
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>It does <strong>not</strong> mean the endpoint position is wrong. The carried-forward position is the last position genuinely measured, which is still the best available estimate of where the track ended. Deduplicating the stale rows would not move it.</p>
+<p>What it means is that <strong>reception ends a median of 190 s before the aircraft leaves the data</strong>, and the aircraft keeps flying through that interval. Version 4 asserted that an arrival’s last sample is “where reception died rather than where the flight ended”; this puts a number on it, and the number is minutes rather than seconds.</p>
+<p>It also means three things downstream are measurably wrong, none of them detection: <code>last_seen</code> event times are late by the same interval; gap-based track splitting sees padded gaps rather than real ones; and any derivative computed across carried-forward rows is diluted by runs of zero change.</p>
+</div>
+</div>
+</section>
+</section>
+<section id="what-to-do-with-this" class="level2" data-number="5">
+<h2 data-number="5" class="anchored" data-anchor-id="what-to-do-with-this"><span class="header-section-number">5</span> What to do with this</h2>
+<p><strong>Do not change the decimation rule.</strong> 0.22% of rows, at +13% wall clock and the loss of <code>track_id</code> continuity, is not a trade worth making.</p>
+<p><strong>Use position age as an abstention signal.</strong> This is the actionable finding. <code>last_pos_update</code> is already ingested, already carried into <code>osn_tracks</code> (<code>tracks.py:455</code>), and read by nothing. A track whose final fix has an age of 300 s has an endpoint that is several miles from where the flight actually ended, and the detection has no way to know it. Age at the endpoint is a direct, free measure of how much to trust that endpoint — and unlike the height threshold of the ADEP/ADES version 4 rule, it measures the thing that actually goes wrong.</p>
+<p>That gives a candidate rule worth testing against the version 4 operating point: abstain when the endpoint’s position age exceeds a threshold, instead of, or in addition to, when its height exceeds one. It is a one-column change to the candidate cache.</p>
+<p><strong>Consider dropping stale rows at ingest.</strong> Not to improve detection, but for storage and for honesty: 33.20% of low-altitude rows are repeats of a position already recorded. Removing them would shrink the store and would make gap-based track splitting see the gaps that are really there. It would also change <code>track_id</code>, so it belongs in the same versioned re-ingest as any other ingest change.</p>
+</section>
+<section id="limitations" class="level2" data-number="6">
+<h2 data-number="6" class="anchored" data-anchor-id="limitations"><span class="header-section-number">6</span> Limitations</h2>
+<ul>
+<li><strong>Three hours, one day, one bounding box.</strong> 2025-06-05 06:00–09:00 UTC is a busy European morning; a night sample or a different region may differ.</li>
+<li><strong>“Last row of an aircraft” is not “last row of a flight.”</strong> The window’s end truncates aircraft still airborne, and an aircraft leaving the bounding box exits with a fresh position. Both dilute the staleness figure, so the true landing-endpoint staleness is likely worse than reported, not better.</li>
+<li><strong>Position age is not position error.</strong> A stale position is exactly right for the moment it was measured. The error it causes downstream depends on what the aircraft did next, which is unobserved by construction.</li>
+<li><strong>The bucket rule keeps the last row per bin, not the freshest.</strong> Given the measured penalty of under 2 s of staleness this makes no practical difference, but a rule optimising freshness would use <code>min_by(age)</code>.</li>
+</ul>
+</section>
+<section id="reproducing" class="level2" data-number="7">
+<h2 data-number="7" class="anchored" data-anchor-id="reproducing"><span class="header-section-number">7</span> Reproducing</h2>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="ex">python</span> benchmarks/decimation_experiment.py <span class="dt">\</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>    <span class="at">--date</span> 2025-06-05 <span class="at">--start-hour</span> 6 <span class="at">--hours</span> 3 <span class="at">--results-dir</span> <span class="op">&lt;</span>dir<span class="op">&gt;</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Rendering this page needs no credentials, no database and no cluster.</p>
+
+
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp('/' + window.location.host + '/');
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+</div> <!-- /content -->
+
+
+
+
+</body></html>
