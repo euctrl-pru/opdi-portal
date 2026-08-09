@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 <meta name="author" content="EUROCONTROL Performance Review Unit">
-<meta name="dcterms.date" content="2026-08-08">
+<meta name="dcterms.date" content="2026-08-09">
 
 <title>Detecting departure and destination aerodromes from ADS-B – OPDI Papers</title>
 <style>
@@ -213,9 +213,23 @@ window.Quarto = {
   <li><a href="#sec-per-type" id="toc-sec-per-type" class="nav-link" data-scroll-target="#sec-per-type"><span class="header-section-number">8.1</span> By class of aerodrome</a></li>
   <li><a href="#sec-outliers" id="toc-sec-outliers" class="nav-link" data-scroll-target="#sec-outliers"><span class="header-section-number">8.2</span> Busy aerodromes that fail outright</a></li>
   </ul></li>
-  <li><a href="#recommendation" id="toc-recommendation" class="nav-link" data-scroll-target="#recommendation"><span class="header-section-number">9</span> Recommendation</a></li>
-  <li><a href="#sec-limitations" id="toc-sec-limitations" class="nav-link" data-scroll-target="#sec-limitations"><span class="header-section-number">10</span> Limitations</a></li>
-  <li><a href="#reproducing" id="toc-reproducing" class="nav-link" data-scroll-target="#reproducing"><span class="header-section-number">11</span> Reproducing</a></li>
+  <li><a href="#sec-operating-point" id="toc-sec-operating-point" class="nav-link" data-scroll-target="#sec-operating-point"><span class="header-section-number">9</span> Choosing the operating point</a>
+  <ul class="collapse">
+  <li><a href="#sec-op-dep" id="toc-sec-op-dep" class="nav-link" data-scroll-target="#sec-op-dep"><span class="header-section-number">9.1</span> Departures: every cell wins, but the marginal return collapses</a></li>
+  <li><a href="#sec-op-arr" id="toc-sec-op-arr" class="nav-link" data-scroll-target="#sec-op-arr"><span class="header-section-number">9.2</span> Arrivals: nothing in the grid earns its place</a></li>
+  <li><a href="#sec-op-metrics" id="toc-sec-op-metrics" class="nav-link" data-scroll-target="#sec-op-metrics"><span class="header-section-number">9.3</span> Why no single metric can make this choice</a></li>
+  <li><a href="#sec-op-choice" id="toc-sec-op-choice" class="nav-link" data-scroll-target="#sec-op-choice"><span class="header-section-number">9.4</span> The exchange rate, and the choice</a></li>
+  </ul></li>
+  <li><a href="#sec-hybrid" id="toc-sec-hybrid" class="nav-link" data-scroll-target="#sec-hybrid"><span class="header-section-number">10</span> What <code>endpoint</code> could borrow from <code>trend</code></a>
+  <ul class="collapse">
+  <li><a href="#sec-why-trend" id="toc-sec-why-trend" class="nav-link" data-scroll-target="#sec-why-trend"><span class="header-section-number">10.1</span> Why <code>trend</code> wins arrivals</a></li>
+  <li><a href="#sec-cone" id="toc-sec-cone" class="nav-link" data-scroll-target="#sec-cone"><span class="header-section-number">10.2</span> Tested: an approach cone instead of a rectangle</a></li>
+  <li><a href="#sec-untested" id="toc-sec-untested" class="nav-link" data-scroll-target="#sec-untested"><span class="header-section-number">10.3</span> Untested, in order of expected value</a></li>
+  <li><a href="#sec-hybrid-dep" id="toc-sec-hybrid-dep" class="nav-link" data-scroll-target="#sec-hybrid-dep"><span class="header-section-number">10.4</span> Should any of this apply to departures too?</a></li>
+  </ul></li>
+  <li><a href="#recommendation" id="toc-recommendation" class="nav-link" data-scroll-target="#recommendation"><span class="header-section-number">11</span> Recommendation</a></li>
+  <li><a href="#sec-limitations" id="toc-sec-limitations" class="nav-link" data-scroll-target="#sec-limitations"><span class="header-section-number">12</span> Limitations</a></li>
+  <li><a href="#reproducing" id="toc-reproducing" class="nav-link" data-scroll-target="#reproducing"><span class="header-section-number">13</span> Reproducing</a></li>
   </ul>
 <div class="quarto-alternate-formats"><h2>Other Formats</h2><ul><li><a href="index.pdf"><i class="bi bi-file-pdf"></i>PDF</a></li></ul></div></nav>
     </div>
@@ -225,7 +239,7 @@ window.Quarto = {
 <header id="title-block-header" class="quarto-title-block default">
 <div class="quarto-title">
 <h1 class="title">Detecting departure and destination aerodromes from ADS-B</h1>
-<p class="subtitle lead">Version 4.3 — detection inside the pipeline</p>
+<p class="subtitle lead">Version 4.5 — detection inside the pipeline</p>
 </div>
 
 
@@ -242,7 +256,7 @@ window.Quarto = {
     <div>
     <div class="quarto-title-meta-heading">Published</div>
     <div class="quarto-title-meta-contents">
-      <p class="date">August 8, 2026</p>
+      <p class="date">August 9, 2026</p>
     </div>
   </div>
   
@@ -288,7 +302,13 @@ window.Quarto = {
 </div>
 <div id="callout-2" class="callout-2-contents callout-collapse collapse">
 <div class="callout-body-container callout-body">
-<p>Every headline number is unchanged throughout. The point releases report more of what version 4 already computed, plus two new computations.</p>
+<p>Every headline number is unchanged throughout. The point releases report more of what version 4 already computed, plus three new computations.</p>
+<p><strong>4.5</strong></p>
+<ul>
+<li>A <strong>result analysis</strong> that picks an operating point and argues for it (<a href="#sec-operating-point" class="quarto-xref">Section&nbsp;9</a>), in flights rather than percentages, separately for departures and arrivals. It finds the currently published parameters are past break-even, and that no arrival setting beats production.</li>
+<li><strong>Why no single metric can choose</strong> the parameters — each of coverage, accuracy and overall correctness is maximised at a degenerate corner (<a href="#sec-op-metrics" class="quarto-xref">Section&nbsp;9.3</a>).</li>
+<li><strong>An approach cone tested against the rectangle</strong> (<a href="#sec-cone" class="quarto-xref">Section&nbsp;10.2</a>), and what <code>endpoint</code> could borrow from <code>trend</code> for arrivals (<a href="#sec-hybrid" class="quarto-xref">Section&nbsp;10</a>).</li>
+</ul>
 <p><strong>4.3</strong></p>
 <ul>
 <li>The height sweep runs to <strong>40,000 ft</strong> rather than stopping at 20,000. At 20,000 ft six points of departure coverage still separated the curve from the unrestricted case, so the old grid cut it off mid-rise and left the reader to guess where it flattened.</li>
@@ -2509,16 +2529,918 @@ window.Quarto = {
 <p>Every aerodrome in both groups is a <code>large_airport</code> with scheduled service and is present in the detection reference, so neither failure is the reference gap of <a href="#sec-per-type" class="quarto-xref">Section&nbsp;8.1</a>. The first group is a data limitation and is not fixable here. The second is a detection failure at aerodromes large enough to matter, it is concentrated rather than scattered, and <strong>this study has not diagnosed it</strong> — it is the most promising lead the cross-check produces.</p>
 </section>
 </section>
-<section id="recommendation" class="level2" data-number="9">
-<h2 data-number="9" class="anchored" data-anchor-id="recommendation"><span class="header-section-number">9</span> Recommendation</h2>
+<section id="sec-operating-point" class="level2" data-number="9">
+<h2 data-number="9" class="anchored" data-anchor-id="sec-operating-point"><span class="header-section-number">9</span> Choosing the operating point</h2>
+<p>The sections above establish how each parameter behaves. This one picks values, and argues for them in flights rather than in percentages — because a rate conceals the size of what is being traded. “−0.84 pp of accuracy” and “792 more wrong aerodromes in three days” are the same fact, and only one of them can be weighed against anything.</p>
+<p>All counts are out of 95,116 ground-truth flights per role, over 2025-06-05 to 07. <em>Answered</em> is what the method labelled, <em>correct</em> is what it labelled right, <em>wrong</em> is what it labelled wrong, <em>silent</em> is what it declined. The last three columns compare against production (<code>trend</code>).</p>
+<div class="cell">
+<div class="cell-output-display">
+<table class="caption-top table table-sm table-striped small">
+<caption>Departures: the parameter grid in rates and in flights, against production. Penalty fixed at 10 NM. <em>Gain:err</em> is extra correct labels per extra wrong label, against production.</caption>
+<colgroup>
+<col style="width: 19%">
+<col style="width: 7%">
+<col style="width: 7%">
+<col style="width: 7%">
+<col style="width: 9%">
+<col style="width: 8%">
+<col style="width: 6%">
+<col style="width: 7%">
+<col style="width: 10%">
+<col style="width: 8%">
+<col style="width: 9%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Parameters</th>
+<th style="text-align: right;">Cov</th>
+<th style="text-align: right;">Acc</th>
+<th style="text-align: right;">Ovr</th>
+<th style="text-align: right;">Answered</th>
+<th style="text-align: right;">Correct</th>
+<th style="text-align: right;">Wrong</th>
+<th style="text-align: right;">Silent</th>
+<th style="text-align: right;">d correct</th>
+<th style="text-align: right;">d wrong</th>
+<th style="text-align: right;">Gain:err</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">trend (production)</td>
+<td style="text-align: right;">68.72%</td>
+<td style="text-align: right;">98.82%</td>
+<td style="text-align: right;">67.91%</td>
+<td style="text-align: right;">65,365</td>
+<td style="text-align: right;">64,594</td>
+<td style="text-align: right;">771</td>
+<td style="text-align: right;">29,751</td>
+<td style="text-align: right;">—</td>
+<td style="text-align: right;">—</td>
+<td style="text-align: right;">—</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">20 NM / 15,000 ft</td>
+<td style="text-align: right;">80.07%</td>
+<td style="text-align: right;">98.44%</td>
+<td style="text-align: right;">78.82%</td>
+<td style="text-align: right;">76,164</td>
+<td style="text-align: right;">74,973</td>
+<td style="text-align: right;">1,191</td>
+<td style="text-align: right;">18,952</td>
+<td style="text-align: right;">10,379</td>
+<td style="text-align: right;">420</td>
+<td style="text-align: right;">24.7:1</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">30 NM / 15,000 ft</td>
+<td style="text-align: right;">80.96%</td>
+<td style="text-align: right;">98.16%</td>
+<td style="text-align: right;">79.47%</td>
+<td style="text-align: right;">77,003</td>
+<td style="text-align: right;">75,587</td>
+<td style="text-align: right;">1,416</td>
+<td style="text-align: right;">18,113</td>
+<td style="text-align: right;">10,993</td>
+<td style="text-align: right;">645</td>
+<td style="text-align: right;">17.0:1</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">40 NM / 15,000 ft</td>
+<td style="text-align: right;">81.20%</td>
+<td style="text-align: right;">97.98%</td>
+<td style="text-align: right;">79.55%</td>
+<td style="text-align: right;">77,230</td>
+<td style="text-align: right;">75,667</td>
+<td style="text-align: right;">1,563</td>
+<td style="text-align: right;">17,886</td>
+<td style="text-align: right;">11,073</td>
+<td style="text-align: right;">792</td>
+<td style="text-align: right;">14.0:1</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">20 NM / 20,000 ft</td>
+<td style="text-align: right;">80.53%</td>
+<td style="text-align: right;">98.11%</td>
+<td style="text-align: right;">79.01%</td>
+<td style="text-align: right;">76,593</td>
+<td style="text-align: right;">75,148</td>
+<td style="text-align: right;">1,445</td>
+<td style="text-align: right;">18,523</td>
+<td style="text-align: right;">10,554</td>
+<td style="text-align: right;">674</td>
+<td style="text-align: right;">15.7:1</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">30 NM / 20,000 ft</td>
+<td style="text-align: right;">81.86%</td>
+<td style="text-align: right;">97.65%</td>
+<td style="text-align: right;">79.94%</td>
+<td style="text-align: right;">77,863</td>
+<td style="text-align: right;">76,032</td>
+<td style="text-align: right;">1,831</td>
+<td style="text-align: right;">17,253</td>
+<td style="text-align: right;">11,438</td>
+<td style="text-align: right;">1,060</td>
+<td style="text-align: right;">10.8:1</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">40 NM / 20,000 ft</td>
+<td style="text-align: right;">82.44%</td>
+<td style="text-align: right;">97.34%</td>
+<td style="text-align: right;">80.24%</td>
+<td style="text-align: right;">78,411</td>
+<td style="text-align: right;">76,322</td>
+<td style="text-align: right;">2,089</td>
+<td style="text-align: right;">16,705</td>
+<td style="text-align: right;">11,728</td>
+<td style="text-align: right;">1,318</td>
+<td style="text-align: right;">8.9:1</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">20 NM / 25,000 ft</td>
+<td style="text-align: right;">80.80%</td>
+<td style="text-align: right;">97.80%</td>
+<td style="text-align: right;">79.02%</td>
+<td style="text-align: right;">76,852</td>
+<td style="text-align: right;">75,162</td>
+<td style="text-align: right;">1,690</td>
+<td style="text-align: right;">18,264</td>
+<td style="text-align: right;">10,568</td>
+<td style="text-align: right;">919</td>
+<td style="text-align: right;">11.5:1</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">30 NM / 25,000 ft</td>
+<td style="text-align: right;">82.41%</td>
+<td style="text-align: right;">97.06%</td>
+<td style="text-align: right;">79.98%</td>
+<td style="text-align: right;">78,382</td>
+<td style="text-align: right;">76,078</td>
+<td style="text-align: right;">2,304</td>
+<td style="text-align: right;">16,734</td>
+<td style="text-align: right;">11,484</td>
+<td style="text-align: right;">1,533</td>
+<td style="text-align: right;">7.5:1</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">40 NM / 25,000 ft</td>
+<td style="text-align: right;">83.50%</td>
+<td style="text-align: right;">96.31%</td>
+<td style="text-align: right;">80.41%</td>
+<td style="text-align: right;">79,419</td>
+<td style="text-align: right;">76,487</td>
+<td style="text-align: right;">2,932</td>
+<td style="text-align: right;">15,697</td>
+<td style="text-align: right;">11,893</td>
+<td style="text-align: right;">2,161</td>
+<td style="text-align: right;">5.5:1</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">20 NM / 30,000 ft</td>
+<td style="text-align: right;">81.13%</td>
+<td style="text-align: right;">97.40%</td>
+<td style="text-align: right;">79.02%</td>
+<td style="text-align: right;">77,168</td>
+<td style="text-align: right;">75,165</td>
+<td style="text-align: right;">2,003</td>
+<td style="text-align: right;">17,948</td>
+<td style="text-align: right;">10,571</td>
+<td style="text-align: right;">1,232</td>
+<td style="text-align: right;">8.6:1</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">30 NM / 30,000 ft</td>
+<td style="text-align: right;">83.09%</td>
+<td style="text-align: right;">96.26%</td>
+<td style="text-align: right;">79.99%</td>
+<td style="text-align: right;">79,035</td>
+<td style="text-align: right;">76,083</td>
+<td style="text-align: right;">2,952</td>
+<td style="text-align: right;">16,081</td>
+<td style="text-align: right;">11,489</td>
+<td style="text-align: right;">2,181</td>
+<td style="text-align: right;">5.3:1</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">40 NM / 30,000 ft</td>
+<td style="text-align: right;">84.44%</td>
+<td style="text-align: right;">95.21%</td>
+<td style="text-align: right;">80.39%</td>
+<td style="text-align: right;">80,317</td>
+<td style="text-align: right;">76,467</td>
+<td style="text-align: right;">3,850</td>
+<td style="text-align: right;">14,799</td>
+<td style="text-align: right;">11,873</td>
+<td style="text-align: right;">3,079</td>
+<td style="text-align: right;">3.9:1</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div class="cell">
+<div class="cell-output-display">
+<table class="caption-top table table-sm table-striped small">
+<caption>Arrivals: the same grid. Note that most cells produce <em>fewer</em> correct labels than production while adding wrong ones. Penalty fixed at 10 NM.</caption>
+<colgroup>
+<col style="width: 19%">
+<col style="width: 7%">
+<col style="width: 7%">
+<col style="width: 7%">
+<col style="width: 9%">
+<col style="width: 8%">
+<col style="width: 6%">
+<col style="width: 7%">
+<col style="width: 10%">
+<col style="width: 8%">
+<col style="width: 9%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Parameters</th>
+<th style="text-align: right;">Cov</th>
+<th style="text-align: right;">Acc</th>
+<th style="text-align: right;">Ovr</th>
+<th style="text-align: right;">Answered</th>
+<th style="text-align: right;">Correct</th>
+<th style="text-align: right;">Wrong</th>
+<th style="text-align: right;">Silent</th>
+<th style="text-align: right;">d correct</th>
+<th style="text-align: right;">d wrong</th>
+<th style="text-align: right;">Gain:err</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">trend (production)</td>
+<td style="text-align: right;">68.06%</td>
+<td style="text-align: right;">97.87%</td>
+<td style="text-align: right;">66.61%</td>
+<td style="text-align: right;">64,738</td>
+<td style="text-align: right;">63,361</td>
+<td style="text-align: right;">1,377</td>
+<td style="text-align: right;">30,378</td>
+<td style="text-align: right;">—</td>
+<td style="text-align: right;">—</td>
+<td style="text-align: right;">—</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">20 NM / 15,000 ft</td>
+<td style="text-align: right;">66.78%</td>
+<td style="text-align: right;">96.65%</td>
+<td style="text-align: right;">64.54%</td>
+<td style="text-align: right;">63,514</td>
+<td style="text-align: right;">61,387</td>
+<td style="text-align: right;">2,127</td>
+<td style="text-align: right;">31,602</td>
+<td style="text-align: right;">-1,974</td>
+<td style="text-align: right;">750</td>
+<td style="text-align: right;">—</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">30 NM / 15,000 ft</td>
+<td style="text-align: right;">69.10%</td>
+<td style="text-align: right;">95.63%</td>
+<td style="text-align: right;">66.08%</td>
+<td style="text-align: right;">65,726</td>
+<td style="text-align: right;">62,856</td>
+<td style="text-align: right;">2,870</td>
+<td style="text-align: right;">29,390</td>
+<td style="text-align: right;">-505</td>
+<td style="text-align: right;">1,493</td>
+<td style="text-align: right;">—</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">40 NM / 15,000 ft</td>
+<td style="text-align: right;">69.97%</td>
+<td style="text-align: right;">95.10%</td>
+<td style="text-align: right;">66.54%</td>
+<td style="text-align: right;">66,551</td>
+<td style="text-align: right;">63,287</td>
+<td style="text-align: right;">3,264</td>
+<td style="text-align: right;">28,565</td>
+<td style="text-align: right;">-74</td>
+<td style="text-align: right;">1,887</td>
+<td style="text-align: right;">—</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">20 NM / 20,000 ft</td>
+<td style="text-align: right;">67.42%</td>
+<td style="text-align: right;">95.97%</td>
+<td style="text-align: right;">64.70%</td>
+<td style="text-align: right;">64,124</td>
+<td style="text-align: right;">61,543</td>
+<td style="text-align: right;">2,581</td>
+<td style="text-align: right;">30,992</td>
+<td style="text-align: right;">-1,818</td>
+<td style="text-align: right;">1,204</td>
+<td style="text-align: right;">—</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">30 NM / 20,000 ft</td>
+<td style="text-align: right;">70.32%</td>
+<td style="text-align: right;">94.24%</td>
+<td style="text-align: right;">66.27%</td>
+<td style="text-align: right;">66,883</td>
+<td style="text-align: right;">63,032</td>
+<td style="text-align: right;">3,851</td>
+<td style="text-align: right;">28,233</td>
+<td style="text-align: right;">-329</td>
+<td style="text-align: right;">2,474</td>
+<td style="text-align: right;">—</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">40 NM / 20,000 ft</td>
+<td style="text-align: right;">71.47%</td>
+<td style="text-align: right;">93.47%</td>
+<td style="text-align: right;">66.81%</td>
+<td style="text-align: right;">67,983</td>
+<td style="text-align: right;">63,544</td>
+<td style="text-align: right;">4,439</td>
+<td style="text-align: right;">27,133</td>
+<td style="text-align: right;">183</td>
+<td style="text-align: right;">3,062</td>
+<td style="text-align: right;">0.1:1</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">20 NM / 25,000 ft</td>
+<td style="text-align: right;">67.91%</td>
+<td style="text-align: right;">95.54%</td>
+<td style="text-align: right;">64.88%</td>
+<td style="text-align: right;">64,592</td>
+<td style="text-align: right;">61,710</td>
+<td style="text-align: right;">2,882</td>
+<td style="text-align: right;">30,524</td>
+<td style="text-align: right;">-1,651</td>
+<td style="text-align: right;">1,505</td>
+<td style="text-align: right;">—</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">30 NM / 25,000 ft</td>
+<td style="text-align: right;">71.09%</td>
+<td style="text-align: right;">93.46%</td>
+<td style="text-align: right;">66.45%</td>
+<td style="text-align: right;">67,622</td>
+<td style="text-align: right;">63,202</td>
+<td style="text-align: right;">4,420</td>
+<td style="text-align: right;">27,494</td>
+<td style="text-align: right;">-159</td>
+<td style="text-align: right;">3,043</td>
+<td style="text-align: right;">—</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">40 NM / 25,000 ft</td>
+<td style="text-align: right;">72.43%</td>
+<td style="text-align: right;">92.51%</td>
+<td style="text-align: right;">67.00%</td>
+<td style="text-align: right;">68,889</td>
+<td style="text-align: right;">63,728</td>
+<td style="text-align: right;">5,161</td>
+<td style="text-align: right;">26,227</td>
+<td style="text-align: right;">367</td>
+<td style="text-align: right;">3,784</td>
+<td style="text-align: right;">0.1:1</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">20 NM / 30,000 ft</td>
+<td style="text-align: right;">68.50%</td>
+<td style="text-align: right;">95.04%</td>
+<td style="text-align: right;">65.10%</td>
+<td style="text-align: right;">65,156</td>
+<td style="text-align: right;">61,923</td>
+<td style="text-align: right;">3,233</td>
+<td style="text-align: right;">29,960</td>
+<td style="text-align: right;">-1,438</td>
+<td style="text-align: right;">1,856</td>
+<td style="text-align: right;">—</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">30 NM / 30,000 ft</td>
+<td style="text-align: right;">71.96%</td>
+<td style="text-align: right;">92.65%</td>
+<td style="text-align: right;">66.67%</td>
+<td style="text-align: right;">68,445</td>
+<td style="text-align: right;">63,417</td>
+<td style="text-align: right;">5,028</td>
+<td style="text-align: right;">26,671</td>
+<td style="text-align: right;">56</td>
+<td style="text-align: right;">3,651</td>
+<td style="text-align: right;">0.0:1</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">40 NM / 30,000 ft</td>
+<td style="text-align: right;">73.55%</td>
+<td style="text-align: right;">91.40%</td>
+<td style="text-align: right;">67.23%</td>
+<td style="text-align: right;">69,962</td>
+<td style="text-align: right;">63,946</td>
+<td style="text-align: right;">6,016</td>
+<td style="text-align: right;">25,154</td>
+<td style="text-align: right;">585</td>
+<td style="text-align: right;">4,639</td>
+<td style="text-align: right;">0.1:1</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<section id="sec-op-dep" class="level3" data-number="9.1">
+<h3 data-number="9.1" class="anchored" data-anchor-id="sec-op-dep"><span class="header-section-number">9.1</span> Departures: every cell wins, but the marginal return collapses</h3>
+<p>Every cell in the table beats production. That is not the question. The question is what each successive loosening <em>buys</em>, and the answer is that it collapses.</p>
+<div class="cell">
+<div class="cell-output-display">
+<table class="caption-top table table-sm table-striped small">
+<caption>Departures: each step of loosening, and its marginal return. <em>Marginal</em> is extra correct labels per extra wrong label for that step alone, not against production.</caption>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Step</th>
+<th style="text-align: right;">d correct</th>
+<th style="text-align: right;">d wrong</th>
+<th style="text-align: right;">Marginal</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">production to 20 NM / 5,000 ft</td>
+<td style="text-align: right;">5,366</td>
+<td style="text-align: right;">26</td>
+<td style="text-align: right;">206.38:1</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">20 NM / 5,000 ft to 20 NM / 8,000 ft</td>
+<td style="text-align: right;">2,426</td>
+<td style="text-align: right;">62</td>
+<td style="text-align: right;">39.13:1</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">20 NM / 8,000 ft to 20 NM / 10,000 ft</td>
+<td style="text-align: right;">1,295</td>
+<td style="text-align: right;">94</td>
+<td style="text-align: right;">13.78:1</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">20 NM / 10,000 ft to 20 NM / 15,000 ft</td>
+<td style="text-align: right;">1,292</td>
+<td style="text-align: right;">238</td>
+<td style="text-align: right;">5.43:1</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">20 NM / 15,000 ft to 30 NM / 15,000 ft</td>
+<td style="text-align: right;">614</td>
+<td style="text-align: right;">225</td>
+<td style="text-align: right;">2.73:1</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">30 NM / 15,000 ft to 40 NM / 15,000 ft</td>
+<td style="text-align: right;">80</td>
+<td style="text-align: right;">147</td>
+<td style="text-align: right;">0.54:1</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">40 NM / 15,000 ft to 40 NM / 20,000 ft</td>
+<td style="text-align: right;">655</td>
+<td style="text-align: right;">526</td>
+<td style="text-align: right;">1.25:1</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">40 NM / 20,000 ft to 40 NM / 25,000 ft</td>
+<td style="text-align: right;">165</td>
+<td style="text-align: right;">843</td>
+<td style="text-align: right;">0.20:1</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">40 NM / 25,000 ft to 40 NM / 30,000 ft</td>
+<td style="text-align: right;">-20</td>
+<td style="text-align: right;">918</td>
+<td style="text-align: right;">loss</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<p>Two readings of the same table. Against production, every cell looks excellent — the worst ratio in the grid is still better than three correct labels per error. Step by step, the picture inverts: the first move off production is nearly free, and by the wide-and-high end each additional correct label costs more than one additional error.</p>
+<p>Note where the currently published operating point sits. Going from 30 NM to 40 NM at 15,000 ft adds 80 correct labels and 147 wrong ones. <strong>The published parameters are already past break-even</strong>, which the percentage view never showed because it is a 0.18 pp change in accuracy.</p>
+</section>
+<section id="sec-op-arr" class="level3" data-number="9.2">
+<h3 data-number="9.2" class="anchored" data-anchor-id="sec-op-arr"><span class="header-section-number">9.2</span> Arrivals: nothing in the grid earns its place</h3>
+<p>Arrivals invert the departure result completely. <strong>8 of the 12 cells produce fewer correct arrival labels than production</strong>, while every one of them produces more wrong ones. The cells that do gain correct labels buy them at a ruinous rate:</p>
+<div class="cell">
+<div class="cell-output-display">
+<table class="caption-top table table-sm table-striped small">
+<caption>Arrivals: what each cell costs against production. Cells omitted from the ratio column produce fewer correct labels than production and so gain nothing to price.</caption>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Cell</th>
+<th style="text-align: right;">d correct</th>
+<th style="text-align: right;">d wrong</th>
+<th style="text-align: right;">Errors per correct gained</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">30 NM / 15,000 ft</td>
+<td style="text-align: right;">-505</td>
+<td style="text-align: right;">1,493</td>
+<td style="text-align: right;">gains none</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">40 NM / 15,000 ft</td>
+<td style="text-align: right;">-74</td>
+<td style="text-align: right;">1,887</td>
+<td style="text-align: right;">gains none</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">40 NM / 20,000 ft</td>
+<td style="text-align: right;">183</td>
+<td style="text-align: right;">3,062</td>
+<td style="text-align: right;">16.7</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">40 NM / 25,000 ft</td>
+<td style="text-align: right;">367</td>
+<td style="text-align: right;">3,784</td>
+<td style="text-align: right;">10.3</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">40 NM / 30,000 ft</td>
+<td style="text-align: right;">585</td>
+<td style="text-align: right;">4,639</td>
+<td style="text-align: right;">7.9</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<p>The best arrival cell in the entire grid, 40 NM / 30,000 ft, gains 585 correct labels and adds 4,639 wrong ones. There is no exchange rate under which that is a good trade. <strong><code>endpoint</code> should not replace <code>trend</code> for arrivals at any setting measured here</strong> — and <a href="#sec-hybrid" class="quarto-xref">Section&nbsp;10</a> asks why, and what could be done about it.</p>
+</section>
+<section id="sec-op-metrics" class="level3" data-number="9.3">
+<h3 data-number="9.3" class="anchored" data-anchor-id="sec-op-metrics"><span class="header-section-number">9.3</span> Why no single metric can make this choice</h3>
+<p>A natural instinct is to let one number decide. It cannot, and it is worth seeing why before trusting any headline figure.</p>
+<div class="cell">
+<div class="cell-output-display">
+<table class="caption-top table table-sm table-striped small">
+<caption>Departures: the best cell in the whole grid under each metric taken alone.</caption>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Optimising</th>
+<th style="text-align: left;">Parameters</th>
+<th style="text-align: right;">Coverage</th>
+<th style="text-align: right;">Accuracy</th>
+<th style="text-align: right;">Overall</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">coverage</td>
+<td style="text-align: left;">110 NM / unrestricted</td>
+<td style="text-align: right;">91.41%</td>
+<td style="text-align: right;">87.91%</td>
+<td style="text-align: right;">80.36%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">accuracy</td>
+<td style="text-align: left;">5 NM / 2,000 ft</td>
+<td style="text-align: right;">66.84%</td>
+<td style="text-align: right;">99.24%</td>
+<td style="text-align: right;">66.33%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">overall</td>
+<td style="text-align: left;">80 NM / 30,000 ft</td>
+<td style="text-align: right;">85.63%</td>
+<td style="text-align: right;">94.19%</td>
+<td style="text-align: right;">80.66%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">—</td>
+<td style="text-align: left;">trend (production)</td>
+<td style="text-align: right;">68.72%</td>
+<td style="text-align: right;">98.82%</td>
+<td style="text-align: right;">67.91%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">—</td>
+<td style="text-align: left;">nearest (no abstention)</td>
+<td style="text-align: right;">91.68%</td>
+<td style="text-align: right;">87.78%</td>
+<td style="text-align: right;">80.48%</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div class="cell">
+<div class="cell-output-display">
+<table class="caption-top table table-sm table-striped small">
+<caption>Arrivals: the same. Note that no <code>endpoint</code> cell reaches <code>nearest</code>’s overall correctness.</caption>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Optimising</th>
+<th style="text-align: left;">Parameters</th>
+<th style="text-align: right;">Coverage</th>
+<th style="text-align: right;">Accuracy</th>
+<th style="text-align: right;">Overall</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">coverage</td>
+<td style="text-align: left;">110 NM / unrestricted</td>
+<td style="text-align: right;">87.75%</td>
+<td style="text-align: right;">79.53%</td>
+<td style="text-align: right;">69.79%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">accuracy</td>
+<td style="text-align: left;">5 NM / 500 ft</td>
+<td style="text-align: right;">52.03%</td>
+<td style="text-align: right;">99.15%</td>
+<td style="text-align: right;">51.59%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">overall</td>
+<td style="text-align: left;">100 NM / unrestricted</td>
+<td style="text-align: right;">87.44%</td>
+<td style="text-align: right;">79.82%</td>
+<td style="text-align: right;">69.79%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">—</td>
+<td style="text-align: left;">trend (production)</td>
+<td style="text-align: right;">68.06%</td>
+<td style="text-align: right;">97.87%</td>
+<td style="text-align: right;">66.61%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">—</td>
+<td style="text-align: left;">nearest (no abstention)</td>
+<td style="text-align: right;">88.56%</td>
+<td style="text-align: right;">79.41%</td>
+<td style="text-align: right;">70.33%</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<p>Each of these is degenerate in its own way.</p>
+<p><strong>Maximising accuracy produces a rule quieter than the one it replaces.</strong> The best-accuracy departure cell answers 66.84% of flights against production’s 68.72%. It is more accurate and <em>less useful</em>: fewer flights labelled, for a fraction of a point. For arrivals it is starker still, at 52.03% coverage.</p>
+<p><strong>Maximising coverage switches abstention off.</strong> The best-coverage cell reaches 91.41% against <code>nearest</code>’s 91.68% — the residual is only the aerodromes with no elevation in OurAirports. At that setting <code>endpoint</code> <em>is</em> <code>nearest</code>, and the reason for choosing it has been configured away.</p>
+<p><strong>Maximising overall correctness is maximising coverage in disguise.</strong> Across the grid, overall correctness correlates <strong>+0.988 with coverage</strong> and <strong>-0.439 with accuracy</strong> for departures (+0.951 and -0.584 for arrivals). Coverage spans 60.27% across the grid and accuracy only 11.33%, so the product tracks the wider factor. And for arrivals the verdict of overall correctness is explicitly <em>do not abstain</em>: <code>nearest</code> scores 70.33%, above every <code>endpoint</code> cell.</p>
+<p><strong>It is also too flat to discriminate.</strong> 30 of the 126 departure cells sit within half a point of the best overall correctness, spanning 40–110 NM and 20,000–40,000 ft. Those statistically indistinguishable cells differ by <strong>thousands of wrong labels</strong>. Overall correctness cannot see the thing that separates them.</p>
+</section>
+<section id="sec-op-choice" class="level3" data-number="9.4">
+<h3 data-number="9.4" class="anchored" data-anchor-id="sec-op-choice"><span class="header-section-number">9.4</span> The exchange rate, and the choice</h3>
+<p>What remains is a policy question that the data can inform but not settle: how many extra wrong labels is one extra correct label worth?</p>
+<p>There is a structural asymmetry that argues for pricing errors above correct answers. <strong>A wrong aerodrome corrupts two movement counts</strong> — the aerodrome that loses the flight and the aerodrome that wrongly gains it — and it is invisible to a consumer, indistinguishable from a correct label. <strong>A silent flight depresses one count and is explicit</strong>: it arrives as a null the consumer can filter, and <a href="#sec-crosscheck" class="quarto-xref">Section&nbsp;8</a>’s undercount is correctable in a way an inflated count is not. Tenerife North makes the point concretely: a count ratio of 0.99 that looks healthy, on a recall of 23.75%.</p>
+<p>On that reasoning an error is worth at least two correct labels, and the departure ladder stops at the last step above 2:1.</p>
+<div class="callout callout-style-default callout-tip callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Tip</span>The operating point this study recommends
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p><strong>Departures: <code>endpoint</code> at 30 NM, 15,000 ft, 10 NM scheduled-service penalty.</strong> 10,993 correct departure labels against production for 645 wrong ones.</p>
+<p><strong>Arrivals: keep <code>trend</code>.</strong> Nothing measured here improves on it, and the cells that add correct labels add errors seven to seventeen times faster.</p>
+<p>At a stricter exchange rate the departure answer moves inward — 5:1 gives 20 NM / 10,000 ft, 10:1 gives 20 NM / 8,000 ft — and at 1:1 it moves out to 40 NM / 20,000 ft. The rate is the decision; the parameters follow from it.</p>
+</div>
+</div>
+<p>The penalty of 10 NM is carried over from <a href="#sec-penalty" class="quarto-xref">Section&nbsp;6</a>, where it was swept at 40 NM and 15,000 ft. It has not been re-verified at 30 NM, and should be before this is published.</p>
+</section>
+</section>
+<section id="sec-hybrid" class="level2" data-number="10">
+<h2 data-number="10" class="anchored" data-anchor-id="sec-hybrid"><span class="header-section-number">10</span> What <code>endpoint</code> could borrow from <code>trend</code></h2>
+<p><a href="#sec-op-arr" class="quarto-xref">Section&nbsp;9.2</a> leaves an uncomfortable result: for arrivals, the algorithm this study has been arguing for loses to the one it proposed to replace, at every setting measured. That is worth understanding rather than working around, because the reason points at what a better rule would look like.</p>
+<section id="sec-why-trend" class="level3" data-number="10.1">
+<h3 data-number="10.1" class="anchored" data-anchor-id="sec-why-trend"><span class="header-section-number">10.1</span> Why <code>trend</code> wins arrivals</h3>
+<p>The two rules differ in how much of the trajectory they read.</p>
+<p><strong><code>endpoint</code> reads one sample.</strong> The first or last fix of the track, its distance to each candidate, its height above field elevation, its ground flag. Nothing else.</p>
+<p><strong><code>trend</code> reads every sample below FL40 inside the zone.</strong> For each (track, aerodrome) pair it smooths altitude over five samples and counts rises against falls. It sees a descent, not a point.</p>
+<p>For departures that difference barely matters. A departure’s first sample is near the field whatever else is true, so one sample locates it almost as well as fifty — which is why <code>endpoint</code> beats <code>trend</code> on departures by 10,993 correct labels.</p>
+<p>For arrivals it matters a great deal, for the reason <a href="#sec-radius" class="quarto-xref">Section&nbsp;5</a> identified: <strong>an arrival’s last sample is where reception died, which is a property of the receiver network rather than of the flight.</strong> The samples <em>before</em> it still describe an approach. <code>endpoint</code> throws them away; <code>trend</code> uses them.</p>
+<p>There is a second difference, and it is the more important one. <code>trend</code>’s altitude vote is evaluated <strong>per candidate aerodrome</strong> — it asks “is this aircraft descending toward <em>this</em> aerodrome”, which discriminates between candidates. <code>endpoint</code>’s thresholds are a <strong>gate</strong>: as <a href="#sec-modes" class="quarto-xref">Section&nbsp;3</a> puts it, the abstention decides <em>whether</em> to answer, never <em>what</em> to answer. Naming is left entirely to effective distance.</p>
+<p>That matters because the dominant arrival failure is misnaming, not silence. <a href="#sec-outliers" class="quarto-xref">Section&nbsp;8.2</a> found Bilbao answering 90.64% of its arrivals and placing only 38 of 235 correctly. <strong>No gate can fix a naming error.</strong> Tightening the thresholds makes the rule answer less; it does not make it answer better.</p>
+</section>
+<section id="sec-cone" class="level3" data-number="10.2">
+<h3 data-number="10.2" class="anchored" data-anchor-id="sec-cone"><span class="header-section-number">10.2</span> Tested: an approach cone instead of a rectangle</h3>
+<p>The first idea to try is the cheapest, because it needs no new data — only a different shape for the same two numbers.</p>
+<p>The current rule accepts an endpoint inside <code>radius_nm</code> <strong>and</strong> below <code>height_ft</code>, treating distance and height as independent. On an approach they are not: an aircraft descending toward an aerodrome trades height for distance at roughly a constant rate. The 3° glideslope is 318 ft/NM and the “three times the flight level” descent rule of thumb is about 333 ft/NM. So the endpoints that genuinely belong to an aerodrome should lie in a <strong>cone</strong>, <code>agl_ft ≤ k · dist_nm</code>, not a box.</p>
+<p>The two shapes disagree in both corners:</p>
+<ul>
+<li><strong>close and high</strong> is inside the box, outside the cone. An aircraft at 15,000 ft overhead an aerodrome is overflying it. The box accepts this, and it is a pure source of wrong labels.</li>
+<li><strong>far and low</strong> is outside the box, inside the cone. An arrival whose reception dies at 8,000 ft and 30 NM is on profile and is a good candidate.</li>
+</ul>
+<div class="cell">
+<div class="cell-output-display">
+<table class="caption-top table table-sm table-striped small">
+<caption>The approach cone at a 40 NM outer cap, against the rectangle <strong>at matched coverage</strong> – the only fair comparison between two acceptance shapes. <em>box acc</em> is the rectangle’s accuracy interpolated to the cone’s coverage; <em>cone gain</em> is positive where the cone is better.</caption>
+<colgroup>
+<col style="width: 12%">
+<col style="width: 10%">
+<col style="width: 10%">
+<col style="width: 9%">
+<col style="width: 11%">
+<col style="width: 10%">
+<col style="width: 10%">
+<col style="width: 10%">
+<col style="width: 12%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Slope</th>
+<th style="text-align: right;">ADEP cov</th>
+<th style="text-align: right;">ADEP acc</th>
+<th style="text-align: right;">box acc</th>
+<th style="text-align: right;">cone gain</th>
+<th style="text-align: right;">ADES cov</th>
+<th style="text-align: right;">ADES acc</th>
+<th style="text-align: right;">box acc</th>
+<th style="text-align: right;">cone gain</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">150 ft/NM</td>
+<td style="text-align: right;">56.76%</td>
+<td style="text-align: right;">98.81%</td>
+<td style="text-align: right;">98.94%</td>
+<td style="text-align: right;">-0.13 pp</td>
+<td style="text-align: right;">57.34%</td>
+<td style="text-align: right;">98.22%</td>
+<td style="text-align: right;">98.48%</td>
+<td style="text-align: right;">-0.26 pp</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">200 ft/NM</td>
+<td style="text-align: right;">56.80%</td>
+<td style="text-align: right;">98.75%</td>
+<td style="text-align: right;">98.94%</td>
+<td style="text-align: right;">-0.19 pp</td>
+<td style="text-align: right;">57.60%</td>
+<td style="text-align: right;">98.12%</td>
+<td style="text-align: right;">98.46%</td>
+<td style="text-align: right;">-0.34 pp</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">250 ft/NM</td>
+<td style="text-align: right;">56.87%</td>
+<td style="text-align: right;">98.65%</td>
+<td style="text-align: right;">98.94%</td>
+<td style="text-align: right;">-0.29 pp</td>
+<td style="text-align: right;">58.89%</td>
+<td style="text-align: right;">98.01%</td>
+<td style="text-align: right;">98.39%</td>
+<td style="text-align: right;">-0.38 pp</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">300 ft/NM</td>
+<td style="text-align: right;">57.01%</td>
+<td style="text-align: right;">98.49%</td>
+<td style="text-align: right;">98.94%</td>
+<td style="text-align: right;">-0.45 pp</td>
+<td style="text-align: right;">62.09%</td>
+<td style="text-align: right;">97.90%</td>
+<td style="text-align: right;">98.05%</td>
+<td style="text-align: right;">-0.15 pp</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">333 ft/NM</td>
+<td style="text-align: right;">57.16%</td>
+<td style="text-align: right;">98.36%</td>
+<td style="text-align: right;">98.94%</td>
+<td style="text-align: right;">-0.58 pp</td>
+<td style="text-align: right;">63.37%</td>
+<td style="text-align: right;">97.80%</td>
+<td style="text-align: right;">97.89%</td>
+<td style="text-align: right;">-0.09 pp</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">400 ft/NM</td>
+<td style="text-align: right;">57.67%</td>
+<td style="text-align: right;">98.29%</td>
+<td style="text-align: right;">98.94%</td>
+<td style="text-align: right;">-0.65 pp</td>
+<td style="text-align: right;">65.22%</td>
+<td style="text-align: right;">97.56%</td>
+<td style="text-align: right;">97.42%</td>
+<td style="text-align: right;">+0.14 pp</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">500 ft/NM</td>
+<td style="text-align: right;">60.06%</td>
+<td style="text-align: right;">98.12%</td>
+<td style="text-align: right;">98.95%</td>
+<td style="text-align: right;">-0.83 pp</td>
+<td style="text-align: right;">66.71%</td>
+<td style="text-align: right;">96.93%</td>
+<td style="text-align: right;">96.92%</td>
+<td style="text-align: right;">+0.02 pp</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">650 ft/NM</td>
+<td style="text-align: right;">66.92%</td>
+<td style="text-align: right;">97.59%</td>
+<td style="text-align: right;">98.98%</td>
+<td style="text-align: right;">-1.39 pp</td>
+<td style="text-align: right;">68.14%</td>
+<td style="text-align: right;">95.79%</td>
+<td style="text-align: right;">96.24%</td>
+<td style="text-align: right;">-0.45 pp</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">800 ft/NM</td>
+<td style="text-align: right;">73.44%</td>
+<td style="text-align: right;">97.06%</td>
+<td style="text-align: right;">98.77%</td>
+<td style="text-align: right;">-1.72 pp</td>
+<td style="text-align: right;">69.34%</td>
+<td style="text-align: right;">94.62%</td>
+<td style="text-align: right;">95.49%</td>
+<td style="text-align: right;">-0.87 pp</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">1000 ft/NM</td>
+<td style="text-align: right;">78.92%</td>
+<td style="text-align: right;">95.86%</td>
+<td style="text-align: right;">98.41%</td>
+<td style="text-align: right;">-2.55 pp</td>
+<td style="text-align: right;">70.97%</td>
+<td style="text-align: right;">92.72%</td>
+<td style="text-align: right;">94.01%</td>
+<td style="text-align: right;">-1.29 pp</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">1500 ft/NM</td>
+<td style="text-align: right;">84.45%</td>
+<td style="text-align: right;">93.65%</td>
+<td style="text-align: right;">95.20%</td>
+<td style="text-align: right;">-1.55 pp</td>
+<td style="text-align: right;">74.06%</td>
+<td style="text-align: right;">89.32%</td>
+<td style="text-align: right;">90.94%</td>
+<td style="text-align: right;">-1.62 pp</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<p><strong>It does not work.</strong> For departures the cone is worse at every slope — by up to 2.55 pp of accuracy at matched coverage. For arrivals it is a wash: negative at most slopes, and the largest positive figure is a tenth of a point, which is noise on this sample.</p>
+<p>The departure failure is physical and worth stating, because it explains why the box is the right shape there. <strong>Climb gradients are far steeper than descent gradients.</strong> A departure 10 NM out is routinely at 6,000–8,000 ft — 600 to 800 ft/NM, against the glideslope’s 318 — so a cone tuned to descent excludes precisely the departures it should keep. The box’s permissiveness close to the field is not an oversight; it is what departures need. To reach the coverage the box gives at 15,000 ft, the cone needs a slope above 1,000 ft/NM, at which point it is no longer a cone in any meaningful sense.</p>
+<div class="callout callout-style-default callout-important callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Important</span>The negative result that matters most
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>Neither shape closes the arrival gap. At the coverage where production sits, the cone reaches 95.79% accuracy against <code>trend</code>’s 97.87%.</p>
+<p>Box and cone are both <strong>acceptance regions defined on the distance and height of a single endpoint</strong>, and this experiment suggests that family is exhausted. No rearrangement of those two numbers recovers what <code>trend</code> has. The remaining gains have to come from somewhere else: <strong>more evidence</strong>, or <strong>a naming rule</strong>.</p>
+</div>
+</div>
+</section>
+<section id="sec-untested" class="level3" data-number="10.3">
+<h3 data-number="10.3" class="anchored" data-anchor-id="sec-untested"><span class="header-section-number">10.3</span> Untested, in order of expected value</h3>
+<p><strong>1. A descent-direction tie-break — a naming rule, not a gate.</strong> Rank candidates by effective distance as now, but when the top two are within a small margin, break the tie on which aerodrome the aircraft is descending <em>toward</em>, using the vertical rate at the endpoint and the bearing to each candidate. This is the smallest piece of <code>trend</code> that can be borrowed, and it is the only proposal here that attacks misnaming. It fires only on the ambiguous pairs, so it cannot damage the flights that are already unambiguous — which is exactly the property <a href="#sec-penalty" class="quarto-xref">Section&nbsp;6</a> found made the scheduled-service penalty safe. The candidate cache would need <code>vert_rate</code> and a bearing, both available in the state vectors at no join cost.</p>
+<p><strong>2. Closest approach below FL40, instead of the last sample.</strong> Replace “the last fix” with “the fix of closest approach among those below FL40”. For an arrival whose reception fails on the approach, the closest approach is a far better locator than the last recorded point. The cost is real: the candidate builder currently emits two rows per track, which is what makes the sweeps in this paper affordable (<a href="#sec-preprocessing" class="quarto-xref">Section&nbsp;1</a>), and this would emit more. A middle course is to keep the two endpoints and add the closest-approach fix as a third.</p>
+<p><strong>3. Re-testing the cascade — but read version 1 first.</strong> The obvious move is to take <code>trend</code>’s answer when it has one and fall through to <code>endpoint</code>. <strong>Version 1 tested exactly this and it failed</strong>, and the way it failed is the caution: every rung had <em>negative lift</em>, meaning the trend rungs fired on easy flights where nearest was already right, and overwrote better answers. The cascade collapsed onto its fallback rung.</p>
+<p>Whether that still holds is an open question rather than a settled one, because version 1 measured it in the pre-H3 architecture and on departures, and this version’s arrival result is new. The diagnostic is cheap and decisive: attribute each cascade answer to the rung that supplied it, and score that rung against <code>endpoint</code> <strong>on the same flights</strong>. If <code>trend</code>’s arrival advantage comes from answering <em>different</em> flights, a cascade will help; if it comes from being better on <em>shared</em> flights, <code>trend</code> should simply replace <code>endpoint</code> for arrivals, which is what <a href="#sec-op-arr" class="quarto-xref">Section&nbsp;9.2</a> already recommends. Version 1’s harness has the attribution code (<code>--diagnose-cascade</code>).</p>
+<div class="callout callout-style-default callout-warning callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Warning</span>Not this: extrapolating the trajectory
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>The intuitive fix for an arrival whose reception dies at 8,000 ft is to project the descent forward to the ground. <strong>Do not.</strong> Version 2 of this study implemented trajectory extrapolation and it failed, and the 2025 PRC Data Challenge reached the same conclusion independently and more strongly: <em>“attempts to complete the trajectory always lead to worse result”</em>. Two independent negative results on the same idea is enough.</p>
+</div>
+</div>
+</section>
+<section id="sec-hybrid-dep" class="level3" data-number="10.4">
+<h3 data-number="10.4" class="anchored" data-anchor-id="sec-hybrid-dep"><span class="header-section-number">10.4</span> Should any of this apply to departures too?</h3>
+<p>The tie-break of proposal 1 should, and for the same reason it helps arrivals: <a href="#sec-penalty" class="quarto-xref">Section&nbsp;6</a> showed the largest identified departure error class was a neighbouring-aerodrome confusion, and the scheduled-service penalty only fixed the subset where the neighbour was military. A descent-direction test — inverted, a <em>climb</em>-direction test — discriminates on physics rather than on aerodrome metadata, and would catch confusions the penalty cannot.</p>
+<p>Proposals 2 and 3 should not. Departures do not have the evidence problem: one sample already locates them, <code>endpoint</code> already beats <code>trend</code> there by 10,993 correct labels, and adding trajectory evidence to a rule that is not short of evidence is how the version 1 cascade lost accuracy.</p>
+</section>
+</section>
+<section id="recommendation" class="level2" data-number="11">
+<h2 data-number="11" class="anchored" data-anchor-id="recommendation"><span class="header-section-number">11</span> Recommendation</h2>
 <p><strong>Adopt <code>endpoint</code> for departures if coverage matters more than the last point of accuracy.</strong> It adds +12.47 pp of coverage for -0.84 pp, and it is a smaller algorithm than the one it replaces — no smoothing window, no margin parameter, no per-aerodrome vote. If accuracy is paramount, keep <code>trend</code>; it is genuinely the more accurate rule now.</p>
 <p><strong>Use 20–40 NM and a scheduled-service penalty of 10 NM.</strong> Both are on plateaus, so neither is delicate.</p>
 <p><strong>Do not change the arrivals algorithm on this evidence.</strong> Arrivals are weaker on every measure and every version of this study has found the same.</p>
 <p><strong>Publish the provenance column.</strong> <code>adep_source</code> / <code>ades_source</code> distinguish “named an aerodrome”, “outside the observed area” and “could not determine”. Today all three are a single null in the published flight list, and they mean entirely different things to a consumer. This is the highest-value change per line of code in the whole study.</p>
 <p><strong>Make abstention aware of what the reference contains.</strong> Flights to and from small aerodromes and heliports are answered about half the time and are wrong every time (<a href="#sec-per-type" class="quarto-xref">Section&nbsp;8.1</a>). They are a small share of movements but they are false statements rather than gaps, and they are indistinguishable in the output from correct answers. Either extend the reference to small aerodromes or abstain when the nearest candidate is far enough away to suggest the real aerodrome is one the reference does not hold.</p>
 </section>
-<section id="sec-limitations" class="level2" data-number="10">
-<h2 data-number="10" class="anchored" data-anchor-id="sec-limitations"><span class="header-section-number">10</span> Limitations</h2>
+<section id="sec-limitations" class="level2" data-number="12">
+<h2 data-number="12" class="anchored" data-anchor-id="sec-limitations"><span class="header-section-number">12</span> Limitations</h2>
 <ul>
 <li><strong>Three days</strong>, one sample. Versions 2 and 3 used two samples a year apart; this version re-runs the whole pipeline, which is expensive, so it uses one. The mode ranking is robust across earlier versions, but the exact figures here have not been validated on a second period.</li>
 <li><strong>Out-of-area recall is low.</strong> The geometric border test is the wrong instrument; the phase-based test in <a href="#sec-ooa" class="quarto-xref">Section&nbsp;7</a> is the successor.</li>
@@ -2528,8 +3450,8 @@ window.Quarto = {
 <li><strong><code>track_id</code> is taken as given</strong>, with the fragmentation and merging rates version 2 measured.</li>
 </ul>
 </section>
-<section id="reproducing" class="level2" data-number="11">
-<h2 data-number="11" class="anchored" data-anchor-id="reproducing"><span class="header-section-number">11</span> Reproducing</h2>
+<section id="reproducing" class="level2" data-number="13">
+<h2 data-number="13" class="anchored" data-anchor-id="reproducing"><span class="header-section-number">13</span> Reproducing</h2>
 <p>Reference zones, state vectors and tracks, in the <code>opdi</code> repository:</p>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="va">RANGE</span><span class="op">=</span><span class="st">"--env opensky --start 2025-06-05 --end 2025-06-08"</span></span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="ex">opdi</span> run <span class="va">$RANGE</span> <span class="at">--step</span> 00a   <span class="co"># zones: 5 NM bands to 110 NM</span></span>
