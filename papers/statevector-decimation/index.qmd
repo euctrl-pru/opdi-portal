@@ -1,0 +1,313 @@
+---
+title: "Thinning state vectors, and what the archive actually contains"
+subtitle: "Why the 5 s decimation rule is not the problem, and what is"
+author: "EUROCONTROL Performance Review Unit"
+date: last-modified
+---
+
+```{r setup}
+#| include: false
+library(knitr)
+library(ggplot2)
+
+# Read-only. Every number comes from a committed CSV under data/, produced by
+# benchmarks/decimation_experiment.py in the opdi repository.
+cache <- function(f) {
+  p <- file.path("data", f)
+  if (!file.exists(p)) return(NULL)
+  read.csv(p, stringsAsFactors = FALSE)
+}
+tim  <- cache("timing.csv")
+alt  <- cache("by_altitude.csv")
+den  <- cache("by_density.csv")
+age  <- cache("age_by_altitude.csv")
+ends <- cache("endpoint_age.csv")
+lag  <- cache("endpoint_lag.csv")
+
+pct <- function(x) ifelse(is.na(x), "—", sprintf("%.2f%%", 100 * x))
+num <- function(x) format(x, big.mark = ",", trim = TRUE)
+secs <- function(x) sprintf("%.0f s", x)
+
+r <- function(rule, f) tim[[f]][tim$rule == rule]
+N_BASE <- r("bbox_only", "rows"); N_MOD <- r("modulo", "rows"); N_BUC <- r("bucket", "rows")
+T_BASE <- r("bbox_only", "seconds"); T_MOD <- r("modulo", "seconds"); T_BUC <- r("bucket", "seconds")
+EXTRA <- N_BUC - N_MOD
+
+e <- function(which, f) ends[[f]][ends$endpoint == paste(which, "row of aircraft")]
+HOURS <- 3
+```
+
+## Summary {.unnumbered}
+
+The ingest thins OpenSky state vectors to roughly one sample every 5 s with a
+modulo filter, `event_time % 5 == 0`. That is a **fixed-phase** sampler: it
+keeps a row only if one exists at the single second per window congruent to
+zero. Where reception is intermittent — low altitude, long range, the edge of
+the receiver network — the phase of the data is arbitrary, so the filter should
+delete far more than it is supposed to. Since version 4 of the
+[ADEP/ADES study](../adep-ades-detection-v4/index.qmd) found arrivals much
+harder than departures, and arrivals are exactly the flights whose evidence
+sits in that sparse region, the filter was a plausible cause.
+
+**It is not.** Measured on three hours of raw archive, a correct bin-based
+sampler keeps `r sprintf("%.3f", N_BUC / N_MOD)`× the rows of the modulo filter
+— `r num(EXTRA)` rows out of `r num(N_MOD)`, or `r pct(EXTRA / N_MOD)`. The
+hypothesis fails because its premise does: the OpenSky `state_vectors` table is
+not a record of receptions but a **complete 1 Hz grid**, with the last known
+position carried forward when nothing is heard.
+
+The experiment then found what the row counts were hiding. Positions in that
+grid are often old, and the staleness is wildly asymmetric between the two ends
+of a track:
+
+| | median position age |
+|---|---|
+| **first** row of an aircraft | **`r secs(e("first","p50_s"))`** |
+| **last** row of an aircraft | **`r secs(e("last","p50_s"))`** |
+
+A departure's first fix is fresh by construction. An arrival's last fix, at the
+median, carries a position measured **`r secs(e("last","p50_s"))` earlier** —
+at approach speed, five to eight nautical miles back down the approach.
+`r pct(e("last","share_gt30s"))` of last fixes are more than 30 s stale.
+
+That is not a bug to fix in the decimation rule. It is a measurement of how
+early reception ends, and it quantifies the asymmetry version 4 could only
+assert. It also suggests something the detection can act on, because
+`last_pos_update` is already ingested and read by nothing.
+
+## What was measured
+
+Three hourly partitions of `s3a://opensky-hdfs-backup/tables_v4/state_vectors`,
+2025-06-05 06:00–09:00 UTC, filtered to the OPDI bounding box and nothing else:
+**`r num(N_BASE)` rows**. Both rules were then applied to identical input, with
+a cold read from S3 each time so the comparison includes the I/O the production
+job actually pays.
+
+**Modulo (current).** Keep the row where `event_time % 5 == 0`. A narrow filter;
+no shuffle.
+
+**Bucket (proposed).** Bin time into `floor(t/5)` and keep one row per
+non-empty bin, via `max` over a struct with `event_time` first — a hash
+aggregate with map-side partial aggregation, native Spark throughout.
+
+## Result 1: the two rules are indistinguishable
+
+```{r timing-table}
+kable(data.frame(
+  Rule = c("bbox only (baseline)", "modulo (current)", "bucket (proposed)"),
+  Rows = num(c(N_BASE, N_MOD, N_BUC)),
+  `Wall clock` = sprintf("%.1f s", c(T_BASE, T_MOD, T_BUC)),
+  `Net of the read` = c("—", sprintf("%+.1f s", T_MOD - T_BASE), sprintf("%+.1f s", T_BUC - T_BASE)),
+  check.names = FALSE), align = "lrrr",
+  caption = sprintf("Both rules on %s rows, three hours of archive. The S3 read is common to both, so the difference net of it is the cost of the shuffle.", num(N_BASE)))
+```
+
+The bucket rule keeps `r sprintf("%.3f", N_BUC / N_MOD)`× the rows. The modulo
+filter retains `r sprintf("1/%.3f", N_BASE / N_MOD)` of its input — within a
+whisker of the exactly one-in-five it would keep if every second carried a row.
+
+The density measurement confirms why:
+
+```{r density-table}
+d <- den[order(den$pb), ]
+kable(data.frame(
+  `Rows per aircraft-minute` = substring(d$pb, 4),
+  `Aircraft-minutes` = num(d$aircraft_minutes),
+  `Share` = pct(d$aircraft_minutes / sum(d$aircraft_minutes)),
+  `Mean density` = sprintf("%.3f", d$mean_p),
+  check.names = FALSE), row.names = FALSE, align = "lrrr",
+  caption = "Fraction of each minute's 60 seconds carrying a row, per aircraft-minute. The archive is a dense grid, not a log of receptions.")
+```
+
+`r pct(den$aircraft_minutes[den$pb == "6. 0.9-1.0 (dense)"] / sum(den$aircraft_minutes))`
+of aircraft-minutes are at least 90% populated. The sparse-coverage model that
+motivated this experiment applies to a few percent of the data.
+
+::: {.callout-important}
+## The arithmetic was right; the premise was wrong
+
+The predicted gain was 2–5×, derived from a model in which a second carries a
+row with probability *p* < 1. Measured *p* is ≈ 1.0. Everything downstream of
+that assumption — retention ratios, endpoint-lag formulae, loss probabilities —
+described a feed that does not exist. The model was not tested before it was
+believed; this experiment is what testing it looks like.
+:::
+
+## Result 2: the effect exists, in the right place, at the wrong size
+
+The extra rows are not distributed evenly. They concentrate exactly where the
+hypothesis said they would.
+
+```{r altitude-table}
+a <- alt[order(alt$b), ]
+a$extra <- a$bucket_rows - a$modulo_rows
+a$rate <- a$extra / a$modulo_rows
+a$share_rows <- a$modulo_rows / sum(a$modulo_rows)
+a$share_extra <- a$extra / sum(a$extra)
+kable(data.frame(
+  `Band (ft)` = substring(a$b, 4),
+  `Rows` = num(a$modulo_rows),
+  `Extra` = num(a$extra),
+  `Rescue rate` = pct(a$rate),
+  `% of rows` = pct(a$share_rows),
+  `% of extra` = pct(a$share_extra),
+  `Over-rep` = sprintf("%.2fx", a$share_extra / a$share_rows),
+  check.names = FALSE), row.names = FALSE, align = "lrrrrrr",
+  caption = "Rows the bucket rule rescues, by altitude. *Rescue rate* is extra rows over retained rows; *over-rep* is the share of rescued rows against the share of all rows, so above 1 means they concentrate there.")
+```
+
+The rescue rate runs monotonically from
+**`r pct(a$rate[a$b == "1. 0-2,000"])` at 0–2,000 ft** down to
+**`r pct(a$rate[a$b == "5. 20,000-30,000"])` at 20–30,000 ft** — a
+`r sprintf("%.1f", a$rate[a$b == "1. 0-2,000"] / a$rate[a$b == "5. 20,000-30,000"])`×
+gradient from the surface to cruise. The lowest band is
+`r sprintf("%.2f", (a$share_extra / a$share_rows)[a$b == "1. 0-2,000"])`× over-represented
+among the rescued rows and the null-altitude band — largely surface traffic —
+`r sprintf("%.2f", (a$share_extra / a$share_rows)[a$b == "0. (null)"])`×. Every
+band above 5,000 ft is at or below parity.
+
+So the mechanism is real and it is altitude-dependent in the predicted
+direction. It is also **`r pct(EXTRA / N_MOD)` of the data**, which cannot
+explain an eleven-point coverage gap. Direction confirmed, magnitude
+irrelevant.
+
+The endpoint check agrees: of `r num(lag$aircraft)` aircraft, modulo erased
+`r num(lag$erased_by_modulo)` (`r pct(lag$erased_share)`) entirely, and its last
+retained row sits a median of `r secs(lag$lag_p50_s)` behind the true last row —
+about a quarter of a nautical mile.
+
+**On this evidence the decimation rule should not be changed.** It costs
+`r sprintf("%+.0f%%", 100 * (T_BUC - T_MOD) / T_MOD)` in wall clock, it would
+break `track_id` continuity with every published dataset, and it buys
+`r pct(EXTRA / N_MOD)` more rows.
+
+## Result 3: what the row counts were hiding
+
+The archive fills every second, but it fills them by **carrying the last known
+position forward**. `lastPosUpdate` records when the position was actually
+measured, so `age = event_time − lastPosUpdate` is how old the position in a
+row is. A row can be present and carry nothing new.
+
+```{r age-table}
+# The band label lost its sort prefix when the measurement was parsed out of
+# the run log, so order explicitly rather than alphabetically.
+BAND_ORDER <- c("(null)", "0-2,000", "2,000-5,000", "5,000-10,000",
+                "10,000-20,000", "20,000-30,000", "30,000+")
+g <- age[match(BAND_ORDER, age$band), ]
+kable(data.frame(
+  `Band (ft)` = g$band,
+  Rows = num(g$n),
+  `Median age` = secs(g$p50_s),
+  `p90` = secs(g$p90_s),
+  `p99` = secs(g$p99_s),
+  `> 5 s` = pct(g$share_gt5s),
+  `> 30 s` = pct(g$share_gt30s),
+  check.names = FALSE), row.names = FALSE, align = "lrrrrrr",
+  caption = "Age of the position carried by each row, by altitude. The mean is not shown: the distribution is bimodal -- mostly fresh, with a heavy stale tail -- and the mean describes neither part.")
+```
+
+At cruise, positions are fresh: `r pct(g$share_gt30s[g$band == "20,000-30,000"])`
+of rows above 20,000 ft are more than 30 s old. **Below 2,000 ft that rises to
+`r pct(g$share_gt30s[g$band == "0-2,000"])`, and on the surface to
+`r pct(g$share_gt30s[g$band == "(null)"])`.** A third of all low-altitude rows
+carry a position measured more than half a minute earlier.
+
+This is the user-visible form of intermittent low-altitude coverage. It does not
+appear as missing rows because OpenSky fills the gap for us.
+
+### The asymmetry between the two ends of a track
+
+```{r ends-table}
+kable(data.frame(
+  Endpoint = c("first row of an aircraft", "last row of an aircraft"),
+  N = num(c(e("first","n"), e("last","n"))),
+  `Median age` = secs(c(e("first","p50_s"), e("last","p50_s"))),
+  `p90` = secs(c(e("first","p90_s"), e("last","p90_s"))),
+  `p99` = secs(c(e("first","p99_s"), e("last","p99_s"))),
+  `> 30 s` = pct(c(e("first","share_gt30s"), e("last","share_gt30s"))),
+  check.names = FALSE), row.names = FALSE, align = "lrrrrr",
+  caption = "Position age at the two ends of each aircraft's presence in the window. This is the sharpest asymmetry in the study.")
+```
+
+**A departure's first fix is fresh by construction** — an aircraft enters the
+table when it is first heard, so there is no earlier position to carry forward.
+Median age `r secs(e("first","p50_s"))`,
+`r pct(e("first","share_gt30s"))` older than 30 s.
+
+**An arrival's last fix is stale by construction** — the aircraft stays in the
+table after it stops being heard, padded with its last known position until it
+times out. Median age **`r secs(e("last","p50_s"))`**, and
+**`r pct(e("last","share_gt30s"))`** older than 30 s.
+
+At 150 kt on final approach, `r secs(e("last","p50_s"))` is about 8 NM.
+
+::: {.callout-warning}
+## What this does and does not mean
+
+It does **not** mean the endpoint position is wrong. The carried-forward
+position is the last position genuinely measured, which is still the best
+available estimate of where the track ended. Deduplicating the stale rows would
+not move it.
+
+What it means is that **reception ends a median of `r secs(e("last","p50_s"))`
+before the aircraft leaves the data**, and the aircraft keeps flying through
+that interval. Version 4 asserted that an arrival's last sample is "where
+reception died rather than where the flight ended"; this puts a number on it,
+and the number is minutes rather than seconds.
+
+It also means three things downstream are measurably wrong, none of them
+detection: `last_seen` event times are late by the same interval; gap-based
+track splitting sees padded gaps rather than real ones; and any derivative
+computed across carried-forward rows is diluted by runs of zero change.
+:::
+
+## What to do with this
+
+**Do not change the decimation rule.** `r pct(EXTRA / N_MOD)` of rows, at
+`r sprintf("%+.0f%%", 100 * (T_BUC - T_MOD) / T_MOD)` wall clock and the loss of
+`track_id` continuity, is not a trade worth making.
+
+**Use position age as an abstention signal.** This is the actionable finding.
+`last_pos_update` is already ingested, already carried into `osn_tracks`
+(`tracks.py:455`), and read by nothing. A track whose final fix has an age of
+300 s has an endpoint that is several miles from where the flight actually
+ended, and the detection has no way to know it. Age at the endpoint is a direct,
+free measure of how much to trust that endpoint — and unlike the height
+threshold of the ADEP/ADES version 4 rule, it measures the thing that actually
+goes wrong.
+
+That gives a candidate rule worth testing against the version 4 operating point:
+abstain when the endpoint's position age exceeds a threshold, instead of, or in
+addition to, when its height exceeds one. It is a one-column change to the
+candidate cache.
+
+**Consider dropping stale rows at ingest.** Not to improve detection, but for
+storage and for honesty: `r pct(g$share_gt30s[g$band == "0-2,000"])` of
+low-altitude rows are repeats of a position already recorded. Removing them
+would shrink the store and would make gap-based track splitting see the gaps
+that are really there. It would also change `track_id`, so it belongs in the
+same versioned re-ingest as any other ingest change.
+
+## Limitations
+
+* **Three hours, one day, one bounding box.** 2025-06-05 06:00–09:00 UTC is a
+  busy European morning; a night sample or a different region may differ.
+* **"Last row of an aircraft" is not "last row of a flight."** The window's end
+  truncates aircraft still airborne, and an aircraft leaving the bounding box
+  exits with a fresh position. Both dilute the staleness figure, so the true
+  landing-endpoint staleness is likely worse than reported, not better.
+* **Position age is not position error.** A stale position is exactly right for
+  the moment it was measured. The error it causes downstream depends on what the
+  aircraft did next, which is unobserved by construction.
+* **The bucket rule keeps the last row per bin, not the freshest.** Given the
+  measured penalty of under 2 s of staleness this makes no practical difference,
+  but a rule optimising freshness would use `min_by(age)`.
+
+## Reproducing
+
+```bash
+python benchmarks/decimation_experiment.py \
+    --date 2025-06-05 --start-hour 6 --hours 3 --results-dir <dir>
+```
+
+Rendering this page needs no credentials, no database and no cluster.
