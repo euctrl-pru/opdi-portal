@@ -189,6 +189,35 @@ This involves no extrapolated position — it is an angle between two observed
 bearings — so the documented failures of trajectory extrapolation in version 2
 and the 2025 PRC report do not bind it.
 
+::: {.callout-note collapse="true"}
+## Why departures need no 180-degree correction
+
+A departing aircraft flies *away* from its aerodrome, so it looks as though the
+measure must be inverted for departures. It must not, because the origin of the
+angle already flips with the role.
+
+The window is measured from the arrival's **last** fix and the departure's
+**first**, so its far end is earlier in time for an arrival and later for a
+departure. The bearing from that far end toward the near end is therefore the
+course in one case and the reverse course in the other. The question becomes
+*"is the aerodrome in the direction I am heading"* for an arrival and *"is the
+aerodrome in the direction I came from"* for a departure, and both read zero for
+a correct match.
+
+The distinction matters because the two vertical and horizontal *rates* in the
+same analysis do carry an explicit per-role sign — they are signed along the
+time axis, and an angle between two bearings from a common origin is not.
+Confirmed empirically: correctly identified departures sit at a median of 2–9
+degrees, not 171–178.
+
+It also explains part of why the measure is weak for departures. By 30 minutes
+down-track the separation is 6 degrees against 2 — from far enough away, the
+true origin aerodrome and its neighbours all lie in much the same direction, so
+the angle stops discriminating. An arrival endpoint sits a median of eight
+nautical miles short of the runway, where the direction along the track is still
+informative.
+:::
+
 ```{r sweep-matrix}
 s <- sweep[sweep$side == "arrival", ]
 A <- c(1, 2, 3, 5, 10, 20, 30)
