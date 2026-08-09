@@ -23,6 +23,8 @@ den  <- cache("by_density.csv")
 age  <- cache("age_by_altitude.csv")
 ends <- cache("endpoint_age.csv")
 lag  <- cache("endpoint_lag.csv")
+arm  <- cache("arm_comparison.csv")
+armt <- cache("arm_per_type.csv")
 
 pct <- function(x) ifelse(is.na(x), "—", sprintf("%.2f%%", 100 * x))
 num <- function(x) format(x, big.mark = ",", trim = TRUE)
@@ -260,6 +262,87 @@ detection: `last_seen` event times are late by the same interval; gap-based
 track splitting sees padded gaps rather than real ones; and any derivative
 computed across carried-forward rows is diluted by runs of zero change.
 :::
+
+## Result 4: the end-to-end test agrees
+
+Rows are a proxy. What matters is whether detection changes, so the whole chain
+was re-run on bucket-sampled input — ingest, tracks, endpoint candidates — and
+scored against the same ground truth at the same operating point. One day,
+2025-06-05, both arms; `endpoint` mode at 30 NM, 15,000 ft and a 10 NM
+scheduled-service penalty, applied to **both** roles.
+
+```{r arm-setup}
+#| include: false
+a <- function(k, f) arm[[f]][arm$arm == k]
+NG <- a("modulo (published)", "n_ground_truth")
+cnt <- function(k, role, m) round(a(k, paste0(role, "_", m)) * NG)
+armrow <- function(role, label) {
+  ans_m <- cnt("modulo (published)", role, "coverage"); ans_b <- cnt("bucket (proposed)", role, "coverage")
+  cor_m <- cnt("modulo (published)", role, "overall");  cor_b <- cnt("bucket (proposed)", role, "overall")
+  data.frame(
+    Movements = label,
+    `Answered` = sprintf("%s -> %s (%+d)", num(ans_m), num(ans_b), ans_b - ans_m),
+    `Correct`  = sprintf("%s -> %s (%+d)", num(cor_m), num(cor_b), cor_b - cor_m),
+    `Wrong`    = sprintf("%s -> %s (%+d)", num(ans_m - cor_m), num(ans_b - cor_b),
+                         (ans_b - cor_b) - (ans_m - cor_m)),
+    check.names = FALSE)
+}
+```
+
+```{r arm-rates}
+mk <- function(role, label) data.frame(
+  Movements = label,
+  Coverage = sprintf("%s -> %s", pct(a("modulo (published)", paste0(role,"_coverage"))),
+                     pct(a("bucket (proposed)", paste0(role,"_coverage")))),
+  `d cov` = sprintf("%+.2f pp", 100 * (a("bucket (proposed)", paste0(role,"_coverage")) -
+                                       a("modulo (published)", paste0(role,"_coverage")))),
+  Accuracy = sprintf("%s -> %s", pct(a("modulo (published)", paste0(role,"_accuracy"))),
+                     pct(a("bucket (proposed)", paste0(role,"_accuracy")))),
+  `d acc` = sprintf("%+.2f pp", 100 * (a("bucket (proposed)", paste0(role,"_accuracy")) -
+                                       a("modulo (published)", paste0(role,"_accuracy")))),
+  Overall = sprintf("%s -> %s", pct(a("modulo (published)", paste0(role,"_overall"))),
+                    pct(a("bucket (proposed)", paste0(role,"_overall")))),
+  `d ovr` = sprintf("%+.2f pp", 100 * (a("bucket (proposed)", paste0(role,"_overall")) -
+                                       a("modulo (published)", paste0(role,"_overall")))),
+  check.names = FALSE)
+kable(rbind(mk("adep","departures"), mk("ades","arrivals")), row.names = FALSE,
+      align = "lllllll",
+      caption = sprintf("Detection on modulo- against bucket-sampled input, %s ground-truth flights on 2025-06-05. `endpoint` at 30 NM / 15,000 ft / 10 NM, both roles. Each cell is modulo then bucket.", num(NG)))
+```
+
+```{r arm-counts}
+kable(rbind(armrow("adep","departures"), armrow("ades","arrivals")), row.names = FALSE,
+      align = "llll",
+      caption = "The same comparison in flights.")
+```
+
+The candidate cache grew from `r num(a("modulo (published)","candidates"))` to
+`r num(a("bucket (proposed)","candidates"))` rows,
+`r sprintf("%+.2f%%", 100 * (a("bucket (proposed)","candidates") / a("modulo (published)","candidates") - 1))`
+— about twice the `r pct(EXTRA / N_MOD)` gain in the state vectors themselves.
+That is the one place the rescued rows are worth more than average rows: they
+sit at track boundaries, and boundaries are exactly what the candidate stage
+extracts.
+
+**Departures do not move**: `r sprintf("%+d", cnt("bucket (proposed)","adep","overall") - cnt("modulo (published)","adep","overall"))`
+correct labels, which is noise. **Arrivals move slightly and in the predicted
+direction**: `r sprintf("%+d", cnt("bucket (proposed)","ades","coverage") - cnt("modulo (published)","ades","coverage"))`
+answered and `r sprintf("%+d", cnt("bucket (proposed)","ades","overall") - cnt("modulo (published)","ades","overall"))`
+correct, for
+`r sprintf("%+d", (cnt("bucket (proposed)","ades","coverage") - cnt("bucket (proposed)","ades","overall")) - (cnt("modulo (published)","ades","coverage") - cnt("modulo (published)","ades","overall")))`
+wrong. That is `r sprintf("%+.2f pp", 100 * (a("bucket (proposed)","ades_overall") - a("modulo (published)","ades_overall")))`
+of arrival overall correctness.
+
+The asymmetry is the theory working: the bucket rule keeps the *last* row of
+each bin, so a track's final observation survives exactly, while the modulo rule
+lands a median of `r secs(lag$lag_p50_s)` short of it. Departures have nothing
+to gain from that — their first fix is already well located — and arrivals have
+a little.
+
+**A little is the operative word.** Fifty-five additional correct arrivals in a
+day, against thirty additional errors, for a change that rewrites `track_id` for
+every published row. The end-to-end test confirms the row-count prediction
+rather than overturning it.
 
 ## What to do with this
 
