@@ -163,9 +163,10 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <ul class="collapse">
   <li><a href="#the-asymmetry-between-the-two-ends-of-a-track" id="toc-the-asymmetry-between-the-two-ends-of-a-track" class="nav-link" data-scroll-target="#the-asymmetry-between-the-two-ends-of-a-track"><span class="header-section-number">4.1</span> The asymmetry between the two ends of a track</a></li>
   </ul></li>
-  <li><a href="#what-to-do-with-this" id="toc-what-to-do-with-this" class="nav-link" data-scroll-target="#what-to-do-with-this"><span class="header-section-number">5</span> What to do with this</a></li>
-  <li><a href="#limitations" id="toc-limitations" class="nav-link" data-scroll-target="#limitations"><span class="header-section-number">6</span> Limitations</a></li>
-  <li><a href="#reproducing" id="toc-reproducing" class="nav-link" data-scroll-target="#reproducing"><span class="header-section-number">7</span> Reproducing</a></li>
+  <li><a href="#result-4-the-end-to-end-test-agrees" id="toc-result-4-the-end-to-end-test-agrees" class="nav-link" data-scroll-target="#result-4-the-end-to-end-test-agrees"><span class="header-section-number">5</span> Result 4: the end-to-end test agrees</a></li>
+  <li><a href="#what-to-do-with-this" id="toc-what-to-do-with-this" class="nav-link" data-scroll-target="#what-to-do-with-this"><span class="header-section-number">6</span> What to do with this</a></li>
+  <li><a href="#limitations" id="toc-limitations" class="nav-link" data-scroll-target="#limitations"><span class="header-section-number">7</span> Limitations</a></li>
+  <li><a href="#reproducing" id="toc-reproducing" class="nav-link" data-scroll-target="#reproducing"><span class="header-section-number">8</span> Reproducing</a></li>
   </ul>
 <div class="quarto-alternate-formats"><h2>Other Formats</h2><ul><li><a href="index.pdf"><i class="bi bi-file-pdf"></i>PDF</a></li></ul></div></nav>
     </div>
@@ -588,15 +589,105 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 </section>
 </section>
-<section id="what-to-do-with-this" class="level2" data-number="5">
-<h2 data-number="5" class="anchored" data-anchor-id="what-to-do-with-this"><span class="header-section-number">5</span> What to do with this</h2>
+<section id="result-4-the-end-to-end-test-agrees" class="level2" data-number="5">
+<h2 data-number="5" class="anchored" data-anchor-id="result-4-the-end-to-end-test-agrees"><span class="header-section-number">5</span> Result 4: the end-to-end test agrees</h2>
+<p>Rows are a proxy. What matters is whether detection changes, so the whole chain was re-run on bucket-sampled input — ingest, tracks, endpoint candidates — and scored against the same ground truth at the same operating point. One day, 2025-06-05, both arms; <code>endpoint</code> mode at 30 NM, 15,000 ft and a 10 NM scheduled-service penalty, applied to <strong>both</strong> roles.</p>
+<div class="cell">
+<div class="cell-output-display">
+<table class="caption-top table table-sm table-striped small">
+<caption>Detection on modulo- against bucket-sampled input, 32,395 ground-truth flights on 2025-06-05. <code>endpoint</code> at 30 NM / 15,000 ft / 10 NM, both roles. Each cell is modulo then bucket.</caption>
+<colgroup>
+<col style="width: 12%">
+<col style="width: 19%">
+<col style="width: 10%">
+<col style="width: 19%">
+<col style="width: 10%">
+<col style="width: 19%">
+<col style="width: 10%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Movements</th>
+<th style="text-align: left;">Coverage</th>
+<th style="text-align: left;">d cov</th>
+<th style="text-align: left;">Accuracy</th>
+<th style="text-align: left;">d acc</th>
+<th style="text-align: left;">Overall</th>
+<th style="text-align: left;">d ovr</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">departures</td>
+<td style="text-align: left;">81.22% -&gt; 81.19%</td>
+<td style="text-align: left;">-0.03 pp</td>
+<td style="text-align: left;">98.15% -&gt; 98.14%</td>
+<td style="text-align: left;">-0.01 pp</td>
+<td style="text-align: left;">79.71% -&gt; 79.68%</td>
+<td style="text-align: left;">-0.03 pp</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">arrivals</td>
+<td style="text-align: left;">69.20% -&gt; 69.46%</td>
+<td style="text-align: left;">+0.26 pp</td>
+<td style="text-align: left;">95.70% -&gt; 95.59%</td>
+<td style="text-align: left;">-0.12 pp</td>
+<td style="text-align: left;">66.23% -&gt; 66.40%</td>
+<td style="text-align: left;">+0.17 pp</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div class="cell">
+<div class="cell-output-display">
+<table class="caption-top table table-sm table-striped small">
+<caption>The same comparison in flights.</caption>
+<colgroup>
+<col style="width: 14%">
+<col style="width: 31%">
+<col style="width: 31%">
+<col style="width: 22%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Movements</th>
+<th style="text-align: left;">Answered</th>
+<th style="text-align: left;">Correct</th>
+<th style="text-align: left;">Wrong</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">departures</td>
+<td style="text-align: left;">26,310 -&gt; 26,301 (-9)</td>
+<td style="text-align: left;">25,822 -&gt; 25,811 (-11)</td>
+<td style="text-align: left;">488 -&gt; 490 (+2)</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">arrivals</td>
+<td style="text-align: left;">22,417 -&gt; 22,502 (+85)</td>
+<td style="text-align: left;">21,454 -&gt; 21,509 (+55)</td>
+<td style="text-align: left;">963 -&gt; 993 (+30)</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<p>The candidate cache grew from 2,586,372 to 2,598,185 rows, +0.46% — about twice the 0.22% gain in the state vectors themselves. That is the one place the rescued rows are worth more than average rows: they sit at track boundaries, and boundaries are exactly what the candidate stage extracts.</p>
+<p><strong>Departures do not move</strong>: -11 correct labels, which is noise. <strong>Arrivals move slightly and in the predicted direction</strong>: +85 answered and +55 correct, for +30 wrong. That is +0.17 pp of arrival overall correctness.</p>
+<p>The asymmetry is the theory working: the bucket rule keeps the <em>last</em> row of each bin, so a track’s final observation survives exactly, while the modulo rule lands a median of 4 s short of it. Departures have nothing to gain from that — their first fix is already well located — and arrivals have a little.</p>
+<p><strong>A little is the operative word.</strong> Fifty-five additional correct arrivals in a day, against thirty additional errors, for a change that rewrites <code>track_id</code> for every published row. The end-to-end test confirms the row-count prediction rather than overturning it.</p>
+</section>
+<section id="what-to-do-with-this" class="level2" data-number="6">
+<h2 data-number="6" class="anchored" data-anchor-id="what-to-do-with-this"><span class="header-section-number">6</span> What to do with this</h2>
 <p><strong>Do not change the decimation rule.</strong> 0.22% of rows, at +13% wall clock and the loss of <code>track_id</code> continuity, is not a trade worth making.</p>
 <p><strong>Use position age as an abstention signal.</strong> This is the actionable finding. <code>last_pos_update</code> is already ingested, already carried into <code>osn_tracks</code> (<code>tracks.py:455</code>), and read by nothing. A track whose final fix has an age of 300 s has an endpoint that is several miles from where the flight actually ended, and the detection has no way to know it. Age at the endpoint is a direct, free measure of how much to trust that endpoint — and unlike the height threshold of the ADEP/ADES version 4 rule, it measures the thing that actually goes wrong.</p>
 <p>That gives a candidate rule worth testing against the version 4 operating point: abstain when the endpoint’s position age exceeds a threshold, instead of, or in addition to, when its height exceeds one. It is a one-column change to the candidate cache.</p>
 <p><strong>Consider dropping stale rows at ingest.</strong> Not to improve detection, but for storage and for honesty: 33.20% of low-altitude rows are repeats of a position already recorded. Removing them would shrink the store and would make gap-based track splitting see the gaps that are really there. It would also change <code>track_id</code>, so it belongs in the same versioned re-ingest as any other ingest change.</p>
 </section>
-<section id="limitations" class="level2" data-number="6">
-<h2 data-number="6" class="anchored" data-anchor-id="limitations"><span class="header-section-number">6</span> Limitations</h2>
+<section id="limitations" class="level2" data-number="7">
+<h2 data-number="7" class="anchored" data-anchor-id="limitations"><span class="header-section-number">7</span> Limitations</h2>
 <ul>
 <li><strong>Three hours, one day, one bounding box.</strong> 2025-06-05 06:00–09:00 UTC is a busy European morning; a night sample or a different region may differ.</li>
 <li><strong>“Last row of an aircraft” is not “last row of a flight.”</strong> The window’s end truncates aircraft still airborne, and an aircraft leaving the bounding box exits with a fresh position. Both dilute the staleness figure, so the true landing-endpoint staleness is likely worse than reported, not better.</li>
@@ -604,8 +695,8 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><strong>The bucket rule keeps the last row per bin, not the freshest.</strong> Given the measured penalty of under 2 s of staleness this makes no practical difference, but a rule optimising freshness would use <code>min_by(age)</code>.</li>
 </ul>
 </section>
-<section id="reproducing" class="level2" data-number="7">
-<h2 data-number="7" class="anchored" data-anchor-id="reproducing"><span class="header-section-number">7</span> Reproducing</h2>
+<section id="reproducing" class="level2" data-number="8">
+<h2 data-number="8" class="anchored" data-anchor-id="reproducing"><span class="header-section-number">8</span> Reproducing</h2>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="ex">python</span> benchmarks/decimation_experiment.py <span class="dt">\</span></span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>    <span class="at">--date</span> 2025-06-05 <span class="at">--start-hour</span> 6 <span class="at">--hours</span> 3 <span class="at">--results-dir</span> <span class="op">&lt;</span>dir<span class="op">&gt;</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>Rendering this page needs no credentials, no database and no cluster.</p>
