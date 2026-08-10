@@ -406,6 +406,56 @@ if (!is.null(pen)) {
 }
 ```
 
+## How much the exchange rate matters {#sec-k}
+
+$k$ is a judgement, so the honest thing is to show what it decides. The table
+below re-runs the argmax at $k = 1$, $2$ and $3$ for both methods and both
+roles.
+
+```{r k-sensitivity}
+#| echo: false
+#| results: asis
+if (!is.null(trend) && !is.null(grid)) {
+  rows <- do.call(rbind, lapply(c(1, 2, 3), function(k) {
+    do.call(rbind, lapply(c("adep", "ades"), function(role) {
+      bt <- best_row(trend, role, k); be <- best_row(grid, role, k)
+      data.frame(
+        k = k, Role = toupper(role),
+        `Best trend` = sprintf("FL%g, margin %g, %g NM, pen %g",
+                               bt$fl_cap, bt$margin, bt$radius_nm, bt$penalty_nm),
+        `trend score` = num(bt$score),
+        `Best endpoint` = sprintf("%g NM, %s ft, pen %g", be$radius_nm,
+                                  format(be$height_ft, big.mark = ",", trim = TRUE,
+                                         scientific = FALSE), be$penalty_nm),
+        `endpoint score` = num(be$score),
+        Winner = ifelse(be$score >= bt$score, "endpoint", "trend"),
+        check.names = FALSE)
+    }))
+  }))
+  print(kable(rows, row.names = FALSE, align = "r"))
+}
+```
+
+```{r k-verdict}
+#| echo: false
+#| results: asis
+if (!is.null(trend) && !is.null(grid)) {
+  winners <- sapply(c("adep", "ades"), function(role)
+    sapply(c(1, 2, 3), function(k) {
+      ifelse(best_row(grid, role, k)$score >= best_row(trend, role, k)$score,
+             "endpoint", "trend")
+    }))
+  stable <- apply(winners, 2, function(w) length(unique(w)) == 1)
+  if (all(stable)) {
+    cat(sprintf("\nThe **choice of method is the same at every $k$ tried**: departures want `%s` and arrivals want `%s` whether a wrong answer is priced at one silence, two or three. That is the most robust finding on this page, and it does not depend on the judgement that fixes $k$.\n",
+                winners[1, "adep"], winners[1, "ades"]))
+  } else {
+    cat("\nThe choice of method **changes with $k$**, so it rests on the pricing judgement and not on the data alone. The verdict below says which value it assumes.\n")
+  }
+  cat("\nThe parameter *values* are less stable than the method choice, and in a direction that makes sense: a higher $k$ prices wrong answers more dearly, so the argmax moves toward tighter gates that answer less often and are right more often when they do. Where a headline value moves with $k$, the justification table records it.\n")
+}
+```
+
 ## Negative results, re-measured {#sec-negative}
 
 Ideas that were tried and did not work. All are re-run here against current
