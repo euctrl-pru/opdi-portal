@@ -989,8 +989,35 @@ if (!is.null(apt)) {
   }))
   print(kable(rows, row.names = FALSE, align = "r"))
   cat("\nA count ratio below one means the aerodrome is under-counted — the usual case, since every abstention is a movement not attributed. Above one means movements are being attributed to an aerodrome that did not see them, which is the more damaging error and the one the scoring penalises at rate $k$.\n")
+  cat("\nThe departure row is the result: recall rises by nearly nine points and the median aerodrome is within about one percent of its true movement count.\n")
+  cat("\n**The arrival row must be read with @sec-verdict in hand.** It falls, and on almost every aerodrome, which looks like a broad regression and is not one. The arrival column of the recommended flight list is identical to production's, track for track — the same aerodromes named for the same flights. What changes is that the merged list also contains departure-only tracks, and this table pairs reference flights with tracks by start time, so some arrivals are now counted against a track that carries none. The measurement moved; the data did not. It is left in the table rather than corrected away, because a benchmark that quietly adjusts its own alignment to flatter a result is worth less than one that shows where it is fragile.\n")
 }
 ```
+
+## What ships {#sec-defaults}
+
+The pipeline's `DetectionConfig` defaults are now the values this study
+supports. Two were changed, three were deliberately left where production had
+them, and the difference between those two groups is the whole argument of the
+page: a value is adopted when a **pipeline** run confirms it, not when a sweep
+prefers it.
+
+| Parameter | Production | Now ships | Verdict |
+|---|---|---|---|
+| `trend_sched_penalty_nm` | 0 | **10** | **Changed.** The only tuned trend value the pipeline confirms: +234 score, improves 9 of the hundred busiest aerodromes, worsens none. |
+| `endpoint_radius_nm` | 40 | **30** | **Changed.** Interior optimum, and the pipeline reproduces the sweep exactly. |
+| `endpoint_height_ft` | 15,000 | 15,000 | **Confirmed.** The sweep's argmax lands on the value already in use. |
+| `trend_max_fl` | 40 | 40 | **Rejected.** The sweep preferred FL120 by a wide margin; through the pipeline that setting lost 1,741. |
+| `trend_radius_nm` | 30 | 30 | **Rejected.** The argmax at 20 NM was worth 15 flights out of 61,038 on one sample. |
+| `trend_vote_margin` | 4 | 4 | **Rejected.** Its gain was measured on top of a flight-level cap that is not being adopted. |
+
+Every OPDI flight list published before this change was built with the
+production column. `DetectionConfig.legacy()` still returns exactly those
+values, so anything already released stays reproducible by name — the same
+principle as the frozen `version` strings on published events. A regression
+test pins the preset, and a second pins the two rejected values, so restoring
+an optimum on sweep evidence alone has to argue with a test rather than with a
+comment.
 
 ## Limitations {#sec-limitations}
 
