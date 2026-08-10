@@ -994,6 +994,79 @@ if (!is.null(apt)) {
 }
 ```
 
+## Does any of it hold on a second period? {#sec-stability}
+
+Everything above is one three-day sample. An argmax over hundreds of cells on a
+single sample always flatters itself: part of the winning cell's margin is that
+sample's noise, and noise does not reproduce. The only way to find out which
+part is real is to measure a different period with the same code.
+
+The second period is **5–7 June 2024**, chosen because the Network Manager
+reference for that month is committed to the repository and the matching tracks
+already exist from earlier versions of this study.
+
+```{r stability}
+#| echo: false
+#| results: asis
+t24 <- cache("trend_sweep_2024.csv")
+if (is.null(t24)) {
+  cat("*The second-period sweep has not been staged yet.*\n")
+} else {
+  cat(sprintf("The 2024 sample carries %s ground-truth flights against 2025's %s.\n\n",
+              num(t24$n_ground_truth[1]), num(N_GT)))
+
+  s1_25 <- trend[trend$stage == 1, ]; s1_24 <- t24[t24$stage == 1, ]
+  rows <- do.call(rbind, lapply(c("adep", "ades"), function(role) {
+    b25 <- best_row(s1_25, role); b24 <- best_row(s1_24, role)
+    do.call(rbind, lapply(list(
+      list("trend FL cap", "fl_cap"), list("trend vote margin", "margin"),
+      list("trend radius (NM)", "radius_nm")), function(pp_) {
+        data.frame(Role = toupper(role), Parameter = pp_[[1]],
+                   `2025 optimum` = b25[[pp_[[2]]]],
+                   `2024 optimum` = b24[[pp_[[2]]]],
+                   Agrees = ifelse(b25[[pp_[[2]]]] == b24[[pp_[[2]]]], "yes", "**no**"),
+                   check.names = FALSE)
+      }))
+  }))
+  print(kable(rows, row.names = FALSE, align = "r"))
+
+  agree <- sum(rows$Agrees == "yes")
+  cat(sprintf("\n%d of %d parameter optima agree across the two periods.\n",
+              agree, nrow(rows)))
+
+  # The question that actually matters is not whether the argmax moved but
+  # whether the *decision* would have changed -- so the rejected values are
+  # re-checked on the second period too.
+  b24 <- best_row(s1_24, "ades"); b25 <- best_row(s1_25, "ades")
+  leg24 <- with_metrics(t24[t24$stage == 0, ], "ades")
+  cat(sprintf("\nOn the arrival side, where this study rejected the sweep's preferences, the 2024 sweep prefers FL%g against 2025's FL%g — and its own gain over the production constants is %s, against %s on 2025. Both are harness figures, and @sec-pipeline showed harness gains of this size on `trend` do not survive the pipeline's ranking. A parameter that is neither stable across periods nor reproducible in production is not one to ship, which is what the defaults reflect.\n",
+              b24$fl_cap, b25$fl_cap,
+              sgn(b24$score - leg24$score),
+              sgn(b25$score - with_metrics(trend[trend$stage == 0, ], "ades")$score)))
+}
+```
+
+```{r stability-endpoint}
+#| echo: false
+#| results: asis
+e24 <- cache("sweep_radius_height_2024.csv")
+if (!is.null(e24) && !is.null(grid)) {
+  cat("\nFor the endpoint rule, which is what departures actually adopt:\n\n")
+  rows <- do.call(rbind, lapply(c("adep", "ades"), function(role) {
+    a <- best_row(grid, role); b <- best_row(e24, role)
+    data.frame(Role = toupper(role),
+               `2025 radius / height` = sprintf("%g NM / %s ft", a$radius_nm,
+                    format(a$height_ft, big.mark = ",", trim = TRUE, scientific = FALSE)),
+               `2024 radius / height` = sprintf("%g NM / %s ft", b$radius_nm,
+                    format(b$height_ft, big.mark = ",", trim = TRUE, scientific = FALSE)),
+               Agrees = ifelse(a$radius_nm == b$radius_nm & a$height_ft == b$height_ft,
+                               "yes", "**no**"),
+               check.names = FALSE)
+  }))
+  print(kable(rows, row.names = FALSE, align = "r"))
+}
+```
+
 ## What ships {#sec-defaults}
 
 The pipeline's `DetectionConfig` defaults are now the values this study
