@@ -647,6 +647,104 @@ This supersedes version 5's recommendation. That version scored the bearing resc
 }
 ```
 
+### Bearing applied to `trend`
+
+The bearing variants above all modify `endpoint`. `trend` is the algorithm that
+ships for arrivals, and it fails differently — it has no gate, so it almost
+always answers, and its errors are misnamings rather than silences. The variant
+that suits it is therefore a *rerank* or a *tie-break*, not a rescue, and its
+candidate set is already narrowed by the vote rule, so alignment is asked a
+much easier question than on the endpoint side.
+
+```{r trend-bearing}
+#| echo: false
+#| results: asis
+tb <- cache("trend_bearing_v6.csv")
+if (is.null(tb)) {
+  cat("*Not yet regenerated.*\n")
+} else {
+  n <- tb$n_ground_truth[1]
+  sc <- function(role) {
+    ans <- round(tb[[paste0(role, "_coverage")]] * n)
+    cor <- round(tb[[paste0(role, "_overall")]] * n)
+    cor - K_DEFAULT * (ans - cor)
+  }
+  tb$adep_s <- sc("adep"); tb$ades_s <- sc("ades")
+  b <- tb[tb$model == "base: trend as shipped", ]
+  if (nrow(b) == 0) b <- tb[1, ]
+  print(kable(data.frame(
+    Variant = tb$model,
+    `ADES coverage` = pct(tb$ades_coverage), `ADES accuracy` = pct(tb$ades_accuracy),
+    `ADES score` = num(tb$ades_s),
+    `Δ vs shipped` = ifelse(tb$model == b$model, "—", sgn(tb$ades_s - b$ades_s)),
+    check.names = FALSE), row.names = FALSE, align = "r"))
+  best <- tb[which.max(tb$ades_s), ]
+  if (best$ades_s > b$ades_s) {
+    cat(sprintf("\n**%s improves on the shipped configuration by %s.** That is a real gain and it is not currently adopted -- it arrived after the defaults were set, and adopting it would mean shipping a value this study has measured once, on one period. It is the first thing a follow-up should confirm.\n",
+                best$model, sgn(best$ades_s - b$ades_s)))
+  } else {
+    cat("\n**Nothing improves on the shipped configuration.** Alignment cannot separate trend's candidates either: the aerodromes it confuses lie in much the same direction from the endpoint as the right one, which is precisely why the vote rule confused them. The bearing test is now closed for both methods.\n")
+  }
+}
+```
+
+### The vertical measures
+
+Whether a track is climbing or descending can be read from the broadcast
+vertical rate, from a two-point altitude slope, or by least squares over the
+whole window. The three disagree, and version 5 could not say which was wrong.
+
+```{r vertical}
+#| echo: false
+#| results: asis
+vm <- cache("vertical_measure_v6.csv")
+if (is.null(vm)) {
+  cat("*Not yet regenerated.*\n")
+} else {
+  print(kable(data.frame(
+    `Window (min)` = vm$window_min, Freshness = vm$freshness,
+    Flights = num(vm$flights),
+    `Broadcast rate vs OLS` = pct(vm$vr_vs_ols),
+    `2-point slope vs OLS` = pct(vm$t2pt_vs_ols),
+    check.names = FALSE), row.names = FALSE, align = "r"))
+  cat(sprintf("\nAcross the sample the broadcast rate disagrees with the least-squares slope on %s of cases and the two-point slope on %s; %s of broadcast rates are exactly zero, and %s of samples are fresh. The disagreement is concentrated where position updates are stale, which is the same explanation that sank the approach cone: a position survives the archive's carry-forward, a rate does not.\n",
+              pct(vm$overall_vr_vs_ols[1]), pct(vm$overall_t2pt_vs_ols[1]),
+              pct(vm$vr_zero_share[1]), pct(vm$fresh_share[1])))
+}
+```
+
+### State-vector decimation
+
+OPDI thins the 1 Hz feed to roughly 5 s. The production rule is a fixed-phase
+`event_time % 5` filter; the alternative keeps the newest sample in each 5 s
+bucket, which cannot drop a sample where the modulo rule would.
+
+```{r decimation}
+#| echo: false
+#| results: asis
+dc <- cache("decimation_v6.csv")
+if (is.null(dc)) {
+  cat("*Not yet regenerated.*\n")
+} else {
+  n <- dc$n_ground_truth[1]
+  sc <- function(role) {
+    ans <- round(dc[[paste0(role, "_coverage")]] * n)
+    cor <- round(dc[[paste0(role, "_overall")]] * n)
+    cor - K_DEFAULT * (ans - cor)
+  }
+  dc$adep_s <- sc("adep"); dc$ades_s <- sc("ades")
+  print(kable(data.frame(
+    Arm = dc$arm, Candidates = num(dc$candidates),
+    `ADEP coverage` = pct(dc$adep_coverage), `ADEP score` = num(dc$adep_s),
+    `ADES coverage` = pct(dc$ades_coverage), `ADES score` = num(dc$ades_s),
+    check.names = FALSE), row.names = FALSE, align = "r"))
+  if (nrow(dc) >= 2) {
+    d <- (dc$adep_s[2] - dc$adep_s[1]) + (dc$ades_s[2] - dc$ades_s[1])
+    cat(sprintf("\nThe two arms differ by %s across both roles. The bucket rule keeps marginally more rows, and they land where reception is already good rather than where it is intermittent, so the extra evidence is largely redundant. The production rule stands.\n", sgn(d)))
+  }
+}
+```
+
 ## What the pipeline actually produces {#sec-pipeline}
 
 Every number so far comes from a sweep harness, not from `src/opdi`. The trend
