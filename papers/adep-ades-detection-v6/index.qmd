@@ -505,6 +505,154 @@ if (!is.null(cone) && !is.null(grid)) {
 }
 ```
 
+## What the pipeline actually produces {#sec-pipeline}
+
+Every number so far comes from a sweep harness, not from `src/opdi`. The trend
+sweep re-applies the vote rule to a cached vote table and the endpoint sweeps
+filter and re-rank a cached candidate table — which is what makes hundreds of
+parameter cells affordable, and also what makes them unfit, on their own, to
+justify changing a production default.
+
+So the recommended settings were run through `FlightListProcessor.process_dai`
+itself and scored the same way. Three differences between harness and pipeline
+are known in advance and are not bugs:
+
+1. the pipeline selects among candidate aerodromes by **H3 ring count**
+   (`distance_from_center`, an integer stepping about 5.2 km at resolution 7),
+   while the harness uses exact haversine distance;
+2. the pipeline filters zones by radius **band**, the harness by exact radius;
+3. the harness smooths barometric altitude across the flight-level boundary and
+   the pipeline does not.
+
+The gap those produce is the fidelity of every tuned number on this page.
+
+```{r pipeline-fidelity}
+#| echo: false
+#| results: asis
+if (!is.null(modes) && !is.null(trend) && !is.null(grid)) {
+  rows <- do.call(rbind, lapply(seq_len(nrow(modes)), function(i) {
+    r <- modes[i, ]
+    do.call(rbind, lapply(c("adep", "ades"), function(role) data.frame(
+      Run = r$run, Role = toupper(role),
+      Mode = r[[paste0(role, "_mode")]],
+      Coverage = pct(r[[paste0(role, "_coverage")]]),
+      Accuracy = pct(r[[paste0(role, "_accuracy")]]),
+      Correct  = num(r[[paste0(role, "_correct")]]),
+      Wrong    = num(r[[paste0(role, "_wrong")]]),
+      Score    = num(r[[paste0(role, "_score")]]),
+      check.names = FALSE)))
+  }))
+  print(kable(rows, row.names = FALSE, align = "r"))
+
+  # The harness's own figure for the same setting, so the residual is visible
+  # rather than implied.
+  cat("\n**Harness against pipeline, at the same parameters:**\n\n")
+  cmp <- do.call(rbind, list(
+    local({
+      h <- best_row(grid, "adep"); p <- modes[modes$run == "endpoint", ]
+      data.frame(Role = "ADEP", Method = "endpoint",
+                 `Harness score` = num(h$score),
+                 `Pipeline score` = num(p$adep_score),
+                 Residual = sgn(p$adep_score - h$score),
+                 `Relative` = sprintf("%+.2f%%", 100 * (p$adep_score - h$score) / h$score),
+                 check.names = FALSE)
+    }),
+    local({
+      # From the `combined` run, not the `trend` run. A DetectionConfig holds
+      # one trend setting, so the single-mode `trend` run has both roles at the
+      # *departure* optimum and its arrival figure describes a setting nobody
+      # recommends. `combined` is where trend runs at the arrival optimum.
+      h <- best_row(trend[trend$stage == 1, ], "ades"); p <- modes[modes$run == "combined", ]
+      data.frame(Role = "ADES", Method = "trend",
+                 `Harness score` = num(h$score),
+                 `Pipeline score` = num(p$ades_score),
+                 Residual = sgn(p$ades_score - h$score),
+                 `Relative` = sprintf("%+.2f%%", 100 * (p$ades_score - h$score) / h$score),
+                 check.names = FALSE)
+    })))
+  print(kable(cmp, row.names = FALSE, align = "r"))
+  cat("\nThe two rows could hardly be more different, and the difference is the single most important result on this page.\n")
+  cat("\n`endpoint` **reproduces exactly**. That is not luck: the endpoint sweep filters the same cached candidate table the pipeline reads, applying the same rule, so harness and pipeline are the same computation and agree to the flight.\n")
+  cat("\n`trend` **does not**. The harness ranks candidate aerodromes by exact haversine distance. The pipeline first keeps only the candidates at the minimum H3 *ring count* — an integer stepping about 5.2 km at resolution 7 — and applies the haversine tie-break, and the scheduled-service penalty, only within that surviving set. An aerodrome one ring further out is gone before the penalty can promote it. So a penalty tuned against exact distance does something weaker in production, and the harness's trend optimum is optimistic by the margin shown.\n")
+}
+```
+
+### What running the pipeline caught
+
+The first pipeline path run produced a result that no amount of sweeping could
+have: the scheduled-service penalty step scored **exactly** what the step before
+it did, to the flight. An identical score is not a weak effect, it is no effect,
+and a parameter with no effect is a parameter that is not reaching the code.
+
+It was not. The penalty was added to the ranking in `_compute_flight_table`,
+but the projection a few lines above it dropped the `apt_scheduled` column, so
+the ranking looked the column up, failed to find it, and fell back to raw
+distance. A penalty of ten nautical miles and a penalty of zero produced
+byte-identical flight lists.
+
+Two things made this visible rather than invisible. The pipeline run put the
+parameter in front of real data, where a sweep harness — which reads a
+*different* table that does carry the column — could not. And the fallback
+printed a note saying the column was missing instead of quietly ranking on
+distance, because a missing column and a zero penalty look identical in the
+output. The numbers below are from after the fix.
+
+### The trend tuning re-walked inside the pipeline
+
+Because the harness overstates `trend`, the path decomposition was run again
+through `process_dai` itself — the same four steps, each one a real pipeline
+run scored against the same ground truth. This is the version to trust.
+
+```{r pipeline-path}
+#| echo: false
+#| results: asis
+ppath <- cache("pipeline_path_v6.csv")
+if (!is.null(ppath)) {
+  lab <- c(path0_legacy = "production constants",
+           path1_penalty = "+ scheduled-service penalty",
+           path2_flcap = "+ flight-level cap",
+           path3_margin = "+ vote margin",
+           path4_radius = "+ radius")
+  ppath <- ppath[order(match(ppath$run, names(lab))), ]
+  sc <- ppath$ades_score
+  print(kable(data.frame(
+    Step = lab[ppath$run],
+    Coverage = pct(ppath$ades_coverage), Accuracy = pct(ppath$ades_accuracy),
+    Correct = num(ppath$ades_correct), Wrong = num(ppath$ades_wrong),
+    Score = num(sc),
+    `Gain from this step` = c("—", sgn(diff(sc))),
+    check.names = FALSE), row.names = FALSE, align = "r"))
+
+  net <- sc[length(sc)] - sc[1]
+  if (net < 0) {
+    hp <- best_row(trend[trend$stage == 1, ], "ades")$score -
+          with_metrics(trend[trend$stage == 0, ], "ades")$score
+    cat(sprintf("\n**The tuning does not transfer.** Inside the pipeline the full recommended arrival setting scores %s against the production constants, where the harness predicted %s — opposite signs. Every number in @sec-trend-sweep is measured on a ranking rule the pipeline does not use, and for `trend` that difference is larger than the effect being tuned.\n",
+                sgn(net), sgn(hp)))
+
+    # Which steps survive is the actionable part, and it is read off the table
+    # rather than asserted: a step is adopted only if it gains ground here.
+    gains <- diff(sc); names(gains) <- lab[ppath$run][-1]
+    good <- names(gains)[gains > 0]; bad <- names(gains)[gains <= 0]
+    cat(sprintf("\nThe steps do not fail together. Taken in order, these gain ground: %s; and these lose it: %s. Only the first step's figure is a standalone verdict, though — each later step is measured on top of the ones before it, so the %s and %s gains are recovering part of what the cap gave away rather than showing that either is worth adopting on its own.\n",
+                paste(sub("^\\+ ", "", good), collapse = ", "),
+                paste(sub("^\\+ ", "", bad), collapse = ", "),
+                sub("^\\+ ", "", lab[["path3_margin"]]),
+                sub("^\\+ ", "", lab[["path4_radius"]])))
+    cat(sprintf("\nThe one that matters is the %s, worth %s on its own — and the flight-level cap, which the harness liked most of all, is precisely the step that loses most here (%s). Raising the cap admits state vectors from higher up, where the aircraft is further out, more aerodromes fall in the same H3 ring, and the tie-break the pipeline uses to separate them is coarser than the one the sweep was scored on. So it answers more often (%s coverage) and is right less often (%s accuracy) — a trade the harness's exact-distance ranking never had to make.\n",
+                sub("^\\+ ", "", names(gains)[which.max(gains)]),
+                sgn(max(gains)), sgn(min(gains)),
+                pp(ppath$ades_coverage[3] - ppath$ades_coverage[2]),
+                pp(ppath$ades_accuracy[3] - ppath$ades_accuracy[2])))
+    cat("\n**What is adopted for arrivals, therefore, is the production geometry with the scheduled-service penalty added** — the only tuned value that is worth anything in the code that will actually run.\n")
+  } else {
+    cat(sprintf("\nThe tuning transfers: inside the pipeline the recommended arrival setting scores %s against the production constants, against the harness's prediction of %s.\n",
+                sgn(net), sgn(best_row(trend[trend$stage == 1, ], "ades")$score -
+                              with_metrics(trend[trend$stage == 0, ], "ades")$score)))
+  }
+}
+```
+
 ## Why each value, and not its neighbour {#sec-justification}
 
 A recommendation is only as good as the evidence that picked it, so every value
