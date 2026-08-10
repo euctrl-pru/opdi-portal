@@ -790,6 +790,87 @@ if (!is.null(trend)) {
 }
 ```
 
+## The verdict {#sec-verdict}
+
+```{r verdict}
+#| echo: false
+#| results: asis
+if (!is.null(modes)) {
+  m <- function(run, field) {
+    v <- modes[[field]][modes$run == run]
+    if (length(v) == 0) NA_real_ else v[1]
+  }
+  tot <- function(run) m(run, "adep_score") + m(run, "ades_score")
+  runs <- modes$run[order(-(modes$adep_score + modes$ades_score))]
+
+  print(kable(data.frame(
+    Configuration = modes$run,
+    ADEP = paste0(modes$adep_mode, ""), ADES = paste0(modes$ades_mode, ""),
+    `ADEP coverage` = pct(modes$adep_coverage),
+    `ADEP accuracy` = pct(modes$adep_accuracy),
+    `ADEP score` = num(modes$adep_score),
+    `ADES coverage` = pct(modes$ades_coverage),
+    `ADES accuracy` = pct(modes$ades_accuracy),
+    `ADES score` = num(modes$ades_score),
+    Total = num(modes$adep_score + modes$ades_score),
+    check.names = FALSE)[order(-(modes$adep_score + modes$ades_score)), ],
+    row.names = FALSE, align = "r"))
+
+  cat(sprintf("\nThe recommended configuration scores **%s against production's %s, a gain of %s** on a three-day sample of %s flights. Every figure in that table is a real pipeline run scored against Network Manager ground truth.\n",
+              num(tot("recommended")), num(tot("legacy")),
+              sgn(tot("recommended") - tot("legacy")), num(N_GT)))
+}
+```
+
+### What is being recommended, and why
+
+```{r verdict-detail}
+#| echo: false
+#| results: asis
+if (!is.null(modes) && !is.null(grid) && !is.null(ppath)) {
+  m <- function(run, field) modes[[field]][modes$run == run][1]
+  cat(sprintf("**Departures — `endpoint`, %g NM, %s ft, %g NM scheduled-service penalty.** Score %s against production's %s, a gain of %s. This is the clearest result in the study: the setting is an interior optimum in both parameters, the method beats `trend` at every exchange rate tried, and the pipeline reproduces the sweep exactly, so the tuned figure is the production figure.\n\n",
+              best_row(grid, "adep")$radius_nm,
+              format(best_row(grid, "adep")$height_ft, big.mark = ",", trim = TRUE, scientific = FALSE),
+              best_row(grid, "adep")$penalty_nm,
+              num(m("recommended", "adep_score")), num(m("legacy", "adep_score")),
+              sgn(m("recommended", "adep_score") - m("legacy", "adep_score"))))
+
+  alone <- ppath$ades_score[ppath$run == "path1_penalty"]
+  base  <- ppath$ades_score[ppath$run == "path0_legacy"]
+  cat(sprintf("**Arrivals — `trend` at the production geometry, with the scheduled-service penalty added.** Measured on its own, that is %s against production's %s, a gain of %s. None of the other tuned arrival values is adopted, because none of them survives the pipeline's ranking rule.\n\n",
+              num(alone), num(base), sgn(alone - base)))
+
+  cat(sprintf("Reported in the combined flight list the arrival half comes out at %s, which is %s against production rather than the %s just quoted. The difference is not the algorithm. Taking departures from `endpoint` adds tracks that `trend` alone never produced — the merged list holds %s rows against %s — and where two tracks share an aircraft, callsign and date, the scoring alignment awards the flight to whichever starts closest to the actual off-block time. Sometimes that is now an endpoint-only track carrying no arrival. The merge itself loses nothing: both tables name the same %s arrivals, and they disagree on none of them.\n\n",
+              num(m("recommended", "ades_score")),
+              sgn(m("recommended", "ades_score") - m("legacy", "ades_score")),
+              sgn(alone - base),
+              num(cache("merge_shapes_v6.csv")$rows[1]),
+              num(cache("merge_shapes_v6.csv")$rows[2]),
+              num(cache("merge_agreement_v6.csv")$agree[1])))
+
+  cat(sprintf("So the recommendation trades %s on the arrival side for %s on the departure side. It is worth taking, and the arrival cost is a scoring consequence of a larger flight list rather than a worse arrival algorithm — but it is a real cost to anyone counting arrivals, and it is reported as one rather than netted away.\n",
+              sgn(m("recommended", "ades_score") - m("legacy", "ades_score")),
+              sgn(m("recommended", "adep_score") - m("legacy", "adep_score"))))
+}
+```
+
+### The `traffic` library's rule, for reference
+
+```{r verdict-traffic}
+#| echo: false
+#| results: asis
+if (!is.null(modes)) {
+  m <- function(run, field) modes[[field]][modes$run == run][1]
+  cat(sprintf("`nearest` — the unconditional rule the `traffic` library uses — answers far more often than anything else here (%s of departures, %s of arrivals) and is right far less often (%s and %s). Scored, it is last by a wide margin: %s against the recommendation's %s.\n",
+              pct(m("nearest", "adep_coverage")), pct(m("nearest", "ades_coverage")),
+              pct(m("nearest", "adep_accuracy")), pct(m("nearest", "ades_accuracy")),
+              num(m("nearest", "adep_score") + m("nearest", "ades_score")),
+              num(m("recommended", "adep_score") + m("recommended", "ades_score"))))
+  cat("\nThat is not a criticism of `traffic`, which is solving a different problem: it names the nearest aerodrome and leaves the judgement to the caller. It is, however, the measurement that justifies OPDI carrying its own rule rather than adopting that one.\n")
+}
+```
+
 ## Limitations {#sec-limitations}
 
 ### Parameters that were not swept
