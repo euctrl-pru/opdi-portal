@@ -691,13 +691,22 @@ if (!is.null(ppath)) {
 ## Why each value, and not its neighbour {#sec-justification}
 
 A recommendation is only as good as the evidence that picked it, so every value
-this study chooses appears below with the score at that value, the score at the
+the sweeps select appears below with the score at that value, the score at the
 adjacent grid points, and the score at whatever production uses today. The last
 column is the one that matters most for trusting the number: a value on a broad
 **plateau** is a safe recommendation even from a single sample, because its
 neighbours score nearly the same and a little noise cannot move it far. A value
 on a sharp isolated **peak** may be partly the sample's noise, and is flagged
 as such however good its score.
+
+::: {.callout-important}
+## These are the sweeps' choices, not the shipped ones
+The `Chosen` column below is the **harness argmax**, which is what this section
+exists to scrutinise. For `trend` it is superseded by @sec-pipeline, where the
+same values are run through the pipeline and mostly fail. What actually ships
+is in @sec-defaults. The two are deliberately kept apart: the sweep's
+preference is evidence, and evidence that was overruled is still worth showing.
+:::
 
 ```{r justification}
 #| echo: false
@@ -736,12 +745,12 @@ just_row <- function(d, role, chosen, param, label, orig_value, k = K_DEFAULT,
 
   data.frame(
     Role = toupper(role), Parameter = label,
-    Original = orig_value, Chosen = chosen[[param]],
-    `Score at original` = ifelse(is.na(s_or), "—", num(s_or)),
-    `Score at chosen`   = num(s_ch),
+    Production = orig_value, `Sweep argmax` = chosen[[param]],
+    `Score at production` = ifelse(is.na(s_or), "—", num(s_or)),
+    `Score at argmax`     = num(s_ch),
     `Neighbour below`   = ifelse(is.na(s_lo), "—", num(s_lo)),
     `Neighbour above`   = ifelse(is.na(s_hi), "—", num(s_hi)),
-    `Δ vs original`     = ifelse(is.na(s_or), "—", sgn(s_ch - s_or)),
+    `Δ vs production`   = ifelse(is.na(s_or), "—", sgn(s_ch - s_or)),
     Shape = shape, check.names = FALSE)
 }
 
