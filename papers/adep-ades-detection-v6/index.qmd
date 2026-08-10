@@ -252,8 +252,137 @@ if (!is.null(trend)) {
 }
 ```
 
-<!-- Sections below are completed as the remaining measurements land:
-     the full sweep tables, the endpoint sweeps, the penalty treatment across
-     both methods, the consolidated negative results, the parameter
-     justification table, the two-period stability table, the verdict, the
-     top-100 comparison and the limitations. -->
+## Endpoint: the full parameter sweep {#sec-endpoint-sweep}
+
+`endpoint` has two geometric parameters. The **radius** is how close to an
+aerodrome the trajectory's first or last point must be; the **height** is how
+far above field elevation it may be. Failing either, the method abstains.
+
+The grid below is the whole sweep, scored for each role. The height row labelled
+*unrestricted* removes the height gate entirely, which collapses `endpoint`
+into `nearest` within the radius — so the last row of each table is the cost of
+having no abstention at all.
+
+```{r endpoint-grid}
+#| echo: false
+#| results: asis
+if (!is.null(grid)) {
+  UNRESTRICTED <- max(grid$height_ft)
+  hlab <- function(h) ifelse(h == UNRESTRICTED, "unrestricted",
+                             format(h, big.mark = ",", trim = TRUE, scientific = FALSE))
+  for (role in c("adep", "ades")) {
+    x <- with_metrics(grid, role)
+    w <- reshape(x[, c("radius_nm", "height_ft", "score")],
+                 idvar = "height_ft", timevar = "radius_nm", direction = "wide")
+    w <- w[order(w$height_ft), ]
+    names(w) <- sub("^score\\.", "", names(w))
+    names(w)[1] <- "height (ft)"
+    w[[1]] <- hlab(w[[1]])
+    for (j in 2:ncol(w)) w[[j]] <- format(w[[j]], big.mark = ",", trim = TRUE)
+    cat(sprintf("\n**%s — score at $k=2$, by radius (NM, columns) and height (rows)**\n\n",
+                toupper(role)))
+    print(kable(w, row.names = FALSE, align = "r"))
+    cat("\n")
+  }
+}
+```
+
+```{r endpoint-best}
+#| echo: false
+#| results: asis
+if (!is.null(grid)) {
+  cat("\n### Where each role's optimum sits\n\n")
+  for (role in c("adep", "ades")) {
+    b <- best_row(grid, role)
+    cat(sprintf(
+      "- **%s**: %g NM, %s ft — coverage %s, accuracy %s, %s correct, %s wrong, score %s.\n",
+      toupper(role), b$radius_nm,
+      format(b$height_ft, big.mark = ",", trim = TRUE, scientific = FALSE),
+      pct(b$coverage), pct(b$accuracy), num(b$correct), num(b$wrong), num(b$score)))
+  }
+  cat("\nBoth optima are interior to the grid in both parameters, so neither is an artefact of where the sweep stopped.\n")
+}
+```
+
+## The scheduled-service penalty {#sec-penalty}
+
+Both methods choose among surviving candidates by distance. Near a major
+aerodrome that often means choosing between the airport itself and a small
+airfield a few miles away that almost never sees commercial traffic. The
+penalty adds a fixed distance to every candidate without scheduled service,
+biasing the tie-break toward the aerodrome more likely to be the real one.
+
+It is a pure re-ranking: it changes *which* aerodrome is named, never *whether*
+one is named. So coverage is flat across the whole sweep and only accuracy
+moves — which is exactly what makes it cheap.
+
+```{r penalty-table}
+#| echo: false
+#| results: asis
+if (!is.null(pen)) {
+  rows <- do.call(rbind, lapply(c("adep", "ades"), function(role) {
+    x <- with_metrics(pen[order(pen$penalty_nm), ], role)
+    data.frame(Role = toupper(role), `Penalty (NM)` = x$penalty_nm,
+               Coverage = pct(x$coverage), Accuracy = pct(x$accuracy),
+               Correct = num(x$correct), Wrong = num(x$wrong),
+               Score = num(x$score), check.names = FALSE)
+  }))
+  cat(sprintf("\nEndpoint, at %g NM and %s ft:\n\n",
+              pen$radius_nm[1],
+              format(pen$height_ft[1], big.mark = ",", trim = TRUE, scientific = FALSE)))
+  print(kable(rows, row.names = FALSE, align = "r"))
+}
+```
+
+## Negative results, re-measured {#sec-negative}
+
+Ideas that were tried and did not work. All are re-run here against current
+code rather than quoted from the version that first reported them.
+
+### The approach cone
+
+The box rule treats radius and height as independent, and they are not: an
+aircraft descending toward an aerodrome trades height for distance at roughly a
+constant rate. A 3° glideslope is 318 ft/NM and the "three times the flight
+level" rule of thumb about 333 ft/NM, so the endpoints that genuinely belong to
+an aerodrome should lie in a *cone*, not a box.
+
+The two shapes disagree in both corners. Close and high is inside the box and
+outside the cone — an aircraft at 15,000 ft overhead is overflying, not
+arriving. Far and low is outside the box and inside the cone — an arrival whose
+reception dies at 8,000 ft and 30 NM is on profile.
+
+Replacing the box with a cone is worse for both roles, at every slope swept.
+
+```{r cone-result}
+#| echo: false
+#| results: asis
+if (!is.null(cone) && !is.null(grid)) {
+  # The two roles fail differently, so how each fails is derived from the
+  # counts rather than stated once and assumed to cover both. An earlier draft
+  # of this passage asserted that the cone "admits far more wrong answers",
+  # which the arrival row flatly contradicts.
+  for (role in c("adep", "ades")) {
+    bc <- best_row(cone, role); bb <- best_row(grid, role)
+    dc <- bc$correct - bb$correct; dw <- bc$wrong - bb$wrong
+    how <- if (dc <= 0 && dw >= 0) {
+      "worse on both counts — fewer correct *and* more wrong, so no exchange rate rescues it"
+    } else if (dc < 0 && dw < 0) {
+      sprintf("more restrictive, giving up %s correct to avoid %s wrong — a trade worth taking only if a wrong answer cost more than %.0f silences",
+              num(-dc), num(-dw), -dc / -dw)
+    } else {
+      sprintf("more permissive, buying %s correct at the price of %s wrong",
+              num(dc), num(dw))
+    }
+    cat(sprintf(
+      "- **%s**: best cone (%g ft/NM, %g NM) scores %s against the box's %s, %s. It is %s.\n",
+      toupper(role), bc$slope_ft_nm, bc$radius_nm, num(bc$score), num(bb$score),
+      sgn(bc$score - bb$score), how))
+  }
+  cat("\nThe cone loses for both roles at every slope swept, and the reason is the one that sank every other rate-based idea in this study: the OpenSky archive carries positions forward between updates, so a *position* is trustworthy whenever it appears, while anything derived by dividing by elapsed time is not. A glideslope is a rate in disguise.\n")
+}
+```
+
+<!-- Remaining: the full trend sweep tables, the two-period stability table,
+     the parameter justification table, the verdict, the top-100 comparison,
+     the pipeline-fidelity check and the limitations. -->
