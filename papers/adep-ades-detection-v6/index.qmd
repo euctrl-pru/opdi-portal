@@ -75,6 +75,23 @@ best_row <- function(d, role, k = K_DEFAULT, subset = TRUE) {
   if (is.null(x) || nrow(x) == 0) return(NULL)
   x[which.max(x$score), ]
 }
+
+# --- headline values, for the summary -------------------------------------
+# Computed here rather than written into the prose, so the opening paragraph
+# cannot drift away from the tables that justify it.
+mv <- function(run, field) {
+  if (is.null(modes)) return(NA_real_)
+  v <- modes[[field]][modes$run == run]
+  if (length(v) == 0) NA_real_ else v[1]
+}
+ADEP_GAIN <- mv("recommended", "adep_score") - mv("legacy", "adep_score")
+
+top100_recall <- function(run, rl) {
+  if (is.null(apt)) return(NA_real_)
+  x <- apt[apt$run == run & apt$role == rl & apt$airport != "OOA", ]
+  x <- x[order(-x$n_truth), ][1:min(100, nrow(x)), ]
+  sum(x$n_correct) / sum(x$n_truth)
+}
 ```
 
 ## Summary {.unnumbered}
@@ -85,12 +102,30 @@ account: what the three candidate methods are, how each behaves across its
 whole parameter space, which settings are best for departures and for arrivals,
 what the ideas that did *not* work were, and what the pipeline should ship.
 
-The short version is that the two roles want different algorithms, and that the
-algorithm already in production was never tuned. Its flight-level gate — the
-altitude below which state vectors are allowed to vote on whether a track is
-climbing or descending — was set at FL40 and never swept. Moving it is worth
-thousands of correctly named flights per three-day sample, at a cost of tens of
-wrong ones.
+The short version is in three parts.
+
+**The two roles want different algorithms.** Departures are best served by
+`endpoint` — take the aerodrome nearest the first fix, but only commit when the
+fix is close and low, and abstain otherwise. Arrivals are best served by
+`trend`, the algorithm already in production. That split holds at every
+exchange rate tested.
+
+**Departures improve substantially.** Tuning `endpoint` and using it for the
+departure half is worth **`r sgn(ADEP_GAIN)`** on the study's score over what
+production does today, on a three-day sample of `r num(N_GT)` flights, lifting
+recall across the hundred busiest aerodromes from
+`r pct(top100_recall("legacy", "departures"))` to
+`r pct(top100_recall("recommended", "departures"))`.
+
+**The arrival tuning turned out to be an artefact of how it was measured**, and
+this is the result worth carrying away. Sweeping `trend` suggested its
+never-tuned flight-level gate should move from FL40 to FL120, apparently worth
+thousands of flights. Run through the actual pipeline, that same change *lost*
+ground. The sweep ranks candidate aerodromes by exact distance; the pipeline
+ranks them by H3 ring count and tie-breaks within the ring. For `trend`, that
+difference is larger than the effect being tuned. One arrival change survived —
+a scheduled-service tie-break the algorithm never had — and it is the only one
+adopted.
 
 ::: {.callout-note}
 ## Reading this page
