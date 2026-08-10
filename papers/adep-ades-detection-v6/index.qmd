@@ -252,6 +252,78 @@ if (!is.null(trend)) {
 }
 ```
 
+### The full trend grid
+
+`trend` has three geometric parameters, so the sweep is a cube and cannot be
+printed as one table. It is sliced instead: for each role, score by
+flight-level cap against radius at that role's best vote margin, then the
+margin's own profile, then the penalty. Every cell of the cube is in
+`data/trend_sweep_2025.csv`.
+
+```{r trend-grid}
+#| echo: false
+#| results: asis
+if (!is.null(trend)) {
+  s1 <- trend[trend$stage == 1, ]
+  for (role in c("adep", "ades")) {
+    b <- best_row(s1, role)
+    x <- with_metrics(s1[s1$margin == b$margin, ], role)
+    w <- reshape(x[, c("fl_cap", "radius_nm", "score")],
+                 idvar = "fl_cap", timevar = "radius_nm", direction = "wide")
+    w <- w[order(w$fl_cap), ]
+    names(w) <- sub("^score\\.", "", names(w))
+    names(w)[1] <- "FL cap"
+    for (j in 2:ncol(w)) w[[j]] <- format(w[[j]], big.mark = ",", trim = TRUE)
+    cat(sprintf("\n**%s — score at $k=2$, by flight-level cap (rows) and radius in NM (columns), at the winning vote margin of %g**\n\n",
+                toupper(role), b$margin))
+    print(kable(w, row.names = FALSE, align = "r"))
+    cat("\n")
+  }
+}
+```
+
+```{r trend-margin}
+#| echo: false
+#| results: asis
+if (!is.null(trend)) {
+  s1 <- trend[trend$stage == 1, ]
+  cat("\n**The vote margin**, at each role's winning cap and radius:\n\n")
+  rows <- do.call(rbind, lapply(c("adep", "ades"), function(role) {
+    b <- best_row(s1, role)
+    x <- with_metrics(
+      s1[s1$fl_cap == b$fl_cap & s1$radius_nm == b$radius_nm, ], role)
+    x <- x[order(x$margin), ]
+    data.frame(Role = toupper(role), Margin = x$margin,
+               Coverage = pct(x$coverage), Accuracy = pct(x$accuracy),
+               Correct = num(x$correct), Wrong = num(x$wrong),
+               Score = num(x$score), check.names = FALSE)
+  }))
+  print(kable(rows, row.names = FALSE, align = "r"))
+}
+```
+
+```{r trend-penalty}
+#| echo: false
+#| results: asis
+if (!is.null(trend) && any(trend$stage == 2)) {
+  cat("\n**The scheduled-service penalty applied to `trend`**, which production does not do at all, swept at each role's winning geometry:\n\n")
+  rows <- do.call(rbind, lapply(c("adep", "ades"), function(role) {
+    b <- best_row(trend[trend$stage == 1, ], role)
+    sel <- (trend$stage == 2 & trend$stage2_role == role) |
+           (trend$stage == 1 & trend$fl_cap == b$fl_cap &
+            trend$margin == b$margin & trend$radius_nm == b$radius_nm)
+    x <- with_metrics(trend[sel, ], role)
+    x <- x[order(x$penalty_nm), ]
+    data.frame(Role = toupper(role), `Penalty (NM)` = x$penalty_nm,
+               Coverage = pct(x$coverage), Accuracy = pct(x$accuracy),
+               Correct = num(x$correct), Wrong = num(x$wrong),
+               Score = num(x$score), check.names = FALSE)
+  }))
+  print(kable(rows, row.names = FALSE, align = "r"))
+  cat("\nCoverage is constant down each block and only accuracy moves, which is the signature of a pure re-ranking: the penalty changes which aerodrome is named, never whether one is.\n")
+}
+```
+
 ## Endpoint: the full parameter sweep {#sec-endpoint-sweep}
 
 `endpoint` has two geometric parameters. The **radius** is how close to an
