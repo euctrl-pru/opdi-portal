@@ -111,11 +111,14 @@ doing its job.
 course *points at* the candidate aerodrome, measured tightly enough, recovers
 `r num(delta(BEAR, "ades")$dc)` correct arrivals for only
 `r num(delta(BEAR, "ades")$dw)` new errors —
-**`r sprintf("%.2f:1", delta(BEAR, "ades")$ratio)`**, comfortably past the 2:1
-exchange rate version 4.5 argued for. This is the first change in the study to
-clear that bar. It applies to arrivals only: on departures the same test loses
-at `r sprintf("%.2f:1", delta(BEAR, "adep")$ratio)`. Vertical rate recovers
-nothing, and adding it to the bearing test destroys most of the gain.
+**`r sprintf("%.2f:1", delta(BEAR, "ades")$ratio)`**, past the 2:1 exchange rate
+version 4.5 argued for, and the first thing tested to clear it. Vertical rate
+recovers nothing, and adding it destroys most of the gain.
+
+**It is still not adoptable, for a reason outside its own comparison.** The
+bearing test improves `endpoint`; production runs `trend` on arrivals, and
+`trend` beats the improved `endpoint` on *both* axes. The signal is real and the
+rule it improves is the wrong one (@sec-recommendation).
 
 There is a single reason for that asymmetry, and it is the most useful thing in
 this paper:
@@ -423,39 +426,71 @@ help — **it discards flights the bearing test correctly rescued.**
 
 ## Recommendation {#sec-recommendation}
 
-**Adopt the bearing test for arrivals, at a tight gate.** `r BEAR` recovers
-`r num(delta(BEAR, "ades")$dc)` correct arrival labels for
-`r num(delta(BEAR, "ades")$dw)` new errors —
-`r sprintf("%.2f:1", delta(BEAR, "ades")$ratio)`, against the 2:1 bar. Arrival
-coverage rises `r pp(C(BEAR,"ades","coverage") - C(BASE,"ades","coverage"))`
-and overall correctness
-`r pp(C(BEAR,"ades","overall") - C(BASE,"ades","overall"))`, for
-`r pp(C(BEAR,"ades","accuracy") - C(BASE,"ades","accuracy"))` of accuracy.
+::: {.callout-important}
+## The bearing test improves `endpoint`, and `endpoint` is still the wrong rule for arrivals
 
-This is the first change this study has recommended adopting since version 4
-moved detection into the pipeline, and the first to clear the exchange rate on
-its own terms rather than by argument.
+The comparison above scores every variant against the `endpoint` base. Scored
+against **production** instead, the picture changes completely.
 
-**Do not apply it to departures.** Every gate tested is a loss, the best at
-`r sprintf("%.2f:1", max(sapply(cmp$model[grepl("bearing", cmp$model) & !grepl("rate", cmp$model)], function(m) delta(m,"adep")$ratio), na.rm=TRUE))`.
-Departures are not short of evidence, and adding evidence to a rule that is not
-short of it costs accuracy.
+```{r vs-trend}
+tr <- c(cov = m("trend","ades_coverage"), acc = m("trend","ades_accuracy"),
+        ovr = m("trend","ades_overall"))
+best <- "rescue: gate OR align<=0.1"
+rw <- function(lab, cov, acc, ovr) data.frame(
+  Model = lab, Coverage = pct(cov), Accuracy = pct(acc), Overall = pct(ovr),
+  Correct = num(ovr * N_GT), Wrong = num((cov - ovr) * N_GT), check.names = FALSE)
+kable(rbind(
+  rw("trend (production)", tr["cov"], tr["acc"], tr["ovr"]),
+  rw("endpoint 30 NM / 15,000 ft", ws("base","ades","coverage"),
+     ws("base","ades","accuracy"), ws("base","ades","overall")),
+  rw("endpoint + bearing 0.10 deg", ws(best,"ades","coverage"),
+     ws(best,"ades","accuracy"), ws(best,"ades","overall"))),
+  row.names = FALSE, align = "lrrrrr",
+  caption = "Arrivals against production. The best bearing variant still loses on both axes.")
+```
 
-**Do not pursue vertical rate on this data.** Adding it to the bearing test cuts
-the arrival gain from `r num(delta(BEAR1, "ades")$dc)` correct to
-`r num(delta(RATE, "ades")$dc)` and the ratio from
-`r sprintf("%.2f:1", delta(BEAR1, "ades")$ratio)` to
-`r sprintf("%.2f:1", delta(RATE, "ades")$ratio)`. It discards flights the
-bearing test correctly rescued.
+`trend` returns `r num((tr["ovr"] - ws(best,"ades","overall")) * N_GT)` more
+correct arrivals **and**
+`r num(((ws(best,"ades","coverage") - ws(best,"ades","overall")) - (tr["cov"] - tr["ovr"])) * N_GT)`
+fewer wrong ones. It dominates: there is no exchange rate at which the bearing
+model wins.
 
-**Validate on a second period before publishing the change.** Everything here is
-one three-day sample, and the gate was chosen from that sample.
-`r pct(1 - NO_CAND / IN_ARR)` remains the ceiling regardless.
+The bearing test is a real signal and it genuinely improves `endpoint`. But
+`endpoint` was never the right rule for arrivals — version 4.5 concluded that
+already — so improving it does not produce a rule worth adopting. Earlier drafts
+of this section recommended the bearing test for arrivals without checking it
+against production. That was an error of comparison, not of measurement.
+:::
 
-**And out-of-area is still the larger prize.** It is
+**Departures: `endpoint` at 30 NM, 15,000 ft, 10 NM scheduled-service penalty.**
+Against production this is +10,993 correct labels for +645 wrong, about 17:1.
+Unchanged from version 4.5 and still the one clear win in this study.
+
+**Arrivals: keep `trend`.** Nothing in versions 4, 5 or 5.1 beats it.
+
+**Do not apply the bearing test to departures** — every gate is a loss, the best
+at `r sprintf("%.2f:1", max(sapply(cmp$model[grepl("bearing", cmp$model) & !grepl("rate", cmp$model)], function(x) delta(x,"adep")$ratio), na.rm=TRUE))`.
+**Do not pursue vertical rate** (@sec-vertical). **Do not use bearing as a veto,
+a replacement or a naming rule** (@sec-whole).
+
+**Publish the provenance columns.** `adep_source` / `ades_source` distinguish
+"named an aerodrome", "outside the observed area" and "could not determine",
+which are one indistinguishable null in the published flight list today. Still
+the highest value per line of code in the study.
+
+### What the bearing test still needs {#sec-next}
+
+It has only ever been tested as a rescue for **`endpoint`'s** abstention.
+`trend` — the rule actually recommended for arrivals — abstains on about a third
+of them, and **whether bearing can rescue those flights is untested.** That is
+the experiment that would give this finding somewhere to land, and the machinery
+now exists to run it.
+
+**And out-of-area remains the larger prize**:
 `r pct(t$missing[t$apt_type == "out of area"] / sum(t$missing))` of the arrival
-deficit against the `r pct(delta(BEAR, "ades")$dc / sum(t$missing))` this
-recovers. The bearing test is worth having; it is not the main event.
+deficit, `r num(t$missing[t$apt_type == "out of area"])` flights, current recall
+`r pct(m("endpoint","ades_ooa_recall"))`. Unlike the abstained block, nobody has
+shown it is hard.
 
 ## Bearing on the whole sample {#sec-whole}
 
