@@ -1094,7 +1094,10 @@ if (is.null(t24)) {
 #| echo: false
 #| results: asis
 e24 <- cache("sweep_radius_height_2024.csv")
-if (!is.null(e24) && !is.null(grid)) {
+if (is.null(e24)) {
+  cat("\n**The endpoint rule was not re-swept on the second period.** Its sweep runs over the cached candidate table, which exists for 2025 and not for 2024; building it for 2024 would mean either materialising an H3 index over the whole second period or reimplementing the pipeline's endpoint extraction in the harness. The second option is precisely the kind of shortcut @sec-pipeline exists to warn about, so neither was taken.\n")
+  cat("\nThe departure recommendation therefore rests on a different guarantee, and a stronger one for this particular purpose: it was validated *in the pipeline itself* on 2025, where the sweep and `process_dai` agree to the flight. What is missing is a second sample, not a second implementation. It is listed in the limitations as the outstanding check.\n")
+} else if (!is.null(grid)) {
   cat("\nFor the endpoint rule, which is what departures actually adopt:\n\n")
   rows <- do.call(rbind, lapply(c("adep", "ades"), function(role) {
     a <- best_row(grid, role); b <- best_row(e24, role)
@@ -1161,6 +1164,20 @@ Two of these carry a cost that this study measures rather than waves at, since
 - The **border margin** bounds how well any method can identify flights that
   begin or end outside the observed area. The out-of-area recall figures give
   that directly.
+
+### The outstanding check
+
+The endpoint radius and height — the values that actually change what the
+pipeline ships for departures — have been validated against the pipeline but on
+**one** period. `trend`, whose tuned values were mostly rejected, is the one
+measured on two. That is the wrong way round, and it is the first thing a
+follow-up should fix: build the endpoint candidate cache for a second period
+and re-run the radius x height grid against it.
+
+Two things limit how much that weakens the recommendation. The departure gain
+is large — thousands of flights, not tens — so it is not the kind of margin a
+single sample's noise produces. And the optimum sits on a plateau in both
+parameters, so even a moderate shift in the argmax would cost little.
 
 ### One sample, and what that does and does not license
 
