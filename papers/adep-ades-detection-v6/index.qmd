@@ -759,11 +759,12 @@ if (!is.null(ppath)) {
   ppath <- ppath[order(match(ppath$run, names(lab))), ]
   sc <- ppath$ades_score
 
-  # The ring-ranked figures this study measured before the ranking rule was
-  # changed. Kept because the comparison *is* the result: without both columns
-  # the reader cannot see that the same parameters give opposite answers under
-  # the two selection rules.
-  ring <- c(60610, 60844, 59103, 59223, 59408)
+  # The ring-ranked run, read from its own CSV rather than typed in. An earlier
+  # draft of this chunk carried these five numbers as R literals -- on a page
+  # whose whole argument is that hand-copied figures cannot be trusted.
+  rp <- cache("pipeline_path_ring_v6.csv")
+  rp <- rp[order(match(rp$run, names(lab))), ]
+  ring <- rp$ades_score
 
   print(kable(data.frame(
     Step = lab[ppath$run],
@@ -792,14 +793,22 @@ the flight-level cap and radius through `process_dai` directly.
 #| results: asis
 tg <- cache("trend_grid_v6.csv")
 if (!is.null(tg)) {
-  w <- reshape(tg[, c("trend_max_fl", "trend_radius_nm", "ades_score")],
-               idvar = "trend_max_fl", timevar = "trend_radius_nm",
-               direction = "wide")
-  w <- w[order(w$trend_max_fl), ]
-  names(w) <- sub("^ades_score\\.", "", names(w)); names(w)[1] <- "FL cap"
-  for (j in 2:ncol(w)) w[[j]] <- num(w[[j]])
-  cat("\n**Arrivals — score by flight-level cap (rows) and radius in NM (columns), through the pipeline, at vote margin 2 and penalty 10 NM**\n\n")
-  print(kable(w, row.names = FALSE, align = "r"))
+  tg <- tg[order(tg$trend_max_fl, tg$trend_radius_nm), ]
+  wide <- function(col) {
+    w <- reshape(tg[, c("trend_max_fl", "trend_radius_nm", col)],
+                 idvar = "trend_max_fl", timevar = "trend_radius_nm",
+                 direction = "wide")
+    w <- w[order(w$trend_max_fl), ]
+    names(w) <- sub(paste0("^", col, "\\."), "", names(w))
+    w
+  }
+  a <- wide("ades_score"); d <- wide("adep_score")
+  tab <- data.frame(`FL cap` = a$trend_max_fl,
+                    `ADES 20 NM` = num(a[["20"]]), `ADES 30 NM` = num(a[["30"]]),
+                    `ADEP 20 NM` = num(d[["20"]]), `ADEP 30 NM` = num(d[["30"]]),
+                    check.names = FALSE)
+  cat("\n**Score by flight-level cap (rows) and radius (columns), through the pipeline, at vote margin 2 and penalty 10 NM.** Departures are shown for completeness -- they are served by `endpoint`, so that half is a check rather than a recommendation.\n\n")
+  print(kable(tab, row.names = FALSE, align = "r"))
 
   b <- tg[which.max(tg$ades_score), ]
   bd <- tg[which.max(tg$adep_score), ]
@@ -824,10 +833,11 @@ as such however good its score.
 ::: {.callout-important}
 ## These are the sweeps' choices, not the shipped ones
 The `Chosen` column below is the **harness argmax**, which is what this section
-exists to scrutinise. For `trend` it is superseded by @sec-pipeline, where the
-same values are run through the pipeline and mostly fail. What actually ships
-is in @sec-defaults. The two are deliberately kept apart: the sweep's
-preference is evidence, and evidence that was overruled is still worth showing.
+exists to scrutinise. For `trend`, @sec-pipeline is what settles whether each
+value survives in production — and under exact-distance ranking they do, which
+is why the harness numbers below and the shipped values in @sec-defaults now
+agree. They are still kept apart, because for a period they did *not* agree,
+and a sweep preference is only ever evidence until the pipeline confirms it.
 :::
 
 ```{r justification}
@@ -951,7 +961,7 @@ if (!is.null(trend)) {
   cat(sprintf("\nThe gain is not spread evenly. **%s** accounts for %.0f%% of it on its own. That is worth stating plainly: the single most valuable change to arrival detection is not a tuned threshold at all, but applying to `trend` the scheduled-service tie-break that `endpoint` already had and `trend` never did.\n",
               sub("^\\+ ", "", steps[[dom + 1]]$lab),
               100 * max(diff(sc)) / (sc[length(sc)] - sc[1])))
-  cat(sprintf("\nBy contrast the radius change is worth %s flights out of %s — well inside what one three-day sample can resolve. It is reported as *not motivated*: the sweep's argmax prefers it, but the evidence does not justify moving a published constant for it.\n",
+  cat(sprintf("\nBy contrast the radius step is worth %s flights out of %s here — inside what one three-day sample can resolve, and on this evidence alone it would not justify moving a published constant. It is adopted anyway, on stronger evidence gathered later: the pipeline grid in @sec-pipeline prefers the tighter radius at *every* flight level for *both* roles, which is a consistent effect across ten cells rather than a single argmax.\n",
               num(sc[length(sc)] - sc[length(sc) - 1]), num(sc[length(sc)])))
 }
 ```
@@ -969,8 +979,17 @@ if (!is.null(modes)) {
   tot <- function(run) m(run, "adep_score") + m(run, "ades_score")
   runs <- modes$run[order(-(modes$adep_score + modes$ades_score))]
 
+  # The run named `recommended` is a mis-built control, and the shipped
+  # configuration is the one named `combined`. Displaying the raw run names
+  # invites exactly the misreading this table exists to prevent.
+  label <- c(legacy = "legacy (production today)",
+             trend = "trend, departure parameters both roles",
+             endpoint = "endpoint, both roles",
+             nearest = "nearest (traffic library)",
+             combined = "**SHIPPED** endpoint + exact-distance trend",
+             recommended = "control: production geometry + penalty, ring-ranked")
   print(kable(data.frame(
-    Configuration = modes$run,
+    Configuration = ifelse(is.na(label[modes$run]), modes$run, label[modes$run]),
     ADEP = paste0(modes$adep_mode, ""), ADES = paste0(modes$ades_mode, ""),
     `ADEP coverage` = pct(modes$adep_coverage),
     `ADEP accuracy` = pct(modes$adep_accuracy),
@@ -1056,7 +1075,7 @@ else.
 #| results: asis
 if (!is.null(typ)) {
   for (rl in c("departures", "arrivals")) {
-    x <- typ[typ$run == "recommended" & typ$role == rl, ]
+    x <- typ[typ$run == SHIPPED & typ$role == rl, ]
     if (nrow(x) == 0) next
     x <- x[order(-x$n_truth), ]
     cat(sprintf("\n**%s**\n\n", tools::toTitleCase(rl)))
@@ -1067,7 +1086,7 @@ if (!is.null(typ)) {
       Accuracy = pct(x$accuracy), check.names = FALSE),
       row.names = FALSE, align = "r"))
   }
-  unn <- typ[typ$run == "recommended" &
+  unn <- typ[typ$run == SHIPPED &
              !typ$apt_type %in% c("large_airport", "medium_airport"), ]
   if (nrow(unn)) {
     cat(sprintf("\nOutside the candidate set — %s classes, %s flights across both roles — the method is working against a reference it was never given. Those flights are counted in the denominator throughout this page, so every coverage figure here already carries their cost.\n",
@@ -1093,7 +1112,7 @@ aerodrome's true movements correctly attributed to it.
 #| results: asis
 if (!is.null(apt)) {
   for (rl in c("departures", "arrivals")) {
-    r <- apt[apt$run == "recommended" & apt$role == rl & apt$airport != "OOA", ]
+    r <- apt[apt$run == SHIPPED & apt$role == rl & apt$airport != "OOA", ]
     l <- apt[apt$run == "legacy"      & apt$role == rl & apt$airport != "OOA", ]
     if (nrow(r) == 0) next
     r <- r[order(-r$n_truth), ][1:min(100, nrow(r)), ]
@@ -1120,14 +1139,14 @@ if (!is.null(apt)) {
 if (!is.null(apt)) {
   cat("\n### Across the hundred\n\n")
   rows <- do.call(rbind, lapply(c("departures", "arrivals"), function(rl) {
-    r <- apt[apt$run == "recommended" & apt$role == rl & apt$airport != "OOA", ]
+    r <- apt[apt$run == SHIPPED & apt$role == rl & apt$airport != "OOA", ]
     l <- apt[apt$run == "legacy"      & apt$role == rl & apt$airport != "OOA", ]
     r <- r[order(-r$n_truth), ][1:min(100, nrow(r)), ]
     l <- l[match(r$airport, l$airport), ]
     data.frame(
       Role = tools::toTitleCase(rl),
       `Movements in truth` = num(sum(r$n_truth)),
-      `Recall, recommended` = pct(sum(r$n_correct) / sum(r$n_truth)),
+      `Recall, shipped` = pct(sum(r$n_correct) / sum(r$n_truth)),
       `Recall, production`  = pct(sum(l$n_correct, na.rm = TRUE) / sum(l$n_truth, na.rm = TRUE)),
       `Aerodromes improved` = sprintf("%d of %d", sum(r$recall > l$recall, na.rm = TRUE), nrow(r)),
       `Median count ratio`  = sprintf("%.3f", median(r$count_ratio, na.rm = TRUE)),
@@ -1136,7 +1155,10 @@ if (!is.null(apt)) {
   print(kable(rows, row.names = FALSE, align = "r"))
   cat("\nA count ratio below one means the aerodrome is under-counted — the usual case, since every abstention is a movement not attributed. Above one means movements are being attributed to an aerodrome that did not see them, which is the more damaging error and the one the scoring penalises at rate $k$.\n")
   cat("\nThe departure row is the result: recall rises by nearly nine points and the median aerodrome is within about one percent of its true movement count.\n")
-  cat("\n**The arrival row must be read with @sec-verdict in hand.** It falls, and on almost every aerodrome, which looks like a broad regression and is not one. The arrival column of the recommended flight list is identical to production's, track for track — the same aerodromes named for the same flights. What changes is that the merged list also contains departure-only tracks, and this table pairs reference flights with tracks by start time, so some arrivals are now counted against a track that carries none. The measurement moved; the data did not. It is left in the table rather than corrected away, because a benchmark that quietly adjusts its own alignment to flatter a result is worth less than one that shows where it is fragile.\n")
+  arr <- rows[rows$Role == "Arrivals", ]
+  cat(sprintf("\n**The arrival row must be read with @sec-verdict in hand.** Recall reads %s against production's %s, improving on %s — which looks like a mild regression and is not one. Measured as an algorithm on a trend-only flight list, arrivals gain; the shortfall here comes from the merged list also containing departure-only tracks, which this table pairs with reference flights by start time, so some arrivals are counted against a track that carries none. The measurement moved; the data did not. It is left in the table rather than corrected away, because a benchmark that quietly adjusts its own alignment to flatter a result is worth less than one that shows where it is fragile.\n",
+              arr$`Recall, shipped`, arr$`Recall, production`,
+              arr$`Aerodromes improved`))
 }
 ```
 
@@ -1279,9 +1301,9 @@ Two of these carry a cost that this study measures rather than waves at, since
 #| echo: false
 #| results: asis
 if (!is.null(typ) && !is.null(modes)) {
-  out <- typ[typ$run == "recommended" &
+  out <- typ[typ$run == SHIPPED &
              !typ$apt_type %in% c("large_airport", "medium_airport", "out of area"), ]
-  ooa <- typ[typ$run == "recommended" & typ$apt_type == "out of area", ]
+  ooa <- typ[typ$run == SHIPPED & typ$apt_type == "out of area", ]
   m <- function(run, f) modes[[f]][modes$run == run][1]
 
   # Aggregated over roles: the frame carries one row per (class, role), and
