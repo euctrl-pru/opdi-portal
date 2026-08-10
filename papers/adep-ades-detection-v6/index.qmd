@@ -5,6 +5,46 @@ author: "EUROCONTROL Performance Review Unit"
 date: last-modified
 ---
 
+```{r regenerate}
+#| include: false
+#| cache: false
+
+# Rendering this page runs the analysis behind it.
+#
+# `regenerate_v6.py` is the executable definition of the study: every CSV read
+# below is produced by exactly one job it declares, with exactly the arguments
+# it declares. It re-runs a job when the *code that job depends on* has changed
+# since the output was written -- not when the file is old, which says nothing.
+# So a render with everything current is a fast no-op, and a render after
+# editing `flights.py` recomputes every pipeline result before the first table
+# is drawn.
+#
+# Running a stale job needs cluster credentials, because the numbers come from
+# Spark over S3 against Network Manager reference data and there is no way to
+# recompute them without the data they are computed from. Set
+# OPDI_RENDER=check to fail fast on staleness instead, or OPDI_RENDER=allow-
+# stale to render a draft from whatever is staged -- which the provenance
+# table at the foot of this page will then show as unverified.
+REPO   <- normalizePath(file.path(getwd(), "..", "..", "..", "opdi"), mustWork = FALSE)
+PYTHON <- Sys.getenv("OPDI_PYTHON", file.path(REPO, ".venv310", "bin", "python"))
+MODE   <- Sys.getenv("OPDI_RENDER", "run")
+
+regen <- file.path(REPO, "benchmarks", "regenerate_v6.py")
+if (file.exists(regen) && MODE != "skip") {
+  flags <- switch(MODE,
+                  "run" = character(0),
+                  "check" = "--check",
+                  "allow-stale" = c("--check", "--allow-stale"),
+                  character(0))
+  status <- system2(PYTHON, c(shQuote(regen), flags), stdout = "", stderr = "")
+  if (!identical(status, 0L)) {
+    stop("regenerate_v6.py exited ", status,
+         " -- the figures below would not match the code that is checked out. ",
+         "Set OPDI_RENDER=allow-stale to render anyway.")
+  }
+}
+```
+
 ```{r setup}
 #| include: false
 library(knitr)
@@ -129,9 +169,13 @@ adopted.
 
 ::: {.callout-note}
 ## Reading this page
-Every number below is an inline expression over a CSV in `data/`. Nothing is
-typed into the prose. Where this page disagrees with versions 1–5, it says so
-and gives the reason; those versions stay published unchanged.
+Every number below is an inline expression over a CSV in `data/`, and every one
+of those CSVs is produced by a job in `benchmarks/regenerate_v6.py` — which
+this page runs before drawing anything. Nothing is typed into the prose, and
+nothing is read that the checked-out code did not produce. @sec-provenance
+lists the command and commit behind each figure. Where this page disagrees with
+versions 1–5, it says so and gives the reason; those versions stay published
+unchanged.
 :::
 
 ## How the metrics work {#sec-metrics}
@@ -1186,6 +1230,47 @@ principle as the frozen `version` strings on published events. A regression
 test pins the preset, and a second pins the two rejected values, so restoring
 an optimum on sweep evidence alone has to argue with a test rather than with a
 comment.
+
+## Provenance {#sec-provenance}
+
+Each row is one file read by this page: the job that produced it, the commit it
+was produced at, and when. A row marked **unverified** was staged without going
+through `regenerate_v6.py` and cannot be traced to a command; a row marked
+**dirty** was produced from a working tree with uncommitted changes, so the
+commit alone does not reproduce it.
+
+```{r provenance}
+#| echo: false
+#| results: asis
+mf <- file.path("data", "_manifest.json")
+if (!requireNamespace("jsonlite", quietly = TRUE)) {
+  cat("*jsonlite not available; provenance table skipped.*\n")
+} else if (!file.exists(mf)) {
+  cat("**No manifest.** Every CSV on this page was staged by hand and none can be traced to the command that produced it. Run `python benchmarks/regenerate_v6.py` to rebuild them with provenance.\n")
+} else {
+  m <- jsonlite::fromJSON(mf, simplifyDataFrame = FALSE)
+  files <- sort(list.files("data", pattern = "[.]csv$"))
+  rows <- do.call(rbind, lapply(files, function(f) {
+    e <- m[[f]]
+    if (is.null(e)) {
+      data.frame(File = f, Job = "**unverified**", Commit = "—",
+                 Produced = "—", check.names = FALSE)
+    } else {
+      data.frame(File = f,
+                 Job = basename(e$script),
+                 Commit = paste0(e$git_sha, if (isTRUE(e$git_dirty)) " (dirty)" else ""),
+                 Produced = substr(e$produced_utc, 1, 16),
+                 check.names = FALSE)
+    }
+  }))
+  print(kable(rows, row.names = FALSE, align = "l"))
+  n_un <- sum(rows$Job == "**unverified**")
+  if (n_un > 0) {
+    cat(sprintf("\n%d of %d files are unverified. They were staged before this page ran its own analysis, and until `regenerate_v6.py` rebuilds them the numbers they carry rest on nothing stronger than a filename.\n",
+                n_un, nrow(rows)))
+  }
+}
+```
 
 ## Limitations {#sec-limitations}
 
