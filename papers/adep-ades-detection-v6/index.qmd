@@ -1,0 +1,259 @@
+---
+title: "Detecting departure and destination aerodromes from ADS-B"
+subtitle: "Version 6 — the consolidated study, and what to run in production"
+author: "EUROCONTROL Performance Review Unit"
+date: last-modified
+---
+
+```{r setup}
+#| include: false
+library(knitr)
+library(ggplot2)
+
+# Read-only. Every figure and table on this page comes from a committed CSV
+# under data/. Nothing here reads S3, a database or a Spark cluster.
+#
+# Every one of those CSVs was produced by *this* study, against the pipeline as
+# it stands at the end of the parameterisation work. No number is carried over
+# from versions 1-5 or from the decimation study. That is not bookkeeping: the
+# bearing results in version 5 pre-date a modulo fix that changed them, the
+# arrival comparison pre-dates a corrected `endpoint` baseline, and the trend
+# numbers came from a standalone reimplementation. Re-measuring everything is
+# what allows the arithmetic on this page to agree with itself.
+cache <- function(f) {
+  p <- file.path("data", f)
+  if (!file.exists(p)) return(NULL)
+  read.csv(p, stringsAsFactors = FALSE)
+}
+
+trend  <- cache("trend_sweep_2025.csv")
+grid   <- cache("sweep_radius_height_2025.csv")
+pen    <- cache("sweep_penalty_2025.csv")
+cone   <- cache("sweep_cone_2025.csv")
+modes  <- cache("mode_comparison_v6.csv")
+apt    <- cache("per_airport_v6.csv")
+typ    <- cache("per_type_v6.csv")
+
+pct  <- function(x) ifelse(is.na(x), "—", sprintf("%.2f%%", 100 * x))
+pp   <- function(x) ifelse(is.na(x), "—", sprintf("%+.2f pp", 100 * x))
+num  <- function(x) format(round(x), big.mark = ",", trim = TRUE)
+# The "+" flag does nothing for %s in R, so the sign is prepended explicitly --
+# a signed delta that silently loses its sign reads as a level, not a change.
+sgn  <- function(x) paste0(ifelse(x >= 0, "+", "−"),
+                           format(abs(round(x)), big.mark = ",", trim = TRUE))
+
+# --- counts, and the score -------------------------------------------------
+# The sweep frames carry coverage and overall as ratios of the same ground
+# truth. The counts are exactly recoverable from them -- coverage * n is the
+# number answered, overall * n the number correct, and both are integers -- so
+# every table below can show counts without a separate export. Verified against
+# the trend sweep, which carries both: all rows agree.
+N_GT <- if (!is.null(trend)) trend$n_ground_truth[1] else grid$n_ground_truth[1]
+
+K_DEFAULT <- 2
+
+answered <- function(d, role) round(d[[paste0(role, "_coverage")]] * d$n_ground_truth)
+correct  <- function(d, role) round(d[[paste0(role, "_overall")]]  * d$n_ground_truth)
+wrong    <- function(d, role) answered(d, role) - correct(d, role)
+scr      <- function(d, role, k = K_DEFAULT) correct(d, role) - k * wrong(d, role)
+
+# Attach the five reported quantities to any sweep frame, for either role, so
+# no table has to recompute them and none can disagree with another.
+with_metrics <- function(d, role, k = K_DEFAULT) {
+  if (is.null(d)) return(NULL)
+  d$correct  <- correct(d, role)
+  d$wrong    <- wrong(d, role)
+  d$score    <- d$correct - k * d$wrong
+  d$coverage <- d[[paste0(role, "_coverage")]]
+  d$accuracy <- d[[paste0(role, "_accuracy")]]
+  d
+}
+
+# The best row of a sweep for one role, at a given k.
+best_row <- function(d, role, k = K_DEFAULT, subset = TRUE) {
+  x <- with_metrics(d[subset, , drop = FALSE], role, k)
+  if (is.null(x) || nrow(x) == 0) return(NULL)
+  x[which.max(x$score), ]
+}
+```
+
+## Summary {.unnumbered}
+
+OPDI derives a flight's departure and destination aerodrome from ADS-B state
+vectors alone. This page consolidates six versions of that work into one
+account: what the three candidate methods are, how each behaves across its
+whole parameter space, which settings are best for departures and for arrivals,
+what the ideas that did *not* work were, and what the pipeline should ship.
+
+The short version is that the two roles want different algorithms, and that the
+algorithm already in production was never tuned. Its flight-level gate — the
+altitude below which state vectors are allowed to vote on whether a track is
+climbing or descending — was set at FL40 and never swept. Moving it is worth
+thousands of correctly named flights per three-day sample, at a cost of tens of
+wrong ones.
+
+::: {.callout-note}
+## Reading this page
+Every number below is an inline expression over a CSV in `data/`. Nothing is
+typed into the prose. Where this page disagrees with versions 1–5, it says so
+and gives the reason; those versions stay published unchanged.
+:::
+
+## How the metrics work {#sec-metrics}
+
+Five quantities are reported for every setting, for each role separately. Four
+of them are unavoidable and the fifth is a judgement, so it is worth being
+precise about all five before any of them are used to argue for a parameter.
+
+Write $N$ for the number of ground-truth flights in the sample, $a$ for the
+number the method *answers* (names an aerodrome, or explicitly says
+out-of-area), $c$ for the number it answers **correctly**, and $w = a - c$ for
+the number it answers **wrongly**.
+
+**Coverage** is $a/N$: the share of flights the method is willing to commit on.
+A method that abstains everywhere has coverage zero and cannot be wrong.
+
+**Accuracy** is $c/a$: of the flights it committed on, the share it got right.
+Accuracy says nothing about how often the method declined to answer, so a
+method can buy accuracy simply by abstaining more.
+
+**Correct** ($c$) and **wrong** ($w$) are the raw counts. They matter because
+coverage and accuracy generally move in opposite directions — every extra
+answer a method gives is one it was previously unsure about, so raising
+coverage tends to lower accuracy — and neither ratio says whether a particular
+exchange was worth making. The counts do.
+
+**Score** is $c - k\,w$. It exists to make the exchange rate explicit: a change
+to a parameter is worth taking if and only if it wins more than $k$ correct
+answers for each wrong one it introduces.
+
+The value of $k$ is where judgement enters. This study uses $k = 2$ by default,
+on the following argument. A **silence** — an abstention — corrupts one
+movement count, and it is *visible*: it arrives downstream as an explicit null
+that any consumer can filter on. A **wrong aerodrome** corrupts *two* movement
+counts, the one it invents and the one it omits, and it is *invisible*: nothing
+downstream can distinguish it from a correct answer. Two errors for one, plus
+undetectability, is the case for $k = 2$.
+
+That is an argument, not a measurement, and rankings do move with $k$. So every
+headline choice on this page is also scored at $k = 1$ and $k = 3$, and where
+the ranking changes, the page says so.
+
+### Out-of-area, and why the headline numbers are decomposed
+
+Roughly one flight in six in the sample genuinely begins or ends outside the
+observed area. Such a flight has no nameable aerodrome, and the correct answer
+is the literal label `OOA`. This creates a way to score well for a bad reason:
+a method that labels liberally out-of-area collects those flights for free.
+
+So each side is also reported three further ways — out-of-area recall and
+precision, which show whether the free wins are being taken honestly, and
+in-area coverage and accuracy, which restrict to flights whose truth is a real
+aerodrome and are the numbers to read when comparing naming rules.
+
+```{r metrics-table}
+#| echo: false
+if (!is.null(grid)) {
+  kable(data.frame(
+    Quantity = c("Coverage", "Accuracy", "Correct", "Wrong", "Score",
+                 "OOA recall", "OOA precision",
+                 "In-area coverage", "In-area accuracy"),
+    Definition = c("$a/N$", "$c/a$", "$c$", "$w = a - c$", "$c - k\\,w$",
+                   "OOA hits / OOA in truth", "OOA hits / OOA predicted",
+                   "answered / truth is a real aerodrome",
+                   "correct / answered, truth a real aerodrome"),
+    `Reads as` = c("willingness to commit", "reliability when committed",
+                   "flights named right", "flights named wrong",
+                   "net value at exchange rate $k$",
+                   "does it recognise what it cannot name?",
+                   "is it over-using the OOA label?",
+                   "commitment with the free wins removed",
+                   "reliability with the free wins removed"),
+    check.names = FALSE
+  ), caption = "The reported quantities.")
+}
+```
+
+## The sample {#sec-sample}
+
+```{r sample}
+#| echo: false
+#| results: asis
+if (!is.null(trend)) {
+  cat(sprintf(
+    "The 2025 period is 5-7 June 2025, three consecutive days, giving **%s ground-truth flights** after alignment with the Network Manager reference.\n",
+    num(N_GT)))
+}
+```
+
+Ground truth is the EUROCONTROL Network Manager flight table, joined to ADS-B
+tracks on aircraft address, callsign and date. The join key is
+`AIRCRAFT_ADDRESS`, which is the `icao24` of the ADS-B message.
+
+## The three methods {#sec-methods}
+
+### `trend` — what production runs today
+
+For every state vector below a flight-level cap and within a radius of an
+aerodrome, `trend` asks whether smoothed barometric altitude is rising or
+falling. Each vector casts a vote. If climbing votes exceed descending votes by
+more than a margin, that aerodrome is the departure; if the reverse, the
+destination. The nearest surviving candidate wins.
+
+Two of its four constants had never been swept before this study: the
+flight-level cap, fixed at FL40, and the detection radius, fixed at 30 NM.
+
+### `nearest` — the *traffic* library's rule
+
+The reference implementation in the `traffic` library takes the aerodrome
+nearest the first and last point of the trajectory, unconditionally. It never
+abstains, so its coverage is total and its accuracy is whatever the geometry
+gives. It is included as the external baseline.
+
+### `endpoint` — `nearest`, with abstention
+
+`endpoint` is `nearest` plus two gates: the endpoint must lie within a radius
+of the aerodrome, and either on the ground or below a height above the field.
+Failing both, the method abstains rather than guessing. A scheduled-service
+penalty breaks ties toward aerodromes with commercial traffic.
+
+## Trend: the full parameter sweep {#sec-trend-sweep}
+
+```{r trend-sweep-summary}
+#| echo: false
+#| results: asis
+if (!is.null(trend)) {
+  s0 <- trend[trend$stage == 0, ]
+  cat("### The untuned baseline\n\n")
+  for (role in c("adep", "ades")) {
+    x <- with_metrics(s0, role)
+    cat(sprintf(
+      "- **%s** at the production setting (FL%g, margin %g, %g NM, no penalty): coverage %s, accuracy %s, %s correct, %s wrong, score %s.\n",
+      toupper(role), s0$fl_cap[1], s0$margin[1], s0$radius_nm[1],
+      pct(x$coverage), pct(x$accuracy), num(x$correct), num(x$wrong), num(x$score)))
+  }
+}
+```
+
+```{r trend-best}
+#| echo: false
+#| results: asis
+if (!is.null(trend)) {
+  cat("\n### The best setting found\n\n")
+  for (role in c("adep", "ades")) {
+    b <- best_row(trend, role)
+    s0 <- with_metrics(trend[trend$stage == 0, ], role)
+    cat(sprintf(
+      "- **%s**: FL%g, margin %g, %g NM, penalty %g NM — coverage %s, accuracy %s, %s correct, %s wrong, score %s (%s against the untuned baseline).\n",
+      toupper(role), b$fl_cap, b$margin, b$radius_nm, b$penalty_nm,
+      pct(b$coverage), pct(b$accuracy), num(b$correct), num(b$wrong),
+      num(b$score), sgn(b$score - s0$score)))
+  }
+}
+```
+
+<!-- Sections below are completed as the remaining measurements land:
+     the full sweep tables, the endpoint sweeps, the penalty treatment across
+     both methods, the consolidated negative results, the parameter
+     justification table, the two-period stability table, the verdict, the
+     top-100 comparison and the limitations. -->
