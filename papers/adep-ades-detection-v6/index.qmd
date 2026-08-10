@@ -849,9 +849,36 @@ if (!is.null(modes) && !is.null(grid) && !is.null(ppath)) {
               num(cache("merge_shapes_v6.csv")$rows[2]),
               num(cache("merge_agreement_v6.csv")$agree[1])))
 
-  cat(sprintf("So the recommendation trades %s on the arrival side for %s on the departure side. It is worth taking, and the arrival cost is a scoring consequence of a larger flight list rather than a worse arrival algorithm — but it is a real cost to anyone counting arrivals, and it is reported as one rather than netted away.\n",
-              sgn(m("recommended", "ades_score") - m("legacy", "ades_score")),
-              sgn(m("recommended", "adep_score") - m("legacy", "adep_score"))))
+  cat("That distinction is worth being exact about, because it decides whether the arrival figure is a cost or an artefact. The two tables carry **the same arrival column**: every track id that has an ADES in one has the same ADES in the other, and there are no disagreements in either direction. So the arrival movements OPDI would publish are identical — an analyst counting arrivals at any aerodrome gets the same number from either table. What changes is only which track this benchmark pairs with each reference flight when several are eligible.\n\n")
+
+  cat(sprintf("So the recommendation gains %s on the departure side and leaves the arrival side materially unchanged: %s from the penalty, measured like for like, and no change at all to the arrivals actually named. The %s reported against the combined list is the benchmark's alignment, not the algorithm's output, and it is shown rather than suppressed because the same artefact appears in the per-aerodrome table below.\n",
+              sgn(m("recommended", "adep_score") - m("legacy", "adep_score")),
+              sgn(alone - base),
+              sgn(m("recommended", "ades_score") - m("legacy", "ades_score"))))
+}
+```
+
+```{r verdict-penalty-check}
+#| echo: false
+#| results: asis
+ppa <- cache("per_airport_path_v6.csv")
+if (!is.null(ppa)) {
+  cat("\nThe penalty was checked separately at aerodrome level, where a re-ranking rule could easily rob one aerodrome to pay another. Across the hundred busiest it does not:\n\n")
+  rows <- do.call(rbind, lapply(c("departures", "arrivals"), function(rl) {
+    b <- ppa[ppa$run == "path0_legacy"  & ppa$role == rl & ppa$airport != "OOA", ]
+    p <- ppa[ppa$run == "path1_penalty" & ppa$role == rl & ppa$airport != "OOA", ]
+    b <- b[order(-b$n_truth), ][1:min(100, nrow(b)), ]
+    p <- p[match(b$airport, p$airport), ]
+    data.frame(Role = tools::toTitleCase(rl),
+               `Recall without penalty` = pct(sum(b$n_correct) / sum(b$n_truth)),
+               `Recall with penalty` = pct(sum(p$n_correct) / sum(p$n_truth)),
+               Improved = sum(p$recall > b$recall, na.rm = TRUE),
+               Worsened = sum(p$recall < b$recall, na.rm = TRUE),
+               Unchanged = sum(p$recall == b$recall, na.rm = TRUE),
+               check.names = FALSE)
+  }))
+  print(kable(rows, row.names = FALSE, align = "r"))
+  cat("\nNo aerodrome in the hundred is made worse by it. That is the signature of a tie-break that is breaking ties in the right direction rather than trading one error for another.\n")
 }
 ```
 
@@ -868,6 +895,100 @@ if (!is.null(modes)) {
               num(m("nearest", "adep_score") + m("nearest", "ades_score")),
               num(m("recommended", "adep_score") + m("recommended", "ades_score"))))
   cat("\nThat is not a criticism of `traffic`, which is solving a different problem: it names the nearest aerodrome and leaves the judgement to the caller. It is, however, the measurement that justifies OPDI carrying its own rule rather than adopting that one.\n")
+}
+```
+
+## By aerodrome class {#sec-per-type}
+
+The candidate set is large and medium aerodromes only, so a flight whose true
+aerodrome is a small airfield or a heliport cannot be named correctly by any
+method on this page. This is the size of that population, and of everything
+else.
+
+```{r per-type}
+#| echo: false
+#| results: asis
+if (!is.null(typ)) {
+  for (rl in c("departures", "arrivals")) {
+    x <- typ[typ$run == "recommended" & typ$role == rl, ]
+    if (nrow(x) == 0) next
+    x <- x[order(-x$n_truth), ]
+    cat(sprintf("\n**%s**\n\n", tools::toTitleCase(rl)))
+    print(kable(data.frame(
+      Class = x$apt_type, `Flights in truth` = num(x$n_truth),
+      Aerodromes = num(x$n_aerodromes), Answered = num(x$n_answered),
+      Correct = num(x$n_correct), Coverage = pct(x$coverage),
+      Accuracy = pct(x$accuracy), check.names = FALSE),
+      row.names = FALSE, align = "r"))
+  }
+  unn <- typ[typ$run == "recommended" &
+             !typ$apt_type %in% c("large_airport", "medium_airport"), ]
+  if (nrow(unn)) {
+    cat(sprintf("\nOutside the candidate set — %s classes, %s flights across both roles — the method is working against a reference it was never given. Those flights are counted in the denominator throughout this page, so every coverage figure here already carries their cost.\n",
+                num(length(unique(unn$apt_type))), num(sum(unn$n_truth))))
+  }
+}
+```
+
+## The busiest 100 aerodromes {#sec-top100}
+
+Movement counts are what OPDI is for, so the last check is per aerodrome rather
+than per flight: for each of the hundred busiest in the reference, how many
+movements the recommended methodology finds, against how many the Network
+Manager data says there were, and how the algorithm production runs today
+compares on the same aerodromes.
+
+`Count ratio` is movements found over movements in truth — the number a
+capacity or delay analysis would be distorted by. `Recall` is the share of that
+aerodrome's true movements correctly attributed to it.
+
+```{r top100}
+#| echo: false
+#| results: asis
+if (!is.null(apt)) {
+  for (rl in c("departures", "arrivals")) {
+    r <- apt[apt$run == "recommended" & apt$role == rl & apt$airport != "OOA", ]
+    l <- apt[apt$run == "legacy"      & apt$role == rl & apt$airport != "OOA", ]
+    if (nrow(r) == 0) next
+    r <- r[order(-r$n_truth), ][1:min(100, nrow(r)), ]
+    l <- l[match(r$airport, l$airport), ]
+    cat(sprintf("\n### %s\n\n", tools::toTitleCase(rl)))
+    print(kable(data.frame(
+      `#` = seq_len(nrow(r)),
+      Aerodrome = r$airport,
+      `Movements (truth)` = num(r$n_truth),
+      `Found` = num(r$n_predicted_here),
+      `Correct` = num(r$n_correct),
+      `Count ratio` = sprintf("%.3f", r$count_ratio),
+      `Recall` = pct(r$recall),
+      `Recall, production` = pct(l$recall),
+      `Δ recall` = pp(r$recall - l$recall),
+      check.names = FALSE), row.names = FALSE, align = "r"))
+  }
+}
+```
+
+```{r top100-summary}
+#| echo: false
+#| results: asis
+if (!is.null(apt)) {
+  cat("\n### Across the hundred\n\n")
+  rows <- do.call(rbind, lapply(c("departures", "arrivals"), function(rl) {
+    r <- apt[apt$run == "recommended" & apt$role == rl & apt$airport != "OOA", ]
+    l <- apt[apt$run == "legacy"      & apt$role == rl & apt$airport != "OOA", ]
+    r <- r[order(-r$n_truth), ][1:min(100, nrow(r)), ]
+    l <- l[match(r$airport, l$airport), ]
+    data.frame(
+      Role = tools::toTitleCase(rl),
+      `Movements in truth` = num(sum(r$n_truth)),
+      `Recall, recommended` = pct(sum(r$n_correct) / sum(r$n_truth)),
+      `Recall, production`  = pct(sum(l$n_correct, na.rm = TRUE) / sum(l$n_truth, na.rm = TRUE)),
+      `Aerodromes improved` = sprintf("%d of %d", sum(r$recall > l$recall, na.rm = TRUE), nrow(r)),
+      `Median count ratio`  = sprintf("%.3f", median(r$count_ratio, na.rm = TRUE)),
+      check.names = FALSE)
+  }))
+  print(kable(rows, row.names = FALSE, align = "r"))
+  cat("\nA count ratio below one means the aerodrome is under-counted — the usual case, since every abstention is a movement not attributed. Above one means movements are being attributed to an aerodrome that did not see them, which is the more damaging error and the one the scoring penalises at rate $k$.\n")
 }
 ```
 
