@@ -1156,14 +1156,37 @@ reasonably assume the whole configuration was optimised, and it was not.
 | H3 resolution | `config.py` | 7 (±0.76 NM) | Changing it invalidates every cached zone table and the `distance_from_center` ring counts that production selects on. |
 
 Two of these carry a cost that this study measures rather than waves at, since
-"not swept" is not the same as "no consequence":
+"not swept" is not the same as "no consequence".
 
-- The **type set** means a flight whose true aerodrome is a small airfield or a
-  heliport cannot be named correctly by any method here — it is not in the
-  candidate set at all. The per-class table gives the size of that population.
-- The **border margin** bounds how well any method can identify flights that
-  begin or end outside the observed area. The out-of-area recall figures give
-  that directly.
+```{r unswept-cost}
+#| echo: false
+#| results: asis
+if (!is.null(typ) && !is.null(modes)) {
+  out <- typ[typ$run == "recommended" &
+             !typ$apt_type %in% c("large_airport", "medium_airport", "out of area"), ]
+  ooa <- typ[typ$run == "recommended" & typ$apt_type == "out of area", ]
+  m <- function(run, f) modes[[f]][modes$run == run][1]
+
+  # Aggregated over roles: the frame carries one row per (class, role), and
+  # listing them separately reads as four classes rather than two.
+  byclass <- tapply(out$n_truth, out$apt_type, sum)
+  cat(sprintf("**The type set.** %s flights across both roles have a true aerodrome outside the large/medium candidate set (%s). No method on this page can name them, whatever its thresholds, because the aerodrome is not among the candidates. They are counted in every denominator here, so each coverage figure already carries their cost: they are worth about %s of headline coverage.\n\n",
+              num(sum(out$n_truth)),
+              paste(sprintf("%s at %ss", num(byclass), gsub("_", " ", names(byclass))),
+                    collapse = ", "),
+              pct(sum(out$n_truth) / (2 * N_GT))))
+
+  cat(sprintf("**The border margin.** Fixed at 30 NM, it decides which flights are labelled out-of-area. %s of ground-truth departures genuinely begin outside the observed area, and the recommended configuration recognises %s of them — at %s precision, so the label is trustworthy when it appears but is rarely reached. For arrivals the recall is %s: `trend` emits no out-of-area label at all, which is a structural property of the vote rule rather than a tuning choice.\n\n",
+              pct(m("recommended", "adep_gt_ooa_share")),
+              pct(m("recommended", "adep_ooa_recall")),
+              pct(m("recommended", "adep_ooa_precision")),
+              pct(m("recommended", "ades_ooa_recall"))))
+
+  cat(sprintf("Both costs fall on coverage rather than accuracy, which is the benign direction: with the free out-of-area wins removed, in-area accuracy is %s for departures and %s for arrivals.\n",
+              pct(m("recommended", "adep_inarea_accuracy")),
+              pct(m("recommended", "ades_inarea_accuracy"))))
+}
+```
 
 ### The outstanding check
 
