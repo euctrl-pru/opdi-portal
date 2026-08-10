@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 <meta name="author" content="EUROCONTROL Performance Review Unit">
-<meta name="dcterms.date" content="2026-08-09">
+<meta name="dcterms.date" content="2026-08-10">
 
 <title>Detecting departure and destination aerodromes from ADS-B – OPDI Papers</title>
 <style>
@@ -191,7 +191,10 @@ window.Quarto = {
   <li><a href="#sec-bearing" id="toc-sec-bearing" class="nav-link" data-scroll-target="#sec-bearing"><span class="header-section-number">4</span> Bearing alignment</a></li>
   <li><a href="#sec-compare" id="toc-sec-compare" class="nav-link" data-scroll-target="#sec-compare"><span class="header-section-number">5</span> The comparison that matters</a></li>
   <li><a href="#sec-vertical" id="toc-sec-vertical" class="nav-link" data-scroll-target="#sec-vertical"><span class="header-section-number">6</span> Why the vertical channel is dead</a></li>
-  <li><a href="#sec-recommendation" id="toc-sec-recommendation" class="nav-link" data-scroll-target="#sec-recommendation"><span class="header-section-number">7</span> Recommendation</a></li>
+  <li><a href="#sec-recommendation" id="toc-sec-recommendation" class="nav-link" data-scroll-target="#sec-recommendation"><span class="header-section-number">7</span> Recommendation</a>
+  <ul class="collapse">
+  <li><a href="#sec-next" id="toc-sec-next" class="nav-link" data-scroll-target="#sec-next"><span class="header-section-number">7.1</span> What the bearing test still needs</a></li>
+  </ul></li>
   <li><a href="#sec-whole" id="toc-sec-whole" class="nav-link" data-scroll-target="#sec-whole"><span class="header-section-number">8</span> Bearing on the whole sample</a>
   <ul class="collapse">
   <li><a href="#sec-domain" id="toc-sec-domain" class="nav-link" data-scroll-target="#sec-domain"><span class="header-section-number">8.1</span> Why: the measure is out of domain on flights that landed</a></li>
@@ -226,7 +229,7 @@ window.Quarto = {
     <div>
     <div class="quarto-title-meta-heading">Published</div>
     <div class="quarto-title-meta-contents">
-      <p class="date">August 9, 2026</p>
+      <p class="date">August 10, 2026</p>
     </div>
   </div>
   
@@ -244,7 +247,8 @@ window.Quarto = {
 <p><strong>Three findings.</strong></p>
 <p><strong>The arrival deficit is silence, not error.</strong> Of 87,152 in-area arrivals, 3,011 are answered wrongly and <strong>21,009 are not answered at all</strong>. Version 4’s emphasis on misnaming — built on a vivid case, Bilbao — described 12.54% of the problem.</p>
 <p><strong>Most of that silence is ours, but it is not cheap to break.</strong> 13,300 flights had a usable candidate that the abstention refused; only 7,709 had nothing at all. So the recoverable share is nearly twice the permanently lost one. But guessing on the refused flights scores 28.27% — four right for eleven wrong. The abstention is doing its job.</p>
-<p><strong>One new signal beats that, and it is horizontal.</strong> Whether the aircraft’s course <em>points at</em> the candidate aerodrome, measured tightly enough, recovers 425 correct arrivals for only 97 new errors — <strong>4.38:1</strong>, comfortably past the 2:1 exchange rate version 4.5 argued for. This is the first change in the study to clear that bar. It applies to arrivals only: on departures the same test loses at 0.09:1. Vertical rate recovers nothing, and adding it to the bearing test destroys most of the gain.</p>
+<p><strong>One new signal beats that, and it is horizontal.</strong> Whether the aircraft’s course <em>points at</em> the candidate aerodrome, measured tightly enough, recovers 425 correct arrivals for only 97 new errors — <strong>4.38:1</strong>, past the 2:1 exchange rate version 4.5 argued for, and the first thing tested to clear it. Vertical rate recovers nothing, and adding it destroys most of the gain.</p>
+<p><strong>It is still not adoptable, for a reason outside its own comparison.</strong> The bearing test improves <code>endpoint</code>; production runs <code>trend</code> on arrivals, and <code>trend</code> beats the improved <code>endpoint</code> on <em>both</em> axes. The signal is real and the rule it improves is the wrong one (<a href="#sec-recommendation" class="quarto-xref">Section&nbsp;7</a>).</p>
 <p>There is a single reason for that asymmetry, and it is the most useful thing in this paper:</p>
 <div class="callout callout-style-default callout-important callout-titled">
 <div class="callout-header d-flex align-content-center">
@@ -951,12 +955,81 @@ window.Quarto = {
 </section>
 <section id="sec-recommendation" class="level2" data-number="7">
 <h2 data-number="7" class="anchored" data-anchor-id="sec-recommendation"><span class="header-section-number">7</span> Recommendation</h2>
-<p><strong>Adopt the bearing test for arrivals, at a tight gate.</strong> +bearing 7 min / 0.10 deg recovers 425 correct arrival labels for 97 new errors — 4.38:1, against the 2:1 bar. Arrival coverage rises +0.55 pp and overall correctness +0.45 pp, for -0.11 pp of accuracy.</p>
-<p>This is the first change this study has recommended adopting since version 4 moved detection into the pipeline, and the first to clear the exchange rate on its own terms rather than by argument.</p>
-<p><strong>Do not apply it to departures.</strong> Every gate tested is a loss, the best at 0.55:1. Departures are not short of evidence, and adding evidence to a rule that is not short of it costs accuracy.</p>
-<p><strong>Do not pursue vertical rate on this data.</strong> Adding it to the bearing test cuts the arrival gain from 676 correct to 102 and the ratio from 2.14:1 to 0.60:1. It discards flights the bearing test correctly rescued.</p>
-<p><strong>Validate on a second period before publishing the change.</strong> Everything here is one three-day sample, and the gate was chosen from that sample. 91.15% remains the ceiling regardless.</p>
-<p><strong>And out-of-area is still the larger prize.</strong> It is 24.53% of the arrival deficit against the 1.34% this recovers. The bearing test is worth having; it is not the main event.</p>
+<div class="callout callout-style-default callout-important callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Important</span>The bearing test improves <code>endpoint</code>, and <code>endpoint</code> is still the wrong rule for arrivals
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>The comparison above scores every variant against the <code>endpoint</code> base. Scored against <strong>production</strong> instead, the picture changes completely.</p>
+<div class="cell">
+<div class="cell-output-display">
+<table class="caption-top table table-sm table-striped small">
+<caption>Arrivals against production. The best bearing variant still loses on both axes.</caption>
+<colgroup>
+<col style="width: 41%">
+<col style="width: 13%">
+<col style="width: 13%">
+<col style="width: 11%">
+<col style="width: 11%">
+<col style="width: 8%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Model</th>
+<th style="text-align: right;">Coverage</th>
+<th style="text-align: right;">Accuracy</th>
+<th style="text-align: right;">Overall</th>
+<th style="text-align: right;">Correct</th>
+<th style="text-align: right;">Wrong</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">trend (production)</td>
+<td style="text-align: right;">68.06%</td>
+<td style="text-align: right;">97.87%</td>
+<td style="text-align: right;">66.61%</td>
+<td style="text-align: right;">63,361</td>
+<td style="text-align: right;">1,377</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">endpoint 30 NM / 15,000 ft</td>
+<td style="text-align: right;">69.10%</td>
+<td style="text-align: right;">95.63%</td>
+<td style="text-align: right;">66.08%</td>
+<td style="text-align: right;">62,856</td>
+<td style="text-align: right;">2,870</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">endpoint + bearing 0.10 deg</td>
+<td style="text-align: right;">69.66%</td>
+<td style="text-align: right;">95.52%</td>
+<td style="text-align: right;">66.54%</td>
+<td style="text-align: right;">63,292</td>
+<td style="text-align: right;">2,967</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<p><code>trend</code> returns 69 more correct arrivals <strong>and</strong> 1,590 fewer wrong ones. It dominates: there is no exchange rate at which the bearing model wins.</p>
+<p>The bearing test is a real signal and it genuinely improves <code>endpoint</code>. But <code>endpoint</code> was never the right rule for arrivals — version 4.5 concluded that already — so improving it does not produce a rule worth adopting. Earlier drafts of this section recommended the bearing test for arrivals without checking it against production. That was an error of comparison, not of measurement.</p>
+</div>
+</div>
+<p><strong>Departures: <code>endpoint</code> at 30 NM, 15,000 ft, 10 NM scheduled-service penalty.</strong> Against production this is +10,993 correct labels for +645 wrong, about 17:1. Unchanged from version 4.5 and still the one clear win in this study.</p>
+<p><strong>Arrivals: keep <code>trend</code>.</strong> Nothing in versions 4, 5 or 5.1 beats it.</p>
+<p><strong>Do not apply the bearing test to departures</strong> — every gate is a loss, the best at 0.55:1. <strong>Do not pursue vertical rate</strong> (<a href="#sec-vertical" class="quarto-xref">Section&nbsp;6</a>). <strong>Do not use bearing as a veto, a replacement or a naming rule</strong> (<a href="#sec-whole" class="quarto-xref">Section&nbsp;8</a>).</p>
+<p><strong>Publish the provenance columns.</strong> <code>adep_source</code> / <code>ades_source</code> distinguish “named an aerodrome”, “outside the observed area” and “could not determine”, which are one indistinguishable null in the published flight list today. Still the highest value per line of code in the study.</p>
+<section id="sec-next" class="level3" data-number="7.1">
+<h3 data-number="7.1" class="anchored" data-anchor-id="sec-next"><span class="header-section-number">7.1</span> What the bearing test still needs</h3>
+<p>It has only ever been tested as a rescue for <strong><code>endpoint</code>’s</strong> abstention. <code>trend</code> — the rule actually recommended for arrivals — abstains on about a third of them, and <strong>whether bearing can rescue those flights is untested.</strong> That is the experiment that would give this finding somewhere to land, and the machinery now exists to run it.</p>
+<p><strong>And out-of-area remains the larger prize</strong>: 24.53% of the arrival deficit, 7,809 flights, current recall 1.95%. Unlike the abstained block, nobody has shown it is hard.</p>
+</section>
 </section>
 <section id="sec-whole" class="level2" data-number="8">
 <h2 data-number="8" class="anchored" data-anchor-id="sec-whole"><span class="header-section-number">8</span> Bearing on the whole sample</h2>
