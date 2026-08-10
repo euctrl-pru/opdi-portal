@@ -505,6 +505,44 @@ if (!is.null(cone) && !is.null(grid)) {
 }
 ```
 
-<!-- Remaining: the full trend sweep tables, the two-period stability table,
-     the parameter justification table, the verdict, the top-100 comparison,
-     the pipeline-fidelity check and the limitations. -->
+## Limitations {#sec-limitations}
+
+### Parameters that were not swept
+
+Five parameters were held fixed by decision rather than by evidence. Naming
+them matters: a reader who sees seven tuned values and no caveat will
+reasonably assume the whole configuration was optimised, and it was not.
+
+| Parameter | Where | Held at | Why not swept |
+|---|---|---|---|
+| Smoothing half-window | `flights.py` | 2 samples | Parameterised in config so it is visible and changeable, but a smoothing width interacts with the sample rate rather than the geometry, and the decimation study settled the sample rate separately. |
+| Classification dead band | `flights.py` | none exists | There is no dead band to sweep. The vote margin already plays that role. |
+| Out-of-area border margin | `flights.py` | 30 NM | Fixes what counts as "outside the observed area". Changing it redefines the ground truth rather than the method, so a sweep would move the target as well as the aim. |
+| Aerodrome type set | `h3_airport_zones.py` | large + medium | The candidate set. Widening it is a data-volume decision about the zone table, not a detection threshold. |
+| H3 resolution | `config.py` | 7 (±0.76 NM) | Changing it invalidates every cached zone table and the `distance_from_center` ring counts that production selects on. |
+
+Two of these carry a cost that this study measures rather than waves at, since
+"not swept" is not the same as "no consequence":
+
+- The **type set** means a flight whose true aerodrome is a small airfield or a
+  heliport cannot be named correctly by any method here — it is not in the
+  candidate set at all. The per-class table gives the size of that population.
+- The **border margin** bounds how well any method can identify flights that
+  begin or end outside the observed area. The out-of-area recall figures give
+  that directly.
+
+### One sample, and what that does and does not license
+
+The parameters are chosen as the argmax over a grid evaluated on a single
+three-day period. An argmax over hundreds of cells on one sample will always
+overstate the gain slightly: some of the winning cell's margin is the sample's
+noise, and it will not reproduce.
+
+That is the reason for the second period, and for reporting the shape of each
+optimum rather than only its location. A parameter sitting on a broad plateau
+is a safe recommendation even from one sample; one sitting on a sharp isolated
+peak is not, however good its score.
+
+<!-- Remaining: the two-period stability table, the parameter justification
+     table, the verdict, the top-100 comparison, and the pipeline-fidelity
+     check. -->
