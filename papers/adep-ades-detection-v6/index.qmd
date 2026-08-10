@@ -540,6 +540,54 @@ if (!is.null(cone) && !is.null(grid)) {
 }
 ```
 
+### The bearing test
+
+Version 5 proposed asking whether the trajectory *points at* the aerodrome: take
+the track's course near its endpoint, take the bearing from that endpoint to the
+candidate, and require the two to agree within some angle. It was the first
+signal found that could add answers the abstention refused, and it was proposed
+in four forms — **rescue** (answer anyway when aligned), **veto** (require
+alignment even when the gate accepts), **replace** (alignment instead of the
+gate) and **rerank** (choose *which* aerodrome by alignment).
+
+All four are re-measured here against the current `endpoint` baseline.
+
+```{r bearing}
+#| echo: false
+#| results: asis
+bw <- cache("bearing_whole_sample_v6.csv")
+if (!is.null(bw)) {
+  n <- bw$n_ground_truth[1]
+  sc <- function(role) {
+    ans <- round(bw[[paste0(role, "_coverage")]] * n)
+    cor <- round(bw[[paste0(role, "_overall")]] * n)
+    cor - K_DEFAULT * (ans - cor)
+  }
+  bw$adep_s <- sc("adep"); bw$ades_s <- sc("ades")
+  b <- bw[bw$model == "base", ]
+  print(kable(data.frame(
+    Variant = bw$model,
+    `ADEP coverage` = pct(bw$adep_coverage), `ADEP accuracy` = pct(bw$adep_accuracy),
+    `ADEP score` = num(bw$adep_s), `Δ` = c("—", sgn(bw$adep_s[-1] - b$adep_s)),
+    `ADES coverage` = pct(bw$ades_coverage), `ADES accuracy` = pct(bw$ades_accuracy),
+    `ADES score` = num(bw$ades_s), `Δ ` = c("—", sgn(bw$ades_s[-1] - b$ades_s)),
+    check.names = FALSE), row.names = FALSE, align = "r"))
+
+  best <- bw[which.max(bw$ades_s), ]
+  cat(sprintf("
+The best variant of any kind is `%s`, worth %s on arrivals — and %s on departures, which is the role `endpoint` is actually used for. Nothing here is worth adopting.
+",
+              best$model, sgn(best$ades_s - b$ades_s), sgn(best$adep_s - b$adep_s)))
+  cat(sprintf("
+The three variants that let bearing *remove* or *choose* answers are not close: the best of them gives up %s on departures. Alignment is far too blunt to name an aerodrome — at 40 NM a runway subtends a couple of degrees, but so does every other aerodrome behind it on the same radial, and a track on final approach points at all of them equally.
+",
+              sgn(max(bw$adep_s[grepl("^(veto|replace|rerank)", bw$model)]) - b$adep_s)))
+  cat("
+This supersedes version 5's recommendation. That version scored the bearing rescue against `endpoint` alone and never against `trend`, which was already better than both — the comparison that mattered was the one not made.
+")
+}
+```
+
 ## What the pipeline actually produces {#sec-pipeline}
 
 Every number so far comes from a sweep harness, not from `src/opdi`. The trend
