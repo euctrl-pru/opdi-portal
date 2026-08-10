@@ -505,6 +505,143 @@ if (!is.null(cone) && !is.null(grid)) {
 }
 ```
 
+## Why each value, and not its neighbour {#sec-justification}
+
+A recommendation is only as good as the evidence that picked it, so every value
+this study chooses appears below with the score at that value, the score at the
+adjacent grid points, and the score at whatever production uses today. The last
+column is the one that matters most for trusting the number: a value on a broad
+**plateau** is a safe recommendation even from a single sample, because its
+neighbours score nearly the same and a little noise cannot move it far. A value
+on a sharp isolated **peak** may be partly the sample's noise, and is flagged
+as such however good its score.
+
+```{r justification}
+#| echo: false
+#| results: asis
+
+# The score at one grid point, holding every other swept parameter at the
+# chosen value. This is what makes the neighbour columns meaningful: they vary
+# one parameter at a time rather than reporting the best cell that happens to
+# contain that value.
+at <- function(d, role, fixed, param, value, k = K_DEFAULT) {
+  sel <- rep(TRUE, nrow(d))
+  for (nm in names(fixed)) if (nm != param) sel <- sel & d[[nm]] == fixed[[nm]]
+  sel <- sel & d[[param]] == value
+  x <- with_metrics(d[sel, , drop = FALSE], role, k)
+  if (is.null(x) || nrow(x) == 0) return(NA_real_)
+  x$score[1]
+}
+
+# One row of the table: chosen value, its two neighbours on the grid, and the
+# shape that follows from them.
+just_row <- function(d, role, chosen, param, label, orig_value, k = K_DEFAULT,
+                     fixed_names) {
+  fixed <- as.list(chosen[fixed_names])
+  vals  <- sort(unique(d[[param]]))
+  i     <- match(chosen[[param]], vals)
+  s_ch  <- at(d, role, fixed, param, vals[i], k)
+  s_lo  <- if (i > 1) at(d, role, fixed, param, vals[i - 1], k) else NA_real_
+  s_hi  <- if (i < length(vals)) at(d, role, fixed, param, vals[i + 1], k) else NA_real_
+  s_or  <- at(d, role, fixed, param, orig_value, k)
+
+  # Plateau if the better neighbour is within 0.5% of the chosen score --
+  # a margin far smaller than any effect the report argues from.
+  nb   <- c(s_lo, s_hi); nb <- nb[!is.na(nb)]
+  gap  <- if (length(nb)) (s_ch - max(nb)) / s_ch else NA_real_
+  shape <- if (is.na(gap)) "—" else if (gap < 0.005) "plateau" else "peak"
+
+  data.frame(
+    Role = toupper(role), Parameter = label,
+    Original = orig_value, Chosen = chosen[[param]],
+    `Score at original` = ifelse(is.na(s_or), "—", num(s_or)),
+    `Score at chosen`   = num(s_ch),
+    `Neighbour below`   = ifelse(is.na(s_lo), "—", num(s_lo)),
+    `Neighbour above`   = ifelse(is.na(s_hi), "—", num(s_hi)),
+    `Δ vs original`     = ifelse(is.na(s_or), "—", sgn(s_ch - s_or)),
+    Shape = shape, check.names = FALSE)
+}
+
+if (!is.null(trend) && !is.null(grid)) {
+  s1 <- trend[trend$stage == 1, ]
+  tf <- c("fl_cap", "margin", "radius_nm")
+  ef <- c("radius_nm", "height_ft")
+
+  rows <- list()
+  # trend, for the role it is recommended for (arrivals), against the
+  # production constants: FL40, margin 4, 30 NM.
+  bt <- best_row(s1, "ades")
+  rows[[length(rows) + 1]] <- just_row(s1, "ades", bt, "fl_cap",    "trend FL cap",       40, fixed_names = tf)
+  rows[[length(rows) + 1]] <- just_row(s1, "ades", bt, "margin",    "trend vote margin",   4, fixed_names = tf)
+  rows[[length(rows) + 1]] <- just_row(s1, "ades", bt, "radius_nm", "trend radius (NM)",  30, fixed_names = tf)
+
+  # endpoint, for departures, against the version 4.5 operating point that the
+  # pipeline currently defaults to: 40 NM, 15,000 ft.
+  be <- best_row(grid, "adep")
+  rows[[length(rows) + 1]] <- just_row(grid, "adep", be, "radius_nm", "endpoint radius (NM)",    40, fixed_names = ef)
+  rows[[length(rows) + 1]] <- just_row(grid, "adep", be, "height_ft", "endpoint height (ft)", 15000, fixed_names = ef)
+
+  print(kable(do.call(rbind, rows), row.names = FALSE, align = "r"))
+  cat("\nThe penalty is treated separately because it is not a geometric parameter: it re-ranks candidates without changing how many are answered, so its sweep holds the geometry fixed and appears in @sec-penalty.\n")
+}
+```
+
+### Which change is actually doing the work
+
+The table above varies one parameter at a time around the chosen setting, which
+shows whether each value is defensible but not how much each contributes to the
+total gain. This walks the whole distance instead: from the production
+constants to the recommended setting, changing one parameter per step.
+
+```{r trend-path}
+#| echo: false
+#| results: asis
+if (!is.null(trend)) {
+  s1 <- trend[trend$stage == 1, ]
+  b  <- best_row(s1, "ades")
+  s0 <- with_metrics(trend[trend$stage == 0, ], "ades")
+
+  # Each step adopts one recommended value and holds the rest at production's.
+  # The order is deliberate: the penalty first, because it is the parameter
+  # production does not apply at all, and the geometry after.
+  cellv <- function(fl, mg, rd, pn) {
+    x <- with_metrics(trend[trend$fl_cap == fl & trend$margin == mg &
+                            trend$radius_nm == rd & trend$penalty_nm == pn, ],
+                      "ades")
+    if (is.null(x) || nrow(x) == 0) NA else x$score[1]
+  }
+  steps <- list(
+    list(lab = "production constants (FL40, margin 4, 30 NM, no penalty)",
+         s = s0$score),
+    list(lab = sprintf("+ scheduled-service penalty of %g NM", b$penalty_nm),
+         s = cellv(40, 4, 30, b$penalty_nm)),
+    list(lab = sprintf("+ flight-level cap FL%g", b$fl_cap),
+         s = cellv(b$fl_cap, 4, 30, b$penalty_nm)),
+    list(lab = sprintf("+ vote margin %g", b$margin),
+         s = cellv(b$fl_cap, b$margin, 30, b$penalty_nm)),
+    list(lab = sprintf("+ radius %g NM", b$radius_nm),
+         s = cellv(b$fl_cap, b$margin, b$radius_nm, b$penalty_nm)))
+
+  ok <- !sapply(steps, function(x) is.na(x$s))
+  steps <- steps[ok]
+  sc <- sapply(steps, function(x) x$s)
+  tab <- data.frame(
+    Step = sapply(steps, function(x) x$lab),
+    Score = num(sc),
+    `Gain from this step` = c("—", sgn(diff(sc))),
+    `Share of total gain` = c("—", sprintf("%.0f%%", 100 * diff(sc) / (sc[length(sc)] - sc[1]))),
+    check.names = FALSE)
+  print(kable(tab, row.names = FALSE, align = "r"))
+
+  dom <- which.max(diff(sc))
+  cat(sprintf("\nThe gain is not spread evenly. **%s** accounts for %.0f%% of it on its own. That is worth stating plainly: the single most valuable change to arrival detection is not a tuned threshold at all, but applying to `trend` the scheduled-service tie-break that `endpoint` already had and `trend` never did.\n",
+              sub("^\\+ ", "", steps[[dom + 1]]$lab),
+              100 * max(diff(sc)) / (sc[length(sc)] - sc[1])))
+  cat(sprintf("\nBy contrast the radius change is worth %s flights out of %s — well inside what one three-day sample can resolve. It is reported as *not motivated*: the sweep's argmax prefers it, but the evidence does not justify moving a published constant for it.\n",
+              num(sc[length(sc)] - sc[length(sc) - 1]), num(sc[length(sc)])))
+}
+```
+
 ## Limitations {#sec-limitations}
 
 ### Parameters that were not swept
