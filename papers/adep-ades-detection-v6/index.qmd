@@ -713,37 +713,63 @@ if (is.null(vm)) {
 }
 ```
 
-### State-vector decimation
+### The sampler: bin-based against fixed-phase
 
-OPDI thins the 1 Hz feed to roughly 5 s. The production rule is a fixed-phase
-`event_time % 5` filter; the alternative keeps the newest sample in each 5 s
-bucket, which cannot drop a sample where the modulo rule would.
+OPDI thins the 1 Hz feed to roughly 5 s. The rule this study inherited is
+fixed-phase — `event_time % 5 == 0`, which keeps a row only if one exists at the
+single second per window congruent to zero. The rule it now uses keeps the
+newest row in each 5 s bucket, and cannot drop a sample where the modulo rule
+would.
 
-```{r decimation}
+The bin-based rule is adopted, and **not because it measures better**. It is
+the sampler the thinning was always meant to be; the modulo rule survives only
+because the OpenSky archive is a complete 1 Hz grid with carried-forward
+positions, so a row almost always exists at the congruent second. That is a
+property of the archive, not a guarantee. If it ever changes, the modulo rule
+degrades badly and this one degrades gracefully.
+
+What it costs is the question worth answering, and the answer is: nothing
+measurable.
+
+```{r sampler}
 #| echo: false
 #| results: asis
-dc <- cache("decimation_v6.csv")
-if (is.null(dc)) {
+sc <- cache("sampler_comparison_v6.csv")
+if (is.null(sc)) {
   cat("*Not yet regenerated.*\n")
 } else {
-  n <- dc$n_ground_truth[1]
-  sc <- function(role) {
-    ans <- round(dc[[paste0(role, "_coverage")]] * n)
-    cor <- round(dc[[paste0(role, "_overall")]] * n)
-    cor - K_DEFAULT * (ans - cor)
-  }
-  dc$adep_s <- sc("adep"); dc$ades_s <- sc("ades")
   print(kable(data.frame(
-    Arm = dc$arm, Candidates = num(dc$candidates),
-    `ADEP coverage` = pct(dc$adep_coverage), `ADEP score` = num(dc$adep_s),
-    `ADES coverage` = pct(dc$ades_coverage), `ADES score` = num(dc$ades_s),
+    Comparison = sc$comparison, Role = toupper(sc$role), Cells = sc$cells,
+    `Median Δscore` = sprintf("%+.0f", sc$median_dscore),
+    `Median Δcoverage` = sprintf("%+.4f pp", sc$median_dcoverage_pp),
+    Improved = sc$cells_improved, Worsened = sc$cells_worsened,
     check.names = FALSE), row.names = FALSE, align = "r"))
-  if (nrow(dc) >= 2) {
-    d <- (dc$adep_s[2] - dc$adep_s[1]) + (dc$ades_s[2] - dc$ades_s[1])
-    cat(sprintf("\nThe two arms differ by %s across both roles. The bucket rule keeps marginally more rows, and they land where reception is already good rather than where it is intermittent, so the extra evidence is largely redundant. The production rule stands.\n", sgn(d)))
-  }
+  worst <- max(abs(sc$median_dcoverage_pp))
+  cat(sprintf("\nAcross every parameter cell of two complete runs, the largest median coverage difference in either direction is **%.4f pp**. The trend side is consistently positive — %d of %d arrival cells improve, which is a real if tiny effect — and the endpoint side is consistently slightly negative. The shipped configuration takes departures from `endpoint` and arrivals from `trend`, so the two roughly cancel.\n",
+              worst,
+              sc$cells_improved[sc$comparison == "trend sweep" & sc$role == "ades"],
+              sc$cells[sc$comparison == "trend sweep" & sc$role == "ades"]))
+  cat("\nSo the sampler is **neutral on accuracy and coverage**, and is adopted on correctness. It should not be described as an improvement.\n")
 }
 ```
+
+::: {.callout-note}
+## Two earlier accounts of this were wrong, and how
+The decimation study measured **+0.26 pp** of arrival coverage for the bucket
+rule. That was one day, at one operating point, before the candidate ranking
+changed — and it does not reproduce. Measured across three days on the same
+rule it is −0.0137 pp.
+
+An end-to-end harness then reported the bucket rule *collapsing* arrival
+coverage from 80.96% to 27.65%. That was not the sampler either: its two arms
+had drifted onto different periods, comparing a three-day cache against a
+one-day one, and by then the arm labelled "modulo" was reading a table already
+rebuilt with the bucket rule. A third of the flights, a third of the coverage.
+
+Both are instructive in the same way. A sampler that changes 0.2% of rows
+cannot move coverage by fifty points or by a quarter of a point; when a
+measurement says otherwise, the measurement is what to check.
+:::
 
 ## What the pipeline actually produces {#sec-pipeline}
 
