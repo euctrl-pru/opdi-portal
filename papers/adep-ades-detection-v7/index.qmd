@@ -422,16 +422,19 @@ adjacent rows — and the last row is the shipped algorithm.*
 #| echo: false
 #| results: asis
 lab <- c(
-  L0_legacy       = "legacy algorithm",
-  L1_exact_rank   = "+ rank candidates by exact distance",
-  L2_exact_radius = "+ cut the radius by distance, not hexagon band",
-  L3_smooth_first = "+ smooth altitude before the flight-level cut",
-  L4_penalty      = "+ scheduled-service penalty",
-  L5_flcap        = "+ tuned flight-level cap",
-  L6_margin       = "+ tuned vote margin",
-  L7_radius       = "+ tuned radius",
-  L8_bearing      = "+ bearing tie-break",
-  L9_ooa          = "+ out-of-area labelling")
+  L00_legacy              = "legacy algorithm, uncleaned tracks",
+  L01_exact_rank          = "+ rank candidates by exact distance",
+  L02_exact_radius        = "+ cut the radius by distance, not hexagon band",
+  L03_smooth_first        = "+ smooth altitude before the flight-level cut",
+  L04_penalty             = "+ scheduled-service penalty",
+  L05_flcap               = "+ tuned flight-level cap",
+  L06_margin              = "+ tuned vote margin",
+  L07_radius              = "+ tuned radius",
+  L08_bearing             = "+ bearing tie-break",
+  L09_ooa                 = "+ out-of-area labelling",
+  L10_endpoint_departures = "+ departures from `endpoint`",
+  L11_endpoint_radius     = "+ tuned endpoint radius",
+  L12_clean_tracks        = "+ cleaned tracks (**= shipped**)")
 
 show_ladder <- function(d, period) {
   if (is.null(d)) {
@@ -440,16 +443,20 @@ show_ladder <- function(d, period) {
   }
   d <- d[match(names(lab), d$run), ]
   d <- d[!is.na(d$run), ]
+  if (nrow(d) == 0) return(invisible(NULL))
   cat(sprintf("\n### %s\n\n", period))
   print(kable(data.frame(
     Step = unname(lab[d$run]),
-    `ADES coverage` = pct(d$ades_coverage),
-    `ADES accuracy` = pct(d$ades_accuracy),
-    `ADES score` = num(d$ades_score),
-    Gain = c("—", sgn(diff(d$ades_score))),
+    Departures = num(d$adep_score),
+    `Δ dep` = c("—", sgn(diff(d$adep_score))),
+    Arrivals = num(d$ades_score),
+    `Δ arr` = c("—", sgn(diff(d$ades_score))),
+    Total = num(d$adep_score + d$ades_score),
     check.names = FALSE), row.names = FALSE, align = "r"))
-  cat(sprintf("\nBoth roles are produced by `trend` in every row, so the change on each line is attributable to that line alone. Net over the whole ladder: %s.\n",
-              sgn(d$ades_score[nrow(d)] - d$ades_score[1])))
+  tot <- d$adep_score + d$ades_score
+  cat(sprintf("\nScores, not ratios: coverage and accuracy always move in opposite directions, and only the counts say whether an exchange was worth taking. Net over the whole ladder: **%s**.\n",
+              sgn(tot[length(tot)] - tot[1])))
+  cat("\nRows one to ten produce both roles with `trend`, so each change is attributable to its own line. Row eleven switches departures to `endpoint`, which is why the departure column moves there and barely moves before it — the trend parameters above are tuned for arrivals.\n")
 }
 show_ladder(lad25, "2025")
 show_ladder(lad24, "2024")
@@ -613,32 +620,72 @@ if (is.null(mod25)) {
 
 ## What cleaning costs and buys {#sec-cleaning}
 
+Cleaning is the last rung of the ladder rather than a separate experiment, so
+what it is worth is measured *given everything else already adopted* — which is
+the only form of the question that bears on a decision. The two rows differ in
+nothing but the track table.
+
 ```{r cleaning}
 #| echo: false
 #| results: asis
-if (is.null(mod25) || !("clean_tracks" %in% mod25$run)) {
-  cat("*Being regenerated.*\n")
-} else {
+show_cleaning <- function(d, period) {
+  if (is.null(d) || !all(c("L11_endpoint_radius", "L12_clean_tracks") %in% d$run)) {
+    cat(sprintf("*The %s ladder has not been staged yet.*\n\n", period))
+    return(invisible(NULL))
+  }
+  cat(sprintf("\n**%s**\n\n", period))
   rows <- do.call(rbind, lapply(c("adep", "ades"), function(s) data.frame(
     Role = ifelse(s == "adep", "Departures", "Arrivals"),
-    `Raw coverage` = pct(mv(mod25, "raw_tracks", paste0(s, "_coverage"))),
-    `Clean coverage` = pct(mv(mod25, "clean_tracks", paste0(s, "_coverage"))),
-    `Raw accuracy` = pct(mv(mod25, "raw_tracks", paste0(s, "_accuracy"))),
-    `Clean accuracy` = pct(mv(mod25, "clean_tracks", paste0(s, "_accuracy"))),
-    `Δ score` = sgn(mv(mod25, "clean_tracks", paste0(s, "_score"))
-                    - mv(mod25, "raw_tracks", paste0(s, "_score"))),
+    `Raw coverage` = pct(mv(d, "L11_endpoint_radius", paste0(s, "_coverage"))),
+    `Clean coverage` = pct(mv(d, "L12_clean_tracks", paste0(s, "_coverage"))),
+    `Raw accuracy` = pct(mv(d, "L11_endpoint_radius", paste0(s, "_accuracy"))),
+    `Clean accuracy` = pct(mv(d, "L12_clean_tracks", paste0(s, "_accuracy"))),
+    `Δ score` = sgn(mv(d, "L12_clean_tracks", paste0(s, "_score"))
+                    - mv(d, "L11_endpoint_radius", paste0(s, "_score"))),
     check.names = FALSE)))
   print(kable(rows, row.names = FALSE, align = "r"))
 }
+show_cleaning(lad25, "2025")
+show_cleaning(lad24, "2024")
 ```
+
+Cleaning **masks implausible values to null and keeps the row**, and the
+detection path drops fixes with no barometric altitude — so it can only remove
+candidate samples. Coverage falling and accuracy rising is the expected shape;
+whether that exchange is worth taking at `k = 2` is what the score column says.
 
 ## The 5 s sampler {#sec-sampler}
 
-*Being regenerated.* The bin-based rule is adopted because it is the correct
-rule and does not depend on the OpenSky archive carrying positions forward
-between messages — not because it improves aerodrome detection, which it does
-not measurably do. Where it should matter is milestones defined by a single
-instant on the ground, and that belongs to the events study.
+The bin-based rule is adopted because it is the **correct** rule, not because it
+measures better. It does not depend on the OpenSky archive being a complete 1 Hz
+grid, which is a property of the archive rather than a guarantee; the
+fixed-phase rule it replaces survives only because that property currently
+holds, and degrades badly if it ever stops.
+
+::: {.callout-note}
+## This figure is not re-measured here, and why
+Version 6 compared the two samplers across every parameter cell of two complete
+runs — 371 cells of the trend grid and 126 of the endpoint grid, identical
+grids over identically-treated input — and found the largest median coverage
+difference anywhere to be a few *thousandths* of a percentage point, against a
+decision bar of 0.5.
+
+This report does not repeat that measurement, and says so rather than restating
+the number as if it had. There is no fixed-phase arm left to compare against —
+the bin-based rule is now what the pipeline does — and these sweeps run on
+cleaned tracks over a different flight-level grid, so a comparison against
+version 6's arm would be confounded by the cleaning and the grid rather than
+measuring the sampler. Two arms on different data is exactly the error that
+produced version 6's worst figure, and manufacturing a comparison here would
+repeat it.
+:::
+
+Where the sampler *should* matter is not here at all. Aerodrome detection reads
+an altitude trend over tens of samples, and one extra fix per five-second bin
+cannot change the sign of a trend. Milestones defined by a single instant on the
+ground — off-block, take-off, landing, in-block — are a different case, where a
+recovered bin is the difference between having a fix and not. That measurement
+belongs to the events study and has not been made.
 
 One consequence is not reversible by configuration: **`track_id` values differ**
 between the two samplers, because rescued rows sit at track boundaries and the
