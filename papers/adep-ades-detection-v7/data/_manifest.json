@@ -1,0 +1,101 @@
+{
+  "table:s3a://eurocontrol/opdi/h3_airport_detection_zones": {
+    "argv": [
+      "run",
+      "--env",
+      "opensky",
+      "--step",
+      "00",
+      "--start",
+      "2025-06-05",
+      "--end",
+      "2025-06-07"
+    ],
+    "code_fingerprint": "7de6cc24f69543ef",
+    "code_paths": [
+      "src/opdi/config.py",
+      "src/opdi/reference/h3_airport_zones.py",
+      "src/opdi/runner.py"
+    ],
+    "git_dirty": true,
+    "git_sha": "323e728",
+    "input_tables": {
+      "s3a://eurocontrol/opdi/h3_airport_detection_zones": {
+        "bytes": 215961011,
+        "newest": "2026-08-07T10:32:59.769000+00:00",
+        "objects": 152
+      }
+    },
+    "inputs": {},
+    "notes": "H3 detection zones and the OurAirports reference the candidate builder reads field elevations from. Step ids are 00/01/02/... -- there is no 00a at this level, the substeps live inside 00 | PRE-EXISTING: identity recorded without a rebuild, so the command below is how it is built, not necessarily how this copy was built.",
+    "produced_utc": "2026-08-12T16:38:54+00:00",
+    "script": "/home/jupyter/work/opdi-workspace/opdi/.venv310/bin/opdi"
+  },
+  "table:s3a://eurocontrol/opdi/osn_tracks": {
+    "argv": [
+      "-u",
+      "benchmarks/rebuild_sample.py",
+      "--start",
+      "2025-06-05",
+      "--end",
+      "2025-06-07",
+      "--executors",
+      "10"
+    ],
+    "code_fingerprint": "a8049fd7df327d24",
+    "code_paths": [
+      "benchmarks/rebuild_sample.py",
+      "src/opdi/config.py",
+      "src/opdi/ingestion/osn_statevectors.py",
+      "src/opdi/pipeline/tracks.py"
+    ],
+    "git_dirty": true,
+    "git_sha": "323e728",
+    "input_tables": {
+      "s3a://eurocontrol/opdi/osn_tracks": {
+        "bytes": 10160581413,
+        "newest": "2026-08-10T22:07:13.808000+00:00",
+        "objects": 5
+      }
+    },
+    "inputs": {},
+    "notes": "ingest and track building with the bin-based sampler. Replaces rather than appends, because the rows being replaced were made by a different rule | PRE-EXISTING: identity recorded without a rebuild, so the command below is how it is built, not necessarily how this copy was built.",
+    "produced_utc": "2026-08-12T16:38:55+00:00",
+    "script": "/home/jupyter/work/opdi-workspace/opdi/.venv310/bin/python"
+  },
+  "table:s3a://eurocontrol/opdi/osn_tracks_clean": {
+    "argv": [
+      "-u",
+      "benchmarks/clean_tracks.py",
+      "--period",
+      "2025",
+      "--executors",
+      "10"
+    ],
+    "code_fingerprint": "02aaf11603ca2b53",
+    "code_paths": [
+      "benchmarks/clean_tracks.py",
+      "src/opdi/cleaning/cleaner.py",
+      "src/opdi/cleaning/native.py",
+      "src/opdi/config.py"
+    ],
+    "git_dirty": true,
+    "git_sha": "323e728",
+    "input_tables": {
+      "s3a://eurocontrol/opdi/osn_tracks": {
+        "bytes": 10160581413,
+        "newest": "2026-08-10T22:07:13.808000+00:00",
+        "objects": 5
+      },
+      "s3a://eurocontrol/opdi/osn_tracks_clean": {
+        "bytes": 9860803651,
+        "newest": "2026-08-12T16:37:31.442000+00:00",
+        "objects": 202
+      }
+    },
+    "inputs": {},
+    "notes": "trajectory cleaning -- the step the flight list now reads. In V6 this table existed and nothing read it | PRE-EXISTING: identity recorded without a rebuild, so the command below is how it is built, not necessarily how this copy was built.",
+    "produced_utc": "2026-08-12T16:38:55+00:00",
+    "script": "/home/jupyter/work/opdi-workspace/opdi/.venv310/bin/python"
+  }
+}

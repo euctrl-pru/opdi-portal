@@ -32,6 +32,22 @@ for src in "$BUILD"/*/index.pdf; do
   echo "saved $paper/$paper.pdf"
 done
 
+# A paper directory can hold more than one document -- a reply to a review, say.
+# Those already carry their own name, so they only need placing beside the
+# source. Without this they exist solely inside the build, which is the one
+# place nobody looks for a deliverable they were asked to send.
+for src in "$BUILD"/*/*.pdf; do
+  [ -e "$src" ] || continue
+  paper=$(basename "$(dirname "$src")")
+  doc=$(basename "$src" .pdf)
+  [ -d "$paper" ] || continue
+  [ "$doc" = "index" ] && continue
+  [ "$doc" = "$paper" ] && continue        # already handled above
+  [ -f "$paper/$doc.qmd" ] || continue     # only documents this paper owns
+  cp "$src" "$paper/$doc.pdf"
+  echo "saved $paper/$doc.pdf"
+done
+
 # Replace wholesale so files deleted from a paper do not survive in the site.
 rm -rf "$PUBLISH"
 mkdir -p "$PUBLISH"
