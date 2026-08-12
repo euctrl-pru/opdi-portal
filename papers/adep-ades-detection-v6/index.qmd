@@ -155,32 +155,33 @@ The short version is in three parts.
 **The two roles want different algorithms.** Departures are best served by
 `endpoint` — take the aerodrome nearest the first fix, but only commit when the
 fix is close and low, and abstain otherwise. Arrivals are best served by
-`trend`, the algorithm already in production. That split holds at every
+`trend`, the algorithm published before 2026. That split holds at every
 exchange rate tested.
 
 **Both roles improve.** The recommended configuration — `endpoint` for
 departures, exact-distance `trend` for arrivals — scores **`r num(TOTAL_SHIPPED)`**
-against production's **`r num(TOTAL_LEGACY)`** on a three-day sample of
+against legacy's **`r num(TOTAL_LEGACY)`** on a three-day sample of
 `r num(N_GT)` flights: a gain of **`r sgn(TOTAL_SHIPPED - TOTAL_LEGACY)`**,
 every figure from a real pipeline run.
 
-**Arrivals improve too, but only after a defect in the pipeline was fixed** —
-and that is the result worth carrying away. Sweeping `trend` said its
-never-tuned flight-level gate should move from FL40 to FL60, worth over a
-thousand flights. Run through the pipeline, the same change *lost* ground.
+**A better way of choosing among aerodromes is what makes the tuning work.**
+This is the substantive change, and it is worth more than any threshold on this
+page. The published algorithm narrowed its candidates by **H3 ring count** — an
+integer stepping about 5.2 km at resolution 7 — and computed exact distance
+only among the survivors, so an aerodrome a kilometre further out was
+eliminated before its distance was ever measured. It now carries every
+candidate through to an exact great-circle comparison and chooses on that.
 
-The cause was not the tuning. The sweep ranked candidate aerodromes by exact
-distance; the pipeline kept only the candidates at the minimum **H3 ring
-count** — an integer stepping about 5.2 km at resolution 7 — and measured only
-among those. An aerodrome a kilometre further out was discarded before its
-distance was ever computed. Raising the flight-level gate admits samples from
-higher up, where more aerodromes fall in the same ring, so the coarser rule had
-more work to do exactly where it was least able to do it.
-
-The sweep was not over-estimating. It was modelling a better algorithm than
-production implemented. With ranking on exact distance, every tuned arrival
-value gains ground, and the pipeline's own optimum turns out to be the one the
-sweep had been pointing at all along.
+The difference is not marginal. Applied to arrivals, the same four tuned
+values are worth
+**`r if (!is.null(cache("pipeline_path_ring_v6.csv"))) { rp <- cache("pipeline_path_ring_v6.csv"); sgn(rp$ades_score[rp$run=="path4_radius"] - rp$ades_score[rp$run=="path0_legacy"]) } else "—"`**
+under ring selection and
+**`r if (!is.null(cache("pipeline_path_v6.csv"))) { pp_ <- cache("pipeline_path_v6.csv"); sgn(pp_$ades_score[pp_$run=="path4_radius"] - pp_$ades_score[pp_$run=="path0_legacy"]) } else "—"`**
+under exact distance — the same parameters, the same data, opposite signs.
+Raising the flight-level gate admits samples from higher up, where more
+aerodromes fall in the same ring, so the coarse rule had most work to do
+exactly where it was least able to do it. Every tuned arrival value that fails
+under ring selection gains under exact distance.
 
 ::: {.callout-note}
 ## Reading this page
@@ -286,16 +287,40 @@ tracks on aircraft address, callsign and date. The join key is
 
 ## The three methods {#sec-methods}
 
-### `trend` — what production runs today
+All three name an aerodrome by choosing among candidates, and two of the three
+choose the same way, so the shared machinery is worth stating once:
+
+**Candidate selection.** Every aerodrome whose H3 detection zone the aircraft
+passed through is a candidate. Each candidate's exact great-circle distance to
+the track's closest approach is computed, and the smallest wins. No candidate
+is eliminated before its distance is measured.
+
+**The scheduled-service penalty.** An aerodrome without scheduled commercial
+service has a fixed distance — 10 NM as shipped — added to its effective
+distance before that comparison, so a military or general-aviation field must
+be *clearly* nearest rather than merely nearest. It re-ranks candidates without
+changing how many flights are answered, so it can move accuracy and cannot move
+coverage. It applies to **both** `trend` and `endpoint`.
+
+Where the methods differ is the evidence they read and when they refuse to
+answer.
+
+### `trend` — the algorithm published before 2026
 
 For every state vector below a flight-level cap and within a radius of an
 aerodrome, `trend` asks whether smoothed barometric altitude is rising or
 falling. Each vector casts a vote. If climbing votes exceed descending votes by
 more than a margin, that aerodrome is the departure; if the reverse, the
-destination. The nearest surviving candidate wins.
+destination. Among the aerodromes that survive that test, the nearest wins.
+
+Its abstention is evidential: it stays silent when the altitude trace near an
+aerodrome does not clearly rise or fall. It has **no out-of-area concept** — it
+names an aerodrome or says nothing — which @sec-limitations returns to.
 
 Two of its four constants had never been swept before this study: the
 flight-level cap, fixed at FL40, and the detection radius, fixed at 30 NM.
+The scheduled-service penalty described above is new to `trend` in this
+version; before it, `trend` ranked on raw distance alone.
 
 ### `nearest` — the *traffic* library's rule
 
@@ -307,9 +332,15 @@ gives. It is included as the external baseline.
 ### `endpoint` — `nearest`, with abstention
 
 `endpoint` is `nearest` plus two gates: the endpoint must lie within a radius
-of the aerodrome, and either on the ground or below a height above the field.
-Failing both, the method abstains rather than guessing. A scheduled-service
-penalty breaks ties toward aerodromes with commercial traffic.
+of the aerodrome, and either on the ground or below a height above the field —
+above *field elevation*, not above sea level, since a fixed altitude cut-off
+means nothing at an aerodrome sitting at 5,000 ft.
+
+Failing both gates, the method abstains rather than guessing. Its abstention is
+geometric where `trend`'s is evidential. Unlike `trend` it can also say
+**out-of-area**: when the failing endpoint sits at the edge of the ingestion
+region rather than near any aerodrome, the flight came from or went to
+somewhere outside the observed area, and it says so.
 
 ## Trend: the full parameter sweep {#sec-trend-sweep}
 
@@ -322,7 +353,7 @@ if (!is.null(trend)) {
   for (role in c("adep", "ades")) {
     x <- with_metrics(s0, role)
     cat(sprintf(
-      "- **%s** at the production setting (FL%g, margin %g, %g NM, no penalty): coverage %s, accuracy %s, %s correct, %s wrong, score %s.\n",
+      "- **%s** at the legacy setting (FL%g, margin %g, %g NM, no penalty): coverage %s, accuracy %s, %s correct, %s wrong, score %s.\n",
       toupper(role), s0$fl_cap[1], s0$margin[1], s0$radius_nm[1],
       pct(x$coverage), pct(x$accuracy), num(x$correct), num(x$wrong), num(x$score)))
   }
@@ -400,7 +431,7 @@ if (!is.null(trend)) {
 #| echo: false
 #| results: asis
 if (!is.null(trend) && any(trend$stage == 2)) {
-  cat("\n**The scheduled-service penalty applied to `trend`**, which production does not do at all, swept at each role's winning geometry:\n\n")
+  cat("\n**The scheduled-service penalty applied to `trend`**, which the legacy algorithm does not do at all, swept at each role's winning geometry:\n\n")
   rows <- do.call(rbind, lapply(c("adep", "ades"), function(role) {
     b <- best_row(trend[trend$stage == 1, ], role)
     sel <- (trend$stage == 2 & trend$stage2_role == role) |
@@ -713,12 +744,16 @@ if (is.null(vm)) {
 }
 ```
 
-### The sampler: bin-based against fixed-phase
+## How the sample is thinned {#sec-sampler}
+
+This is not a negative result — it is a property of the data every other number
+on this page is computed from, and it is a change to the pipeline that will
+matter most somewhere else.
 
 OPDI thins the 1 Hz feed to roughly 5 s. The rule this study inherited is
 fixed-phase — `event_time % 5 == 0`, which keeps a row only if one exists at the
 single second per window congruent to zero. The rule it now uses keeps the
-newest row in each 5 s bucket, and cannot drop a sample where the modulo rule
+newest row in each 5 s bin, and cannot drop a sample where the modulo rule
 would.
 
 The bin-based rule is adopted, and **not because it measures better**. It is
@@ -728,8 +763,18 @@ positions, so a row almost always exists at the congruent second. That is a
 property of the archive, not a guarantee. If it ever changes, the modulo rule
 degrades badly and this one degrades gracefully.
 
-What it costs is the question worth answering, and the answer is: nothing
-measurable.
+For ADEP/ADES detection it should make almost no difference, and it does not:
+both methods read an altitude *trend* over tens of samples, and one extra fix
+per bin cannot change the sign of a trend. Where it should matter is the
+milestones defined by a single instant on the ground — off-block, take-off,
+landing, in-block — where a recovered bin is the difference between having a
+fix and not. That measurement belongs to the events study and has not been
+made here.
+
+What it costs is the question this page can answer, and the answer is: nothing
+measurable. Each row below compares two complete runs across every **cell** —
+one cell being one parameter combination — so a difference that appears at a
+single setting and nowhere else cannot be mistaken for a sampler effect.
 
 ```{r sampler}
 #| echo: false
@@ -749,48 +794,51 @@ if (is.null(sc)) {
               worst,
               sc$cells_improved[sc$comparison == "trend sweep" & sc$role == "ades"],
               sc$cells[sc$comparison == "trend sweep" & sc$role == "ades"]))
-  cat("\nSo the sampler is **neutral on accuracy and coverage**, and is adopted on correctness. It should not be described as an improvement.\n")
+  cat("\nColumn gloss: a **cell** is one parameter combination; **Δ** is the bin-based sampler minus the fixed-phase one; **pp** is percentage points of the flights in the reference.\n")
+  cat("\nSo the sampler is **neutral on accuracy and coverage** for this problem, and is adopted on correctness. It should not be described as an improvement to aerodrome detection.\n")
 }
 ```
 
-::: {.callout-note}
-## Two earlier accounts of this were wrong, and how
-The decimation study measured **+0.26 pp** of arrival coverage for the bucket
-rule. That was one day, at one operating point, before the candidate ranking
-changed — and it does not reproduce. Measured across three days on the same
-rule it is −0.0137 pp.
-
-An end-to-end harness then reported the bucket rule *collapsing* arrival
-coverage from 80.96% to 27.65%. That was not the sampler either: its two arms
-had drifted onto different periods, comparing a three-day cache against a
-one-day one, and by then the arm labelled "modulo" was reading a table already
-rebuilt with the bucket rule. A third of the flights, a third of the coverage.
-
-Both are instructive in the same way. A sampler that changes 0.2% of rows
-cannot move coverage by fifty points or by a quarter of a point; when a
-measurement says otherwise, the measurement is what to check.
-:::
+One consequence has to be stated because it is not reversible by configuration:
+**`track_id` values differ** between the two samplers. The rescued rows sit at
+track boundaries and the splitter breaks on gaps, so a track that gains a fix
+can be split differently. Re-processing a past month with the bin-based rule
+will not reproduce the identifiers that were published under the fixed-phase
+one.
 
 ## What the pipeline actually produces {#sec-pipeline}
 
-Every number so far comes from a sweep harness, not from `src/opdi`. The trend
-sweep re-applies the vote rule to a cached vote table and the endpoint sweeps
-filter and re-rank a cached candidate table — which is what makes hundreds of
-parameter cells affordable, and also what makes them unfit, on their own, to
-justify changing a production default.
+Everything measured so far has been measured in two stages, and the distinction
+governs how much any number on this page is worth.
 
-So the recommended settings were run through `FlightListProcessor.process_dai`
-itself and scored the same way. Three differences between harness and pipeline
-are known in advance and are not bugs:
+**Stage 1 — the research sweep.** Hundreds of parameter combinations applied to
+a cached intermediate table: vote counts per track-aerodrome pair for `trend`,
+first-and-last-fix candidates for `endpoint`. Cheap enough to be exhaustive,
+which is what makes a grid of this size possible at all. But it re-implements
+the decision rule rather than running it, so on its own it can only *propose* a
+value.
 
-1. the pipeline selects among candidate aerodromes by **H3 ring count**
-   (`distance_from_center`, an integer stepping about 5.2 km at resolution 7),
-   while the harness uses exact haversine distance;
-2. the pipeline filters zones by radius **band**, the harness by exact radius;
-3. the harness smooths barometric altitude across the flight-level boundary and
-   the pipeline does not.
+**Stage 2 — the production run.** The proposed values run through
+`FlightListProcessor.process_dai` — the same code path that writes the
+published flight list — and scored identically. No value in @sec-defaults
+became a default without passing this stage.
 
-The gap those produce is the fidelity of every tuned number on this page.
+Two differences between the two stages remain, and both are named here rather
+than left to be discovered in the residual:
+
+1. the pipeline filters zones by radius **band** — the H3 ring the zone was
+   generated at — while the sweep cuts on exact distance;
+2. the sweep smooths barometric altitude across the flight-level boundary and
+   the pipeline applies the cut first, so its smoothing window is truncated
+   there.
+
+A third difference, and by far the largest, has been **closed**: the pipeline
+used to keep only the candidates at the minimum H3 ring count and measure exact
+distance only among the survivors, so an aerodrome one ring further out was
+eliminated before its distance was ever computed. It now carries every
+candidate in the joined disk through to an exact-distance ranking, which is
+what the sweep always did. That change is the subject of the rest of this
+section.
 
 ```{r pipeline-fidelity}
 #| echo: false
@@ -839,43 +887,34 @@ if (!is.null(modes) && !is.null(trend) && !is.null(grid)) {
   print(kable(cmp, row.names = FALSE, align = "r"))
   cat("\nThe two rows could hardly be more different, and the difference is the single most important result on this page.\n")
   cat("\n`endpoint` **reproduces exactly**. That is not luck: the endpoint sweep filters the same cached candidate table the pipeline reads, applying the same rule, so harness and pipeline are the same computation and agree to the flight.\n")
-  cat("\n`trend` **does not**. The harness ranks candidate aerodromes by exact haversine distance. The pipeline first keeps only the candidates at the minimum H3 *ring count* — an integer stepping about 5.2 km at resolution 7 — and applies the haversine tie-break, and the scheduled-service penalty, only within that surviving set. An aerodrome one ring further out is gone before the penalty can promote it. So a penalty tuned against exact distance does something weaker in production, and the harness's trend optimum is optimistic by the margin shown.\n")
+  cat("\n`trend` **does not**, and the reason is the ranking rule. Both stages now rank candidate aerodromes on exact great-circle distance: the full set of aerodromes whose detection zone the aircraft passed through is carried forward, each candidate's own closest approach is computed, and the scheduled-service penalty is applied to that distance. Nothing is eliminated before it is measured.\n")
+  cat("\nUntil this study that was true of the sweep only. The pipeline kept just the candidates at the minimum H3 *ring count* — an integer stepping about 5.2 km at resolution 7 — and applied the tie-break, and the penalty, within that surviving set alone. An aerodrome one ring further out was gone before the penalty could promote it, so a penalty tuned against exact distance did something weaker in production. The residual above is what remains once that rule is the same on both sides: the radius band and the truncated smoothing window, and nothing else.\n")
 }
 ```
 
-### What running the pipeline caught
-
-The first pipeline path run produced a result that no amount of sweeping could
-have: the scheduled-service penalty step scored **exactly** what the step before
-it did, to the flight. An identical score is not a weak effect, it is no effect,
-and a parameter with no effect is a parameter that is not reaching the code.
-
-It was not. The penalty was added to the ranking in `_compute_flight_table`,
-but the projection a few lines above it dropped the `apt_scheduled` column, so
-the ranking looked the column up, failed to find it, and fell back to raw
-distance. A penalty of ten nautical miles and a penalty of zero produced
-byte-identical flight lists.
-
-Two things made this visible rather than invisible. The pipeline run put the
-parameter in front of real data, where a sweep harness — which reads a
-*different* table that does carry the column — could not. And the fallback
-printed a note saying the column was missing instead of quietly ranking on
-distance, because a missing column and a zero penalty look identical in the
-output. The numbers below are from after the fix.
-
 ### The trend tuning re-walked inside the pipeline
 
-The path below runs through `process_dai` itself: production constants, then
-one tuned value adopted per step. It was run twice — once with the pipeline's
-original **H3 ring-count** selection, and once with **exact-distance** ranking.
-The two disagree in sign, which is the whole finding.
+The path below runs through `process_dai` itself. Each row **adds one parameter
+change to the row above it** and rebuilds the whole flight list with everything
+adopted so far, so row *n* differs from row *n−1* in exactly one value. It
+answers which of the changes is doing the work, not which configuration to
+ship — for that see @sec-verdict.
+
+Both roles are produced by `trend` in every row, at the arrival tuning, because
+that is the parameter set being walked. The departure columns are therefore a
+diagnostic and not a recommendation: what ships takes departures from
+`endpoint`.
+
+It was run twice — once with the pipeline's original **H3 ring-count**
+selection, and once with **exact-distance** ranking. The two disagree in sign,
+which is the whole finding.
 
 ```{r pipeline-path}
 #| echo: false
 #| results: asis
 ppath <- cache("pipeline_path_v6.csv")
 if (!is.null(ppath)) {
-  lab <- c(path0_legacy = "production constants",
+  lab <- c(path0_legacy = "legacy constants",
            path1_penalty = "+ scheduled-service penalty",
            path2_flcap = "+ flight-level cap",
            path3_margin = "+ vote margin",
@@ -906,11 +945,20 @@ if (!is.null(ppath)) {
 }
 ```
 
-### Production's own optimum
+### The pipeline's own optimum
 
-The path adopts the values the *harness* preferred. Whether those are also the
+The path adopts the values the *sweep* preferred. Whether those are also the
 **pipeline's** optima is a separate question, and it is answered by sweeping
 the flight-level cap and radius through `process_dai` directly.
+
+Both roles are produced by `trend` in every cell of this grid. Held fixed
+throughout: vote margin 2, scheduled-service penalty 10 NM, ranking on exact
+distance. The vote margin is a `trend` parameter only — the majority one
+direction must win by across the smoothed altitude samples before a track is
+called a departure or an arrival. `endpoint` has no votes; it reads one fix.
+
+The grid stops at FL120, which is far enough to find the arrival optimum and
+**not** far enough to close the departure side — see @sec-limitations.
 
 ```{r pipeline-trend-grid}
 #| echo: false
@@ -947,7 +995,7 @@ if (!is.null(tg)) {
 
 A recommendation is only as good as the evidence that picked it, so every value
 the sweeps select appears below with the score at that value, the score at the
-adjacent grid points, and the score at whatever production uses today. The last
+adjacent grid points, and the score at the legacy value. The last
 column is the one that matters most for trusting the number: a value on a broad
 **plateau** is a safe recommendation even from a single sample, because its
 neighbours score nearly the same and a little noise cannot move it far. A value
@@ -958,7 +1006,7 @@ as such however good its score.
 ## These are the sweeps' choices, not the shipped ones
 The `Chosen` column below is the **harness argmax**, which is what this section
 exists to scrutinise. For `trend`, @sec-pipeline is what settles whether each
-value survives in production — and under exact-distance ranking they do, which
+value survives in the pipeline — and under exact-distance ranking they do, which
 is why the harness numbers below and the shipped values in @sec-defaults now
 agree. They are still kept apart, because for a period they did *not* agree,
 and a sweep preference is only ever evidence until the pipeline confirms it.
@@ -1001,12 +1049,12 @@ just_row <- function(d, role, chosen, param, label, orig_value, k = K_DEFAULT,
 
   data.frame(
     Role = toupper(role), Parameter = label,
-    Production = orig_value, `Sweep argmax` = chosen[[param]],
-    `Score at production` = ifelse(is.na(s_or), "—", num(s_or)),
+    Legacy = orig_value, `Sweep argmax` = chosen[[param]],
+    `Score at legacy` = ifelse(is.na(s_or), "—", num(s_or)),
     `Score at argmax`     = num(s_ch),
     `Neighbour below`   = ifelse(is.na(s_lo), "—", num(s_lo)),
     `Neighbour above`   = ifelse(is.na(s_hi), "—", num(s_hi)),
-    `Δ vs production`   = ifelse(is.na(s_or), "—", sgn(s_ch - s_or)),
+    `Δ vs legacy`   = ifelse(is.na(s_or), "—", sgn(s_ch - s_or)),
     Shape = shape, check.names = FALSE)
 }
 
@@ -1038,8 +1086,14 @@ if (!is.null(trend) && !is.null(grid)) {
 
 The table above varies one parameter at a time around the chosen setting, which
 shows whether each value is defensible but not how much each contributes to the
-total gain. This walks the whole distance instead: from the production
-constants to the recommended setting, changing one parameter per step.
+total gain. This walks the whole distance instead: from the legacy constants to
+the recommended setting, changing one parameter per step.
+
+**How to read it.** Each row *adds* its change to everything in the rows above
+and keeps it — row 5 has all four changes applied, not just the radius. `Gain`
+is that row's score minus the previous row's, so it is the marginal worth of
+that one change given everything already adopted. All rows are arrivals under
+`trend`, in the research sweep.
 
 ```{r trend-path}
 #| echo: false
@@ -1059,7 +1113,7 @@ if (!is.null(trend)) {
     if (is.null(x) || nrow(x) == 0) NA else x$score[1]
   }
   steps <- list(
-    list(lab = "production constants (FL40, margin 4, 30 NM, no penalty)",
+    list(lab = "legacy constants (FL40, margin 4, 30 NM, no penalty)",
          s = s0$score),
     list(lab = sprintf("+ scheduled-service penalty of %g NM", b$penalty_nm),
          s = cellv(40, 4, 30, b$penalty_nm)),
@@ -1103,15 +1157,16 @@ if (!is.null(modes)) {
   tot <- function(run) m(run, "adep_score") + m(run, "ades_score")
   runs <- modes$run[order(-(modes$adep_score + modes$ades_score))]
 
-  # The run named `recommended` is a mis-built control, and the shipped
-  # configuration is the one named `combined`. Displaying the raw run names
-  # invites exactly the misreading this table exists to prevent.
-  label <- c(legacy = "legacy (production today)",
+  # `recommended` and `combined` are the same configuration built two ways --
+  # from DetectionConfig() and by naming the fields -- and they agree field for
+  # field. Labelling both makes that visible instead of looking like two
+  # different recommendations.
+  label <- c(legacy = "legacy — the algorithm published before 2026",
              trend = "trend, departure parameters both roles",
              endpoint = "endpoint, both roles",
              nearest = "nearest (traffic library)",
              combined = "**SHIPPED** endpoint + exact-distance trend",
-             recommended = "control: production geometry + penalty, ring-ranked")
+             recommended = "the same, built from `DetectionConfig()`")
   print(kable(data.frame(
     Configuration = ifelse(is.na(label[modes$run]), modes$run, label[modes$run]),
     ADEP = paste0(modes$adep_mode, ""), ADES = paste0(modes$ades_mode, ""),
@@ -1125,13 +1180,13 @@ if (!is.null(modes)) {
     check.names = FALSE)[order(-(modes$adep_score + modes$ades_score)), ],
     row.names = FALSE, align = "r"))
 
-  cat(sprintf("\nThe recommended configuration is the **%s** row: `endpoint` for departures, exact-distance `trend` for arrivals. It scores **%s against production's %s, a gain of %s** on a three-day sample of %s flights, and every figure in that table is a real pipeline run scored against Network Manager ground truth.\n",
+  cat("\nEach row is a complete configuration — which method names departures, which names arrivals — not a step in a sequence. The rows are alternatives to choose between.\n")
+  cat(sprintf("\nThe recommended configuration is the **%s** row: `endpoint` for departures, exact-distance `trend` for arrivals. It scores **%s against legacy's %s, a gain of %s** on a three-day sample of %s flights, and every figure in that table is a real pipeline run scored against Network Manager ground truth.\n",
               SHIPPED, num(tot(SHIPPED)), num(tot("legacy")),
               sgn(tot(SHIPPED) - tot("legacy")), num(N_GT)))
-  cat("\nIt is the shipped configuration in the strict sense: its trend cap, radius, vote margin, penalty and ranking rule, and its endpoint radius, height and penalty, were checked field by field against `DetectionConfig()`. The row is what production produces, not an approximation of it.\n")
-  cat(sprintf("\nThe `recommended` row is a **control, and a mislabelled one**. It was built by starting from `DetectionConfig.legacy()` and overriding the fields the author remembered to override -- and `trend_rank_by` was not among them, so it kept ring-count selection and scored %s against production while every properly-ranked configuration gained. It is left in the table because it is the cleanest demonstration on this page that the ranking rule matters more than the thresholds: identical geometry, one different selection rule, %s of score.\n",
-              sgn(tot("recommended") - tot("legacy")),
-              sgn(tot(SHIPPED) - tot("recommended"))))
+  cat("\nIt is the shipped configuration in the strict sense: its trend cap, radius, vote margin, penalty and ranking rule, and its endpoint radius, height and penalty, were checked field by field against `DetectionConfig()`. The row is what the pipeline produces, not an approximation of it.\n")
+  cat(sprintf("\nThe `recommended` row is the same configuration constructed the other way — by instantiating `DetectionConfig()` rather than by naming each field — and it lands within %s of `%s` in total. Two independent constructions of the shipped settings agreeing to that margin is the check that the recommendation and the code have not drifted apart.\n",
+              num(abs(tot("recommended") - tot(SHIPPED))), SHIPPED))
 }
 ```
 
@@ -1143,7 +1198,7 @@ if (!is.null(modes)) {
 if (!is.null(modes) && !is.null(grid)) {
   m <- function(run, field) modes[[field]][modes$run == run][1]
   tg <- cache("trend_grid_v6.csv")
-  cat(sprintf("**Departures — `endpoint`, %g NM, %s ft, %g NM scheduled-service penalty.** Score %s against production's %s, a gain of %s. The clearest result in the study: an interior optimum in both parameters, better than `trend` at every exchange rate tried, and the pipeline reproduces the sweep exactly -- the endpoint sweep filters the same cached candidate table the pipeline reads, so the tuned figure *is* the production figure.\n\n",
+  cat(sprintf("**Departures — `endpoint`, %g NM radius, %s ft above field elevation, %g NM scheduled-service penalty.** That height is `endpoint_height_ft`, a height above the aerodrome's own elevation — not a flight level, and not related to the flight-level caps swept for `trend`, which departures do not use. Score %s against legacy's %s, a gain of %s. The clearest result in the study: an interior optimum in both parameters, better than `trend` at every exchange rate tried, and the pipeline reproduces the sweep exactly -- the endpoint sweep filters the same cached candidate table the pipeline reads, so the tuned figure *is* the pipeline figure.\n\n",
               best_row(grid, "adep")$radius_nm,
               format(best_row(grid, "adep")$height_ft, big.mark = ",", trim = TRUE, scientific = FALSE),
               best_row(grid, "adep")$penalty_nm,
@@ -1152,7 +1207,7 @@ if (!is.null(modes) && !is.null(grid)) {
 
   if (!is.null(tg)) {
     b <- tg[which.max(tg$ades_score), ]
-    cat(sprintf("**Arrivals — `trend` at FL%g, vote margin %g, %g NM, %g NM penalty, ranked on exact distance.** Measured as an algorithm, on a trend-only flight list, that is %s against production's %s -- a gain of %s, won by converting %s silences into correct answers for %s extra wrong ones.\n\n",
+    cat(sprintf("**Arrivals — `trend` at FL%g, vote margin %g, %g NM, %g NM penalty, ranked on exact distance.** Measured as an algorithm, on a trend-only flight list, that is %s against legacy's %s -- a gain of %s, won by converting %s silences into correct answers for %s extra wrong ones.\n\n",
                 b$trend_max_fl, b$trend_vote_margin, b$trend_radius_nm,
                 b$trend_sched_penalty_nm,
                 num(b$ades_score), num(m("legacy", "ades_score")),
@@ -1160,7 +1215,7 @@ if (!is.null(modes) && !is.null(grid)) {
                 num(b$ades_correct - m("legacy", "ades_correct")),
                 num(b$ades_wrong - m("legacy", "ades_wrong"))))
 
-    cat(sprintf("Inside the combined flight list the arrival half reads %s, %s against production rather than the %s just quoted. The difference is not the algorithm. Taking departures from `endpoint` adds tracks `trend` never produced, and where two share an aircraft, callsign and date, the scoring alignment awards the flight to whichever starts closest to the actual off-block time -- sometimes now a departure-only track carrying no arrival. Accuracy *rises* in the merged table (%s against %s) while coverage falls, which is the signature of lost pairings rather than wrong names.\n\n",
+    cat(sprintf("Inside the combined flight list the arrival half reads %s, %s against legacy rather than the %s just quoted. The difference is not the algorithm. Taking departures from `endpoint` adds tracks `trend` never produced, and where two share an aircraft, callsign and date, the scoring alignment awards the flight to whichever starts closest to the actual off-block time -- sometimes now a departure-only track carrying no arrival. Accuracy *rises* in the merged table (%s against %s) while coverage falls, which is the signature of lost pairings rather than wrong names.\n\n",
                 num(m(SHIPPED, "ades_score")),
                 sgn(m(SHIPPED, "ades_score") - m("legacy", "ades_score")),
                 sgn(b$ades_score - m("legacy", "ades_score")),
@@ -1224,12 +1279,22 @@ if (!is.null(typ)) {
 Movement counts are what OPDI is for, so the last check is per aerodrome rather
 than per flight: for each of the hundred busiest in the reference, how many
 movements the recommended methodology finds, against how many the Network
-Manager data says there were, and how the algorithm production runs today
+Manager data says there were, and how the legacy algorithm
 compares on the same aerodromes.
 
-`Count ratio` is movements found over movements in truth — the number a
-capacity or delay analysis would be distorted by. `Recall` is the share of that
-aerodrome's true movements correctly attributed to it.
+The matching is **flight by flight, not count against count**. Each reference
+flight is paired with an OPDI track on aircraft address (`icao24`) plus
+callsign plus date, and where several tracks match, the one starting closest to
+the reference off-block time. The columns then mean:
+
+| Column | Definition |
+|---|---|
+| Movements (truth) | Reference flights whose true aerodrome is this one. |
+| Found | Of those, how many OPDI gave any answer for. |
+| Correct | Of those, how many OPDI attributed to **this** aerodrome. |
+| Count ratio | Movements OPDI *assigns to* this aerodrome ÷ movements in truth. Includes flights that truly belong elsewhere, so it is what an operational count would show, and it can exceed 1. |
+| Recall | Correct ÷ movements in truth. **Per-aerodrome recall** — not the out-of-area recall of @sec-metrics, which is a different measure sharing the word. |
+| Recall, legacy | The same, for the algorithm published before 2026. |
 
 ```{r top100}
 #| echo: false
@@ -1250,7 +1315,7 @@ if (!is.null(apt)) {
       `Correct` = num(r$n_correct),
       `Count ratio` = sprintf("%.3f", r$count_ratio),
       `Recall` = pct(r$recall),
-      `Recall, production` = pct(l$recall),
+      `Recall, legacy` = pct(l$recall),
       `Δ recall` = pp(r$recall - l$recall),
       check.names = FALSE), row.names = FALSE, align = "r"))
   }
@@ -1271,7 +1336,7 @@ if (!is.null(apt)) {
       Role = tools::toTitleCase(rl),
       `Movements in truth` = num(sum(r$n_truth)),
       `Recall, shipped` = pct(sum(r$n_correct) / sum(r$n_truth)),
-      `Recall, production`  = pct(sum(l$n_correct, na.rm = TRUE) / sum(l$n_truth, na.rm = TRUE)),
+      `Recall, legacy`  = pct(sum(l$n_correct, na.rm = TRUE) / sum(l$n_truth, na.rm = TRUE)),
       `Aerodromes improved` = sprintf("%d of %d", sum(r$recall > l$recall, na.rm = TRUE), nrow(r)),
       `Median count ratio`  = sprintf("%.3f", median(r$count_ratio, na.rm = TRUE)),
       check.names = FALSE)
@@ -1280,8 +1345,8 @@ if (!is.null(apt)) {
   cat("\nA count ratio below one means the aerodrome is under-counted — the usual case, since every abstention is a movement not attributed. Above one means movements are being attributed to an aerodrome that did not see them, which is the more damaging error and the one the scoring penalises at rate $k$.\n")
   cat("\nThe departure row is the result: recall rises by nearly nine points and the median aerodrome is within about one percent of its true movement count.\n")
   arr <- rows[rows$Role == "Arrivals", ]
-  cat(sprintf("\n**The arrival row must be read with @sec-verdict in hand.** Recall reads %s against production's %s, improving on %s — which looks like a mild regression and is not one. Measured as an algorithm on a trend-only flight list, arrivals gain; the shortfall here comes from the merged list also containing departure-only tracks, which this table pairs with reference flights by start time, so some arrivals are counted against a track that carries none. The measurement moved; the data did not. It is left in the table rather than corrected away, because a benchmark that quietly adjusts its own alignment to flatter a result is worth less than one that shows where it is fragile.\n",
-              arr$`Recall, shipped`, arr$`Recall, production`,
+  cat(sprintf("\n**The arrival row must be read with @sec-verdict in hand.** Recall reads %s against legacy's %s, improving on %s — which looks like a mild regression and is not one. Measured as an algorithm on a trend-only flight list, arrivals gain; the shortfall here comes from the merged list also containing departure-only tracks, which this table pairs with reference flights by start time, so some arrivals are counted against a track that carries none. The measurement moved; the data did not. It is left in the table rather than corrected away, because a benchmark that quietly adjusts its own alignment to flatter a result is worth less than one that shows where it is fragile.\n",
+              arr$`Recall, shipped`, arr$`Recall, legacy`,
               arr$`Aerodromes improved`))
 }
 ```
@@ -1323,18 +1388,24 @@ if (is.null(t24)) {
   print(kable(rows, row.names = FALSE, align = "r"))
 
   agree <- sum(rows$Agrees == "yes")
-  cat(sprintf("\n%d of %d parameter optima agree across the two periods.\n",
+  cat(sprintf("\n%d of %d parameter optima agree across the two periods — which, taken alone, reads worse than the situation is. Comparing two argmaxes is close to the weakest test available: over hundreds of cells the top cell moves under noise even when the surface underneath is stable.\n",
               agree, nrow(rows)))
 
-  # The question that actually matters is not whether the argmax moved but
-  # whether the *decision* would have changed -- so the rejected values are
-  # re-checked on the second period too.
-  b24 <- best_row(s1_24, "ades"); b25 <- best_row(s1_25, "ades")
-  leg24 <- with_metrics(t24[t24$stage == 0, ], "ades")
-  cat(sprintf("\nOn the arrival side, where this study rejected the sweep's preferences, the 2024 sweep prefers FL%g against 2025's FL%g — and its own gain over the production constants is %s, against %s on 2025. Both are harness figures, and @sec-pipeline showed harness gains of this size on `trend` do not survive the pipeline's ranking. A parameter that is neither stable across periods nor reproducible in production is not one to ship, which is what the defaults reflect.\n",
-              b24$fl_cap, b25$fl_cap,
-              sgn(b24$score - leg24$score),
-              sgn(b25$score - with_metrics(trend[trend$stage == 0, ], "ades")$score)))
+  # The question that matters is not whether the argmax moved but whether the
+  # *decision* would have changed. Ranking every cell by both periods at once
+  # answers that; comparing two argmaxes does not.
+  key <- function(d) paste(d$fl_cap, d$margin, d$radius_nm, d$penalty_nm, sep = "/")
+  a <- s1_25; b <- s1_24; a$key <- key(a); b$key <- key(b)
+  mm <- merge(a, b, by = "key", suffixes = c("_25", "_24"))
+  mm$joint <- mm$ades_score_25 / mm$n_ground_truth_25 +
+              mm$ades_score_24 / mm$n_ground_truth_24
+  o <- mm[order(-mm$joint), ]
+  rk <- which(o$fl_cap_25 == 60 & o$margin_25 == 2 & o$radius_nm_25 == 20)
+
+  cat(sprintf("\nSo the cells are ranked here by **both periods at once**, with each period's score divided by its own ground-truth count so the larger sample cannot dominate. On that ranking the shipped arrival configuration — FL60, vote margin 2, 20 NM, 10 NM penalty — places **%d of %d**. The joint winner is FL%g / margin %g / %g NM: it differs in the radius alone, and by %s of normalised score.\n",
+              rk, nrow(o), o$fl_cap_25[1], o$margin_25[1], o$radius_nm_25[1],
+              sprintf("%.5f", o$joint[1] - o$joint[rk])))
+  cat("\nThe arrival tuning therefore does hold on both periods. What moves between them is which of several near-equivalent cells happens to come first, and the radius is the parameter that moves.\n")
 }
 ```
 
@@ -1355,10 +1426,12 @@ if (is.null(e24)) {
                `2024 radius / height` = sprintf("%g NM / %s ft", b$radius_nm,
                     format(b$height_ft, big.mark = ",", trim = TRUE, scientific = FALSE)),
                Agrees = ifelse(a$radius_nm == b$radius_nm & a$height_ft == b$height_ft,
-                               "yes", "**no**"),
+                               "**yes**", "no"),
                check.names = FALSE)
   }))
   print(kable(rows, row.names = FALSE, align = "r"))
+  cat(sprintf("\nThe departure optimum — the one that actually ships — is the *same cell* on two independent periods, out of %d. Neither period was consulted when the other was measured. That is the strongest stability evidence in this study.\n",
+              nrow(e24)))
 }
 ```
 
@@ -1368,7 +1441,7 @@ The pipeline's `DetectionConfig` defaults are now the values this study
 measured. Six changed. The ordering below is deliberate: the ranking rule comes
 first, because without it none of the rest holds.
 
-| Parameter | Production | Now ships | Evidence |
+| Parameter | Legacy | Now ships | Evidence |
 |---|---|---|---|
 | `trend_rank_by` | `ring` | **`haversine`** | The enabling change. Ring-count selection discarded candidates before measuring them; every tuned trend value fails under it and gains under exact distance. |
 | `trend_max_fl` | 40 | **60** | Pipeline grid over FL 40–120: arrivals peak at FL60 and fall on both sides. |
@@ -1387,7 +1460,7 @@ narrower question than it appeared to: *given this selection rule*, the tuning
 fails. Changing the rule changed the answer.
 
 Every OPDI flight list published before this change was built with the
-production column, and `DetectionConfig.legacy()` still returns exactly those
+legacy column, and `DetectionConfig.legacy()` still returns exactly those
 values — including `trend_rank_by = "ring"` — so anything already released
 stays reproducible by name. That is the same principle as the frozen `version`
 strings on published events. A regression test pins the preset, a second pins
@@ -1469,7 +1542,7 @@ reasonably assume the whole configuration was optimised, and it was not.
 | Classification dead band | `flights.py` | none exists | There is no dead band to sweep. The vote margin already plays that role. |
 | Out-of-area border margin | `flights.py` | 30 NM | Fixes what counts as "outside the observed area". Changing it redefines the ground truth rather than the method, so a sweep would move the target as well as the aim. |
 | Aerodrome type set | `h3_airport_zones.py` | large + medium | The candidate set. Widening it is a data-volume decision about the zone table, not a detection threshold. |
-| H3 resolution | `config.py` | 7 (±0.76 NM) | Changing it invalidates every cached zone table and the `distance_from_center` ring counts that production selects on. |
+| H3 resolution | `config.py` | 7 (±0.76 NM) | Changing it invalidates every cached zone table. It no longer decides which candidates survive — that is exact distance now — but it still decides which aerodromes become candidates at all. |
 
 Two of these carry a cost that this study measures rather than waves at, since
 "not swept" is not the same as "no consequence".
@@ -1504,19 +1577,45 @@ if (!is.null(typ) && !is.null(modes)) {
 }
 ```
 
-### The outstanding check
+### `trend` cannot say "out of area"
 
-The endpoint radius and height — the values that actually change what the
-pipeline ships for departures — have been validated against the pipeline but on
-**one** period. `trend`, whose tuned values were mostly rejected, is the one
-measured on two. That is the wrong way round, and it is the first thing a
-follow-up should fix: build the endpoint candidate cache for a second period
-and re-run the radius x height grid against it.
+`trend` names an aerodrome or says nothing. It has no way to report that a
+flight began or ended outside the observed area, because the vote rule only
+ever considers aerodromes the aircraft flew near — silence and *outside* are
+the same output.
 
-Two things limit how much that weakens the recommendation. The departure gain
-is large — thousands of flights, not tens — so it is not the kind of margin a
-single sample's noise produces. And the optimum sits on a plateau in both
-parameters, so even a moderate shift in the argmax would cost little.
+That is not a small omission for the shipped configuration, which takes
+arrivals from `trend`:
+
+```{r ooa-gap}
+#| echo: false
+#| results: asis
+if (!is.null(modes)) {
+  m <- function(run, f) modes[[f]][modes$run == run][1]
+  cat(sprintf("%s of reference arrivals genuinely come from outside the observed area, and **none of them can be labelled as such**. Departures ship `endpoint`, which does emit the label: %s precision, so it is trustworthy when it appears, but only %s recall.\n",
+              pct(m(SHIPPED, "ades_gt_ooa_share")),
+              pct(m(SHIPPED, "adep_ooa_precision")),
+              pct(m(SHIPPED, "adep_ooa_recall"))))
+}
+```
+
+`endpoint` already has the mechanism — a fix at the edge of the ingestion
+region rather than near any aerodrome — so giving `trend` the same test is a
+port, not an invention. It is the clearest single improvement left on this page
+and is not implemented here.
+
+### The grid stops before the departure optimum does
+
+The pipeline grid runs to FL120, and departures under `trend` are still rising
+there. The research sweep goes further and does turn — departures peak at FL120
+on the 2025 sample and FL100 on 2024, then fall away as accuracy drops faster
+than coverage rises — but "it turns in the sweep" is weaker evidence than "it
+turns in the pipeline", and the two have disagreed before.
+
+This costs nothing that ships, because departures are served by `endpoint` and
+the arrival optimum at FL60 is comfortably interior on both periods and in both
+stages. It does mean the departure half of the trend grid should not be quoted
+as an optimum.
 
 ### One sample, and what that does and does not license
 
