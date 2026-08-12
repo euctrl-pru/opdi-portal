@@ -570,6 +570,7 @@ if (is.null(mod25)) {
     Total = num(d$adep_score + d$ades_score),
     check.names = FALSE), row.names = FALSE, align = "r"))
   cat("\nEach row is a complete configuration — which algorithm names departures, which names arrivals — not a step in a sequence. The rows are alternatives to choose between.\n")
+  cat("\nAll five read the **cleaned** tracks, so this table compares algorithms on one input. That is why the `legacy` row here does not match the ladder's first rung in @sec-ladder: this one is the legacy *algorithm* on current input, and that one is the legacy algorithm on the input it actually shipped with. The pair separates the algorithm from the data, and neither number alone does.\n")
   cat(sprintf("\nThe shipped configuration scores **%s against legacy's %s**, a gain of %s.\n",
               num(mv(mod25, "shipped", "adep_score") + mv(mod25, "shipped", "ades_score")),
               num(mv(mod25, "legacy", "adep_score") + mv(mod25, "legacy", "ades_score")),
