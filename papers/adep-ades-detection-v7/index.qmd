@@ -1,0 +1,761 @@
+---
+title: "Departure and destination aerodromes in the OPDI flight list"
+subtitle: "How they are derived, how accurate they are, and how to use them"
+author: "EUROCONTROL Performance Review Unit"
+date: last-modified
+---
+
+```{r regenerate}
+#| include: false
+#| cache: false
+
+# Rendering this page runs the analysis behind it.
+#
+# `regenerate_v7.py` is the executable definition of the study: every CSV read
+# below is produced by exactly one job it declares, with exactly the arguments
+# it declares. It re-runs a job when the *code that job depends on* has changed
+# since the output was written -- not when the file is old, which says nothing.
+# So a render with everything current is a fast no-op, and a render after
+# editing `flights.py` recomputes every pipeline result before the first table
+# is drawn.
+#
+# Running a stale job needs cluster credentials, because the numbers come from
+# Spark over S3 against EUROCONTROL Network Manager reference data and there is
+# no way to recompute them without the data they are computed from. Set
+# OPDI_RENDER=check to fail fast on staleness instead, or
+# OPDI_RENDER=allow-stale to render a draft from whatever is staged -- which
+# the provenance table at the foot of this page will then show as unverified.
+REPO   <- normalizePath(file.path(getwd(), "..", "..", "..", "opdi"), mustWork = FALSE)
+PYTHON <- Sys.getenv("OPDI_PYTHON", file.path(REPO, ".venv310", "bin", "python"))
+MODE   <- Sys.getenv("OPDI_RENDER", "run")
+
+regen <- file.path(REPO, "benchmarks", "regenerate_v7.py")
+if (file.exists(regen) && MODE != "skip") {
+  flags <- switch(MODE,
+                  "run" = character(0),
+                  "check" = "--check",
+                  "allow-stale" = c("--check", "--allow-stale"),
+                  character(0))
+  status <- system2(PYTHON, c(shQuote(regen), flags), stdout = "", stderr = "")
+  if (!identical(status, 0L)) {
+    stop("regenerate_v7.py exited ", status,
+         " -- the figures below would not match the code that is checked out. ",
+         "Set OPDI_RENDER=allow-stale to render anyway.")
+  }
+}
+```
+
+```{r setup}
+#| include: false
+library(knitr)
+
+cache <- function(f) {
+  p <- file.path("data", f)
+  if (!file.exists(p)) return(NULL)
+  read.csv(p, stringsAsFactors = FALSE)
+}
+
+t25    <- cache("trend_sweep_2025.csv")
+t24    <- cache("trend_sweep_2024.csv")
+e25    <- cache("sweep_radius_height_2025.csv")
+e24    <- cache("sweep_radius_height_2024.csv")
+lad25  <- cache("ladder_2025.csv")
+lad24  <- cache("ladder_2024.csv")
+mod25  <- cache("modes_2025.csv")
+mod24  <- cache("modes_2024.csv")
+grid25 <- cache("trend_grid_2025.csv")
+grid24 <- cache("trend_grid_2024.csv")
+apt25  <- cache("per_airport_2025.csv")
+typ25  <- cache("per_type_2025.csv")
+
+pct <- function(x) ifelse(is.na(x), "—", sprintf("%.2f%%", 100 * x))
+pp  <- function(x) ifelse(is.na(x), "—", sprintf("%+.2f pp", 100 * x))
+num <- function(x) ifelse(is.na(x), "—",
+                          format(round(x), big.mark = ",", trim = TRUE))
+# The "+" flag does nothing for %s in R, so the sign is prepended explicitly:
+# a signed delta that silently loses its sign reads as a level, not a change.
+sgn <- function(x) ifelse(is.na(x), "—",
+                          paste0(ifelse(x >= 0, "+", "−"),
+                                 format(abs(round(x)), big.mark = ",", trim = TRUE)))
+
+#: One row of a mode table, by run name.
+mv <- function(d, run, field) {
+  if (is.null(d)) return(NA_real_)
+  v <- d[[field]][d$run == run]
+  if (length(v) == 0) NA_real_ else v[1]
+}
+
+#: A parameter cell, identified the same way in both periods -- which is what
+#: makes a joint ranking possible rather than a comparison of two argmaxes.
+cellkey <- function(d) paste(d$fl_cap, d$margin, d$radius_nm, d$penalty_nm,
+                             sep = "/")
+
+#: Rank cells by both periods at once, each period's score divided by its own
+#: reference count so the larger sample cannot dominate.
+joint <- function(a, b, role) {
+  if (is.null(a) || is.null(b)) return(NULL)
+  a <- a[a$stage == 1, ]; b <- b[b$stage == 1, ]
+  a$key <- cellkey(a); b$key <- cellkey(b)
+  m <- merge(a, b, by = "key", suffixes = c("_25", "_24"))
+  m$joint <- m[[paste0(role, "_score_25")]] / m$n_ground_truth_25 +
+             m[[paste0(role, "_score_24")]] / m$n_ground_truth_24
+  m[order(-m$joint), ]
+}
+```
+
+::: {.callout-note}
+## Who this is for
+
+You are reading this because you use, or are deciding whether to use, the
+`ADEP` and `ADES` columns of the [OPDI flight
+list](https://www.eurocontrol.int/performance/data/download/OPDI). It covers
+what those columns mean, how the pipeline derives them from raw ADS-B, how
+often they are right, where they are systematically wrong, and what a
+downstream analysis should do about it.
+
+Every figure on this page is produced by running the pipeline over a sample of
+ADS-B and scoring the result against EUROCONTROL Network Manager movement data.
+Nothing is estimated or carried over from an earlier version.
+:::
+
+## Summary {.unnumbered}
+
+OPDI reconstructs flights from ADS-B state vectors alone: no flight plans, no
+schedules, no radar. From the resulting trajectory it must infer where each
+flight departed from and where it arrived — which is straightforward when the
+aircraft is seen on the runway at both ends, and hard in every other case.
+
+Three findings shape what the flight list now contains.
+
+**Departures and arrivals want different algorithms.** A departing aircraft's
+first ADS-B fix is usually on or near the runway, so geometry alone settles it.
+An arriving aircraft's last fix is often where reception was lost rather than
+where it landed, so geometry alone does not. The flight list therefore derives
+departures with one method and arrivals with another.
+
+**Candidate aerodromes are chosen by exact distance.** The published algorithm
+narrowed its candidates using a hexagonal spatial index and measured exact
+distance only among the survivors, so an aerodrome slightly further out was
+discarded before its distance was ever computed. Measuring first and choosing
+afterwards is the single change that makes everything else in this study work.
+
+**A null is now three different answers.** `ADEP` and `ADES` can be an
+aerodrome, the marker `OOA` for a flight that began or ended outside the
+observed area, or null for "could not tell". Companion columns say which.
+Earlier releases collapsed the last two into a single null, and about one flight
+in twelve genuinely falls into the second.
+
+## Reading this page
+
+@sec-data says what the flight list contains. @sec-pipeline documents the
+pipeline that produces it, step by step. @sec-metrics defines the measures.
+Everything after that is evidence.
+
+Terms are defined where they first appear and not before. Two conventions run
+throughout:
+
+- **legacy** means the algorithm and constants behind every OPDI flight list
+  published before 2026 — reachable in code as `DetectionConfig.legacy()`, so
+  released data stays reproducible.
+- **shipped** means what this study recommends and what the pipeline now
+  produces by default.
+
+"Production" is used only to talk about the running system, never as the name of
+an algorithm.
+
+## What the flight list contains {#sec-data}
+
+One row per flight, where a *flight* is a continuous stretch of ADS-B reception
+from one aircraft under one callsign. The columns this page is about:
+
+| Column | Meaning |
+|---|---|
+| `ID` | The track identifier. Stable within a release, **not** stable across algorithm versions — see @sec-versions. |
+| `ICAO24` | The aircraft's 24-bit transponder address. The join key to most other aviation data. |
+| `FLT_ID` | The broadcast callsign. Space-padded to eight characters in the raw feed; trim before joining. |
+| `DOF` | Date of flight, taken from the first reception. |
+| `ADEP` / `ADES` | Departure and destination aerodrome, ICAO code — or `OOA`, or null. |
+| `ADEP_SOURCE` / `ADES_SOURCE` | `aerodrome`, `out_of_area`, or `undetermined`. |
+| `ADEP_P` / `ADES_P` | Other aerodromes that were plausible. Comma-separated, ranked behind the chosen one. |
+| `FIRST_SEEN` / `LAST_SEEN` | Reception bounds. Not off-block and in-block times. |
+| `VERSION` | Which algorithm produced the row. |
+
+### The three states of an aerodrome column
+
+This distinction matters more than anything else on this page for a downstream
+analysis, and it is new:
+
+`aerodrome`
+: An ICAO code. The pipeline saw enough to name it.
+
+`out_of_area`
+: `ADEP`/`ADES` is `OOA`. The flight entered or left the observed area rather
+  than departing or landing inside it — the trajectory begins or ends at the
+  edge of coverage, not near any aerodrome. **This is an answer, not a
+  failure.** An analysis counting movements should exclude these; one measuring
+  coverage should count them as correct.
+
+`undetermined`
+: `ADEP`/`ADES` is null. The pipeline could not tell. Filter these out; do not
+  impute them.
+
+Collapsing the last two — as every release before `v4.0.0` did — makes traffic
+appear to be missing where in fact it was correctly identified as originating
+elsewhere.
+
+## The pipeline that produces it {#sec-pipeline}
+
+Everything below is real ADS-B, processed by the code in the `opdi` repository.
+No step is a re-implementation for the purposes of this report.
+
+```{mermaid}
+%%| label: fig-pipeline
+%%| fig-cap: "From the OpenSky archive to the published flight list. Boxes name the module; cylinders name the table it writes."
+flowchart TD
+    OSN[(OpenSky archive<br/>1 Hz global state vectors)]
+    S1["<b>01</b> ingestion/osn_statevectors.py<br/><i>bounding box, 5 s thinning</i>"]
+    T1[(osn_statevectors_v2)]
+    S2["<b>02</b> pipeline/tracks.py<br/><i>split into tracks, H3 index</i>"]
+    T2[(osn_tracks)]
+    S2a["<b>02a</b> cleaning/cleaner.py<br/><i>mask implausible values</i>"]
+    T2a[(osn_tracks_clean)]
+    S0["<b>00</b> reference/<br/><i>H3 aerodrome zones, OurAirports</i>"]
+    R0[(h3_airport_detection_zones)]
+    S3["<b>03</b> pipeline/flights.py<br/><i>ADEP / ADES detection</i>"]
+    T3[(opdi_flight_list)]
+    S4["<b>04</b> pipeline/events.py<br/><i>milestones and measurements</i>"]
+    S5["<b>05</b> output/<br/><i>parquet and CSV export</i>"]
+    PUB[(published dataset)]
+
+    OSN --> S1 --> T1 --> S2 --> T2 --> S2a --> T2a --> S3
+    S0 --> R0 --> S3
+    S3 --> T3 --> S4 --> S5 --> PUB
+```
+
+### 00 — Reference data
+
+Builds what the detection needs to know about aerodromes. The important product
+is the **H3 detection zone table**: for every aerodrome, the set of hexagonal
+cells (resolution 7, about 1.5 NM across) covering concentric rings out to a
+generous radius, each tagged with the ring's inner and outer distance.
+
+This is a spatial index, not an answer. Its job is to turn "which aerodromes
+might this fix be near?" into a hash lookup. Distances are measured afterwards,
+exactly — @sec-ranking explains why that distinction turned out to matter more
+than any threshold in the study.
+
+Aerodrome positions, elevations and scheduled-service flags come from
+OurAirports. The candidate set is restricted to large and medium aerodromes;
+@sec-limitations quantifies what that excludes.
+
+### 01 — State-vector ingestion
+
+Reads the OpenSky archive and keeps what OPDI needs:
+
+- **A bounding box**, roughly 25.9° W to 49.7° E and 26.7° N to 70.3° N. This is
+  the *observed area*, and its edge is what the `OOA` marker refers to.
+- **Thinning to 5 s.** The archive is a complete 1 Hz grid. OPDI keeps the
+  newest row in each 5 s bin — a **bin-based** rule. Earlier releases used a
+  fixed-phase rule, keeping a row only if one existed at the exact second
+  divisible by five. @sec-sampler measures the difference.
+
+The raw global 1 Hz feed is never stored.
+
+### 02 — Track building
+
+Groups state vectors into flights and assigns `track_id`. Two aircraft
+transmissions belong to the same track when they share an aircraft address and
+callsign and are not separated by a gap of more than 30 minutes, or more than 15
+minutes below 5,000 ft — the second catching an aircraft that keeps its
+transponder on while parked.
+
+**This rule is frozen.** Changing it changes `track_id` for all published data,
+so it is not tuned and not swept.
+
+The step also attaches each fix's H3 cell at resolution 7, which is what makes
+the aerodrome join in step 03 a lookup rather than a scan.
+
+### 02a — Trajectory cleaning
+
+Masks implausible values to null and keeps the row: duplicate state vectors,
+out-of-range positions, stale broadcasts (ADS-B sends position and velocity in
+separate messages, so identical consecutive values mean *repeated*, not
+*measured*), derivative spikes, and isolated points. It also marks segment
+boundaries at coverage gaps so nothing downstream interpolates across them.
+
+Masking rather than deleting is deliberate: it preserves the distinction between
+"no data" and "interpolated data". It does mean the detection has fewer usable
+samples, since a fix with no barometric altitude cannot vote on a trend.
+@sec-cleaning measures what that costs and what it buys.
+
+### 03 — Flight list
+
+Where `ADEP` and `ADES` are decided. Two algorithms, one per role.
+
+#### What both share {#sec-ranking}
+
+**Candidate selection.** Every aerodrome whose detection zone the aircraft
+passed through is a candidate. The exact great-circle distance from the
+trajectory's closest approach to each candidate is computed, and the smallest
+wins. **No candidate is eliminated before its distance is measured.**
+
+That sentence is the study's central finding, and it was not true before. The
+legacy algorithm kept only the candidates in the innermost occupied hexagon
+ring, then measured exact distance among those. A ring steps about 2.8 NM, so an
+aerodrome a kilometre further out was routinely discarded unmeasured — and the
+higher the aircraft, the more aerodromes share a ring and the less a ring index
+can separate them. @sec-ladder shows what that was worth.
+
+**The scheduled-service penalty.** An aerodrome without scheduled commercial
+service has a fixed distance added to its effective distance before that
+comparison, so a military or general-aviation field must be *clearly* nearest
+rather than merely nearest. It re-ranks candidates without changing how many
+flights are answered, so it can move accuracy and cannot move coverage.
+
+#### `endpoint` — for departures
+
+Take the aerodrome nearest the track's first fix, and accept it only if that fix
+is within a radius and either on the ground or below a height *above field
+elevation* — above the aerodrome's own elevation, since a fixed altitude cut-off
+means nothing at a field sitting at 5,000 ft. Failing that, if the fix sits at
+the edge of the observed area, answer `OOA`; otherwise abstain.
+
+Its abstention is **geometric**: it declines when the endpoint is not where a
+departure's endpoint should be.
+
+#### `trend` — for arrivals
+
+For every fix below a flight-level cap and within a radius of a candidate
+aerodrome, ask whether smoothed barometric altitude is rising or falling. Each
+fix votes. If descending votes beat climbing votes by more than a margin, that
+aerodrome is a destination.
+
+Its abstention is **evidential**: it declines when the altitude trace near an
+aerodrome does not clearly rise or fall. That is why it suits arrivals — it uses
+the whole approach rather than one fix, and one fix is exactly what an arrival
+is least likely to have in the right place.
+
+Two refinements complete it. Among candidates whose distances differ by less
+than a small band, the one the aircraft's course actually points at wins
+(@sec-bearing). And where `trend` cannot name an aerodrome, the same border test
+`endpoint` uses can still distinguish "came from outside" from "cannot tell".
+
+### 04–05 — Events and export
+
+The flight list becomes the spine for milestone extraction — take-off, landing,
+top of climb, level segments, flight-level crossings — and is exported as
+parquet and CSV. Neither step changes `ADEP` or `ADES`.
+
+## How the numbers are measured {#sec-metrics}
+
+Two stages, and the distinction governs how much any figure is worth.
+
+**The research sweep.** Hundreds of parameter combinations applied to a cached
+intermediate table. Cheap enough to be exhaustive, which is what makes a grid of
+this size possible — but it re-implements the decision rule rather than running
+it, so it can only *propose* a value.
+
+**The pipeline run.** The proposed values run through the same code path that
+writes the published flight list, and scored identically. Nothing in this report
+becomes a default without passing this stage.
+
+### The sample
+
+Three days, **5–7 June 2025**, with **5–7 June 2024** as an independent second
+period. Both are full-day samples inside the bounding box, thinned to 5 s.
+
+Ground truth is EUROCONTROL Network Manager movement data for the same days,
+matched to OPDI tracks on aircraft address plus callsign plus date, and where
+several tracks match, the one starting closest to the reference off-block time.
+It is not redistributable, which is where reproducibility stops
+(@sec-provenance).
+
+### The measures
+
+For each role — departures and arrivals — separately:
+
+**Coverage**
+: Of the reference flights, the share OPDI gives *any* answer for. `OOA` counts
+  as an answer.
+
+**Accuracy**
+: Of the answers given, the share that are right.
+
+**Correct / wrong**
+: The same two quantities as counts, which is what makes settings comparable.
+  Coverage and accuracy always move in opposite directions, and neither ratio
+  alone says whether an exchange was worth taking.
+
+**Score**
+: `correct − k × wrong`, with `k = 2`. A judgement, stated so it can be
+  disagreed with: a wrong aerodrome is worse than a silence because it corrupts
+  *two* movement counts — the one it invents and the one it omits — and is
+  invisible downstream, where a silence corrupts one and is an explicit null
+  anyone can filter on.
+
+A change is therefore worth taking exactly when it wins more than `k` correct
+answers per wrong one it introduces.
+
+**Out-of-area recall and precision** are reported separately, because a method
+could otherwise buy headline accuracy by labelling `OOA` liberally. Recall is
+the share of genuinely out-of-area flights labelled as such; precision is the
+share of `OOA` labels that are correct. Where the report says *per-aerodrome
+recall* later on, that is a different measure and is defined where it appears.
+
+```{r sample-size}
+#| echo: false
+#| results: asis
+if (!is.null(mod25)) {
+  cat(sprintf("\nThe 2025 sample carries **%s** reference flights and the 2024 sample **%s**.\n",
+              num(mod25$n_ground_truth[1]),
+              if (is.null(mod24)) NA else num(mod24$n_ground_truth[1])))
+}
+```
+
+## What each change is worth {#sec-ladder}
+
+*This section is being regenerated. Each row adds one change to the row above
+and keeps it, so the marginal worth of a change is the difference between
+adjacent rows — and the last row is the shipped algorithm.*
+
+```{r ladder}
+#| echo: false
+#| results: asis
+lab <- c(
+  L0_legacy       = "legacy algorithm",
+  L1_exact_rank   = "+ rank candidates by exact distance",
+  L2_exact_radius = "+ cut the radius by distance, not hexagon band",
+  L3_smooth_first = "+ smooth altitude before the flight-level cut",
+  L4_penalty      = "+ scheduled-service penalty",
+  L5_flcap        = "+ tuned flight-level cap",
+  L6_margin       = "+ tuned vote margin",
+  L7_radius       = "+ tuned radius",
+  L8_bearing      = "+ bearing tie-break",
+  L9_ooa          = "+ out-of-area labelling")
+
+show_ladder <- function(d, period) {
+  if (is.null(d)) {
+    cat(sprintf("*The %s ladder has not been staged yet.*\n\n", period))
+    return(invisible(NULL))
+  }
+  d <- d[match(names(lab), d$run), ]
+  d <- d[!is.na(d$run), ]
+  cat(sprintf("\n### %s\n\n", period))
+  print(kable(data.frame(
+    Step = unname(lab[d$run]),
+    `ADES coverage` = pct(d$ades_coverage),
+    `ADES accuracy` = pct(d$ades_accuracy),
+    `ADES score` = num(d$ades_score),
+    Gain = c("—", sgn(diff(d$ades_score))),
+    check.names = FALSE), row.names = FALSE, align = "r"))
+  cat(sprintf("\nBoth roles are produced by `trend` in every row, so the change on each line is attributable to that line alone. Net over the whole ladder: %s.\n",
+              sgn(d$ades_score[nrow(d)] - d$ades_score[1])))
+}
+show_ladder(lad25, "2025")
+show_ladder(lad24, "2024")
+```
+
+## The parameter sweeps {#sec-sweeps}
+
+*Being regenerated.* Both periods run on identical grids, and cells are ranked
+by the two together — each period's score divided by its own reference count so
+the larger sample cannot dominate. A single-period argmax appears only as a
+stability check, because over hundreds of cells the top cell moves under noise
+even when the surface underneath is stable.
+
+```{r joint-trend}
+#| echo: false
+#| results: asis
+if (is.null(t25) || is.null(t24)) {
+  cat("*The trend sweeps have not been staged yet.*\n")
+} else {
+  for (role in c("adep", "ades")) {
+    o <- joint(t25, t24, role)
+    cat(sprintf("\n**%s — best cells on both periods together**\n\n",
+                ifelse(role == "adep", "Departures", "Arrivals")))
+    top <- head(o, 5)
+    print(kable(data.frame(
+      Rank = seq_len(nrow(top)),
+      `Flight-level cap` = sprintf("FL%g", top$fl_cap_25),
+      `Vote margin` = top$margin_25,
+      `Radius (NM)` = top$radius_nm_25,
+      `2025 score` = num(top[[paste0(role, "_score_25")]]),
+      `2024 score` = num(top[[paste0(role, "_score_24")]]),
+      check.names = FALSE), row.names = FALSE, align = "r"))
+  }
+}
+```
+
+```{r joint-endpoint}
+#| echo: false
+#| results: asis
+if (is.null(e25) || is.null(e24)) {
+  cat("\n*The endpoint sweeps have not been staged yet.*\n")
+} else {
+  cat("\n**The endpoint rule, which is what departures use**\n\n")
+  rows <- do.call(rbind, lapply(c("adep", "ades"), function(role) {
+    a <- e25[which.max(e25[[paste0(role, "_score")]]), ]
+    b <- e24[which.max(e24[[paste0(role, "_score")]]), ]
+    data.frame(Role = ifelse(role == "adep", "Departures", "Arrivals"),
+               `2025 best` = sprintf("%g NM / %s ft", a$radius_nm,
+                    format(a$height_ft, big.mark = ",", trim = TRUE, scientific = FALSE)),
+               `2024 best` = sprintf("%g NM / %s ft", b$radius_nm,
+                    format(b$height_ft, big.mark = ",", trim = TRUE, scientific = FALSE)),
+               Agrees = ifelse(a$radius_nm == b$radius_nm & a$height_ft == b$height_ft,
+                               "**yes**", "no"),
+               check.names = FALSE)
+  }))
+  print(kable(rows, row.names = FALSE, align = "r"))
+}
+```
+
+### The flight-level cap, followed to the top
+
+```{r fl-curve}
+#| echo: false
+#| results: asis
+if (is.null(grid25)) {
+  cat("*The pipeline grid has not been staged yet.*\n")
+} else {
+  g <- grid25[grid25$trend_radius_nm == 20, ]
+  g <- g[order(g$trend_max_fl), ]
+  b <- if (is.null(grid24)) NULL else {
+    x <- grid24[grid24$trend_radius_nm == 20, ]
+    x[match(g$trend_max_fl, x$trend_max_fl), ]
+  }
+  tab <- data.frame(
+    `Flight-level cap` = sprintf("FL%g", g$trend_max_fl),
+    `2025 departures` = num(g$adep_score),
+    `2025 arrivals` = num(g$ades_score),
+    check.names = FALSE)
+  if (!is.null(b)) {
+    tab$`2024 departures` <- num(b$adep_score)
+    tab$`2024 arrivals` <- num(b$ades_score)
+  }
+  print(kable(tab, row.names = FALSE, align = "r"))
+  cat(sprintf("\nAt 20 NM, through the pipeline itself. Departures peak at FL%g and arrivals at FL%g on the 2025 sample. Coverage keeps rising with the cap — a higher cap admits more fixes — but accuracy falls faster, because fixes taken higher up are further from whichever aerodrome turns out to be the answer.\n",
+              g$trend_max_fl[which.max(g$adep_score)],
+              g$trend_max_fl[which.max(g$ades_score)]))
+}
+```
+
+## What ships, and how well it works {#sec-verdict}
+
+```{r verdict}
+#| echo: false
+#| results: asis
+lab_mode <- c(legacy = "legacy — the algorithm published before 2026",
+              trend = "`trend` for both roles",
+              endpoint = "`endpoint` for both roles",
+              nearest = "nearest aerodrome, unconditionally",
+              shipped = "**SHIPPED** — `endpoint` departures, `trend` arrivals")
+if (is.null(mod25)) {
+  cat("*The mode comparison has not been staged yet.*\n")
+} else {
+  d <- mod25[mod25$run %in% names(lab_mode), ]
+  d <- d[order(-(d$adep_score + d$ades_score)), ]
+  print(kable(data.frame(
+    Configuration = unname(lab_mode[d$run]),
+    `ADEP coverage` = pct(d$adep_coverage),
+    `ADEP accuracy` = pct(d$adep_accuracy),
+    `ADES coverage` = pct(d$ades_coverage),
+    `ADES accuracy` = pct(d$ades_accuracy),
+    Total = num(d$adep_score + d$ades_score),
+    check.names = FALSE), row.names = FALSE, align = "r"))
+  cat("\nEach row is a complete configuration — which algorithm names departures, which names arrivals — not a step in a sequence. The rows are alternatives to choose between.\n")
+  cat(sprintf("\nThe shipped configuration scores **%s against legacy's %s**, a gain of %s.\n",
+              num(mv(mod25, "shipped", "adep_score") + mv(mod25, "shipped", "ades_score")),
+              num(mv(mod25, "legacy", "adep_score") + mv(mod25, "legacy", "ades_score")),
+              sgn(mv(mod25, "shipped", "adep_score") + mv(mod25, "shipped", "ades_score")
+                  - mv(mod25, "legacy", "adep_score") - mv(mod25, "legacy", "ades_score"))))
+}
+```
+
+### Does it hold on the second period?
+
+```{r verdict-2024}
+#| echo: false
+#| results: asis
+if (is.null(mod24)) {
+  cat("*The second period has not been staged yet.*\n")
+} else {
+  rows <- do.call(rbind, lapply(c("legacy", "shipped"), function(r) {
+    data.frame(Configuration = unname(lab_mode[r]),
+               `2025 total` = num(mv(mod25, r, "adep_score") + mv(mod25, r, "ades_score")),
+               `2024 total` = num(mv(mod24, r, "adep_score") + mv(mod24, r, "ades_score")),
+               check.names = FALSE)
+  }))
+  print(kable(rows, row.names = FALSE, align = "r"))
+  cat("\nNo parameter was chosen against one period and checked on the other: both were swept on identical grids and ranked together.\n")
+}
+```
+
+## Out-of-area, and the three states {#sec-ooa}
+
+```{r ooa}
+#| echo: false
+#| results: asis
+if (is.null(mod25)) {
+  cat("*Being regenerated.*\n")
+} else {
+  rows <- do.call(rbind, lapply(c("adep", "ades"), function(s) data.frame(
+    Role = ifelse(s == "adep", "Departures", "Arrivals"),
+    `Truly out-of-area` = pct(mv(mod25, "shipped", paste0(s, "_gt_ooa_share"))),
+    `Labelled out-of-area` = pct(mv(mod25, "shipped", paste0(s, "_pred_ooa_share"))),
+    Recall = pct(mv(mod25, "shipped", paste0(s, "_ooa_recall"))),
+    Precision = pct(mv(mod25, "shipped", paste0(s, "_ooa_precision"))),
+    `In-area accuracy` = pct(mv(mod25, "shipped", paste0(s, "_inarea_accuracy"))),
+    check.names = FALSE)))
+  print(kable(rows, row.names = FALSE, align = "r"))
+  cat("\n*In-area accuracy* is accuracy restricted to flights whose true aerodrome is a real one — detection skill with the free out-of-area wins removed, and the number to read when comparing naming rules.\n")
+}
+```
+
+## What cleaning costs and buys {#sec-cleaning}
+
+```{r cleaning}
+#| echo: false
+#| results: asis
+if (is.null(mod25) || !("clean_tracks" %in% mod25$run)) {
+  cat("*Being regenerated.*\n")
+} else {
+  rows <- do.call(rbind, lapply(c("adep", "ades"), function(s) data.frame(
+    Role = ifelse(s == "adep", "Departures", "Arrivals"),
+    `Raw coverage` = pct(mv(mod25, "raw_tracks", paste0(s, "_coverage"))),
+    `Clean coverage` = pct(mv(mod25, "clean_tracks", paste0(s, "_coverage"))),
+    `Raw accuracy` = pct(mv(mod25, "raw_tracks", paste0(s, "_accuracy"))),
+    `Clean accuracy` = pct(mv(mod25, "clean_tracks", paste0(s, "_accuracy"))),
+    `Δ score` = sgn(mv(mod25, "clean_tracks", paste0(s, "_score"))
+                    - mv(mod25, "raw_tracks", paste0(s, "_score"))),
+    check.names = FALSE)))
+  print(kable(rows, row.names = FALSE, align = "r"))
+}
+```
+
+## The 5 s sampler {#sec-sampler}
+
+*Being regenerated.* The bin-based rule is adopted because it is the correct
+rule and does not depend on the OpenSky archive carrying positions forward
+between messages — not because it improves aerodrome detection, which it does
+not measurably do. Where it should matter is milestones defined by a single
+instant on the ground, and that belongs to the events study.
+
+One consequence is not reversible by configuration: **`track_id` values differ**
+between the two samplers, because rescued rows sit at track boundaries and the
+splitter breaks on gaps.
+
+## The bearing tie-break {#sec-bearing}
+
+*Being regenerated.* Among candidates whose distances differ by less than a
+small band — that is, already equidistant to within the measurement — the tie is
+broken by *alignment*: which aerodrome the aircraft's course actually points at.
+Outside the band, distance decides alone.
+
+The band is the whole mechanism. Alignment cannot *name* an aerodrome, because
+every field on the same radial behind the right one is equally well aligned; it
+can only separate two that distance has already declared equal.
+
+## Using the columns {#sec-using}
+
+**Filter on the source columns, not on nulls.** `ADES_SOURCE == 'aerodrome'` is
+the set of named arrivals; `'out_of_area'` is the set correctly identified as
+leaving the observed area; `'undetermined'` is the set to drop.
+
+**Expect under-count, not over-count.** Abstention is the dominant failure mode,
+so an aerodrome's movement count from OPDI is a lower bound. @sec-per-airport
+gives the ratio per aerodrome for the hundred busiest.
+
+**Join on `ICAO24` plus trimmed `FLT_ID` plus date.** Callsigns are
+space-padded to eight characters in the raw feed.
+
+**`FIRST_SEEN` is not off-block.** It is when reception began.
+
+**Do not compare `ID` across versions.** See @sec-versions.
+
+## By aerodrome, for the busiest hundred {#sec-per-airport}
+
+*Being regenerated.*
+
+```{r per-airport}
+#| echo: false
+#| results: asis
+if (is.null(apt25)) {
+  cat("*Not yet staged.*\n")
+} else {
+  cat("The matching is flight by flight, not count against count. **Per-aerodrome recall** is, of the flights whose *true* aerodrome is X, the share OPDI attributes to X. **Count ratio** is what OPDI assigns to X divided by X's true movements — it includes flights that truly belong elsewhere, so it is what an operational count would show, and it can exceed one.\n\n")
+  rows <- do.call(rbind, lapply(c("departures", "arrivals"), function(rl) {
+    r <- apt25[apt25$run == "shipped" & apt25$role == rl & apt25$airport != "OOA", ]
+    l <- apt25[apt25$run == "legacy"  & apt25$role == rl & apt25$airport != "OOA", ]
+    if (nrow(r) == 0) return(NULL)
+    r <- r[order(-r$n_truth), ][1:min(100, nrow(r)), ]
+    l <- l[match(r$airport, l$airport), ]
+    data.frame(Role = tools::toTitleCase(rl),
+               `Movements in truth` = num(sum(r$n_truth)),
+               `Recall, shipped` = pct(sum(r$n_correct) / sum(r$n_truth)),
+               `Recall, legacy` = pct(sum(l$n_correct, na.rm = TRUE) / sum(l$n_truth, na.rm = TRUE)),
+               `Median count ratio` = sprintf("%.3f", median(r$count_ratio, na.rm = TRUE)),
+               check.names = FALSE)
+  }))
+  print(kable(rows, row.names = FALSE, align = "r"))
+}
+```
+
+## Versions, and what is reproducible {#sec-versions}
+
+The `VERSION` column says which algorithm produced a row.
+
+| Version | What it means |
+|---|---|
+| `v2.0.0` | Legacy `trend`, both roles. |
+| `v3.0.0` | Legacy `endpoint`. In a merged list these two were coalesced into one column, so a row's version told you about the departure side only. |
+| `v4.0.0` | This study: exact-distance ranking, per-role algorithms, tuned thresholds, the bearing tie-break, out-of-area labelling, and cleaned tracks as input. One string for the whole flight list. |
+
+`DetectionConfig.legacy()` still returns every pre-2026 value, so re-processing
+a month reproduces the aerodromes a release published.
+
+::: {.callout-warning}
+## `track_id` is not reproducible across the sampler change
+The 5 s thinning rule changed at the same time. Rescued rows sit at track
+boundaries and the splitter breaks on gaps, so a track that gains a fix can be
+split differently. Re-ingesting an old month reproduces the *aerodromes* but not
+the *identifiers*. Do not join `ID` across releases.
+:::
+
+## Limitations {#sec-limitations}
+
+*Being regenerated.* What is known to be missing, stated rather than implied.
+
+- **The candidate set is large and medium aerodromes.** A flight whose true
+  aerodrome is a small field or a heliport cannot be named by any method here,
+  whatever its thresholds, because the aerodrome is not a candidate. These
+  flights are counted in every denominator on this page, so each coverage figure
+  already carries their cost.
+- **The border margin is fixed at 30 NM.** It decides what counts as leaving the
+  observed area. Changing it redefines the ground truth as well as the method,
+  so a sweep would move the target along with the aim.
+- **H3 resolution 7 is fixed.** It no longer decides which candidate wins — that
+  is exact distance now — but it still decides which aerodromes become
+  candidates.
+- **Two three-day samples.** Both in June. Seasonal effects are not measured.
+- **Ground truth covers about ninety aerodromes.** Per-aerodrome figures are
+  meaningful only for those.
+
+## Provenance {#sec-provenance}
+
+```{r provenance}
+#| echo: false
+#| results: asis
+mf <- file.path("data", "_manifest.json")
+if (!file.exists(mf)) {
+  cat("*No manifest staged yet. Every figure above is therefore unverified.*\n")
+} else {
+  cat("Every CSV behind this page carries the script, arguments, commit and source-file fingerprint that produced it, in `data/_manifest.json`. An output with no entry is reported as unverified rather than shown as fact.\n")
+}
+```
+
+### Where reproducibility stops
+
+Everything on this page can be recomputed from the OpenSky archive and the code
+in the `opdi` repository, with one exception: the EUROCONTROL Network Manager
+movement data used as ground truth is not redistributable. It is an external
+input, and every accuracy figure here is measured against it.
