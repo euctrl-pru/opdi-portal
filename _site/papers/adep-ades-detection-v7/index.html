@@ -574,7 +574,7 @@ The same two quantities as counts, which is what makes settings comparable. Cove
 </section>
 <section id="sec-sweeps" class="level2" data-number="6">
 <h2 data-number="6" class="anchored" data-anchor-id="sec-sweeps"><span class="header-section-number">6</span> The parameter sweeps</h2>
-<p><em>Being regenerated.</em> Both periods run on identical grids, and cells are ranked by the two together — each period’s score divided by its own reference count so the larger sample cannot dominate. A single-period argmax appears only as a stability check, because over hundreds of cells the top cell moves under noise even when the surface underneath is stable.</p>
+<p>Both periods run on identical grids, and cells are ranked by the two together — each period’s score divided by its own reference count so the larger sample cannot dominate. A single-period argmax appears only as a stability check, because over hundreds of cells the top cell moves under noise even when the surface underneath is stable.</p>
 <p><strong>Departures — best cells on both periods together</strong></p>
 <table class="caption-top table">
 <colgroup>
@@ -815,7 +815,8 @@ The same two quantities as counts, which is what makes settings comparable. Cove
 </section>
 <section id="sec-bearing" class="level2" data-number="11">
 <h2 data-number="11" class="anchored" data-anchor-id="sec-bearing"><span class="header-section-number">11</span> The bearing tie-break</h2>
-<p><em>Being regenerated.</em> Among candidates whose distances differ by less than a small band — that is, already equidistant to within the measurement — the tie is broken by <em>alignment</em>: which aerodrome the aircraft’s course actually points at. Outside the band, distance decides alone.</p>
+<p>This is the newest component in the algorithm and the best evidenced. It was proposed by the research sweep, declined once for want of a pipeline measurement, and is adopted here because <code>process_dai</code> confirms it on both samples.</p>
+<p>Among candidates whose distances differ by less than a small band — that is, already equidistant to within the measurement — the tie is broken by <em>alignment</em>: which aerodrome the aircraft’s course actually points at. Outside the band, distance decides alone.</p>
 <p>The band is the whole mechanism. Alignment cannot <em>name</em> an aerodrome, because every field on the same radial behind the right one is equally well aligned; it can only separate two that distance has already declared equal.</p>
 </section>
 <section id="sec-using" class="level2" data-number="12">
