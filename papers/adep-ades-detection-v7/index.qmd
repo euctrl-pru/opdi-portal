@@ -662,13 +662,24 @@ if (is.null(lad25) || is.null(lad24)) {
   # on both samples: 0.05% is about 48 flights here.
   floor25 <- 0.0005 * d25$n_ground_truth[1]
   floor24 <- 0.0005 * d24$n_ground_truth[1]
-  nil <- abs(a25) < floor25 & abs(a24) < floor24
-
-  verdict <- ifelse(is.na(a25) | is.na(a24), "—",
-             ifelse(nil, "no material effect",
-             ifelse(sign(a25) == sign(a24),
-                    ifelse(a25 > 0, "**holds**", "**consistently costs**"),
-                    "**disagrees**")))
+  # Four outcomes, not three. A step can move one sample and not the other,
+  # which is neither agreement nor disagreement -- calling it a disagreement
+  # claims the samples point in opposite directions when one of them points
+  # nowhere at all. The cleaning rung is exactly this case.
+  big25 <- abs(a25) >= floor25
+  big24 <- abs(a24) >= floor24
+  verdict <- ifelse(
+    is.na(a25) | is.na(a24), "—",
+    ifelse(!big25 & !big24, "no material effect",
+    ifelse(big25 & big24,
+           ifelse(sign(a25) == sign(a24),
+                  ifelse(a25 > 0, "**holds**", "**consistently costs**"),
+                  "**disagrees**"),
+           # Material on one sample only. Name which, and which way.
+           sprintf("%s on %s only",
+                   ifelse(big25, ifelse(a25 > 0, "gains", "costs"),
+                                 ifelse(a24 > 0, "gains", "costs")),
+                   ifelse(big25, "2025", "2024")))))
   print(kable(data.frame(
     Step = unname(lab[rungs]),
     `2025 Δ total` = sgn(a25),
@@ -682,6 +693,13 @@ if (is.null(lad25) || is.null(lad24)) {
   if (length(dis)) {
     cat(sprintf("\n**%s** changes sign between the two samples. A value that gains on the sample it was chosen against and loses on an independent one has not been demonstrated, and this study treats that as a reason to revisit it rather than to average the two.\n",
                 paste(dis, collapse = "; ")))
+  } else {
+    cat("\n**Nothing changes sign between the two samples.** Every step that moves anything moves it the same way on two independent periods — which is the property the second sample exists to test, and which an earlier version of this configuration did not have.\n")
+  }
+  one <- unname(lab[rungs])[grepl(" only$", verdict)]
+  if (length(one)) {
+    cat(sprintf("\n**%s** moves one sample and not the other. That is weaker evidence than agreement and stronger than a contradiction: nothing points the wrong way, but the effect is not established on both.\n",
+                paste(one, collapse = "; ")))
   }
   cat("\n*Consistently costs* is not the same as *wrong*, and the two rungs carrying that verdict are worth reading rather than skipping.\n")
   cat("\n**Exact-distance ranking costs on its own.** It is not an improvement; it is an *enabler*. Two rungs later the flight-level cap is worth over four thousand on both samples, and under the hexagon-index selection it replaces, the same change lost ground. The cost here buys that, and quoting this rung alone tells the story backwards.\n")
