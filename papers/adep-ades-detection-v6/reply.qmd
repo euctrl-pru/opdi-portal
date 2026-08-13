@@ -56,16 +56,22 @@ order. Every number on it comes from the committed CSVs under `data/` — the
 same files version 6 was rendered from — so it answers the numbers that were
 actually reviewed.
 
-Several points asked for measurements that did not exist. Those are being run
-now and land in **version 7**, the report written for the people who will use
-the flight list rather than for the people building it. Where that is the case
-this page says so explicitly rather than estimating.
+Several points asked for measurements that did not exist. Those were run, and
+they land in **version 7** — the report written for the people who will use the
+flight list rather than for the people building it. Where a point is answered
+there rather than here, this page says so rather than estimating.
 
-Two decisions follow from the review and change everything downstream: step
-02a (trajectory cleaning) is being wired into the flight-list path, and every
-parameter will be chosen on both periods jointly rather than on 2025 alone.
-Both mean version 7's figures will differ from the ones quoted here. That is
-the point of the exercise, not a defect in it.
+Two decisions from the review changed everything downstream: step 02a
+(trajectory cleaning) is wired into the flight-list path, and every parameter is
+now chosen on both periods jointly rather than on 2025 alone. **Version 7's
+figures therefore differ from the ones quoted here, and three shipped values
+changed as a result** — the arrival radius back to 30 NM, the vote margin to 0,
+and out-of-area labelling for `trend` left off. Each is measured on both
+samples; version 7 states the evidence.
+
+That the numbers moved is the point of the exercise, not a defect in it. This
+page is deliberately pinned to what was reviewed, because a reply whose figures
+shift under it answers nothing.
 :::
 
 ## General remarks
@@ -752,13 +758,41 @@ if (!is.null(modes)) {
 ```
 
 So there are two things to fix, not one: `trend` has no out-of-area concept at
-all, and `endpoint`'s recall is low even where it does. Version 7 gives `trend`
-the same border test `endpoint` uses, keeping `endpoint`'s precedence rule —
-aerodrome first, border second, because the other order labels departures from
-aerodromes near the edge as out-of-area while the aircraft is still on the
-runway. Both roles are then re-measured with out-of-area reported separately
-from naming skill, so a method cannot buy headline accuracy by labelling
-liberally.
+all, and `endpoint`'s recall is low even where it does.
+
+::: {.callout-important}
+## Built, measured — and left off. Not the answer this reply first gave.
+An earlier version of this page said version 7 would give `trend` the same
+border test `endpoint` uses. It does have it, behind
+`DetectionConfig.trend_ooa`, with `endpoint`'s precedence preserved — aerodrome
+first, border second, because the other order labels departures from aerodromes
+near the edge as out-of-area with the aircraft still on the runway.
+
+**Measured on both periods, it is switched off.** In the shipped configuration
+departures come from `endpoint`, so the switch reaches only *arrivals* — and an
+arrival label is right about **half** the time, against **89%** for the same
+test applied to departures. Every label replaces a *silence*, so at the study's
+exchange rate of two correct per wrong, a coin flip is a losing trade. It costs
+score on both samples.
+
+The asymmetry is geometric, not a tuning failure. A track that *begins* at the
+edge of the observed area almost certainly entered from outside. A track that
+*ends* near the edge is ambiguous: it may be leaving, or it may be a flight
+still bound somewhere inside whose reception was lost. The test ports cleanly to
+departures because the geometry supports it, and does not port to arrivals.
+
+**What would make it shippable** is a direction requirement — the track must be
+heading *out* of the area, not merely be near its edge. The course is already
+computed for the bearing tie-break, so the machinery exists; the rule and its
+measurement do not. Version 7 states this as the clearest open item.
+
+You asked for this specifically, so it is worth being plain: the capability was
+built as requested, and the measurement said not to ship it for the role that
+would have used it.
+:::
+
+Both roles are measured with out-of-area reported separately from naming skill,
+so a method cannot buy headline accuracy by labelling liberally.
 
 ## What happens to each point
 
@@ -795,7 +829,7 @@ Point|Disposition
 "11.1 — sweep higher"|Harness already turns at FL150/200; v7 sweeps FL25-300 by 25 anyway
 "13 — what is recall"|Defined here and in v7; column renamed
 "14 — tune on both periods"|Adopted; third period awaiting your choice of month
-"17 — out-of-area for trend"|Being implemented for v7
+"17 — out-of-area for trend"|Implemented; measured at 50% arrival precision and left off. A direction test would fix it — see v7
 ', sep = "|", stringsAsFactors = FALSE, check.names = FALSE)
 print(kable(d, row.names = FALSE, align = "l"))
 ```

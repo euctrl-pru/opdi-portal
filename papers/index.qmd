@@ -6,11 +6,34 @@ Methodology studies behind the [Open Performance Data Initiative](https://www.eu
 
 Each paper benchmarks an OPDI algorithm against EUROCONTROL reference data and
 reports what the comparison actually showed, including where a proposed method
-failed. Every figure renders from a committed CSV cache — no credentials, no
-database, no cluster — so the results on any page can be reproduced from the
-repository alone.
+failed.
+
+Versions 1–6 render from a committed CSV cache — no credentials, no database, no
+cluster. **Version 7 renders by running its analysis**: every figure is produced
+by a job that declares the source files it depends on, so a figure and the code
+that made it cannot drift apart. That costs cluster access to re-render a stale
+page, which is the intended trade.
 
 ## Papers
+
+:::: {.publication-card}
+::: {.publication-info}
+**[Departure and destination aerodromes in the OPDI flight list — version 7](adep-ades-detection-v7/index.qmd)**
+&nbsp;·&nbsp; [PDF](adep-ades-detection-v7/adep-ades-detection-v7.pdf)
+
+**The one to read if you use the data.** Written for people consuming the `ADEP`
+and `ADES` columns rather than for the people building them: what they mean, how
+the pipeline derives them from raw ADS-B, how often they are right, and what a
+downstream analysis should do about the failure modes.
+
+Documents the pipeline end to end for the first time, and measures every change
+on two independent periods — which is what showed that three values version 6
+shipped were not supported, and got them changed. Departures and arrivals use
+different algorithms; candidates are chosen by exact distance rather than a
+hexagon index; and a departure's null now separates "outside the observed area"
+from "could not tell".
+:::
+::::
 
 :::: {.publication-card}
 ::: {.publication-info}
@@ -37,9 +60,14 @@ one to send to someone who will *use* the flight list.
 Answers a review of version 6 point by point, in the reviewer's order, with the
 numbers computed from the same committed data the review was about. Confirms
 three things the review suspected and one it did not: the flight-level curve
-does turn, the arrival tuning does hold on a second period when the two are
-ranked together, `trend` genuinely cannot say "out of area" — and trajectory
-cleaning, step 02a of the pipeline, had been writing a table that nothing read.
+does turn rather than rising indefinitely, the arrival tuning does hold on a
+second period once the two are ranked together, `trend` genuinely could not say
+"out of area" — and trajectory cleaning, step 02a of the pipeline, had been
+writing a table that nothing read.
+
+Deliberately pinned to the figures that were reviewed. Where an answer changed
+once the measurements came in — out-of-area was built and then left off — the
+page says so rather than being quietly revised.
 :::
 ::::
 
