@@ -572,12 +572,18 @@ if (is.null(mod25)) {
 } else {
   d <- mod25[mod25$run %in% names(lab_mode), ]
   d <- d[order(-(d$adep_score + d$ades_score)), ]
+  # The mode columns record what *executed*, not what the configuration held --
+  # a single-mode run is built from the shipped config and then run with both
+  # roles forced to one algorithm. Showing them answers "these numbers are for
+  # which method?" in the table itself rather than in a caption.
   print(kable(data.frame(
     Configuration = unname(lab_mode[d$run]),
-    `ADEP coverage` = pct(d$adep_coverage),
-    `ADEP accuracy` = pct(d$adep_accuracy),
-    `ADES coverage` = pct(d$ades_coverage),
-    `ADES accuracy` = pct(d$ades_accuracy),
+    `Departures by` = d$adep_mode,
+    `Arrivals by` = d$ades_mode,
+    `Dep. coverage` = pct(d$adep_coverage),
+    `Dep. accuracy` = pct(d$adep_accuracy),
+    `Arr. coverage` = pct(d$ades_coverage),
+    `Arr. accuracy` = pct(d$ades_accuracy),
     Total = num(d$adep_score + d$ades_score),
     check.names = FALSE), row.names = FALSE, align = "r"))
   cat("\nEach row is a complete configuration — which algorithm names departures, which names arrivals — not a step in a sequence. The rows are alternatives to choose between.\n")

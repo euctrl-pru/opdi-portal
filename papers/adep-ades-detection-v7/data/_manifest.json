@@ -1,4 +1,55 @@
 {
+  "ladder_2024.csv": {
+    "argv": [
+      "--period",
+      "2024",
+      "--runs",
+      "ladder",
+      "--out-name",
+      "ladder_2024.csv",
+      "--executors",
+      "10"
+    ],
+    "bytes": 6559,
+    "code_fingerprint": "cd2b8f5e00fc612c",
+    "code_paths": [
+      "benchmarks/adep_ades.py",
+      "benchmarks/flight_list_v7.py",
+      "benchmarks/flight_list_v7.py",
+      "benchmarks/osn_sample.py",
+      "src/opdi/config.py",
+      "src/opdi/pipeline/flights.py"
+    ],
+    "git_dirty": false,
+    "git_sha": "bec7269",
+    "input_tables": {
+      "s3a://eurocontrol/opdi/h3_airport_detection_zones": {
+        "bytes": 215961011,
+        "newest": "2026-08-07T10:32:59.769000+00:00",
+        "objects": 152
+      },
+      "s3a://eurocontrol/opdi/research/cand_2024": {
+        "bytes": 120808873,
+        "newest": "2026-08-12T20:44:34.891000+00:00",
+        "objects": 24
+      },
+      "s3a://eurocontrol/opdi/research/reference": {
+        "bytes": 279261569,
+        "newest": "2026-08-05T13:07:36.676000+00:00",
+        "objects": 4
+      },
+      "s3a://eurocontrol/opdi/research/tracks_clean": {
+        "bytes": 6169338646,
+        "newest": "2026-08-12T20:37:03.739000+00:00",
+        "objects": 202
+      }
+    },
+    "inputs": {},
+    "notes": "the same ladder on the second period: which steps hold and which were one sample's noise",
+    "produced_utc": "2026-08-13T04:18:15+00:00",
+    "script": "benchmarks/flight_list_v7.py",
+    "sha256_16": "ebbcf870e7e91270"
+  },
   "ladder_2025.csv": {
     "argv": [
       "--period",
@@ -10,8 +61,8 @@
       "--executors",
       "10"
     ],
-    "bytes": 6485,
-    "code_fingerprint": "21ed0ba6b99cef33",
+    "bytes": 6484,
+    "code_fingerprint": "cd2b8f5e00fc612c",
     "code_paths": [
       "benchmarks/adep_ades.py",
       "benchmarks/flight_list_v7.py",
@@ -21,7 +72,7 @@
       "src/opdi/pipeline/flights.py"
     ],
     "git_dirty": false,
-    "git_sha": "d69173a",
+    "git_sha": "fbb64cb",
     "input_tables": {
       "s3a://eurocontrol/opdi/h3_airport_detection_zones": {
         "bytes": 215961011,
@@ -51,9 +102,165 @@
     },
     "inputs": {},
     "notes": "thirteen cumulative steps from the legacy algorithm on raw tracks to the shipped pipeline on cleaned ones, each run through process_dai itself. verify_plan asserts the last rung IS the shipped configuration before any of it runs",
-    "produced_utc": "2026-08-13T01:48:29+00:00",
+    "produced_utc": "2026-08-13T03:08:48+00:00",
     "script": "benchmarks/flight_list_v7.py",
-    "sha256_16": "4e22d8d5f7a7f517"
+    "sha256_16": "2df605c76230e247"
+  },
+  "modes_2025.csv": {
+    "argv": [
+      "--period",
+      "2025",
+      "--runs",
+      "modes",
+      "--per-airport",
+      "--out-name",
+      "modes_2025.csv",
+      "--executors",
+      "10"
+    ],
+    "bytes": 3039,
+    "code_fingerprint": "cd2b8f5e00fc612c",
+    "code_paths": [
+      "benchmarks/adep_ades.py",
+      "benchmarks/flight_list_v7.py",
+      "benchmarks/flight_list_v7.py",
+      "benchmarks/osn_sample.py",
+      "src/opdi/config.py",
+      "src/opdi/pipeline/flights.py"
+    ],
+    "git_dirty": false,
+    "git_sha": "bec7269",
+    "input_tables": {
+      "s3a://eurocontrol/opdi/h3_airport_detection_zones": {
+        "bytes": 215961011,
+        "newest": "2026-08-07T10:32:59.769000+00:00",
+        "objects": 152
+      },
+      "s3a://eurocontrol/opdi/opdi_endpoint_candidates": {
+        "bytes": 145565736,
+        "newest": "2026-08-12T20:39:50.444000+00:00",
+        "objects": 24
+      },
+      "s3a://eurocontrol/opdi/osn_tracks_clean": {
+        "bytes": 9860803651,
+        "newest": "2026-08-12T16:37:31.442000+00:00",
+        "objects": 202
+      },
+      "s3a://eurocontrol/opdi/research/reference": {
+        "bytes": 279261569,
+        "newest": "2026-08-05T13:07:36.676000+00:00",
+        "objects": 4
+      }
+    },
+    "inputs": {},
+    "notes": "the whole configurations the verdict chooses between. What cleaning is worth is the ladder's last rung, not a separate run: there it is measured given everything else already adopted",
+    "produced_utc": "2026-08-13T04:29:56+00:00",
+    "script": "benchmarks/flight_list_v7.py",
+    "sha256_16": "ac908b8ca6e57701"
+  },
+  "per_airport_2025.csv": {
+    "argv": [
+      "--period",
+      "2025",
+      "--runs",
+      "modes",
+      "--per-airport",
+      "--out-name",
+      "modes_2025.csv",
+      "--executors",
+      "10"
+    ],
+    "bytes": 463197,
+    "code_fingerprint": "cd2b8f5e00fc612c",
+    "code_paths": [
+      "benchmarks/adep_ades.py",
+      "benchmarks/flight_list_v7.py",
+      "benchmarks/flight_list_v7.py",
+      "benchmarks/osn_sample.py",
+      "src/opdi/config.py",
+      "src/opdi/pipeline/flights.py"
+    ],
+    "git_dirty": false,
+    "git_sha": "bec7269",
+    "input_tables": {
+      "s3a://eurocontrol/opdi/h3_airport_detection_zones": {
+        "bytes": 215961011,
+        "newest": "2026-08-07T10:32:59.769000+00:00",
+        "objects": 152
+      },
+      "s3a://eurocontrol/opdi/opdi_endpoint_candidates": {
+        "bytes": 145565736,
+        "newest": "2026-08-12T20:39:50.444000+00:00",
+        "objects": 24
+      },
+      "s3a://eurocontrol/opdi/osn_tracks_clean": {
+        "bytes": 9860803651,
+        "newest": "2026-08-12T16:37:31.442000+00:00",
+        "objects": 202
+      },
+      "s3a://eurocontrol/opdi/research/reference": {
+        "bytes": 279261569,
+        "newest": "2026-08-05T13:07:36.676000+00:00",
+        "objects": 4
+      }
+    },
+    "inputs": {},
+    "notes": "the whole configurations the verdict chooses between. What cleaning is worth is the ladder's last rung, not a separate run: there it is measured given everything else already adopted",
+    "produced_utc": "2026-08-13T04:29:56+00:00",
+    "script": "benchmarks/flight_list_v7.py",
+    "sha256_16": "22d3bc317ba44ead"
+  },
+  "per_type_2025.csv": {
+    "argv": [
+      "--period",
+      "2025",
+      "--runs",
+      "modes",
+      "--per-airport",
+      "--out-name",
+      "modes_2025.csv",
+      "--executors",
+      "10"
+    ],
+    "bytes": 4804,
+    "code_fingerprint": "cd2b8f5e00fc612c",
+    "code_paths": [
+      "benchmarks/adep_ades.py",
+      "benchmarks/flight_list_v7.py",
+      "benchmarks/flight_list_v7.py",
+      "benchmarks/osn_sample.py",
+      "src/opdi/config.py",
+      "src/opdi/pipeline/flights.py"
+    ],
+    "git_dirty": false,
+    "git_sha": "bec7269",
+    "input_tables": {
+      "s3a://eurocontrol/opdi/h3_airport_detection_zones": {
+        "bytes": 215961011,
+        "newest": "2026-08-07T10:32:59.769000+00:00",
+        "objects": 152
+      },
+      "s3a://eurocontrol/opdi/opdi_endpoint_candidates": {
+        "bytes": 145565736,
+        "newest": "2026-08-12T20:39:50.444000+00:00",
+        "objects": 24
+      },
+      "s3a://eurocontrol/opdi/osn_tracks_clean": {
+        "bytes": 9860803651,
+        "newest": "2026-08-12T16:37:31.442000+00:00",
+        "objects": 202
+      },
+      "s3a://eurocontrol/opdi/research/reference": {
+        "bytes": 279261569,
+        "newest": "2026-08-05T13:07:36.676000+00:00",
+        "objects": 4
+      }
+    },
+    "inputs": {},
+    "notes": "the whole configurations the verdict chooses between. What cleaning is worth is the ladder's last rung, not a separate run: there it is measured given everything else already adopted",
+    "produced_utc": "2026-08-13T04:29:57+00:00",
+    "script": "benchmarks/flight_list_v7.py",
+    "sha256_16": "10738a41378de81e"
   },
   "sweep_penalty_2025.csv": {
     "argv": [
