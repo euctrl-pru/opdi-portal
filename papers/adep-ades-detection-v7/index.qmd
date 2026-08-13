@@ -826,8 +826,38 @@ the *identifiers*. Do not join `ID` across releases.
 
 ## Limitations {#sec-limitations}
 
-*Being regenerated.* What is known to be missing, stated rather than implied.
+What is known to be missing or fragile, stated rather than implied.
 
+- **One shipped value is contradicted by this study's own evidence.** The
+  arrival detection radius ships at 20 NM. Measured through the pipeline it
+  gains 20 flights on the 2025 sample — noise on 95,116 — and loses 247 on
+  2024, and the research sweep ranked over both periods prefers 30 NM as an
+  interior optimum. 20 NM was a single-period argmax and it did not hold.
+  @sec-verdict states the recommendation; the default has not been changed
+  inside this report, because a value should not be altered by the document
+  that measures it.
+- **The vote margin is the least-supported shipped value.** The sweep prefers
+  0 over the shipped 2 on both periods, and the pipeline has never tested that
+  step — it walks 4 → 2 and stops. Cleaning is the likely reason: the margin
+  exists to stop noise flipping a climb/descent call, and cleaning now removes
+  much of that noise before the vote is counted.
+- **Out-of-area labelling costs arrival score, and the cost is a measurement
+  artefact.** Adding the label adds rows to the flight list, and the benchmark
+  pairs each reference flight with the track starting closest to its off-block
+  time — so a new row can take a pairing from a track that carried a real
+  answer. Detection did not get worse. This is reported rather than corrected
+  away, because a benchmark that quietly adjusts its own alignment to flatter a
+  result is worth less than one that shows where it is fragile.
+- **The cleaning comparison is one-sided.** Cleaning is measured as the ladder's
+  last rung, and departures show no change there — `endpoint` reads a candidate
+  cache built from cleaned tracks in every rung, so the earlier rungs were never
+  really "raw" for that role. The figure is the cost to arrivals, not to the
+  pipeline as a whole.
+- **The legacy algorithm is not exactly reproducible.** Two identical runs of it
+  named three arrivals differently out of 95,116. Ring-count selection leaves
+  candidates tied on an integer, and the tie is resolved by an ordering that
+  does not separate them. Exact-distance ranking removes those ties rather than
+  arbitrating them, and every configuration using it reproduced exactly.
 - **The candidate set is large and medium aerodromes.** A flight whose true
   aerodrome is a small field or a heliport cannot be named by any method here,
   whatever its thresholds, because the aerodrome is not a candidate. These
