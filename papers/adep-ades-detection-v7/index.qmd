@@ -725,17 +725,20 @@ This asks the question that decides: should it be on?
 #| results: asis
 if (!is.null(mod25) && !is.null(mod24)) {
   tot <- function(d, run) mv(d, run, "adep_score") + mv(d, run, "ades_score")
-  delta <- function(d, run) tot(d, run) - tot(d, "shipped")
+  # The gain from *adopting* the new value: what ships, minus what the old value
+  # scores when put back. One direction for all three rows -- an earlier draft
+  # mixed the two and produced a table whose signs contradicted its own caption.
+  gain <- function(d, old_run) tot(d, "shipped") - tot(d, old_run)
   rows <- data.frame(
     `Was → is` = c("radius 20 NM → **30 NM**",
                    "out-of-area on `trend` on → **off**",
                    "vote margin 2 → **0**"),
-    `2025` = c(sgn(delta(mod25, "reject_radius20")),
-               sgn(delta(mod25, "reject_trend_ooa")),
-               sgn(-delta(mod25, "reject_margin2"))),
-    `2024` = c(sgn(delta(mod24, "reject_radius20")),
-               sgn(delta(mod24, "reject_trend_ooa")),
-               sgn(-delta(mod24, "reject_margin2"))),
+    `2025` = c(sgn(gain(mod25, "reject_radius20")),
+               sgn(gain(mod25, "reject_trend_ooa")),
+               sgn(gain(mod25, "reject_margin2"))),
+    `2024` = c(sgn(gain(mod24, "reject_radius20")),
+               sgn(gain(mod24, "reject_trend_ooa")),
+               sgn(gain(mod24, "reject_margin2"))),
     check.names = FALSE)
   print(kable(rows, row.names = FALSE, align = "r"))
   cat("\nEach figure is the change in total score from adopting the new value, measured against the shipped configuration on that sample. Both columns positive means the change is supported on two independent periods.\n")
