@@ -74,9 +74,13 @@ num <- function(x) ifelse(is.na(x), "—",
                           format(round(x), big.mark = ",", trim = TRUE))
 # The "+" flag does nothing for %s in R, so the sign is prepended explicitly:
 # a signed delta that silently loses its sign reads as a level, not a change.
-sgn <- function(x) ifelse(is.na(x), "—",
-                          paste0(ifelse(x >= 0, "+", "−"),
-                                 format(abs(round(x)), big.mark = ",", trim = TRUE)))
+sgn <- function(x) ifelse(
+  is.na(x), "—",
+  # An exact zero is not a small positive change, and "+0" reads as one. A rung
+  # that moves nothing is a result in its own right on this page.
+  ifelse(round(x) == 0, "0",
+         paste0(ifelse(x > 0, "+", "−"),
+                format(abs(round(x)), big.mark = ",", trim = TRUE))))
 
 #: One row of a mode table, by run name.
 mv <- function(d, run, field) {
@@ -414,9 +418,16 @@ if (!is.null(mod25)) {
 
 ## What each change is worth {#sec-ladder}
 
-*This section is being regenerated. Each row adds one change to the row above
-and keeps it, so the marginal worth of a change is the difference between
-adjacent rows — and the last row is the shipped algorithm.*
+Each row adds one change to the row above **and keeps it**, so the marginal
+worth of a change is the difference between adjacent rows, and the last row is
+the shipped pipeline exactly. That is asserted before the run rather than
+checked afterwards: the harness refuses a ladder whose final rung is not
+`DetectionConfig()` in its thresholds, its per-role algorithms and its track
+table, and refuses one containing a rung that changes nothing.
+
+Read the *signs* across the two periods before the sizes. A change that helps
+on one sample and hurts on the other has not been demonstrated, whatever its
+magnitude on the sample it was tuned against.
 
 ```{r ladder}
 #| echo: false
