@@ -212,6 +212,7 @@ elsewhere.
 Everything below is real ADS-B, processed by the code in the `opdi` repository.
 No step is a re-implementation for the purposes of this report.
 
+:::: {.content-visible when-format="html"}
 ```{mermaid}
 %%| label: fig-pipeline
 %%| fig-cap: "From the OpenSky archive to the published flight list. Boxes name the module; cylinders name the table it writes."
@@ -235,6 +236,24 @@ flowchart TD
     S0 --> R0 --> S3
     S3 --> T3 --> S4 --> S5 --> PUB
 ```
+::::
+
+:::: {.content-visible when-format="pdf"}
+The same pipeline, step by step. Each row names the module and the table it
+writes; every step reads the table written above it unless stated otherwise.
+
+| Step | Module | Writes | Does |
+|---|---|---|---|
+| — | — | *OpenSky archive* | 1 Hz global state vectors |
+| **00** | `reference/` | `h3_airport_detection_zones` | H3 aerodrome zones, OurAirports reference |
+| **01** | `ingestion/osn_statevectors.py` | `osn_statevectors_v2` | European bounding box, thinning to 5 s |
+| **02** | `pipeline/tracks.py` | `osn_tracks` | Split into tracks, attach the H3 index |
+| **02a** | `cleaning/cleaner.py` | `osn_tracks_clean` | Mask implausible values, keep the rows |
+| **03** | `pipeline/flights.py` | `opdi_flight_list` | **ADEP / ADES detection** — reads 02a and 00 |
+| **04** | `pipeline/events.py` | events, measurements | Milestones along each flight |
+| **05** | `output/` | published dataset | Parquet and CSV export |
+
+::::
 
 ### 00 — Reference data
 
