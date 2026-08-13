@@ -143,11 +143,19 @@ distance only among the survivors, so an aerodrome slightly further out was
 discarded before its distance was ever computed. Measuring first and choosing
 afterwards is the single change that makes everything else in this study work.
 
-**A null is now three different answers.** `ADEP` and `ADES` can be an
-aerodrome, the marker `OOA` for a flight that began or ended outside the
-observed area, or null for "could not tell". Companion columns say which.
-Earlier releases collapsed the last two into a single null, and about one flight
-in twelve genuinely falls into the second.
+**A departure's null is now two different answers.** `ADEP` can be an
+aerodrome, the marker `OOA` for a flight that began outside the observed area,
+or null for "could not tell", and a companion column says which. Earlier
+releases collapsed the last two into a single null, and about one flight in
+twelve genuinely belongs to the middle one.
+
+**Arrivals do not carry that marker, and the asymmetry is deliberate.** The
+label is decided by whether a trajectory's endpoint sits at the edge of
+coverage. A track that *starts* at the edge almost certainly entered from
+outside; a track that *ends* near it may equally be a flight still bound
+somewhere inside whose reception was simply lost. Measured, the arrival label
+was right about half the time, so it is not emitted. @sec-ooa gives the figures
+and @sec-open what would change it.
 
 ## Reading this page
 
@@ -193,10 +201,10 @@ analysis, and it is new:
 : An ICAO code. The pipeline saw enough to name it.
 
 `out_of_area`
-: `ADEP`/`ADES` is `OOA`. The flight entered or left the observed area rather
-  than departing or landing inside it — the trajectory begins or ends at the
-  edge of coverage, not near any aerodrome. **This is an answer, not a
-  failure.** An analysis counting movements should exclude these; one measuring
+: `ADEP` is `OOA`. The flight entered the observed area rather than departing
+  inside it — the trajectory begins at the edge of coverage, not near any
+  aerodrome. **This is an answer, not a failure.** It appears on departures
+  only: see the summary, and @sec-ooa for why. An analysis counting movements should exclude these; one measuring
   coverage should count them as correct.
 
 `undetermined`
@@ -459,17 +467,26 @@ lab <- c(
   L04_penalty             = "+ scheduled-service penalty",
   L05_flcap               = "+ tuned flight-level cap",
   L06_margin              = "+ tuned vote margin",
-  L07_radius              = "+ tuned radius",
-  L08_bearing             = "+ bearing tie-break",
-  L09_ooa                 = "+ out-of-area labelling",
-  L10_endpoint_departures = "+ departures from `endpoint`",
-  L11_endpoint_radius     = "+ tuned endpoint radius",
-  L12_clean_tracks        = "+ cleaned tracks (**= shipped**)")
+  L07_bearing             = "+ bearing tie-break",
+  L08_endpoint_departures = "+ departures from `endpoint`",
+  L09_endpoint_radius     = "+ tuned endpoint radius",
+  L10_clean_tracks        = "+ cleaned tracks (**= shipped**)")
 
 show_ladder <- function(d, period) {
   if (is.null(d)) {
     cat(sprintf("*The %s ladder has not been staged yet.*\n\n", period))
     return(invisible(NULL))
+  }
+  # Stop rather than draw a short table. `match` against a stale label list
+  # silently drops any rung it does not know, so a renamed step would vanish
+  # from the ladder and the remaining rows would still add up -- a wrong table
+  # that looks right. This has happened once already, when the ladder went from
+  # thirteen rungs to eleven.
+  missing <- setdiff(d$run, names(lab))
+  if (length(missing)) {
+    stop("ladder rung(s) with no label: ", paste(missing, collapse = ", "),
+         ". The CSV and the label list have diverged; the table would silently ",
+         "omit them.")
   }
   d <- d[match(names(lab), d$run), ]
   d <- d[!is.na(d$run), ]
@@ -486,7 +503,7 @@ show_ladder <- function(d, period) {
   tot <- d$adep_score + d$ades_score
   cat(sprintf("\nScores, not ratios: coverage and accuracy always move in opposite directions, and only the counts say whether an exchange was worth taking. Net over the whole ladder: **%s**.\n",
               sgn(tot[length(tot)] - tot[1])))
-  cat("\nRows one to ten produce both roles with `trend`, so each change is attributable to its own line. Row eleven switches departures to `endpoint`, which is why the departure column moves there and barely moves before it — the trend parameters above are tuned for arrivals.\n")
+  cat("\nThe first eight rows produce both roles with `trend`, so each change is attributable to its own line. The ninth switches departures to `endpoint`, which is why the departure column jumps there and barely moves before it — every trend parameter above is tuned for arrivals.\n")
 }
 show_ladder(lad25, "2025")
 show_ladder(lad24, "2024")
@@ -554,10 +571,12 @@ if (is.null(e25) || is.null(e24)) {
 if (is.null(grid25)) {
   cat("*The pipeline grid has not been staged yet.*\n")
 } else {
-  g <- grid25[grid25$trend_radius_nm == 20, ]
+  # Whatever radius the grid was swept at -- not a literal, which is how
+  # the caption came to name a radius the pipeline had stopped using.
+  g <- grid25[grid25$trend_radius_nm == grid25$trend_radius_nm[1], ]
   g <- g[order(g$trend_max_fl), ]
   b <- if (is.null(grid24)) NULL else {
-    x <- grid24[grid24$trend_radius_nm == 20, ]
+    x <- grid24[grid24$trend_radius_nm == grid24$trend_radius_nm[1], ]
     x[match(g$trend_max_fl, x$trend_max_fl), ]
   }
   tab <- data.frame(
@@ -570,7 +589,8 @@ if (is.null(grid25)) {
     tab$`2024 arrivals` <- num(b$ades_score)
   }
   print(kable(tab, row.names = FALSE, align = "r"))
-  cat(sprintf("\nAt 20 NM, through the pipeline itself. Departures peak at FL%g and arrivals at FL%g on the 2025 sample. Coverage keeps rising with the cap — a higher cap admits more fixes — but accuracy falls faster, because fixes taken higher up are further from whichever aerodrome turns out to be the answer.\n",
+  cat(sprintf("\nAt %g NM — the shipped radius — through the pipeline itself. Departures peak at FL%g and arrivals at FL%g on the 2025 sample. Coverage keeps rising with the cap — a higher cap admits more fixes — but accuracy falls faster, because fixes taken higher up are further from whichever aerodrome turns out to be the answer.\n",
+              g$trend_radius_nm[1],
               g$trend_max_fl[which.max(g$adep_score)],
               g$trend_max_fl[which.max(g$ades_score)]))
 }
@@ -689,64 +709,91 @@ if (is.null(mod24)) {
 }
 ```
 
-## What should change next {#sec-next}
+## Three values this study changed {#sec-changed}
 
-Three of the values this report describes are **not** what the evidence
-supports. They are stated here rather than quietly altered: a default should not
-be changed by the document that measures it, and a reader deserves to know which
-parts of what ships are settled and which are not.
+Version 6 shipped three constants that version 7 measured and found wanting.
+All three are changed in the code this report describes, not merely noted: the
+whole point of measuring a default is to act on the answer.
 
-```{r recommendations}
+Each was tested the same way — applied to the **shipped configuration on its
+own**, on both samples. That is a different question from a rung in
+@sec-ladder, which asks what a change was worth at one point in a sequence.
+This asks the question that decides: should it be on?
+
+```{r changed}
 #| echo: false
 #| results: asis
-if (!is.null(lad25) && !is.null(lad24) && !is.null(mod25)) {
-  d <- function(l, run, col) {
-    i <- match(run, l$run)
-    if (is.na(i) || i < 2) return(NA_real_)
-    l[[col]][i] - l[[col]][i - 1]
-  }
+if (!is.null(mod25) && !is.null(mod24)) {
+  tot <- function(d, run) mv(d, run, "adep_score") + mv(d, run, "ades_score")
+  delta <- function(d, run) tot(d, run) - tot(d, "shipped")
   rows <- data.frame(
-    Change = c("Arrival detection radius 20 NM → **30 NM**",
-               "Out-of-area on `trend` → **off, or stricter**",
-               "Vote margin 2 → **0**"),
-    Evidence = c(
-      sprintf("pipeline, both samples (%s and %s); sweep ranked jointly prefers 30 NM",
-              sgn(d(lad25, "L07_radius", "adep_score") + d(lad25, "L07_radius", "ades_score")),
-              sgn(d(lad24, "L07_radius", "adep_score") + d(lad24, "L07_radius", "ades_score"))),
-      sprintf("arrival precision %s against `endpoint`'s %s; costs arrivals %s and %s",
-              pct(mv(mod25, "shipped", "ades_ooa_precision")),
-              pct(mv(mod25, "shipped", "adep_ooa_precision")),
-              sgn(d(lad25, "L09_ooa", "ades_score")),
-              sgn(d(lad24, "L09_ooa", "ades_score"))),
-      "research sweep only, both samples"),
-    Confidence = c("**high** — four independent measurements agree",
-                   "**high** — a label right half the time is worse than a null",
-                   "**medium** — never tested through the pipeline"),
+    `Was → is` = c("radius 20 NM → **30 NM**",
+                   "out-of-area on `trend` on → **off**",
+                   "vote margin 2 → **0**"),
+    `2025` = c(sgn(delta(mod25, "reject_radius20")),
+               sgn(delta(mod25, "reject_trend_ooa")),
+               sgn(-delta(mod25, "reject_margin2"))),
+    `2024` = c(sgn(delta(mod24, "reject_radius20")),
+               sgn(delta(mod24, "reject_trend_ooa")),
+               sgn(-delta(mod24, "reject_margin2"))),
     check.names = FALSE)
-  print(kable(rows, row.names = FALSE, align = "l"))
+  print(kable(rows, row.names = FALSE, align = "r"))
+  cat("\nEach figure is the change in total score from adopting the new value, measured against the shipped configuration on that sample. Both columns positive means the change is supported on two independent periods.\n")
 }
 ```
 
-**The radius.** It gains on the sample it was chosen against and loses on an
-independent one, and the research sweep ranked over both periods prefers 30 NM
-as an interior optimum. This is the single rung in @sec-ladder whose sign does
-not survive a second sample.
+**The radius.** Version 6 moved it to 20 NM on a single period. On two it gains
+on the sample it was chosen against and loses on the other — the only step in
+this study whose sign did not survive an independent sample — and the research
+sweep ranked over both periods puts 30 NM at an interior optimum. Reverted.
 
-**Out-of-area on arrivals.** The label is correct about half the time, against
-89% for the same test applied to departures. The asymmetry is geometric: a track
-that *begins* at the edge of the observed area almost certainly entered from
-outside, while one that *ends* near it may equally be a flight still bound
-somewhere inside whose reception was lost. Every arrival label replaces a
-silence, so at $k = 2$ a coin flip is a losing trade. Either the arrival test
-gains a direction requirement — the course is already computed for the bearing
-tie-break — or arrival out-of-area is left to `endpoint`.
+It turned out to be holding two other changes back. At 30 NM the bearing
+tie-break is worth more, because a wider radius admits more candidate aerodromes
+and so more near-ties for alignment to resolve; the switch of departures to
+`endpoint` gains more as well. A value can be wrong not only in itself but in
+what it suppresses, and that is invisible until it is changed rather than
+tabled.
 
-**The vote margin.** The sweep prefers 0 to the shipped 2 on both samples, and
-the pipeline has never tested that step: the ladder walks 4 → 2 and stops.
-Cleaning is the likely reason the margin has stopped earning its keep — it
-exists to stop noise flipping a climb-or-descent call, and cleaning now removes
-much of that noise before the vote is counted. Worth one pipeline run before
-adopting.
+**Out-of-area on `trend`.** Built, measured, and left off. The capability is
+real — `trend` could not previously distinguish "outside the observed area" from
+"could not tell" — but in the shipped configuration it reaches only arrivals,
+where the label is right about half the time against `endpoint`'s 89%. Every
+label replaces a *silence*, so at $k = 2$ a coin flip is a losing trade.
+
+The asymmetry is geometric rather than a tuning accident. A track that *begins*
+at the edge of the observed area almost certainly entered from outside; one that
+*ends* near it may equally be a flight still bound somewhere inside whose
+reception was lost. @sec-ooa gives the figures.
+
+**The vote margin.** Version 6 shipped 2 on research-sweep evidence and called
+it the weakest value in its recommendation. The pipeline now agrees with the
+sweep, on both samples, and the exchange rate settles it: dropping the margin
+gains far more correct arrivals than wrong ones, well above the study's
+threshold of two.
+
+Cleaning is why it stopped earning its keep. The margin exists to stop noise
+flipping a climb-or-descent call, and step 02a now masks about a fifth of
+barometric altitudes before the vote is counted. It was defending against
+something already removed. **That interaction could not have been found before
+this version**, because cleaning did not previously reach the flight list at
+all — which is the strongest argument in the study for having wired it in.
+
+## What is still open {#sec-open}
+
+Two things, stated so that nobody has to infer them from silence.
+
+**Out-of-area for arrivals needs a direction test.** The border test asks
+whether a track *ends* near the edge. It should ask whether the track is heading
+*out* — a fix near the boundary on an inbound heading is a reception loss, not a
+departure from the area. The course is already computed for the bearing
+tie-break, so the machinery exists; the rule and its measurement do not. Until
+then arrivals take their out-of-area labels from `endpoint`, at 89% precision.
+
+**A third period, held out.** Every parameter here is chosen on two samples and
+validated on those same two. A period against which nothing was tuned would say
+whether the choices generalise or merely fit both Junes. It needs committed
+Network Manager reference data for whichever month is chosen, which is a
+decision about data availability rather than about method.
 
 ## Out-of-area, and the three states {#sec-ooa}
 
@@ -780,19 +827,19 @@ nothing but the track table.
 #| echo: false
 #| results: asis
 show_cleaning <- function(d, period) {
-  if (is.null(d) || !all(c("L11_endpoint_radius", "L12_clean_tracks") %in% d$run)) {
+  if (is.null(d) || !all(c("L09_endpoint_radius", "L10_clean_tracks") %in% d$run)) {
     cat(sprintf("*The %s ladder has not been staged yet.*\n\n", period))
     return(invisible(NULL))
   }
   cat(sprintf("\n**%s**\n\n", period))
   rows <- do.call(rbind, lapply(c("adep", "ades"), function(s) data.frame(
     Role = ifelse(s == "adep", "Departures", "Arrivals"),
-    `Raw coverage` = pct(mv(d, "L11_endpoint_radius", paste0(s, "_coverage"))),
-    `Clean coverage` = pct(mv(d, "L12_clean_tracks", paste0(s, "_coverage"))),
-    `Raw accuracy` = pct(mv(d, "L11_endpoint_radius", paste0(s, "_accuracy"))),
-    `Clean accuracy` = pct(mv(d, "L12_clean_tracks", paste0(s, "_accuracy"))),
-    `Δ score` = sgn(mv(d, "L12_clean_tracks", paste0(s, "_score"))
-                    - mv(d, "L11_endpoint_radius", paste0(s, "_score"))),
+    `Raw coverage` = pct(mv(d, "L09_endpoint_radius", paste0(s, "_coverage"))),
+    `Clean coverage` = pct(mv(d, "L10_clean_tracks", paste0(s, "_coverage"))),
+    `Raw accuracy` = pct(mv(d, "L09_endpoint_radius", paste0(s, "_accuracy"))),
+    `Clean accuracy` = pct(mv(d, "L10_clean_tracks", paste0(s, "_accuracy"))),
+    `Δ score` = sgn(mv(d, "L10_clean_tracks", paste0(s, "_score"))
+                    - mv(d, "L09_endpoint_radius", paste0(s, "_score"))),
     check.names = FALSE)))
   print(kable(rows, row.names = FALSE, align = "r"))
 }
@@ -929,26 +976,22 @@ the *identifiers*. Do not join `ID` across releases.
 
 What is known to be missing or fragile, stated rather than implied.
 
-- **One shipped value is contradicted by this study's own evidence.** The
-  arrival detection radius ships at 20 NM. Measured through the pipeline it
-  gains 20 flights on the 2025 sample — noise on 95,116 — and loses 247 on
-  2024, and the research sweep ranked over both periods prefers 30 NM as an
-  interior optimum. 20 NM was a single-period argmax and it did not hold.
-  @sec-verdict states the recommendation; the default has not been changed
-  inside this report, because a value should not be altered by the document
-  that measures it.
-- **The vote margin is the least-supported shipped value.** The sweep prefers
-  0 over the shipped 2 on both periods, and the pipeline has never tested that
-  step — it walks 4 → 2 and stops. Cleaning is the likely reason: the margin
-  exists to stop noise flipping a climb/descent call, and cleaning now removes
-  much of that noise before the vote is counted.
-- **Out-of-area labelling costs arrival score, and the cost is a measurement
-  artefact.** Adding the label adds rows to the flight list, and the benchmark
-  pairs each reference flight with the track starting closest to its off-block
-  time — so a new row can take a pairing from a track that carried a real
-  answer. Detection did not get worse. This is reported rather than corrected
-  away, because a benchmark that quietly adjusts its own alignment to flatter a
-  result is worth less than one that shows where it is fragile.
+- **Every shipped value is chosen on the same two samples it is validated on.**
+  Nothing here is held out. @sec-open says why a third period would be worth
+  having and what it needs.
+- **The benchmark's own alignment is fragile where the flight list gains rows.**
+  Each reference flight is paired with the track starting closest to its
+  off-block time, so a configuration that produces *more* tracks can lose a
+  pairing to one carrying no answer. This is visible wherever departures and
+  arrivals come from different methods, and it is reported rather than corrected
+  away: a benchmark that quietly adjusts its own alignment to flatter a result
+  is worth less than one that shows where it is fragile.
+- **The flight-level grid is swept at one radius.** The cap and the radius are
+  measured separately rather than jointly in the pipeline — the research sweep
+  covers the full grid, and the pipeline confirms the cap at the shipped radius
+  only. A genuine interaction between the two would not be visible here, and one
+  has already been found elsewhere in this study: the detection radius changed
+  what the bearing tie-break was worth.
 - **The cleaning comparison is one-sided.** Cleaning is measured as the ladder's
   last rung, and departures show no change there — `endpoint` reads a candidate
   cache built from cleaned tracks in every rung, so the earlier rungs were never
