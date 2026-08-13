@@ -670,6 +670,65 @@ if (is.null(mod24)) {
 }
 ```
 
+## What should change next {#sec-next}
+
+Three of the values this report describes are **not** what the evidence
+supports. They are stated here rather than quietly altered: a default should not
+be changed by the document that measures it, and a reader deserves to know which
+parts of what ships are settled and which are not.
+
+```{r recommendations}
+#| echo: false
+#| results: asis
+if (!is.null(lad25) && !is.null(lad24) && !is.null(mod25)) {
+  d <- function(l, run, col) {
+    i <- match(run, l$run)
+    if (is.na(i) || i < 2) return(NA_real_)
+    l[[col]][i] - l[[col]][i - 1]
+  }
+  rows <- data.frame(
+    Change = c("Arrival detection radius 20 NM → **30 NM**",
+               "Out-of-area on `trend` → **off, or stricter**",
+               "Vote margin 2 → **0**"),
+    Evidence = c(
+      sprintf("pipeline, both samples (%s and %s); sweep ranked jointly prefers 30 NM",
+              sgn(d(lad25, "L07_radius", "adep_score") + d(lad25, "L07_radius", "ades_score")),
+              sgn(d(lad24, "L07_radius", "adep_score") + d(lad24, "L07_radius", "ades_score"))),
+      sprintf("arrival precision %s against `endpoint`'s %s; costs arrivals %s and %s",
+              pct(mv(mod25, "shipped", "ades_ooa_precision")),
+              pct(mv(mod25, "shipped", "adep_ooa_precision")),
+              sgn(d(lad25, "L09_ooa", "ades_score")),
+              sgn(d(lad24, "L09_ooa", "ades_score"))),
+      "research sweep only, both samples"),
+    Confidence = c("**high** — four independent measurements agree",
+                   "**high** — a label right half the time is worse than a null",
+                   "**medium** — never tested through the pipeline"),
+    check.names = FALSE)
+  print(kable(rows, row.names = FALSE, align = "l"))
+}
+```
+
+**The radius.** It gains on the sample it was chosen against and loses on an
+independent one, and the research sweep ranked over both periods prefers 30 NM
+as an interior optimum. This is the single rung in @sec-ladder whose sign does
+not survive a second sample.
+
+**Out-of-area on arrivals.** The label is correct about half the time, against
+89% for the same test applied to departures. The asymmetry is geometric: a track
+that *begins* at the edge of the observed area almost certainly entered from
+outside, while one that *ends* near it may equally be a flight still bound
+somewhere inside whose reception was lost. Every arrival label replaces a
+silence, so at $k = 2$ a coin flip is a losing trade. Either the arrival test
+gains a direction requirement — the course is already computed for the bearing
+tie-break — or arrival out-of-area is left to `endpoint`.
+
+**The vote margin.** The sweep prefers 0 to the shipped 2 on both samples, and
+the pipeline has never tested that step: the ladder walks 4 → 2 and stops.
+Cleaning is the likely reason the margin has stopped earning its keep — it
+exists to stop noise flipping a climb-or-descent call, and cleaning now removes
+much of that noise before the vote is counted. Worth one pipeline run before
+adopting.
+
 ## Out-of-area, and the three states {#sec-ooa}
 
 ```{r ooa}
