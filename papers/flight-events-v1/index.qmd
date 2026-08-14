@@ -48,9 +48,18 @@ read_json_if <- function(name) {
   if (file.exists(path)) jsonlite::fromJSON(path) else NULL
 }
 
+read_csv_if <- function(name) {
+  path <- file.path("data", name)
+  if (file.exists(path)) read.csv(path, stringsAsFactors = FALSE) else NULL
+}
+
 bridge_2025 <- read_json_if("bridge_2025.json")
 bridge_2024 <- read_json_if("bridge_2024.json")
 manifest    <- read_json_if("_manifest.json")
+ladder_2025 <- read_csv_if("ladder_2025.csv")
+ladder_2024 <- read_csv_if("ladder_2024.csv")
+inv_2025    <- read_csv_if("inventory_2025.csv")
+inv_2024    <- read_csv_if("inventory_2024.csv")
 ```
 
 ## What this study is
@@ -175,6 +184,61 @@ like a detection failure.
 are correct, so converting is right and stripping the zone is a two-hour error.
 Spark's session timezone is set to UTC in the local session builder and not in
 the distributed one, so the loader asserts it rather than assuming it.
+
+
+## What the detectors produce
+
+Every event type step 04 emits, counted on the sample. Most of these have no
+counterpart in any reference dataset, so this table is the only place they are
+visible at all — a family that stopped being emitted would otherwise show up
+not as a regression but as an absence, which is harder to notice.
+
+```{r tbl-inventory}
+#| echo: false
+#| results: asis
+if (!is.null(inv_2025)) {
+  w <- reshape(inv_2025, idvar = "type", timevar = "rung", direction = "wide")
+  names(w) <- sub("^n_events\\.", "", names(w))
+  keep <- intersect(c("type", "L00_legacy", "L10_shipped"), names(w))
+  w <- w[order(w$type), keep, drop = FALSE]
+  cat("| Event type |", paste(keep[-1], collapse = " | "), "|\n")
+  cat("|---", paste(rep("---:", length(keep) - 1), collapse = "|"), "|\n", sep = "")
+  for (i in seq_len(nrow(w))) {
+    vals <- vapply(keep[-1], function(k) {
+      v <- w[i, k]
+      if (is.na(v)) "—" else format(v, big.mark = ",")
+    }, character(1))
+    cat(sprintf("| `%s` | %s |\n", w$type[i], paste(vals, collapse = " | ")))
+  }
+} else {
+  cat("*Extraction inventory not present in the committed data — the ladder has not been run.*\n")
+}
+```
+
+## How accurate the milestones are
+
+Scored against APDF on the milestones it can reach. Coverage is the share of
+reference milestones with any detection; bias is the median signed error, so a
+negative value means the detector fires early.
+
+```{r tbl-ladder}
+#| echo: false
+#| results: asis
+if (!is.null(ladder_2025)) {
+  d <- ladder_2025
+  cat("| Rung | Milestone | Truth | Detected | Coverage | Bias (s) | MAD (s) | ±60 s |\n")
+  cat("|---|---|---:|---:|---:|---:|---:|---:|\n")
+  for (i in seq_len(nrow(d))) {
+    cat(sprintf("| %s | `%s` | %s | %s | %.2f%% | %.1f | %.1f | %.2f%% |\n",
+        d$rung[i], d$milestone[i],
+        format(d$n_truth[i], big.mark = ","),
+        format(d$n_detected[i], big.mark = ","),
+        d$coverage_pct[i], d$bias_s[i], d$mad_s[i], d$within_60s_pct[i]))
+  }
+} else {
+  cat("*Ladder results not present in the committed data — see below.*\n")
+}
+```
 
 ## What has *not* been measured
 
