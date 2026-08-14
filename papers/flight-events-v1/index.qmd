@@ -229,6 +229,15 @@ if (!is.null(ladder_2025)) {
   # det_type is the OPDI event type; milestone is the APDF milestone it claims
   # to be. Both are shown because `take-off` and `ATOT` are scored against the
   # same truth, and which of them wins is the question the ladder answers.
+  # Each OPDI type is scored against every truth milestone, so `take-off`
+  # also produces rows against ALDT, AOBT and AIBT with no detections. Those
+  # are true but meaningless -- a take-off event is not a failed on-block.
+  # Keep only the pairing each type actually claims.
+  claims <- c("take-off" = "ATOT", "landing" = "ALDT", "ATOT" = "ATOT",
+              "ALDT" = "ALDT", "AOBT" = "AOBT", "AIBT" = "AIBT")
+  if (!is.null(d$det_type)) {
+    d <- d[!is.na(claims[d$det_type]) & claims[d$det_type] == d$milestone, ]
+  }
   d <- d[order(d$milestone, d$rung), ]
   cat("| Rung | OPDI type | vs | Truth | Detected | Coverage | Bias (s) | MAD (s) | ±60 s |\n")
   cat("|---|---|---|---:|---:|---:|---:|---:|---:|\n")
