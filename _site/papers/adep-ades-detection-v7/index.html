@@ -186,18 +186,19 @@ window.Quarto = {
   <li><a href="#which-changes-hold-on-both-samples" id="toc-which-changes-hold-on-both-samples" class="nav-link" data-scroll-target="#which-changes-hold-on-both-samples"><span class="header-section-number">7.1</span> Which changes hold on both samples</a></li>
   <li><a href="#does-it-hold-on-the-second-period" id="toc-does-it-hold-on-the-second-period" class="nav-link" data-scroll-target="#does-it-hold-on-the-second-period"><span class="header-section-number">7.2</span> Does it hold on the second period?</a></li>
   </ul></li>
-  <li><a href="#sec-next" id="toc-sec-next" class="nav-link" data-scroll-target="#sec-next"><span class="header-section-number">8</span> What should change next</a></li>
-  <li><a href="#sec-ooa" id="toc-sec-ooa" class="nav-link" data-scroll-target="#sec-ooa"><span class="header-section-number">9</span> Out-of-area, and the three states</a></li>
-  <li><a href="#sec-cleaning" id="toc-sec-cleaning" class="nav-link" data-scroll-target="#sec-cleaning"><span class="header-section-number">10</span> What cleaning costs and buys</a></li>
-  <li><a href="#sec-sampler" id="toc-sec-sampler" class="nav-link" data-scroll-target="#sec-sampler"><span class="header-section-number">11</span> The 5 s sampler</a></li>
-  <li><a href="#sec-bearing" id="toc-sec-bearing" class="nav-link" data-scroll-target="#sec-bearing"><span class="header-section-number">12</span> The bearing tie-break</a></li>
-  <li><a href="#sec-using" id="toc-sec-using" class="nav-link" data-scroll-target="#sec-using"><span class="header-section-number">13</span> Using the columns</a></li>
-  <li><a href="#sec-per-airport" id="toc-sec-per-airport" class="nav-link" data-scroll-target="#sec-per-airport"><span class="header-section-number">14</span> By aerodrome, for the busiest hundred</a></li>
-  <li><a href="#sec-versions" id="toc-sec-versions" class="nav-link" data-scroll-target="#sec-versions"><span class="header-section-number">15</span> Versions, and what is reproducible</a></li>
-  <li><a href="#sec-limitations" id="toc-sec-limitations" class="nav-link" data-scroll-target="#sec-limitations"><span class="header-section-number">16</span> Limitations</a></li>
-  <li><a href="#sec-provenance" id="toc-sec-provenance" class="nav-link" data-scroll-target="#sec-provenance"><span class="header-section-number">17</span> Provenance</a>
+  <li><a href="#sec-changed" id="toc-sec-changed" class="nav-link" data-scroll-target="#sec-changed"><span class="header-section-number">8</span> Three values this study changed</a></li>
+  <li><a href="#sec-open" id="toc-sec-open" class="nav-link" data-scroll-target="#sec-open"><span class="header-section-number">9</span> What is still open</a></li>
+  <li><a href="#sec-ooa" id="toc-sec-ooa" class="nav-link" data-scroll-target="#sec-ooa"><span class="header-section-number">10</span> Out-of-area, and the three states</a></li>
+  <li><a href="#sec-cleaning" id="toc-sec-cleaning" class="nav-link" data-scroll-target="#sec-cleaning"><span class="header-section-number">11</span> What cleaning costs and buys</a></li>
+  <li><a href="#sec-sampler" id="toc-sec-sampler" class="nav-link" data-scroll-target="#sec-sampler"><span class="header-section-number">12</span> The 5 s sampler</a></li>
+  <li><a href="#sec-bearing" id="toc-sec-bearing" class="nav-link" data-scroll-target="#sec-bearing"><span class="header-section-number">13</span> The bearing tie-break</a></li>
+  <li><a href="#sec-using" id="toc-sec-using" class="nav-link" data-scroll-target="#sec-using"><span class="header-section-number">14</span> Using the columns</a></li>
+  <li><a href="#sec-per-airport" id="toc-sec-per-airport" class="nav-link" data-scroll-target="#sec-per-airport"><span class="header-section-number">15</span> By aerodrome, for the busiest hundred</a></li>
+  <li><a href="#sec-versions" id="toc-sec-versions" class="nav-link" data-scroll-target="#sec-versions"><span class="header-section-number">16</span> Versions, and what is reproducible</a></li>
+  <li><a href="#sec-limitations" id="toc-sec-limitations" class="nav-link" data-scroll-target="#sec-limitations"><span class="header-section-number">17</span> Limitations</a></li>
+  <li><a href="#sec-provenance" id="toc-sec-provenance" class="nav-link" data-scroll-target="#sec-provenance"><span class="header-section-number">18</span> Provenance</a>
   <ul class="collapse">
-  <li><a href="#where-reproducibility-stops" id="toc-where-reproducibility-stops" class="nav-link" data-scroll-target="#where-reproducibility-stops"><span class="header-section-number">17.1</span> Where reproducibility stops</a></li>
+  <li><a href="#where-reproducibility-stops" id="toc-where-reproducibility-stops" class="nav-link" data-scroll-target="#where-reproducibility-stops"><span class="header-section-number">18.1</span> Where reproducibility stops</a></li>
   </ul></li>
   </ul>
 <div class="quarto-alternate-formats"><h2>Other Formats</h2><ul><li><a href="index.pdf"><i class="bi bi-file-pdf"></i>PDF</a></li></ul></div></nav>
@@ -257,7 +258,8 @@ window.Quarto = {
 <p>Three findings shape what the flight list now contains.</p>
 <p><strong>Departures and arrivals want different algorithms.</strong> A departing aircraft’s first ADS-B fix is usually on or near the runway, so geometry alone settles it. An arriving aircraft’s last fix is often where reception was lost rather than where it landed, so geometry alone does not. The flight list therefore derives departures with one method and arrivals with another.</p>
 <p><strong>Candidate aerodromes are chosen by exact distance.</strong> The published algorithm narrowed its candidates using a hexagonal spatial index and measured exact distance only among the survivors, so an aerodrome slightly further out was discarded before its distance was ever computed. Measuring first and choosing afterwards is the single change that makes everything else in this study work.</p>
-<p><strong>A null is now three different answers.</strong> <code>ADEP</code> and <code>ADES</code> can be an aerodrome, the marker <code>OOA</code> for a flight that began or ended outside the observed area, or null for “could not tell”. Companion columns say which. Earlier releases collapsed the last two into a single null, and about one flight in twelve genuinely falls into the second.</p>
+<p><strong>A departure’s null is now two different answers.</strong> <code>ADEP</code> can be an aerodrome, the marker <code>OOA</code> for a flight that began outside the observed area, or null for “could not tell”, and a companion column says which. Earlier releases collapsed the last two into a single null, and about one flight in twelve genuinely belongs to the middle one.</p>
+<p><strong>Arrivals do not carry that marker, and the asymmetry is deliberate.</strong> The label is decided by whether a trajectory’s endpoint sits at the edge of coverage. A track that <em>starts</em> at the edge almost certainly entered from outside; a track that <em>ends</em> near it may equally be a flight still bound somewhere inside whose reception was simply lost. Measured, the arrival label was right about half the time, so it is not emitted. <a href="#sec-ooa" class="quarto-xref">Section&nbsp;10</a> gives the figures and <a href="#sec-open" class="quarto-xref">Section&nbsp;9</a> what would change it.</p>
 </section>
 <section id="reading-this-page" class="level2" data-number="1">
 <h2 data-number="1" class="anchored" data-anchor-id="reading-this-page"><span class="header-section-number">1</span> Reading this page</h2>
@@ -286,7 +288,7 @@ window.Quarto = {
 <tbody>
 <tr class="odd">
 <td><code>ID</code></td>
-<td>The track identifier. Stable within a release, <strong>not</strong> stable across algorithm versions — see <a href="#sec-versions" class="quarto-xref">Section&nbsp;15</a>.</td>
+<td>The track identifier. Stable within a release, <strong>not</strong> stable across algorithm versions — see <a href="#sec-versions" class="quarto-xref">Section&nbsp;16</a>.</td>
 </tr>
 <tr class="even">
 <td><code>ICAO24</code></td>
@@ -332,7 +334,7 @@ An ICAO code. The pipeline saw enough to name it.
 </dd>
 <dt><code>out_of_area</code></dt>
 <dd>
-<code>ADEP</code>/<code>ADES</code> is <code>OOA</code>. The flight entered or left the observed area rather than departing or landing inside it — the trajectory begins or ends at the edge of coverage, not near any aerodrome. <strong>This is an answer, not a failure.</strong> An analysis counting movements should exclude these; one measuring coverage should count them as correct.
+<code>ADEP</code> is <code>OOA</code>. The flight entered the observed area rather than departing inside it — the trajectory begins at the edge of coverage, not near any aerodrome. <strong>This is an answer, not a failure.</strong> It appears on departures only: see the summary, and <a href="#sec-ooa" class="quarto-xref">Section&nbsp;10</a> for why. An analysis counting movements should exclude these; one measuring coverage should count them as correct.
 </dd>
 <dt><code>undetermined</code></dt>
 <dd>
@@ -384,14 +386,14 @@ Figure&nbsp;1: From the OpenSky archive to the published flight list. Boxes name
 <h3 data-number="3.1" class="anchored" data-anchor-id="reference-data"><span class="header-section-number">3.1</span> 00 — Reference data</h3>
 <p>Builds what the detection needs to know about aerodromes. The important product is the <strong>H3 detection zone table</strong>: for every aerodrome, the set of hexagonal cells (resolution 7, about 1.5 NM across) covering concentric rings out to a generous radius, each tagged with the ring’s inner and outer distance.</p>
 <p>This is a spatial index, not an answer. Its job is to turn “which aerodromes might this fix be near?” into a hash lookup. Distances are measured afterwards, exactly — <a href="#sec-ranking" class="quarto-xref">Section&nbsp;3.5.1</a> explains why that distinction turned out to matter more than any threshold in the study.</p>
-<p>Aerodrome positions, elevations and scheduled-service flags come from OurAirports. The candidate set is restricted to large and medium aerodromes; <a href="#sec-limitations" class="quarto-xref">Section&nbsp;16</a> quantifies what that excludes.</p>
+<p>Aerodrome positions, elevations and scheduled-service flags come from OurAirports. The candidate set is restricted to large and medium aerodromes; <a href="#sec-limitations" class="quarto-xref">Section&nbsp;17</a> quantifies what that excludes.</p>
 </section>
 <section id="state-vector-ingestion" class="level3" data-number="3.2">
 <h3 data-number="3.2" class="anchored" data-anchor-id="state-vector-ingestion"><span class="header-section-number">3.2</span> 01 — State-vector ingestion</h3>
 <p>Reads the OpenSky archive and keeps what OPDI needs:</p>
 <ul>
 <li><strong>A bounding box</strong>, roughly 25.9° W to 49.7° E and 26.7° N to 70.3° N. This is the <em>observed area</em>, and its edge is what the <code>OOA</code> marker refers to.</li>
-<li><strong>Thinning to 5 s.</strong> The archive is a complete 1 Hz grid. OPDI keeps the newest row in each 5 s bin — a <strong>bin-based</strong> rule. Earlier releases used a fixed-phase rule, keeping a row only if one existed at the exact second divisible by five. <a href="#sec-sampler" class="quarto-xref">Section&nbsp;11</a> measures the difference.</li>
+<li><strong>Thinning to 5 s.</strong> The archive is a complete 1 Hz grid. OPDI keeps the newest row in each 5 s bin — a <strong>bin-based</strong> rule. Earlier releases used a fixed-phase rule, keeping a row only if one existed at the exact second divisible by five. <a href="#sec-sampler" class="quarto-xref">Section&nbsp;12</a> measures the difference.</li>
 </ul>
 <p>The raw global 1 Hz feed is never stored.</p>
 </section>
@@ -404,7 +406,7 @@ Figure&nbsp;1: From the OpenSky archive to the published flight list. Boxes name
 <section id="a-trajectory-cleaning" class="level3" data-number="3.4">
 <h3 data-number="3.4" class="anchored" data-anchor-id="a-trajectory-cleaning"><span class="header-section-number">3.4</span> 02a — Trajectory cleaning</h3>
 <p>Masks implausible values to null and keeps the row: duplicate state vectors, out-of-range positions, stale broadcasts (ADS-B sends position and velocity in separate messages, so identical consecutive values mean <em>repeated</em>, not <em>measured</em>), derivative spikes, and isolated points. It also marks segment boundaries at coverage gaps so nothing downstream interpolates across them.</p>
-<p>Masking rather than deleting is deliberate: it preserves the distinction between “no data” and “interpolated data”. It does mean the detection has fewer usable samples, since a fix with no barometric altitude cannot vote on a trend. <a href="#sec-cleaning" class="quarto-xref">Section&nbsp;10</a> measures what that costs and what it buys.</p>
+<p>Masking rather than deleting is deliberate: it preserves the distinction between “no data” and “interpolated data”. It does mean the detection has fewer usable samples, since a fix with no barometric altitude cannot vote on a trend. <a href="#sec-cleaning" class="quarto-xref">Section&nbsp;11</a> measures what that costs and what it buys.</p>
 </section>
 <section id="flight-list" class="level3" data-number="3.5">
 <h3 data-number="3.5" class="anchored" data-anchor-id="flight-list"><span class="header-section-number">3.5</span> 03 — Flight list</h3>
@@ -424,7 +426,7 @@ Figure&nbsp;1: From the OpenSky archive to the published flight list. Boxes name
 <h4 data-number="3.5.3" class="anchored" data-anchor-id="trend-for-arrivals"><span class="header-section-number">3.5.3</span> <code>trend</code> — for arrivals</h4>
 <p>For every fix below a flight-level cap and within a radius of a candidate aerodrome, ask whether smoothed barometric altitude is rising or falling. Each fix votes. If descending votes beat climbing votes by more than a margin, that aerodrome is a destination.</p>
 <p>Its abstention is <strong>evidential</strong>: it declines when the altitude trace near an aerodrome does not clearly rise or fall. That is why it suits arrivals — it uses the whole approach rather than one fix, and one fix is exactly what an arrival is least likely to have in the right place.</p>
-<p>Two refinements complete it. Among candidates whose distances differ by less than a small band, the one the aircraft’s course actually points at wins (<a href="#sec-bearing" class="quarto-xref">Section&nbsp;12</a>). And where <code>trend</code> cannot name an aerodrome, the same border test <code>endpoint</code> uses can still distinguish “came from outside” from “cannot tell”.</p>
+<p>Two refinements complete it. Among candidates whose distances differ by less than a small band, the one the aircraft’s course actually points at wins (<a href="#sec-bearing" class="quarto-xref">Section&nbsp;13</a>). And where <code>trend</code> cannot name an aerodrome, the same border test <code>endpoint</code> uses can still distinguish “came from outside” from “cannot tell”.</p>
 </section>
 </section>
 <section id="events-and-export" class="level3" data-number="3.6">
@@ -440,7 +442,7 @@ Figure&nbsp;1: From the OpenSky archive to the published flight list. Boxes name
 <section id="the-sample" class="level3" data-number="4.1">
 <h3 data-number="4.1" class="anchored" data-anchor-id="the-sample"><span class="header-section-number">4.1</span> The sample</h3>
 <p>Three days, <strong>5–7 June 2025</strong>, with <strong>5–7 June 2024</strong> as an independent second period. Both are full-day samples inside the bounding box, thinned to 5 s.</p>
-<p>Ground truth is EUROCONTROL Network Manager movement data for the same days, matched to OPDI tracks on aircraft address plus callsign plus date, and where several tracks match, the one starting closest to the reference off-block time. It is not redistributable, which is where reproducibility stops (<a href="#sec-provenance" class="quarto-xref">Section&nbsp;17</a>).</p>
+<p>Ground truth is EUROCONTROL Network Manager movement data for the same days, matched to OPDI tracks on aircraft address plus callsign plus date, and where several tracks match, the one starting closest to the reference off-block time. It is not redistributable, which is where reproducibility stops (<a href="#sec-provenance" class="quarto-xref">Section&nbsp;18</a>).</p>
 </section>
 <section id="the-measures" class="level3" data-number="4.2">
 <h3 data-number="4.2" class="anchored" data-anchor-id="the-measures"><span class="header-section-number">4.2</span> The measures</h3>
@@ -498,16 +500,16 @@ The same two quantities as counts, which is what makes settings comparable. Cove
 <td style="text-align: right;">legacy algorithm, uncleaned tracks</td>
 <td style="text-align: right;">63,064</td>
 <td style="text-align: right;">—</td>
-<td style="text-align: right;">60,603</td>
+<td style="text-align: right;">60,600</td>
 <td style="text-align: right;">—</td>
-<td style="text-align: right;">123,667</td>
+<td style="text-align: right;">123,664</td>
 </tr>
 <tr class="even">
 <td style="text-align: right;">+ rank candidates by exact distance</td>
 <td style="text-align: right;">62,539</td>
 <td style="text-align: right;">−525</td>
 <td style="text-align: right;">60,255</td>
-<td style="text-align: right;">−348</td>
+<td style="text-align: right;">−345</td>
 <td style="text-align: right;">122,794</td>
 </tr>
 <tr class="odd">
@@ -544,64 +546,48 @@ The same two quantities as counts, which is what makes settings comparable. Cove
 </tr>
 <tr class="odd">
 <td style="text-align: right;">+ tuned vote margin</td>
-<td style="text-align: right;">67,533</td>
-<td style="text-align: right;">+348</td>
-<td style="text-align: right;">61,980</td>
-<td style="text-align: right;">+232</td>
-<td style="text-align: right;">129,513</td>
+<td style="text-align: right;">67,704</td>
+<td style="text-align: right;">+519</td>
+<td style="text-align: right;">62,078</td>
+<td style="text-align: right;">+330</td>
+<td style="text-align: right;">129,782</td>
 </tr>
 <tr class="even">
-<td style="text-align: right;">+ tuned radius</td>
-<td style="text-align: right;">67,727</td>
-<td style="text-align: right;">+194</td>
-<td style="text-align: right;">62,000</td>
-<td style="text-align: right;">+20</td>
-<td style="text-align: right;">129,727</td>
-</tr>
-<tr class="odd">
 <td style="text-align: right;">+ bearing tie-break</td>
-<td style="text-align: right;">67,910</td>
-<td style="text-align: right;">+183</td>
-<td style="text-align: right;">63,092</td>
-<td style="text-align: right;">+1,092</td>
-<td style="text-align: right;">131,002</td>
-</tr>
-<tr class="even">
-<td style="text-align: right;">+ out-of-area labelling</td>
-<td style="text-align: right;">69,072</td>
-<td style="text-align: right;">+1,162</td>
-<td style="text-align: right;">62,265</td>
-<td style="text-align: right;">−827</td>
-<td style="text-align: right;">131,337</td>
+<td style="text-align: right;">67,899</td>
+<td style="text-align: right;">+195</td>
+<td style="text-align: right;">63,272</td>
+<td style="text-align: right;">+1,194</td>
+<td style="text-align: right;">131,171</td>
 </tr>
 <tr class="odd">
 <td style="text-align: right;">+ departures from <code>endpoint</code></td>
-<td style="text-align: right;">71,806</td>
-<td style="text-align: right;">+2,734</td>
-<td style="text-align: right;">61,486</td>
-<td style="text-align: right;">−779</td>
-<td style="text-align: right;">133,292</td>
+<td style="text-align: right;">71,778</td>
+<td style="text-align: right;">+3,879</td>
+<td style="text-align: right;">62,183</td>
+<td style="text-align: right;">−1,089</td>
+<td style="text-align: right;">133,961</td>
 </tr>
 <tr class="even">
 <td style="text-align: right;">+ tuned endpoint radius</td>
-<td style="text-align: right;">72,013</td>
+<td style="text-align: right;">71,985</td>
 <td style="text-align: right;">+207</td>
-<td style="text-align: right;">61,486</td>
+<td style="text-align: right;">62,183</td>
 <td style="text-align: right;">0</td>
-<td style="text-align: right;">133,499</td>
+<td style="text-align: right;">134,168</td>
 </tr>
 <tr class="odd">
 <td style="text-align: right;">+ cleaned tracks (<strong>= shipped</strong>)</td>
-<td style="text-align: right;">72,013</td>
-<td style="text-align: right;">0</td>
-<td style="text-align: right;">61,009</td>
-<td style="text-align: right;">−477</td>
-<td style="text-align: right;">133,022</td>
+<td style="text-align: right;">71,983</td>
+<td style="text-align: right;">−2</td>
+<td style="text-align: right;">62,185</td>
+<td style="text-align: right;">+2</td>
+<td style="text-align: right;">134,168</td>
 </tr>
 </tbody>
 </table>
-<p>Scores, not ratios: coverage and accuracy always move in opposite directions, and only the counts say whether an exchange was worth taking. Net over the whole ladder: <strong>+9,355</strong>.</p>
-<p>Rows one to ten produce both roles with <code>trend</code>, so each change is attributable to its own line. Row eleven switches departures to <code>endpoint</code>, which is why the departure column moves there and barely moves before it — the trend parameters above are tuned for arrivals.</p>
+<p>Scores, not ratios: coverage and accuracy always move in opposite directions, and only the counts say whether an exchange was worth taking. Net over the whole ladder: <strong>+10,504</strong>.</p>
+<p>The first eight rows produce both roles with <code>trend</code>, so each change is attributable to its own line. The ninth switches departures to <code>endpoint</code>, which is why the departure column jumps there and barely moves before it — every trend parameter above is tuned for arrivals.</p>
 </section>
 <section id="section-1" class="level3" data-number="5.2">
 <h3 data-number="5.2" class="anchored" data-anchor-id="section-1"><span class="header-section-number">5.2</span> 2024</h3>
@@ -651,16 +637,16 @@ The same two quantities as counts, which is what makes settings comparable. Cove
 </tr>
 <tr class="even">
 <td style="text-align: right;">+ smooth altitude before the flight-level cut</td>
-<td style="text-align: right;">53,597</td>
-<td style="text-align: right;">+271</td>
+<td style="text-align: right;">53,591</td>
+<td style="text-align: right;">+265</td>
 <td style="text-align: right;">48,200</td>
 <td style="text-align: right;">+22</td>
-<td style="text-align: right;">101,797</td>
+<td style="text-align: right;">101,791</td>
 </tr>
 <tr class="odd">
 <td style="text-align: right;">+ scheduled-service penalty</td>
 <td style="text-align: right;">53,765</td>
-<td style="text-align: right;">+168</td>
+<td style="text-align: right;">+174</td>
 <td style="text-align: right;">51,482</td>
 <td style="text-align: right;">+3,282</td>
 <td style="text-align: right;">105,247</td>
@@ -675,64 +661,48 @@ The same two quantities as counts, which is what makes settings comparable. Cove
 </tr>
 <tr class="odd">
 <td style="text-align: right;">+ tuned vote margin</td>
-<td style="text-align: right;">57,393</td>
-<td style="text-align: right;">+278</td>
-<td style="text-align: right;">53,414</td>
-<td style="text-align: right;">+236</td>
-<td style="text-align: right;">110,807</td>
+<td style="text-align: right;">57,587</td>
+<td style="text-align: right;">+472</td>
+<td style="text-align: right;">53,631</td>
+<td style="text-align: right;">+453</td>
+<td style="text-align: right;">111,218</td>
 </tr>
 <tr class="even">
-<td style="text-align: right;">+ tuned radius</td>
-<td style="text-align: right;">57,561</td>
-<td style="text-align: right;">+168</td>
-<td style="text-align: right;">53,167</td>
-<td style="text-align: right;">−247</td>
-<td style="text-align: right;">110,728</td>
-</tr>
-<tr class="odd">
 <td style="text-align: right;">+ bearing tie-break</td>
-<td style="text-align: right;">58,068</td>
-<td style="text-align: right;">+507</td>
-<td style="text-align: right;">53,701</td>
-<td style="text-align: right;">+534</td>
-<td style="text-align: right;">111,769</td>
-</tr>
-<tr class="even">
-<td style="text-align: right;">+ out-of-area labelling</td>
-<td style="text-align: right;">58,634</td>
-<td style="text-align: right;">+566</td>
-<td style="text-align: right;">53,456</td>
-<td style="text-align: right;">−245</td>
-<td style="text-align: right;">112,090</td>
+<td style="text-align: right;">58,163</td>
+<td style="text-align: right;">+576</td>
+<td style="text-align: right;">54,234</td>
+<td style="text-align: right;">+603</td>
+<td style="text-align: right;">112,397</td>
 </tr>
 <tr class="odd">
 <td style="text-align: right;">+ departures from <code>endpoint</code></td>
-<td style="text-align: right;">62,980</td>
-<td style="text-align: right;">+4,346</td>
-<td style="text-align: right;">52,742</td>
-<td style="text-align: right;">−714</td>
-<td style="text-align: right;">115,722</td>
+<td style="text-align: right;">62,982</td>
+<td style="text-align: right;">+4,819</td>
+<td style="text-align: right;">53,253</td>
+<td style="text-align: right;">−981</td>
+<td style="text-align: right;">116,235</td>
 </tr>
 <tr class="even">
 <td style="text-align: right;">+ tuned endpoint radius</td>
-<td style="text-align: right;">63,046</td>
+<td style="text-align: right;">63,048</td>
 <td style="text-align: right;">+66</td>
-<td style="text-align: right;">52,742</td>
+<td style="text-align: right;">53,253</td>
 <td style="text-align: right;">0</td>
-<td style="text-align: right;">115,788</td>
+<td style="text-align: right;">116,301</td>
 </tr>
 <tr class="odd">
 <td style="text-align: right;">+ cleaned tracks (<strong>= shipped</strong>)</td>
-<td style="text-align: right;">63,040</td>
-<td style="text-align: right;">−6</td>
-<td style="text-align: right;">52,156</td>
-<td style="text-align: right;">−586</td>
-<td style="text-align: right;">115,196</td>
+<td style="text-align: right;">63,046</td>
+<td style="text-align: right;">−2</td>
+<td style="text-align: right;">52,904</td>
+<td style="text-align: right;">−349</td>
+<td style="text-align: right;">115,950</td>
 </tr>
 </tbody>
 </table>
-<p>Scores, not ratios: coverage and accuracy always move in opposite directions, and only the counts say whether an exchange was worth taking. Net over the whole ladder: <strong>+13,216</strong>.</p>
-<p>Rows one to ten produce both roles with <code>trend</code>, so each change is attributable to its own line. Row eleven switches departures to <code>endpoint</code>, which is why the departure column moves there and barely moves before it — the trend parameters above are tuned for arrivals.</p>
+<p>Scores, not ratios: coverage and accuracy always move in opposite directions, and only the counts say whether an exchange was worth taking. Net over the whole ladder: <strong>+13,970</strong>.</p>
+<p>The first eight rows produce both roles with <code>trend</code>, so each change is attributable to its own line. The ninth switches departures to <code>endpoint</code>, which is why the departure column jumps there and barely moves before it — every trend parameter above is tuned for arrivals.</p>
 </section>
 </section>
 <section id="sec-sweeps" class="level2" data-number="6">
@@ -911,105 +881,105 @@ The same two quantities as counts, which is what makes settings comparable. Cove
 <tbody>
 <tr class="odd">
 <td style="text-align: right;">FL25</td>
-<td style="text-align: right;">56,929</td>
-<td style="text-align: right;">58,891</td>
-<td style="text-align: right;">48,543</td>
-<td style="text-align: right;">48,413</td>
+<td style="text-align: right;">58,898</td>
+<td style="text-align: right;">60,242</td>
+<td style="text-align: right;">50,331</td>
+<td style="text-align: right;">49,052</td>
 </tr>
 <tr class="even">
 <td style="text-align: right;">FL40</td>
-<td style="text-align: right;">65,101</td>
-<td style="text-align: right;">60,788</td>
-<td style="text-align: right;">55,101</td>
-<td style="text-align: right;">51,161</td>
+<td style="text-align: right;">65,086</td>
+<td style="text-align: right;">62,068</td>
+<td style="text-align: right;">55,464</td>
+<td style="text-align: right;">52,071</td>
 </tr>
 <tr class="odd">
 <td style="text-align: right;">FL50</td>
-<td style="text-align: right;">67,301</td>
-<td style="text-align: right;">61,453</td>
-<td style="text-align: right;">57,220</td>
-<td style="text-align: right;">52,429</td>
+<td style="text-align: right;">66,699</td>
+<td style="text-align: right;">62,893</td>
+<td style="text-align: right;">57,141</td>
+<td style="text-align: right;">53,216</td>
 </tr>
 <tr class="even">
 <td style="text-align: right;">FL60</td>
-<td style="text-align: right;">68,279</td>
-<td style="text-align: right;">61,793</td>
-<td style="text-align: right;">58,183</td>
-<td style="text-align: right;">52,893</td>
+<td style="text-align: right;">67,531</td>
+<td style="text-align: right;">63,301</td>
+<td style="text-align: right;">57,963</td>
+<td style="text-align: right;">53,910</td>
 </tr>
 <tr class="odd">
 <td style="text-align: right;">FL75</td>
-<td style="text-align: right;">69,230</td>
-<td style="text-align: right;">61,858</td>
-<td style="text-align: right;">58,945</td>
-<td style="text-align: right;">53,389</td>
+<td style="text-align: right;">68,533</td>
+<td style="text-align: right;">63,579</td>
+<td style="text-align: right;">58,745</td>
+<td style="text-align: right;">54,624</td>
 </tr>
 <tr class="even">
 <td style="text-align: right;">FL100</td>
-<td style="text-align: right;">70,142</td>
-<td style="text-align: right;">60,248</td>
-<td style="text-align: right;">59,696</td>
-<td style="text-align: right;">51,886</td>
+<td style="text-align: right;">69,272</td>
+<td style="text-align: right;">62,330</td>
+<td style="text-align: right;">59,328</td>
+<td style="text-align: right;">53,612</td>
 </tr>
 <tr class="odd">
 <td style="text-align: right;">FL125</td>
-<td style="text-align: right;">70,334</td>
-<td style="text-align: right;">58,314</td>
-<td style="text-align: right;">59,579</td>
-<td style="text-align: right;">50,327</td>
+<td style="text-align: right;">69,461</td>
+<td style="text-align: right;">60,410</td>
+<td style="text-align: right;">59,367</td>
+<td style="text-align: right;">52,311</td>
 </tr>
 <tr class="even">
 <td style="text-align: right;">FL150</td>
-<td style="text-align: right;">69,756</td>
-<td style="text-align: right;">56,861</td>
-<td style="text-align: right;">58,752</td>
-<td style="text-align: right;">48,892</td>
+<td style="text-align: right;">69,088</td>
+<td style="text-align: right;">58,632</td>
+<td style="text-align: right;">58,772</td>
+<td style="text-align: right;">50,678</td>
 </tr>
 <tr class="odd">
 <td style="text-align: right;">FL175</td>
-<td style="text-align: right;">68,768</td>
-<td style="text-align: right;">55,184</td>
-<td style="text-align: right;">57,839</td>
-<td style="text-align: right;">47,042</td>
+<td style="text-align: right;">68,253</td>
+<td style="text-align: right;">56,528</td>
+<td style="text-align: right;">58,020</td>
+<td style="text-align: right;">48,395</td>
 </tr>
 <tr class="even">
 <td style="text-align: right;">FL200</td>
-<td style="text-align: right;">67,603</td>
-<td style="text-align: right;">53,185</td>
-<td style="text-align: right;">56,643</td>
-<td style="text-align: right;">44,841</td>
+<td style="text-align: right;">67,008</td>
+<td style="text-align: right;">54,186</td>
+<td style="text-align: right;">56,484</td>
+<td style="text-align: right;">45,967</td>
 </tr>
 <tr class="odd">
 <td style="text-align: right;">FL225</td>
-<td style="text-align: right;">66,148</td>
-<td style="text-align: right;">51,414</td>
-<td style="text-align: right;">55,157</td>
-<td style="text-align: right;">42,580</td>
+<td style="text-align: right;">65,359</td>
+<td style="text-align: right;">52,135</td>
+<td style="text-align: right;">54,881</td>
+<td style="text-align: right;">43,558</td>
 </tr>
 <tr class="even">
 <td style="text-align: right;">FL250</td>
-<td style="text-align: right;">64,361</td>
-<td style="text-align: right;">49,492</td>
-<td style="text-align: right;">53,547</td>
-<td style="text-align: right;">40,099</td>
+<td style="text-align: right;">63,178</td>
+<td style="text-align: right;">49,900</td>
+<td style="text-align: right;">53,022</td>
+<td style="text-align: right;">40,865</td>
 </tr>
 <tr class="odd">
 <td style="text-align: right;">FL275</td>
-<td style="text-align: right;">62,738</td>
-<td style="text-align: right;">47,834</td>
-<td style="text-align: right;">51,977</td>
-<td style="text-align: right;">38,041</td>
+<td style="text-align: right;">61,286</td>
+<td style="text-align: right;">48,022</td>
+<td style="text-align: right;">51,289</td>
+<td style="text-align: right;">38,582</td>
 </tr>
 <tr class="even">
 <td style="text-align: right;">FL300</td>
-<td style="text-align: right;">60,742</td>
-<td style="text-align: right;">45,510</td>
-<td style="text-align: right;">50,052</td>
-<td style="text-align: right;">35,653</td>
+<td style="text-align: right;">58,922</td>
+<td style="text-align: right;">45,014</td>
+<td style="text-align: right;">48,951</td>
+<td style="text-align: right;">35,687</td>
 </tr>
 </tbody>
 </table>
-<p>At 20 NM, through the pipeline itself. Departures peak at FL125 and arrivals at FL75 on the 2025 sample. Coverage keeps rising with the cap — a higher cap admits more fixes — but accuracy falls faster, because fixes taken higher up are further from whichever aerodrome turns out to be the answer.</p>
+<p>At 30 NM — the shipped radius — through the pipeline itself. Departures peak at FL125 and arrivals at FL75 on the 2025 sample. Coverage keeps rising with the cap — a higher cap admits more fixes — but accuracy falls faster, because fixes taken higher up are further from whichever aerodrome turns out to be the answer.</p>
 </section>
 </section>
 <section id="sec-verdict" class="level2" data-number="7">
@@ -1042,11 +1012,11 @@ The same two quantities as counts, which is what makes settings comparable. Cove
 <td style="text-align: right;"><strong>SHIPPED</strong> — <code>endpoint</code> departures, <code>trend</code> arrivals</td>
 <td style="text-align: right;">endpoint</td>
 <td style="text-align: right;">trend</td>
-<td style="text-align: right;">79.96%</td>
-<td style="text-align: right;">98.23%</td>
-<td style="text-align: right;">67.57%</td>
-<td style="text-align: right;">98.31%</td>
-<td style="text-align: right;">133,022</td>
+<td style="text-align: right;">79.97%</td>
+<td style="text-align: right;">98.21%</td>
+<td style="text-align: right;">68.29%</td>
+<td style="text-align: right;">98.58%</td>
+<td style="text-align: right;">134,168</td>
 </tr>
 <tr class="even">
 <td style="text-align: right;"><code>endpoint</code> for both roles</td>
@@ -1062,11 +1032,11 @@ The same two quantities as counts, which is what makes settings comparable. Cove
 <td style="text-align: right;"><code>trend</code> for both roles</td>
 <td style="text-align: right;">trend</td>
 <td style="text-align: right;">trend</td>
-<td style="text-align: right;">74.10%</td>
-<td style="text-align: right;">98.96%</td>
-<td style="text-align: right;">68.72%</td>
-<td style="text-align: right;">98.18%</td>
-<td style="text-align: right;">130,072</td>
+<td style="text-align: right;">73.51%</td>
+<td style="text-align: right;">98.86%</td>
+<td style="text-align: right;">69.81%</td>
+<td style="text-align: right;">98.45%</td>
+<td style="text-align: right;">130,832</td>
 </tr>
 <tr class="even">
 <td style="text-align: right;">legacy — the algorithm published before 2026</td>
@@ -1092,7 +1062,7 @@ The same two quantities as counts, which is what makes settings comparable. Cove
 </table>
 <p>Each row is a complete configuration — which algorithm names departures, which names arrivals — not a step in a sequence. The rows are alternatives to choose between.</p>
 <p>All five read the <strong>cleaned</strong> tracks, so this table compares algorithms on one input. That is why the <code>legacy</code> row here does not match the ladder’s first rung in <a href="#sec-ladder" class="quarto-xref">Section&nbsp;5</a>: this one is the legacy <em>algorithm</em> on current input, and that one is the legacy algorithm on the input it actually shipped with. The pair separates the algorithm from the data, and neither number alone does.</p>
-<p>The shipped configuration scores <strong>133,022 against legacy’s 122,158</strong>, a gain of +10,864.</p>
+<p>The shipped configuration scores <strong>134,168 against legacy’s 122,158</strong>, a gain of +12,010.</p>
 <section id="which-changes-hold-on-both-samples" class="level3" data-number="7.1">
 <h3 data-number="7.1" class="anchored" data-anchor-id="which-changes-hold-on-both-samples"><span class="header-section-number">7.1</span> Which changes hold on both samples</h3>
 <p>A change measured on one sample has been observed; a change measured on two has been <em>demonstrated</em>. The ladder runs identically on both periods, so every rung can be graded on whether its sign survives.</p>
@@ -1114,7 +1084,7 @@ The same two quantities as counts, which is what makes settings comparable. Cove
 <tbody>
 <tr class="odd">
 <td style="text-align: right;">+ rank candidates by exact distance</td>
-<td style="text-align: right;">−873</td>
+<td style="text-align: right;">−870</td>
 <td style="text-align: right;">−462</td>
 <td style="text-align: right;"><strong>consistently costs</strong></td>
 </tr>
@@ -1127,13 +1097,13 @@ The same two quantities as counts, which is what makes settings comparable. Cove
 <tr class="odd">
 <td style="text-align: right;">+ smooth altitude before the flight-level cut</td>
 <td style="text-align: right;">+158</td>
-<td style="text-align: right;">+293</td>
+<td style="text-align: right;">+287</td>
 <td style="text-align: right;"><strong>holds</strong></td>
 </tr>
 <tr class="even">
 <td style="text-align: right;">+ scheduled-service penalty</td>
 <td style="text-align: right;">+1,710</td>
-<td style="text-align: right;">+3,450</td>
+<td style="text-align: right;">+3,456</td>
 <td style="text-align: right;"><strong>holds</strong></td>
 </tr>
 <tr class="odd">
@@ -1144,32 +1114,20 @@ The same two quantities as counts, which is what makes settings comparable. Cove
 </tr>
 <tr class="even">
 <td style="text-align: right;">+ tuned vote margin</td>
-<td style="text-align: right;">+580</td>
-<td style="text-align: right;">+514</td>
+<td style="text-align: right;">+849</td>
+<td style="text-align: right;">+925</td>
 <td style="text-align: right;"><strong>holds</strong></td>
 </tr>
 <tr class="odd">
-<td style="text-align: right;">+ tuned radius</td>
-<td style="text-align: right;">+214</td>
-<td style="text-align: right;">−79</td>
-<td style="text-align: right;"><strong>disagrees</strong></td>
-</tr>
-<tr class="even">
 <td style="text-align: right;">+ bearing tie-break</td>
-<td style="text-align: right;">+1,275</td>
-<td style="text-align: right;">+1,041</td>
-<td style="text-align: right;"><strong>holds</strong></td>
-</tr>
-<tr class="odd">
-<td style="text-align: right;">+ out-of-area labelling</td>
-<td style="text-align: right;">+335</td>
-<td style="text-align: right;">+321</td>
+<td style="text-align: right;">+1,389</td>
+<td style="text-align: right;">+1,179</td>
 <td style="text-align: right;"><strong>holds</strong></td>
 </tr>
 <tr class="even">
 <td style="text-align: right;">+ departures from <code>endpoint</code></td>
-<td style="text-align: right;">+1,955</td>
-<td style="text-align: right;">+3,632</td>
+<td style="text-align: right;">+2,790</td>
+<td style="text-align: right;">+3,838</td>
 <td style="text-align: right;"><strong>holds</strong></td>
 </tr>
 <tr class="odd">
@@ -1180,18 +1138,19 @@ The same two quantities as counts, which is what makes settings comparable. Cove
 </tr>
 <tr class="even">
 <td style="text-align: right;">+ cleaned tracks (<strong>= shipped</strong>)</td>
-<td style="text-align: right;">−477</td>
-<td style="text-align: right;">−592</td>
-<td style="text-align: right;"><strong>consistently costs</strong></td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">−351</td>
+<td style="text-align: right;">costs on 2024 only</td>
 </tr>
 </tbody>
 </table>
 <p>Δ is the change in <strong>total</strong> score, departures plus arrivals, against the rung above. A rung moving less than 48 flights on both samples is reported as having no material effect rather than having its sign read off noise.</p>
-<p><strong>+ tuned radius</strong> changes sign between the two samples. A value that gains on the sample it was chosen against and loses on an independent one has not been demonstrated, and this study treats that as a reason to revisit it rather than to average the two.</p>
+<p><strong>Nothing changes sign between the two samples.</strong> Every step that moves anything moves it the same way on two independent periods — which is the property the second sample exists to test, and which an earlier version of this configuration did not have.</p>
+<p><strong>+ cleaned tracks (</strong>= shipped<strong>)</strong> moves one sample and not the other. That is weaker evidence than agreement and stronger than a contradiction: nothing points the wrong way, but the effect is not established on both.</p>
 <p><em>Consistently costs</em> is not the same as <em>wrong</em>, and the two rungs carrying that verdict are worth reading rather than skipping.</p>
 <p><strong>Exact-distance ranking costs on its own.</strong> It is not an improvement; it is an <em>enabler</em>. Two rungs later the flight-level cap is worth over four thousand on both samples, and under the hexagon-index selection it replaces, the same change lost ground. The cost here buys that, and quoting this rung alone tells the story backwards.</p>
-<p><strong>Cleaning costs too, and the report does not hide it.</strong> Masking implausible values removes candidate fixes, so coverage falls. What it buys is accuracy and a trustworthy input for every other thing built on tracks. Whether that exchange is worth it at <span class="math inline">\(k = 2\)</span> is a judgement, and the number is here so a reader can disagree with it — see <a href="#sec-cleaning" class="quarto-xref">Section&nbsp;10</a>.</p>
-<p>Out-of-area labelling reads as <em>holds</em>, which corrects an easy misreading: it does cost arrival score, and it gains more on departures than it costs on arrivals, because flights beginning outside the observed area are now named correctly instead of being silently dropped. <a href="#sec-ooa" class="quarto-xref">Section&nbsp;9</a> gives both halves.</p>
+<p><strong>Cleaning costs too, and the report does not hide it.</strong> Masking implausible values removes candidate fixes, so coverage falls. What it buys is accuracy and a trustworthy input for every other thing built on tracks. Whether that exchange is worth it at <span class="math inline">\(k = 2\)</span> is a judgement, and the number is here so a reader can disagree with it — see <a href="#sec-cleaning" class="quarto-xref">Section&nbsp;11</a>.</p>
+<p>Out-of-area labelling reads as <em>holds</em>, which corrects an easy misreading: it does cost arrival score, and it gains more on departures than it costs on arrivals, because flights beginning outside the observed area are now named correctly instead of being silently dropped. <a href="#sec-ooa" class="quarto-xref">Section&nbsp;10</a> gives both halves.</p>
 </section>
 <section id="does-it-hold-on-the-second-period" class="level3" data-number="7.2">
 <h3 data-number="7.2" class="anchored" data-anchor-id="does-it-hold-on-the-second-period"><span class="header-section-number">7.2</span> Does it hold on the second period?</h3>
@@ -1216,54 +1175,60 @@ The same two quantities as counts, which is what makes settings comparable. Cove
 </tr>
 <tr class="even">
 <td style="text-align: right;"><strong>SHIPPED</strong> — <code>endpoint</code> departures, <code>trend</code> arrivals</td>
-<td style="text-align: right;">133,022</td>
-<td style="text-align: right;">115,193</td>
+<td style="text-align: right;">134,168</td>
+<td style="text-align: right;">115,953</td>
 </tr>
 </tbody>
 </table>
 <p>No parameter was chosen against one period and checked on the other: both were swept on identical grids and ranked together.</p>
 </section>
 </section>
-<section id="sec-next" class="level2" data-number="8">
-<h2 data-number="8" class="anchored" data-anchor-id="sec-next"><span class="header-section-number">8</span> What should change next</h2>
-<p>Three of the values this report describes are <strong>not</strong> what the evidence supports. They are stated here rather than quietly altered: a default should not be changed by the document that measures it, and a reader deserves to know which parts of what ships are settled and which are not.</p>
+<section id="sec-changed" class="level2" data-number="8">
+<h2 data-number="8" class="anchored" data-anchor-id="sec-changed"><span class="header-section-number">8</span> Three values this study changed</h2>
+<p>Version 6 shipped three constants that version 7 measured and found wanting. All three are changed in the code this report describes, not merely noted: the whole point of measuring a default is to act on the answer.</p>
+<p>Each was tested the same way — applied to the <strong>shipped configuration on its own</strong>, on both samples. That is a different question from a rung in <a href="#sec-ladder" class="quarto-xref">Section&nbsp;5</a>, which asks what a change was worth at one point in a sequence. This asks the question that decides: should it be on?</p>
 <table class="caption-top table">
-<colgroup>
-<col style="width: 24%">
-<col style="width: 43%">
-<col style="width: 31%">
-</colgroup>
 <thead>
 <tr class="header">
-<th style="text-align: left;">Change</th>
-<th style="text-align: left;">Evidence</th>
-<th style="text-align: left;">Confidence</th>
+<th style="text-align: right;">Was → is</th>
+<th style="text-align: right;">2025</th>
+<th style="text-align: right;">2024</th>
 </tr>
 </thead>
 <tbody>
 <tr class="odd">
-<td style="text-align: left;">Arrival detection radius 20 NM → <strong>30 NM</strong></td>
-<td style="text-align: left;">pipeline, both samples (+214 and −79); sweep ranked jointly prefers 30 NM</td>
-<td style="text-align: left;"><strong>high</strong> — four independent measurements agree</td>
+<td style="text-align: right;">radius 20 NM → <strong>30 NM</strong></td>
+<td style="text-align: right;">+181</td>
+<td style="text-align: right;">+334</td>
 </tr>
 <tr class="even">
-<td style="text-align: left;">Out-of-area on <code>trend</code> → <strong>off, or stricter</strong></td>
-<td style="text-align: left;">arrival precision 50.35% against <code>endpoint</code>’s 89.20%; costs arrivals −827 and −245</td>
-<td style="text-align: left;"><strong>high</strong> — a label right half the time is worse than a null</td>
+<td style="text-align: right;">out-of-area on <code>trend</code> on → <strong>off</strong></td>
+<td style="text-align: right;">+470</td>
+<td style="text-align: right;">+14</td>
 </tr>
 <tr class="odd">
-<td style="text-align: left;">Vote margin 2 → <strong>0</strong></td>
-<td style="text-align: left;">research sweep only, both samples</td>
-<td style="text-align: left;"><strong>medium</strong> — never tested through the pipeline</td>
+<td style="text-align: right;">vote margin 2 → <strong>0</strong></td>
+<td style="text-align: right;">+395</td>
+<td style="text-align: right;">+296</td>
 </tr>
 </tbody>
 </table>
-<p><strong>The radius.</strong> It gains on the sample it was chosen against and loses on an independent one, and the research sweep ranked over both periods prefers 30 NM as an interior optimum. This is the single rung in <a href="#sec-ladder" class="quarto-xref">Section&nbsp;5</a> whose sign does not survive a second sample.</p>
-<p><strong>Out-of-area on arrivals.</strong> The label is correct about half the time, against 89% for the same test applied to departures. The asymmetry is geometric: a track that <em>begins</em> at the edge of the observed area almost certainly entered from outside, while one that <em>ends</em> near it may equally be a flight still bound somewhere inside whose reception was lost. Every arrival label replaces a silence, so at <span class="math inline">\(k = 2\)</span> a coin flip is a losing trade. Either the arrival test gains a direction requirement — the course is already computed for the bearing tie-break — or arrival out-of-area is left to <code>endpoint</code>.</p>
-<p><strong>The vote margin.</strong> The sweep prefers 0 to the shipped 2 on both samples, and the pipeline has never tested that step: the ladder walks 4 → 2 and stops. Cleaning is the likely reason the margin has stopped earning its keep — it exists to stop noise flipping a climb-or-descent call, and cleaning now removes much of that noise before the vote is counted. Worth one pipeline run before adopting.</p>
+<p>Each figure is the change in total score from adopting the new value, measured against the shipped configuration on that sample. Both columns positive means the change is supported on two independent periods.</p>
+<p><strong>The radius.</strong> Version 6 moved it to 20 NM on a single period. On two it gains on the sample it was chosen against and loses on the other — the only step in this study whose sign did not survive an independent sample — and the research sweep ranked over both periods puts 30 NM at an interior optimum. Reverted.</p>
+<p>It turned out to be holding two other changes back. At 30 NM the bearing tie-break is worth more, because a wider radius admits more candidate aerodromes and so more near-ties for alignment to resolve; the switch of departures to <code>endpoint</code> gains more as well. A value can be wrong not only in itself but in what it suppresses, and that is invisible until it is changed rather than tabled.</p>
+<p><strong>Out-of-area on <code>trend</code>.</strong> Built, measured, and left off. The capability is real — <code>trend</code> could not previously distinguish “outside the observed area” from “could not tell” — but in the shipped configuration it reaches only arrivals, where the label is right about half the time against <code>endpoint</code>’s 89%. Every label replaces a <em>silence</em>, so at <span class="math inline">\(k = 2\)</span> a coin flip is a losing trade.</p>
+<p>The asymmetry is geometric rather than a tuning accident. A track that <em>begins</em> at the edge of the observed area almost certainly entered from outside; one that <em>ends</em> near it may equally be a flight still bound somewhere inside whose reception was lost. <a href="#sec-ooa" class="quarto-xref">Section&nbsp;10</a> gives the figures.</p>
+<p><strong>The vote margin.</strong> Version 6 shipped 2 on research-sweep evidence and called it the weakest value in its recommendation. The pipeline now agrees with the sweep, on both samples, and the exchange rate settles it: dropping the margin gains far more correct arrivals than wrong ones, well above the study’s threshold of two.</p>
+<p>Cleaning is why it stopped earning its keep. The margin exists to stop noise flipping a climb-or-descent call, and step 02a now masks about a fifth of barometric altitudes before the vote is counted. It was defending against something already removed. <strong>That interaction could not have been found before this version</strong>, because cleaning did not previously reach the flight list at all — which is the strongest argument in the study for having wired it in.</p>
 </section>
-<section id="sec-ooa" class="level2" data-number="9">
-<h2 data-number="9" class="anchored" data-anchor-id="sec-ooa"><span class="header-section-number">9</span> Out-of-area, and the three states</h2>
+<section id="sec-open" class="level2" data-number="9">
+<h2 data-number="9" class="anchored" data-anchor-id="sec-open"><span class="header-section-number">9</span> What is still open</h2>
+<p>Two things, stated so that nobody has to infer them from silence.</p>
+<p><strong>Out-of-area for arrivals needs a direction test.</strong> The border test asks whether a track <em>ends</em> near the edge. It should ask whether the track is heading <em>out</em> — a fix near the boundary on an inbound heading is a reception loss, not a departure from the area. The course is already computed for the bearing tie-break, so the machinery exists; the rule and its measurement do not. Until then arrivals take their out-of-area labels from <code>endpoint</code>, at 89% precision.</p>
+<p><strong>A third period, held out.</strong> Every parameter here is chosen on two samples and validated on those same two. A period against which nothing was tuned would say whether the choices generalise or merely fit both Junes. It needs committed Network Manager reference data for whichever month is chosen, which is a decision about data availability rather than about method.</p>
+</section>
+<section id="sec-ooa" class="level2" data-number="10">
+<h2 data-number="10" class="anchored" data-anchor-id="sec-ooa"><span class="header-section-number">10</span> Out-of-area, and the three states</h2>
 <table class="caption-top table">
 <colgroup>
 <col style="width: 13%">
@@ -1295,17 +1260,17 @@ The same two quantities as counts, which is what makes settings comparable. Cove
 <tr class="even">
 <td style="text-align: right;">Arrivals</td>
 <td style="text-align: right;">8.37%</td>
-<td style="text-align: right;">0.44%</td>
-<td style="text-align: right;">2.67%</td>
-<td style="text-align: right;">50.35%</td>
-<td style="text-align: right;">98.33%</td>
+<td style="text-align: right;">0.00%</td>
+<td style="text-align: right;">0.00%</td>
+<td style="text-align: right;">0.00%</td>
+<td style="text-align: right;">98.61%</td>
 </tr>
 </tbody>
 </table>
 <p><em>In-area accuracy</em> is accuracy restricted to flights whose true aerodrome is a real one — detection skill with the free out-of-area wins removed, and the number to read when comparing naming rules.</p>
 </section>
-<section id="sec-cleaning" class="level2" data-number="10">
-<h2 data-number="10" class="anchored" data-anchor-id="sec-cleaning"><span class="header-section-number">10</span> What cleaning costs and buys</h2>
+<section id="sec-cleaning" class="level2" data-number="11">
+<h2 data-number="11" class="anchored" data-anchor-id="sec-cleaning"><span class="header-section-number">11</span> What cleaning costs and buys</h2>
 <p>Cleaning is the last rung of the ladder rather than a separate experiment, so what it is worth is measured <em>given everything else already adopted</em> — which is the only form of the question that bears on a decision. The two rows differ in nothing but the track table.</p>
 <p><strong>2025</strong></p>
 <table class="caption-top table">
@@ -1330,19 +1295,19 @@ The same two quantities as counts, which is what makes settings comparable. Cove
 <tbody>
 <tr class="odd">
 <td style="text-align: right;">Departures</td>
-<td style="text-align: right;">79.96%</td>
-<td style="text-align: right;">79.96%</td>
-<td style="text-align: right;">98.23%</td>
-<td style="text-align: right;">98.23%</td>
-<td style="text-align: right;">0</td>
+<td style="text-align: right;">79.97%</td>
+<td style="text-align: right;">79.97%</td>
+<td style="text-align: right;">98.21%</td>
+<td style="text-align: right;">98.21%</td>
+<td style="text-align: right;">−2</td>
 </tr>
 <tr class="even">
 <td style="text-align: right;">Arrivals</td>
-<td style="text-align: right;">68.39%</td>
-<td style="text-align: right;">67.57%</td>
-<td style="text-align: right;">98.17%</td>
-<td style="text-align: right;">98.31%</td>
-<td style="text-align: right;">−477</td>
+<td style="text-align: right;">69.07%</td>
+<td style="text-align: right;">68.29%</td>
+<td style="text-align: right;">98.22%</td>
+<td style="text-align: right;">98.58%</td>
+<td style="text-align: right;">+2</td>
 </tr>
 </tbody>
 </table>
@@ -1373,22 +1338,22 @@ The same two quantities as counts, which is what makes settings comparable. Cove
 <td style="text-align: right;">72.69%</td>
 <td style="text-align: right;">97.82%</td>
 <td style="text-align: right;">97.82%</td>
-<td style="text-align: right;">−6</td>
+<td style="text-align: right;">−2</td>
 </tr>
 <tr class="even">
 <td style="text-align: right;">Arrivals</td>
-<td style="text-align: right;">62.48%</td>
-<td style="text-align: right;">61.61%</td>
-<td style="text-align: right;">96.99%</td>
-<td style="text-align: right;">97.07%</td>
-<td style="text-align: right;">−586</td>
+<td style="text-align: right;">62.75%</td>
+<td style="text-align: right;">62.11%</td>
+<td style="text-align: right;">97.15%</td>
+<td style="text-align: right;">97.26%</td>
+<td style="text-align: right;">−349</td>
 </tr>
 </tbody>
 </table>
 <p>Cleaning <strong>masks implausible values to null and keeps the row</strong>, and the detection path drops fixes with no barometric altitude — so it can only remove candidate samples. Coverage falling and accuracy rising is the expected shape; whether that exchange is worth taking at <code>k = 2</code> is what the score column says.</p>
 </section>
-<section id="sec-sampler" class="level2" data-number="11">
-<h2 data-number="11" class="anchored" data-anchor-id="sec-sampler"><span class="header-section-number">11</span> The 5 s sampler</h2>
+<section id="sec-sampler" class="level2" data-number="12">
+<h2 data-number="12" class="anchored" data-anchor-id="sec-sampler"><span class="header-section-number">12</span> The 5 s sampler</h2>
 <p>The bin-based rule is adopted because it is the <strong>correct</strong> rule, not because it measures better. It does not depend on the OpenSky archive being a complete 1 Hz grid, which is a property of the archive rather than a guarantee; the fixed-phase rule it replaces survives only because that property currently holds, and degrades badly if it ever stops.</p>
 <div class="callout callout-style-default callout-note callout-titled">
 <div class="callout-header d-flex align-content-center">
@@ -1407,22 +1372,22 @@ The same two quantities as counts, which is what makes settings comparable. Cove
 <p>Where the sampler <em>should</em> matter is not here at all. Aerodrome detection reads an altitude trend over tens of samples, and one extra fix per five-second bin cannot change the sign of a trend. Milestones defined by a single instant on the ground — off-block, take-off, landing, in-block — are a different case, where a recovered bin is the difference between having a fix and not. That measurement belongs to the events study and has not been made.</p>
 <p>One consequence is not reversible by configuration: <strong><code>track_id</code> values differ</strong> between the two samplers, because rescued rows sit at track boundaries and the splitter breaks on gaps.</p>
 </section>
-<section id="sec-bearing" class="level2" data-number="12">
-<h2 data-number="12" class="anchored" data-anchor-id="sec-bearing"><span class="header-section-number">12</span> The bearing tie-break</h2>
+<section id="sec-bearing" class="level2" data-number="13">
+<h2 data-number="13" class="anchored" data-anchor-id="sec-bearing"><span class="header-section-number">13</span> The bearing tie-break</h2>
 <p>This is the newest component in the algorithm and the best evidenced. It was proposed by the research sweep, declined once for want of a pipeline measurement, and is adopted here because <code>process_dai</code> confirms it on both samples.</p>
 <p>Among candidates whose distances differ by less than a small band — that is, already equidistant to within the measurement — the tie is broken by <em>alignment</em>: which aerodrome the aircraft’s course actually points at. Outside the band, distance decides alone.</p>
 <p>The band is the whole mechanism. Alignment cannot <em>name</em> an aerodrome, because every field on the same radial behind the right one is equally well aligned; it can only separate two that distance has already declared equal.</p>
 </section>
-<section id="sec-using" class="level2" data-number="13">
-<h2 data-number="13" class="anchored" data-anchor-id="sec-using"><span class="header-section-number">13</span> Using the columns</h2>
+<section id="sec-using" class="level2" data-number="14">
+<h2 data-number="14" class="anchored" data-anchor-id="sec-using"><span class="header-section-number">14</span> Using the columns</h2>
 <p><strong>Filter on the source columns, not on nulls.</strong> <code>ADES_SOURCE == 'aerodrome'</code> is the set of named arrivals; <code>'out_of_area'</code> is the set correctly identified as leaving the observed area; <code>'undetermined'</code> is the set to drop.</p>
-<p><strong>Expect under-count, not over-count.</strong> Abstention is the dominant failure mode, so an aerodrome’s movement count from OPDI is a lower bound. <a href="#sec-per-airport" class="quarto-xref">Section&nbsp;14</a> gives the ratio per aerodrome for the hundred busiest.</p>
+<p><strong>Expect under-count, not over-count.</strong> Abstention is the dominant failure mode, so an aerodrome’s movement count from OPDI is a lower bound. <a href="#sec-per-airport" class="quarto-xref">Section&nbsp;15</a> gives the ratio per aerodrome for the hundred busiest.</p>
 <p><strong>Join on <code>ICAO24</code> plus trimmed <code>FLT_ID</code> plus date.</strong> Callsigns are space-padded to eight characters in the raw feed.</p>
 <p><strong><code>FIRST_SEEN</code> is not off-block.</strong> It is when reception began.</p>
-<p><strong>Do not compare <code>ID</code> across versions.</strong> See <a href="#sec-versions" class="quarto-xref">Section&nbsp;15</a>.</p>
+<p><strong>Do not compare <code>ID</code> across versions.</strong> See <a href="#sec-versions" class="quarto-xref">Section&nbsp;16</a>.</p>
 </section>
-<section id="sec-per-airport" class="level2" data-number="14">
-<h2 data-number="14" class="anchored" data-anchor-id="sec-per-airport"><span class="header-section-number">14</span> By aerodrome, for the busiest hundred</h2>
+<section id="sec-per-airport" class="level2" data-number="15">
+<h2 data-number="15" class="anchored" data-anchor-id="sec-per-airport"><span class="header-section-number">15</span> By aerodrome, for the busiest hundred</h2>
 <p><em>Being regenerated.</em></p>
 <p>The matching is flight by flight, not count against count. <strong>Per-aerodrome recall</strong> is, of the flights whose <em>true</em> aerodrome is X, the share OPDI attributes to X. <strong>Count ratio</strong> is what OPDI assigns to X divided by X’s true movements — it includes flights that truly belong elsewhere, so it is what an operational count would show, and it can exceed one.</p>
 <table class="caption-top table">
@@ -1453,15 +1418,15 @@ The same two quantities as counts, which is what makes settings comparable. Cove
 <tr class="even">
 <td style="text-align: right;">Arrivals</td>
 <td style="text-align: right;">65,360</td>
-<td style="text-align: right;">78.94%</td>
+<td style="text-align: right;">80.14%</td>
 <td style="text-align: right;">79.11%</td>
-<td style="text-align: right;">0.899</td>
+<td style="text-align: right;">0.904</td>
 </tr>
 </tbody>
 </table>
 </section>
-<section id="sec-versions" class="level2" data-number="15">
-<h2 data-number="15" class="anchored" data-anchor-id="sec-versions"><span class="header-section-number">15</span> Versions, and what is reproducible</h2>
+<section id="sec-versions" class="level2" data-number="16">
+<h2 data-number="16" class="anchored" data-anchor-id="sec-versions"><span class="header-section-number">16</span> Versions, and what is reproducible</h2>
 <p>The <code>VERSION</code> column says which algorithm produced a row.</p>
 <table class="caption-top table">
 <colgroup>
@@ -1504,13 +1469,13 @@ The same two quantities as counts, which is what makes settings comparable. Cove
 </div>
 </div>
 </section>
-<section id="sec-limitations" class="level2" data-number="16">
-<h2 data-number="16" class="anchored" data-anchor-id="sec-limitations"><span class="header-section-number">16</span> Limitations</h2>
+<section id="sec-limitations" class="level2" data-number="17">
+<h2 data-number="17" class="anchored" data-anchor-id="sec-limitations"><span class="header-section-number">17</span> Limitations</h2>
 <p>What is known to be missing or fragile, stated rather than implied.</p>
 <ul>
-<li><strong>One shipped value is contradicted by this study’s own evidence.</strong> The arrival detection radius ships at 20 NM. Measured through the pipeline it gains 20 flights on the 2025 sample — noise on 95,116 — and loses 247 on 2024, and the research sweep ranked over both periods prefers 30 NM as an interior optimum. 20 NM was a single-period argmax and it did not hold. <a href="#sec-verdict" class="quarto-xref">Section&nbsp;7</a> states the recommendation; the default has not been changed inside this report, because a value should not be altered by the document that measures it.</li>
-<li><strong>The vote margin is the least-supported shipped value.</strong> The sweep prefers 0 over the shipped 2 on both periods, and the pipeline has never tested that step — it walks 4 → 2 and stops. Cleaning is the likely reason: the margin exists to stop noise flipping a climb/descent call, and cleaning now removes much of that noise before the vote is counted.</li>
-<li><strong>Out-of-area labelling costs arrival score, and the cost is a measurement artefact.</strong> Adding the label adds rows to the flight list, and the benchmark pairs each reference flight with the track starting closest to its off-block time — so a new row can take a pairing from a track that carried a real answer. Detection did not get worse. This is reported rather than corrected away, because a benchmark that quietly adjusts its own alignment to flatter a result is worth less than one that shows where it is fragile.</li>
+<li><strong>Every shipped value is chosen on the same two samples it is validated on.</strong> Nothing here is held out. <a href="#sec-open" class="quarto-xref">Section&nbsp;9</a> says why a third period would be worth having and what it needs.</li>
+<li><strong>The benchmark’s own alignment is fragile where the flight list gains rows.</strong> Each reference flight is paired with the track starting closest to its off-block time, so a configuration that produces <em>more</em> tracks can lose a pairing to one carrying no answer. This is visible wherever departures and arrivals come from different methods, and it is reported rather than corrected away: a benchmark that quietly adjusts its own alignment to flatter a result is worth less than one that shows where it is fragile.</li>
+<li><strong>The flight-level grid is swept at one radius.</strong> The cap and the radius are measured separately rather than jointly in the pipeline — the research sweep covers the full grid, and the pipeline confirms the cap at the shipped radius only. A genuine interaction between the two would not be visible here, and one has already been found elsewhere in this study: the detection radius changed what the bearing tie-break was worth.</li>
 <li><strong>The cleaning comparison is one-sided.</strong> Cleaning is measured as the ladder’s last rung, and departures show no change there — <code>endpoint</code> reads a candidate cache built from cleaned tracks in every rung, so the earlier rungs were never really “raw” for that role. The figure is the cost to arrivals, not to the pipeline as a whole.</li>
 <li><strong>The legacy algorithm is not exactly reproducible.</strong> Two identical runs of it named three arrivals differently out of 95,116. Ring-count selection leaves candidates tied on an integer, and the tie is resolved by an ordering that does not separate them. Exact-distance ranking removes those ties rather than arbitrating them, and every configuration using it reproduced exactly.</li>
 <li><strong>The candidate set is large and medium aerodromes.</strong> A flight whose true aerodrome is a small field or a heliport cannot be named by any method here, whatever its thresholds, because the aerodrome is not a candidate. These flights are counted in every denominator on this page, so each coverage figure already carries their cost.</li>
@@ -1520,11 +1485,11 @@ The same two quantities as counts, which is what makes settings comparable. Cove
 <li><strong>Ground truth covers about ninety aerodromes.</strong> Per-aerodrome figures are meaningful only for those.</li>
 </ul>
 </section>
-<section id="sec-provenance" class="level2" data-number="17">
-<h2 data-number="17" class="anchored" data-anchor-id="sec-provenance"><span class="header-section-number">17</span> Provenance</h2>
+<section id="sec-provenance" class="level2" data-number="18">
+<h2 data-number="18" class="anchored" data-anchor-id="sec-provenance"><span class="header-section-number">18</span> Provenance</h2>
 <p>Every CSV behind this page carries the script, arguments, commit and source-file fingerprint that produced it, in <code>data/_manifest.json</code>. An output with no entry is reported as unverified rather than shown as fact.</p>
-<section id="where-reproducibility-stops" class="level3" data-number="17.1">
-<h3 data-number="17.1" class="anchored" data-anchor-id="where-reproducibility-stops"><span class="header-section-number">17.1</span> Where reproducibility stops</h3>
+<section id="where-reproducibility-stops" class="level3" data-number="18.1">
+<h3 data-number="18.1" class="anchored" data-anchor-id="where-reproducibility-stops"><span class="header-section-number">18.1</span> Where reproducibility stops</h3>
 <p>Everything on this page can be recomputed from the OpenSky archive and the code in the <code>opdi</code> repository, with one exception: the EUROCONTROL Network Manager movement data used as ground truth is not redistributable. It is an external input, and every accuracy figure here is measured against it.</p>
 
 

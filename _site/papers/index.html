@@ -145,9 +145,17 @@ ul.task-list li input[type="checkbox"] {
 
 
 <p>Methodology studies behind the <a href="https://www.eurocontrol.int/opdi">Open Performance Data Initiative</a>.</p>
-<p>Each paper benchmarks an OPDI algorithm against EUROCONTROL reference data and reports what the comparison actually showed, including where a proposed method failed. Every figure renders from a committed CSV cache — no credentials, no database, no cluster — so the results on any page can be reproduced from the repository alone.</p>
+<p>Each paper benchmarks an OPDI algorithm against EUROCONTROL reference data and reports what the comparison actually showed, including where a proposed method failed.</p>
+<p>Versions 1–6 render from a committed CSV cache — no credentials, no database, no cluster. <strong>Version 7 renders by running its analysis</strong>: every figure is produced by a job that declares the source files it depends on, so a figure and the code that made it cannot drift apart. That costs cluster access to re-render a stale page, which is the intended trade.</p>
 <section id="papers" class="level2" data-number="1">
 <h2 data-number="1" class="anchored" data-anchor-id="papers"><span class="header-section-number">1</span> Papers</h2>
+<div class="publication-card">
+<div class="publication-info">
+<p><strong><a href="./adep-ades-detection-v7/index.html">Departure and destination aerodromes in the OPDI flight list — version 7</a></strong> &nbsp;·&nbsp; <a href="adep-ades-detection-v7/adep-ades-detection-v7.pdf">PDF</a></p>
+<p><strong>The one to read if you use the data.</strong> Written for people consuming the <code>ADEP</code> and <code>ADES</code> columns rather than for the people building them: what they mean, how the pipeline derives them from raw ADS-B, how often they are right, and what a downstream analysis should do about the failure modes.</p>
+<p>Documents the pipeline end to end for the first time, and measures every change on two independent periods — which is what showed that three values version 6 shipped were not supported, and got them changed. Departures and arrivals use different algorithms; candidates are chosen by exact distance rather than a hexagon index; and a departure’s null now separates “outside the observed area” from “could not tell”.</p>
+</div>
+</div>
 <div class="publication-card">
 <div class="publication-info">
 <p><strong><a href="./adep-ades-detection-v6/index.html">Detecting departure and destination aerodromes from ADS-B — version 6</a></strong> &nbsp;·&nbsp; <a href="adep-ades-detection-v6/adep-ades-detection-v6.pdf">PDF</a></p>
@@ -158,7 +166,8 @@ ul.task-list li input[type="checkbox"] {
 <div class="publication-card">
 <div class="publication-info">
 <p><strong><a href="./adep-ades-detection-v6/reply.html">Reply to the review of version 6</a></strong> &nbsp;·&nbsp; <a href="adep-ades-detection-v6/reply.pdf">PDF</a></p>
-<p>Answers a review of version 6 point by point, in the reviewer’s order, with the numbers computed from the same committed data the review was about. Confirms three things the review suspected and one it did not: the flight-level curve does turn, the arrival tuning does hold on a second period when the two are ranked together, <code>trend</code> genuinely cannot say “out of area” — and trajectory cleaning, step 02a of the pipeline, had been writing a table that nothing read.</p>
+<p>Answers a review of version 6 point by point, in the reviewer’s order, with the numbers computed from the same committed data the review was about. Confirms three things the review suspected and one it did not: the flight-level curve does turn rather than rising indefinitely, the arrival tuning does hold on a second period once the two are ranked together, <code>trend</code> genuinely could not say “out of area” — and trajectory cleaning, step 02a of the pipeline, had been writing a table that nothing read.</p>
+<p>Deliberately pinned to the figures that were reviewed. Where an answer changed once the measurements came in — out-of-area was built and then left off — the page says so rather than being quietly revised.</p>
 </div>
 </div>
 <div class="publication-card">
