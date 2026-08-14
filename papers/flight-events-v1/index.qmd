@@ -199,7 +199,7 @@ not as a regression but as an absence, which is harder to notice.
 if (!is.null(inv_2025)) {
   w <- reshape(inv_2025, idvar = "type", timevar = "rung", direction = "wide")
   names(w) <- sub("^n_events\\.", "", names(w))
-  keep <- intersect(c("type", "L00_legacy", "L10_shipped"), names(w))
+  keep <- intersect(c("type", "L00_legacy", "L13_shipped"), names(w))
   w <- w[order(w$type), keep, drop = FALSE]
   cat("| Event type |", paste(keep[-1], collapse = " | "), "|\n")
   cat("|---", paste(rep("---:", length(keep) - 1), collapse = "|"), "|\n", sep = "")
@@ -226,11 +226,16 @@ negative value means the detector fires early.
 #| results: asis
 if (!is.null(ladder_2025)) {
   d <- ladder_2025
-  cat("| Rung | Milestone | Truth | Detected | Coverage | Bias (s) | MAD (s) | ±60 s |\n")
-  cat("|---|---|---:|---:|---:|---:|---:|---:|\n")
+  # det_type is the OPDI event type; milestone is the APDF milestone it claims
+  # to be. Both are shown because `take-off` and `ATOT` are scored against the
+  # same truth, and which of them wins is the question the ladder answers.
+  d <- d[order(d$milestone, d$rung), ]
+  cat("| Rung | OPDI type | vs | Truth | Detected | Coverage | Bias (s) | MAD (s) | ±60 s |\n")
+  cat("|---|---|---|---:|---:|---:|---:|---:|---:|\n")
   for (i in seq_len(nrow(d))) {
-    cat(sprintf("| %s | `%s` | %s | %s | %.2f%% | %.1f | %.1f | %.2f%% |\n",
-        d$rung[i], d$milestone[i],
+    dt <- if (!is.null(d$det_type)) d$det_type[i] else d$milestone[i]
+    cat(sprintf("| %s | `%s` | %s | %s | %s | %.2f%% | %.1f | %.1f | %.2f%% |\n",
+        d$rung[i], dt, d$milestone[i],
         format(d$n_truth[i], big.mark = ","),
         format(d$n_detected[i], big.mark = ","),
         d$coverage_pct[i], d$bias_s[i], d$mad_s[i], d$within_60s_pct[i]))
