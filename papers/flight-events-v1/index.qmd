@@ -302,6 +302,40 @@ after the aircraft actually leaves the stand. Both numbers are reported as the
 finding rather than tuned away, and they are why T05 (pushback) was not built —
 it needs strictly more coverage than this.
 
+### Does it hold on a second period?
+
+Both periods were run. What 2024 can check is narrower than 2025: no flight
+list exists for that period, and the runway, ring, airport and block detectors
+all need one, so 2024 exercises the phase and crossing families only. The ALDT
+and ATOT headline figures are therefore **single-period**.
+
+For what it does cover, the two disagree in an instructive way.
+
+| Rung | `landing` coverage, 2025 | 2024 |
+|---|---:|---:|
+| `L01_clean_tracks` | 6.39% | 6.66% |
+| `L02_smoothing` | 6.49% | **0.96%** |
+| `L03_complete_rules` | 0.69% | 0.23% |
+
+**Requiring complete fuzzy rules reproduces.** A large relative collapse on
+both periods -- 89% and 76% -- so the finding is a property of the change
+rather than of a month.
+
+**The smoothing does not.** Restoring the reference implementation's 60-second
+majority vote is near-neutral on 2025 and costs 86% of landing coverage on
+2024. This was the change with the strongest prior justification in the whole
+study, and it is the one the second period contradicts.
+
+One confound has to be stated with it. The 2024 tracks predate step 02's
+altitude repair, so that run substitutes the raw barometric altitude. The
+period therefore differs in input preparation as well as in date, and the
+smoothing operates on phase labels derived from exactly that column. The
+divergence may be the substitution rather than the month, and this study cannot
+separate the two. What it can say is that the change is **not robust across the
+conditions tested**, which is the useful half of the claim: a fix that behaves
+this differently on noisier input should not be adopted on the strength of its
+rationale alone.
+
 ### What has still not been measured
 
 **The vertical family cannot be scored against data at all.** No source
@@ -312,6 +346,13 @@ whose geometry is known by construction. That is checkable; "accurate" is not.
 **Top-of-climb and top-of-descent timing rests on no external evidence.** The
 counts move — 114,099 to 100,925 for TOC — but nothing says which is closer to
 the truth.
+
+**The 2025 ladder is stale against the current code.** It was produced before
+the changes that made the 2024 period runnable -- the track redirect, the
+column backfills, the identity source. Those cannot alter a 2025 result, but
+the provenance fingerprint covers the file rather than the behaviour, so the
+chain reports it stale and this page says so rather than re-recording it as
+current. Clearing it honestly means re-running it.
 
 **Ring crossings are not yet scored against `C40_CROSS_TIME`.** The detector
 runs and its volumes are now plausible, but the comparison against the
