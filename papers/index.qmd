@@ -8,18 +8,19 @@ Each paper benchmarks an OPDI algorithm against EUROCONTROL reference data and
 reports what the comparison actually showed, including where a proposed method
 failed.
 
-Versions 1–6 render from a committed CSV cache — no credentials, no database, no
-cluster. **Version 7 renders by running its analysis**: every figure is produced
-by a job that declares the source files it depends on, so a figure and the code
-that made it cannot drift apart. That costs cluster access to re-render a stale
-page, which is the intended trade.
+Older papers render from a committed CSV cache — no credentials, no database, no
+cluster. **The current papers render by running their analysis**: every figure
+is produced by a job that declares the source files it depends on, so a figure
+and the code that made it cannot drift apart. That costs cluster access to
+re-render a stale page, which is the intended trade. ADEP/ADES versions 1–6 and
+flight events versions 1–2 pre-date the change.
 
 ## Papers
 
 :::: {.publication-card}
 ::: {.publication-info}
-**[Flight events from ADS-B — version 2](flight-events-v2/index.qmd)**
-&nbsp;·&nbsp; [PDF](flight-events-v2/flight-events-v2.pdf)
+**[Flight events from ADS-B — version 3](flight-events-v3/index.qmd)**
+&nbsp;·&nbsp; [PDF](flight-events-v3/flight-events-v3.pdf)
 
 The one to read. Audits the four detectors behind OPDI's published flight
 events, which had never been tested or compared against reference data, finds
@@ -28,10 +29,18 @@ for any aerodrome above roughly 200 ft — and adds the milestone families the
 ICAO GANP indicators require, taking the reachable KPI count to nine fully and
 three partially computable.
 
-Version 2 adds the extraction methodology for every one of the thirty-four
-published event types: the algorithm, its parameters and their provenance, the
-code that implements it, and its known limitations. The measurements are
-version 1's, unchanged.
+Version 3 is organised as **one chapter per event**. Each says what the event
+is, how it is detected, which parameters govern it, how it changed from the
+published algorithm, and whether any external source agrees with it — or why
+none can. It closes three comparisons that had been coded and never run: ring
+crossings against EUROCONTROL's own, runway identity against `AP_C_RWY`, and
+the inter-source floor that says what "close" can mean. **The ring crossings
+land inside that floor** — the detector agrees with the reference about as
+closely as the reference agrees with itself.
+
+A closing chapter designs a parameter sweep — what to optimise, against what
+objective, at what cost, and which values must not be touched — without running
+one.
 
 States plainly what it has *not* measured, and reports two of its own fixes
 that the data contradicted.
@@ -40,11 +49,21 @@ that the data contradicted.
 
 :::: {.publication-card}
 ::: {.publication-info}
+**[Flight events from ADS-B — version 2](flight-events-v2/index.qmd)**
+&nbsp;·&nbsp; [PDF](flight-events-v2/flight-events-v2.pdf)
+
+Superseded by version 3, which carries the same data and reorganises it into
+per-event chapters. Version 2 is arranged by detector family, which some
+readers may still prefer.
+:::
+::::
+
+:::: {.publication-card}
+::: {.publication-info}
 **[Flight events from ADS-B — version 1](flight-events-v1/index.qmd)**
 &nbsp;·&nbsp; [PDF](flight-events-v1/flight-events-v1.pdf)
 
-Superseded by version 2, which carries the same data and findings and adds the
-per-event methodology. Kept as the record of what was published first.
+Superseded. Kept as the record of what was published first.
 :::
 ::::
 

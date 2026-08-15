@@ -1,0 +1,1807 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.10.18">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="author" content="EUROCONTROL Performance Review Unit — Open Performance Data Initiative">
+<meta name="dcterms.date" content="2026-08-15">
+
+<title>Flight events from ADS-B – OPDI Papers</title>
+<style>
+/* Default styles provided by pandoc.
+** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+*/
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: 1.5em;}
+div.column{flex: auto;}
+@media screen {
+div.columns{gap: min(4vw, 1.5em);}
+div.column{overflow-x: auto;}
+}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+</style>
+
+
+<script src="../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../site_libs/quarto-nav/headroom.min.js"></script>
+<script src="../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../">
+<script src="../site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="../site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="../site_libs/quarto-html/popper.min.js"></script>
+<script src="../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../site_libs/quarto-html/quarto-syntax-highlighting-64a204ab8560d761af7679ceaba22944.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../site_libs/bootstrap/bootstrap-3fc44999f41da3927fa35e4e05887fd4.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "navbar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "end",
+  "type": "overlay",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+
+
+</head>
+
+<body class="nav-fixed quarto-light">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+    <nav class="navbar navbar-expand-lg " data-bs-theme="dark">
+      <div class="navbar-container container-fluid">
+      <div class="navbar-brand-container mx-auto">
+    <a class="navbar-brand" href="../index.html">
+    <span class="navbar-title">OPDI Papers</span>
+    </a>
+  </div>
+            <div id="quarto-search" class="" title="Search"></div>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" role="menu" aria-expanded="false" aria-label="Toggle navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+  <span class="navbar-toggler-icon"></span>
+</button>
+          <div class="collapse navbar-collapse" id="navbarCollapse">
+            <ul class="navbar-nav navbar-nav-scroll me-auto">
+  <li class="nav-item">
+    <a class="nav-link" href="../index.html"> 
+<span class="menu-text">Papers</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="https://www.eurocontrol.int/opdi"> 
+<span class="menu-text">OPDI</span></a>
+  </li>  
+</ul>
+          </div> <!-- /navcollapse -->
+            <div class="quarto-navbar-tools">
+</div>
+      </div> <!-- /container-fluid -->
+    </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
+<!-- sidebar -->
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul class="collapse">
+  <li><a href="#the-study-in-a-page" id="toc-the-study-in-a-page" class="nav-link active" data-scroll-target="#the-study-in-a-page"><span class="header-section-number">1</span> The study in a page</a>
+  <ul class="collapse">
+  <li><a href="#what-the-evidence-says" id="toc-what-the-evidence-says" class="nav-link" data-scroll-target="#what-the-evidence-says"><span class="header-section-number">1.1</span> What the evidence says</a></li>
+  </ul></li>
+  <li><a href="#how-to-read-a-chapter" id="toc-how-to-read-a-chapter" class="nav-link" data-scroll-target="#how-to-read-a-chapter"><span class="header-section-number">2</span> How to read a chapter</a></li>
+  <li><a href="#ground-truth-and-its-ceiling" id="toc-ground-truth-and-its-ceiling" class="nav-link" data-scroll-target="#ground-truth-and-its-ceiling"><span class="header-section-number">3</span> Ground truth, and its ceiling</a>
+  <ul class="collapse">
+  <li><a href="#the-yardstick" id="toc-the-yardstick" class="nav-link" data-scroll-target="#the-yardstick"><span class="header-section-number">3.1</span> The yardstick</a></li>
+  <li><a href="#resolution-differs-by-milestone" id="toc-resolution-differs-by-milestone" class="nav-link" data-scroll-target="#resolution-differs-by-milestone"><span class="header-section-number">3.2</span> Resolution differs by milestone</a></li>
+  <li><a href="#what-2024-can-and-cannot-check" id="toc-what-2024-can-and-cannot-check" class="nav-link" data-scroll-target="#what-2024-can-and-cannot-check"><span class="header-section-number">3.3</span> What 2024 can and cannot check</a></li>
+  </ul></li>
+  <li><a href="#the-chapters" id="toc-the-chapters" class="nav-link" data-scroll-target="#the-chapters"><span class="header-section-number">4</span> The chapters</a>
+  <ul class="collapse">
+  <li><a href="#take-off" id="toc-take-off" class="nav-link" data-scroll-target="#take-off"><span class="header-section-number">4.1</span> take-off</a></li>
+  <li><a href="#landing" id="toc-landing" class="nav-link" data-scroll-target="#landing"><span class="header-section-number">4.2</span> landing</a></li>
+  <li><a href="#top-of-climb-top-of-descent" id="toc-top-of-climb-top-of-descent" class="nav-link" data-scroll-target="#top-of-climb-top-of-descent"><span class="header-section-number">4.3</span> top-of-climb / top-of-descent</a></li>
+  <li><a href="#level-start-level-end" id="toc-level-start-level-end" class="nav-link" data-scroll-target="#level-start-level-end"><span class="header-section-number">4.4</span> level-start / level-end</a></li>
+  <li><a href="#published-flight-level-crossings" id="toc-published-flight-level-crossings" class="nav-link" data-scroll-target="#published-flight-level-crossings"><span class="header-section-number">4.5</span> Published flight-level crossings</a></li>
+  <li><a href="#flight-level-crossings" id="toc-flight-level-crossings" class="nav-link" data-scroll-target="#flight-level-crossings"><span class="header-section-number">4.6</span> Flight-level crossings</a></li>
+  <li><a href="#ring-crossings" id="toc-ring-crossings" class="nav-link" data-scroll-target="#ring-crossings"><span class="header-section-number">4.7</span> Ring crossings</a></li>
+  <li><a href="#airport-layout-events" id="toc-airport-layout-events" class="nav-link" data-scroll-target="#airport-layout-events"><span class="header-section-number">4.8</span> Airport layout events</a></li>
+  <li><a href="#atot-lift-off" id="toc-atot-lift-off" class="nav-link" data-scroll-target="#atot-lift-off"><span class="header-section-number">4.9</span> ATOT — lift-off</a></li>
+  <li><a href="#aldt-touchdown" id="toc-aldt-touchdown" class="nav-link" data-scroll-target="#aldt-touchdown"><span class="header-section-number">4.10</span> ALDT — touchdown</a></li>
+  <li><a href="#aobt-aibt-block-times" id="toc-aobt-aibt-block-times" class="nav-link" data-scroll-target="#aobt-aibt-block-times"><span class="header-section-number">4.11</span> AOBT / AIBT — block times</a></li>
+  <li><a href="#level-off-climb-level-off-descent" id="toc-level-off-climb-level-off-descent" class="nav-link" data-scroll-target="#level-off-climb-level-off-descent"><span class="header-section-number">4.12</span> level-off-climb / level-off-descent</a></li>
+  <li><a href="#first_seen-last_seen" id="toc-first_seen-last_seen" class="nav-link" data-scroll-target="#first_seen-last_seen"><span class="header-section-number">4.13</span> first_seen / last_seen</a></li>
+  <li><a href="#measurements" id="toc-measurements" class="nav-link" data-scroll-target="#measurements"><span class="header-section-number">4.14</span> Measurements</a></li>
+  </ul></li>
+  <li><a href="#cross-cutting-findings" id="toc-cross-cutting-findings" class="nav-link" data-scroll-target="#cross-cutting-findings"><span class="header-section-number">5</span> Cross-cutting findings</a>
+  <ul class="collapse">
+  <li><a href="#requiring-complete-evidence-made-detection-worse-and-it-reproduces" id="toc-requiring-complete-evidence-made-detection-worse-and-it-reproduces" class="nav-link" data-scroll-target="#requiring-complete-evidence-made-detection-worse-and-it-reproduces"><span class="header-section-number">5.1</span> Requiring complete evidence made detection worse — and it reproduces</a></li>
+  <li><a href="#the-smoothing-window-is-contradicted-by-the-second-period" id="toc-the-smoothing-window-is-contradicted-by-the-second-period" class="nav-link" data-scroll-target="#the-smoothing-window-is-contradicted-by-the-second-period"><span class="header-section-number">5.2</span> The smoothing window is contradicted by the second period</a></li>
+  </ul></li>
+  <li><a href="#the-parameter-sweep-designed" id="toc-the-parameter-sweep-designed" class="nav-link" data-scroll-target="#the-parameter-sweep-designed"><span class="header-section-number">6</span> The parameter sweep, designed</a>
+  <ul class="collapse">
+  <li><a href="#the-objective-does-not-exist-yet-and-that-is-the-first-task" id="toc-the-objective-does-not-exist-yet-and-that-is-the-first-task" class="nav-link" data-scroll-target="#the-objective-does-not-exist-yet-and-that-is-the-first-task"><span class="header-section-number">6.1</span> The objective does not exist yet, and that is the first task</a></li>
+  <li><a href="#what-is-worth-sweeping" id="toc-what-is-worth-sweeping" class="nav-link" data-scroll-target="#what-is-worth-sweeping"><span class="header-section-number">6.2</span> What is worth sweeping</a></li>
+  <li><a href="#what-must-not-be-swept" id="toc-what-must-not-be-swept" class="nav-link" data-scroll-target="#what-must-not-be-swept"><span class="header-section-number">6.3</span> What must not be swept</a></li>
+  <li><a href="#making-it-affordable" id="toc-making-it-affordable" class="nav-link" data-scroll-target="#making-it-affordable"><span class="header-section-number">6.4</span> Making it affordable</a></li>
+  <li><a href="#the-trap" id="toc-the-trap" class="nav-link" data-scroll-target="#the-trap"><span class="header-section-number">6.5</span> The trap</a></li>
+  </ul></li>
+  <li><a href="#what-is-not-measured-and-why" id="toc-what-is-not-measured-and-why" class="nav-link" data-scroll-target="#what-is-not-measured-and-why"><span class="header-section-number">7</span> What is not measured, and why</a></li>
+  <li><a href="#breaking-changes-for-consumers" id="toc-breaking-changes-for-consumers" class="nav-link" data-scroll-target="#breaking-changes-for-consumers"><span class="header-section-number">8</span> Breaking changes for consumers</a></li>
+  <li><a href="#provenance" id="toc-provenance" class="nav-link" data-scroll-target="#provenance"><span class="header-section-number">9</span> Provenance</a></li>
+  </ul>
+<div class="quarto-alternate-formats"><h2>Other Formats</h2><ul><li><a href="index.pdf"><i class="bi bi-file-pdf"></i>PDF</a></li></ul></div></nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Flight events from ADS-B</h1>
+<p class="subtitle lead">Version 3 — a chapter per event</p>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    <div>
+    <div class="quarto-title-meta-heading">Author</div>
+    <div class="quarto-title-meta-contents">
+             <p>EUROCONTROL Performance Review Unit — Open Performance Data Initiative </p>
+          </div>
+  </div>
+    
+    <div>
+    <div class="quarto-title-meta-heading">Published</div>
+    <div class="quarto-title-meta-contents">
+      <p class="date">August 15, 2026</p>
+    </div>
+  </div>
+  
+    
+  </div>
+  
+<div>
+  <div class="abstract">
+    <div class="block-title">Abstract</div>
+    <p>OPDI publishes thirty-four flight event types. Until this study none had been tested or compared against reference data. This version is organised as one chapter per event: what it is, how it is detected, the parameters that govern it, how it changed from the published algorithm, and whether any external source agrees with it. Where no comparison is possible the chapter says so and says why, because the reasons differ and are informative. A closing chapter designs a parameter sweep without running one.</p>
+  </div>
+</div>
+
+
+</header>
+
+
+<section id="the-study-in-a-page" class="level1" data-number="1">
+<h1 data-number="1"><span class="header-section-number">1</span> The study in a page</h1>
+<p>OPDI turns OpenSky ADS-B state vectors into a published table of flight events — milestones with a 4D fix, a type, a source and an algorithm version. Thirty-four types ship. Before this study, <strong>none of them had a test, and no number in any of them had been compared against anything.</strong></p>
+<p>Reading the four detectors turned up nine defects. None of them fails: each produces fewer events, or events displaced in one direction, which is the failure mode that survives an eyeball check of the totals. The worst suppressed every take-off and landing at any aerodrome above roughly 200 ft.</p>
+<p>Eight are fixed, four milestone families added, and everything measurable is measured against EUROCONTROL APDF on two three-day samples.</p>
+<section id="what-the-evidence-says" class="level2" data-number="1.1">
+<h2 data-number="1.1" class="anchored" data-anchor-id="what-the-evidence-says"><span class="header-section-number">1.1</span> What the evidence says</h2>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>Finding</th>
+<th>Where</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>Ring crossings agree with the reference as closely as the reference agrees with itself</strong> — median error under half a second, spread inside the inter-source floor</td>
+<td><a href="#ring-crossings">Ring crossings</a></td>
+</tr>
+<tr class="even">
+<td>Landing time transformed: coverage 2.12% → 86.06%, bias +34 s → −2 s</td>
+<td><a href="#aldt-touchdown">ALDT — touchdown</a></td>
+</tr>
+<tr class="odd">
+<td>Take-off trades a sharp median for a usable tail: p90 4,273 s → 59 s</td>
+<td><a href="#atot-lift-off">ATOT — lift-off</a></td>
+</tr>
+<tr class="even">
+<td>Runway identity is the weak spot: a third of named landing runways are wrong</td>
+<td><a href="#atot-lift-off">ATOT — lift-off</a>, <a href="#aldt-touchdown">ALDT — touchdown</a></td>
+</tr>
+<tr class="odd">
+<td>Two thirds of published level segments were phase flicker</td>
+<td><a href="#level-start-level-end">level-start / level-end</a></td>
+</tr>
+<tr class="even">
+<td><strong>A fix of ours is harmful and reproduces on both periods</strong> — requiring complete fuzzy evidence</td>
+<td><a href="#cross-cutting-findings">Cross-cutting findings</a></td>
+</tr>
+<tr class="odd">
+<td><strong>A fix of ours is contradicted by the second period</strong> — the smoothing window</td>
+<td><a href="#cross-cutting-findings">Cross-cutting findings</a></td>
+</tr>
+<tr class="even">
+<td>Ground milestones are limited by reception, not algorithm: 2.6% coverage</td>
+<td><a href="#aobt-aibt-block-times">AOBT / AIBT — block times</a></td>
+</tr>
+</tbody>
+</table>
+<p>Nine ICAO GANP indicators become fully computable and three half — KPI02, 05, 08, 10, 13, 15, 17, 18, 19, plus the actual halves of KPI01, KPI11 and KPI14.</p>
+</section>
+</section>
+<section id="how-to-read-a-chapter" class="level1" data-number="2">
+<h1 data-number="2"><span class="header-section-number">2</span> How to read a chapter</h1>
+<p>Every chapter has the same six parts, so it can be skimmed or read in full:</p>
+<p><strong>What it is</strong> — in operational terms. <strong>How it is detected</strong> — the algorithm. <strong>Parameters</strong> — each with its value, unit, and <em>source</em>: ICAO’s published value, <code>traffic</code>’s, OpenAP’s, or ours. <strong>Compared with the published algorithm</strong> — what changed and by how much. <strong>Compared with reference data</strong> — the APDF scores, or why none is possible. <strong>Limitations</strong> — what is known to be wrong.</p>
+<p>Two conventions apply throughout. Storage is SI and thresholds are aviation: altitudes are metres and vertical rates metres per second on disk, scaled at the point of comparison. And every threshold is named in <code>EventConfig</code> (<code>src/opdi/config.py</code>) — none is an inline literal, which is what makes a sweep possible at all.</p>
+<p><code>EventConfig.legacy()</code> reproduces the published <code>events_v0.0.2</code> exactly, so every “compared with the published algorithm” figure below is a real measurement of two configurations on the same trajectories, not a recollection.</p>
+</section>
+<section id="ground-truth-and-its-ceiling" class="level1" data-number="3">
+<h1 data-number="3"><span class="header-section-number">3</span> Ground truth, and its ceiling</h1>
+<p>Reference data is EUROCONTROL APDF. It is in movement form — there is no literal take-off-time column, and <code>SRC_PHASE</code> decides what a row carries — and it has <strong>no aircraft address</strong>, so it cannot be joined to ADS-B directly. The route runs through the flight table on an internal key, and that bridge caps every coverage figure in this document.</p>
+<div id="tbl-bridge" class="cell quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl quarto-uncaptioned" id="tbl-bridge-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;1
+</figcaption>
+<div aria-describedby="tbl-bridge-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<table class="caption-top table table-sm table-striped small">
+<thead>
+<tr class="header">
+<th>Period</th>
+<th style="text-align: right;">APDF movements</th>
+<th style="text-align: right;">Reaching <code>icao24</code></th>
+<th style="text-align: right;">Share</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>2024-06</td>
+<td style="text-align: right;">1,161,115</td>
+<td style="text-align: right;">1,087,091</td>
+<td style="text-align: right;"><strong>93.62%</strong></td>
+</tr>
+<tr class="even">
+<td>2025-06</td>
+<td style="text-align: right;">1,224,742</td>
+<td style="text-align: right;">1,154,338</td>
+<td style="text-align: right;"><strong>94.25%</strong></td>
+</tr>
+</tbody>
+</table>
+</div>
+</figure>
+</div>
+<p>Three traps in this join fail silently, and all three are closed in the loader rather than left to callers.</p>
+<p><strong>The reference carries the commercial flight number; ADS-B carries the ATC callsign.</strong> They disagree on 20.4% of rows — <code>LH416</code> against <code>DLH416</code> — and joining on the wrong one discards a fifth of the sample while looking exactly like a detection failure.</p>
+<p><strong>Timestamps are tagged <code>Europe/Paris</code> despite being named <code>_UTC</code>.</strong> The instants are correct, so converting is right and stripping the zone is a two-hour error. Spark’s session timezone is set in the local builder and not the distributed one, so the loader asserts it rather than assuming it.</p>
+<p><strong>ADS-B callsigns are space-padded to eight characters.</strong> An untrimmed join matches nothing and reports every method at 0.00% rather than erroring.</p>
+<section id="the-yardstick" class="level2" data-number="3.1">
+<h2 data-number="3.1" class="anchored" data-anchor-id="the-yardstick"><span class="header-section-number">3.1</span> The yardstick</h2>
+<p>APDF contains two independent EUROCONTROL derivations of each ring crossing — the shipped column and its <code>_CTFM</code> twin. How far apart <em>they</em> are sets the floor on what agreement can mean here.</p>
+<div id="tbl-floor" class="cell quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl quarto-uncaptioned" id="tbl-floor-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;2
+</figcaption>
+<div aria-describedby="tbl-floor-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<table class="caption-top table table-sm table-striped small">
+<thead>
+<tr class="header">
+<th>Ring</th>
+<th style="text-align: right;">p10</th>
+<th style="text-align: right;">median</th>
+<th style="text-align: right;">p90</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>xing-40nm</code></td>
+<td style="text-align: right;">-9 s</td>
+<td style="text-align: right;">+0 s</td>
+<td style="text-align: right;">+11 s</td>
+</tr>
+<tr class="even">
+<td><code>xing-100nm</code></td>
+<td style="text-align: right;">-6 s</td>
+<td style="text-align: right;">+0 s</td>
+<td style="text-align: right;">+7 s</td>
+</tr>
+</tbody>
+</table>
+</div>
+</figure>
+</div>
+<p><strong>No tolerance tighter than this means anything.</strong> It is a better basis than a round number chosen for looking reasonable, and the ring chapter is read against it.</p>
+</section>
+<section id="resolution-differs-by-milestone" class="level2" data-number="3.2">
+<h2 data-number="3.2" class="anchored" data-anchor-id="resolution-differs-by-milestone"><span class="header-section-number">3.2</span> Resolution differs by milestone</h2>
+<p>64% of <code>MVT_TIME_UTC</code> values and 77% of <code>BLOCK_TIME_UTC</code> land on a whole minute — most reporting airports round to the minute — while ring crossings are second-resolution. <strong>The rings are therefore the precise target and the movement times the coarse one</strong>, and a perfect take-off detector would still show tens of seconds of apparent spread against a minute-rounded truth.</p>
+</section>
+<section id="what-2024-can-and-cannot-check" class="level2" data-number="3.3">
+<h2 data-number="3.3" class="anchored" data-anchor-id="what-2024-can-and-cannot-check"><span class="header-section-number">3.3</span> What 2024 can and cannot check</h2>
+<p>The second period exists to test whether a finding survives a different sample. It covers less: no flight list exists for it, and every detector needing an aerodrome — runway, rings, airport layout, blocks — depends on one. So 2024 emits 16 types against 2025’s 34, and exercises the <strong>phase and crossing families only</strong>. Each chapter says which of its figures are single-period.</p>
+<hr>
+</section>
+</section>
+<section id="the-chapters" class="level1" data-number="4">
+<h1 data-number="4"><span class="header-section-number">4</span> The chapters</h1>
+<section id="take-off" class="level2" data-number="4.1">
+<h2 data-number="4.1" class="anchored" data-anchor-id="take-off"><span class="header-section-number">4.1</span> take-off</h2>
+<p><strong>What it is.</strong> The instant the aircraft leaves the ground, as the phase sequence sees it.</p>
+<p><strong>How it is detected.</strong> Each state vector is classified into a flight phase by fuzzy logic — nine membership functions over altitude, vertical rate and speed, combined by five rules with a minimum t-norm, the phase being the highest activation. <code>take-off</code> fires where the previous sample is ground and the next is climb.</p>
+<p>Ground membership is the part that matters. <code>baro_altitude_c</code> is <em>uncorrected pressure altitude</em>, so the published 200 ft ceiling is unreachable at any aerodrome above roughly 200 ft AMSL, or anywhere on a low-pressure day — and without a ground sample there is no take-off at all. The fix measures height above <strong>field elevation</strong>, attaching the elevation of both the track’s ADEP and ADES and taking the more permissive membership: a track is on the ground at only one of its ends, and cruise sits far above both, so the wrong end can only contribute a zero.</p>
+<p><strong>Parameters.</strong></p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 25%">
+<col style="width: 25%">
+<col style="width: 25%">
+<col style="width: 25%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Parameter</th>
+<th>Value</th>
+<th>Source</th>
+<th>Governs</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>phase_ground_ceiling_ft</code></td>
+<td>200 ft</td>
+<td>published</td>
+<td>where ground membership reaches zero</td>
+</tr>
+<tr class="even">
+<td><code>phase_ground_above_field</code></td>
+<td>on</td>
+<td>ours</td>
+<td>whether that ceiling is above field or above the ellipsoid</td>
+</tr>
+<tr class="odd">
+<td><code>phase_twindow_seconds</code></td>
+<td>60 s</td>
+<td>OpenAP</td>
+<td>majority smoothing of per-sample labels</td>
+</tr>
+<tr class="even">
+<td><code>phase_require_complete_rules</code></td>
+<td>on</td>
+<td>ours</td>
+<td>whether a rule with a missing input may win</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Compared with the published algorithm.</strong> 8,483 → 2,570 events on the 2025 sample. The count <em>falls</em>, which is the opposite of the field-elevation fix’s intent — the ladder attributes it to two other changes, and that is the subject of <a href="#cross-cutting-findings">Cross-cutting findings</a>.</p>
+<p><strong>Compared with reference data.</strong> Scored against APDF’s ATOT.</p>
+<div id="tbl-takeoff" class="cell quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl quarto-uncaptioned" id="tbl-takeoff-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;3
+</figcaption>
+<div aria-describedby="tbl-takeoff-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<table class="caption-top table table-sm table-striped small">
+<thead>
+<tr class="header">
+<th>Configuration</th>
+<th style="text-align: right;">Coverage</th>
+<th style="text-align: right;">Bias</th>
+<th style="text-align: right;">MAD</th>
+<th style="text-align: right;">p90</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>L00_legacy</td>
+<td style="text-align: right;">1.81%</td>
+<td style="text-align: right;">+1 s</td>
+<td style="text-align: right;">7 s</td>
+<td style="text-align: right;">4273 s</td>
+</tr>
+<tr class="even">
+<td>L13_shipped</td>
+<td style="text-align: right;">0.39%</td>
+<td style="text-align: right;">-1 s</td>
+<td style="text-align: right;">16 s</td>
+<td style="text-align: right;">39 s</td>
+</tr>
+</tbody>
+</table>
+</div>
+</figure>
+</div>
+<p>Under the published configuration the median is excellent and the tail is not: a bias of one second against a 90th-percentile error of over an hour, on 1.81% of departures. It is often nearly exact and occasionally absurd, with nothing in the output distinguishing the two. The new configuration tightens the tail to 39 s but detects fewer take-offs still — the collapse traced in <a href="#cross-cutting-findings">Cross-cutting findings</a>. Either way this is a detector that answers for well under one flight in fifty. <a href="#atot-lift-off">ATOT — lift-off</a> is the intended replacement; this type keeps its published string so existing consumers are undisturbed.</p>
+<p><strong>Limitations.</strong> Depends entirely on a ground sample existing, so sparse surface reception removes it silently. Inherits every property of the phase classifier, including its speed bias — see <a href="#top-of-climb-top-of-descent">top-of-climb / top-of-descent</a>.</p>
+</section>
+<section id="landing" class="level2" data-number="4.2">
+<h2 data-number="4.2" class="anchored" data-anchor-id="landing"><span class="header-section-number">4.2</span> landing</h2>
+<p><strong>What it is.</strong> The instant the aircraft meets the ground.</p>
+<p><strong>How it is detected.</strong> As above, but fires where the previous phase is descent and the current is ground. The two definitions are deliberately asymmetric — one looks forward, one does not — inherited from the published detector and preserved so the type keeps its meaning.</p>
+<p><strong>Parameters.</strong> As <a href="#take-off">take-off</a>.</p>
+<p><strong>Compared with the published algorithm.</strong> 9,232 → 3,835 on 2025.</p>
+<p><strong>Compared with reference data.</strong> Scored against APDF’s ALDT.</p>
+<div id="tbl-landing" class="cell quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl quarto-uncaptioned" id="tbl-landing-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;4
+</figcaption>
+<div aria-describedby="tbl-landing-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<table class="caption-top table table-sm table-striped small">
+<thead>
+<tr class="header">
+<th>Configuration</th>
+<th style="text-align: right;">Coverage</th>
+<th style="text-align: right;">Bias</th>
+<th style="text-align: right;">MAD</th>
+<th style="text-align: right;">p90</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>L00_legacy</td>
+<td style="text-align: right;">2.12%</td>
+<td style="text-align: right;">+34 s</td>
+<td style="text-align: right;">35 s</td>
+<td style="text-align: right;">104 s</td>
+</tr>
+<tr class="even">
+<td>L13_shipped</td>
+<td style="text-align: right;">1.86%</td>
+<td style="text-align: right;">+21 s</td>
+<td style="text-align: right;">21 s</td>
+<td style="text-align: right;">49 s</td>
+</tr>
+</tbody>
+</table>
+</div>
+</figure>
+</div>
+<p><strong>Limitations.</strong> As <a href="#take-off">take-off</a>. Superseded in practice by <a href="#aldt-touchdown">ALDT — touchdown</a>, which covers forty times as many flights.</p>
+</section>
+<section id="top-of-climb-top-of-descent" class="level2" data-number="4.3">
+<h2 data-number="4.3" class="anchored" data-anchor-id="top-of-climb-top-of-descent"><span class="header-section-number">4.3</span> top-of-climb / top-of-descent</h2>
+<p><strong>What it is.</strong> The first and last sample classified as cruise.</p>
+<p><strong>How it is detected.</strong> Directly from the phase labels: the earliest and latest <code>CR</code> sample per track.</p>
+<p><strong>Parameters.</strong> The cruise rule is <code>min(alt_hi, roc_zero, spd_hi)</code> with OpenAP’s memberships — altitude Gaussian at 35,000 ft (σ 20,000), vertical rate Gaussian at 0 ft/min (σ 100), speed Gaussian at <strong>600 kt (σ 100)</strong>.</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 25%">
+<col style="width: 25%">
+<col style="width: 25%">
+<col style="width: 25%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Parameter</th>
+<th>Value</th>
+<th>Source</th>
+<th>Governs</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>phase_cruise_speed_kt</code></td>
+<td>600 kt</td>
+<td>OpenAP</td>
+<td>centre of the cruise speed membership</td>
+</tr>
+<tr class="even">
+<td><code>phase_cruise_speed_sigma_kt</code></td>
+<td>100 kt</td>
+<td>OpenAP</td>
+<td>its width</td>
+</tr>
+</tbody>
+</table>
+<p><strong>These are OpenAP’s published values, not chosen here</strong>, and they carry a known consequence: a turboprop cruising at 250 kt scores <code>exp(−6.125) ≈ 0.002</code>, so the cruise rule never wins and <strong>turboprop and general-aviation traffic get no top-of-climb or top-of-descent at all</strong>. It is inherited rather than an OPDI defect, and left in place deliberately — deviating from a reference constant should follow a measurement, not precede one. See <a href="#the-parameter-sweep-designed">The parameter sweep, designed</a>.</p>
+<p><strong>Compared with the published algorithm.</strong> TOC 114,099 → 100,925, TOD 108,767 → 100,801.</p>
+<p><strong>Compared with reference data.</strong> <strong>None is possible.</strong> No source available to OPDI records a top of climb or descent. APDF holds movement and block times, ring crossings, a runway and a stand — nothing about the cruise phase. These counts are reported; their timing is unvalidated and stated as such.</p>
+<p><strong>Limitations.</strong> A flight that never satisfies the cruise rule has neither event, and the speed bias above makes that systematic rather than random.</p>
+</section>
+<section id="level-start-level-end" class="level2" data-number="4.4">
+<h2 data-number="4.4" class="anchored" data-anchor-id="level-start-level-end"><span class="header-section-number">4.4</span> level-start / level-end</h2>
+<p><strong>What it is.</strong> The boundaries of a run of samples classified cruise or level.</p>
+<p><strong>How it is detected.</strong> A <code>level-start</code> where the phase enters cruise or level from something else, a <code>level-end</code> where it leaves. The first cruise sample carries both <code>level-start</code> and <code>top-of-climb</code>; the last carries <code>level-end</code> and <code>top-of-descent</code>.</p>
+<p><strong>These are not the ICAO level segments.</strong> This pair asks “does this sample look like level flight” through the fuzzy classifier; ICAO asks a geometric question about an altitude band anchored at a segment’s own start. Both are published, under different names, and they are <strong>not interchangeable</strong> — see <a href="#level-off-climb-level-off-descent">level-off-climb / level-off-descent</a>.</p>
+<p><strong>Parameters.</strong> As <a href="#take-off">take-off</a>; <code>phase_twindow_seconds</code> dominates.</p>
+<p><strong>Compared with the published algorithm.</strong> <code>level-start</code> 1,270,412 → 370,466 and <code>level-end</code> 888,611 → 301,044 on 2025.</p>
+<p>This is the clearest single measure of phase flicker in the study: <strong>roughly two thirds of published level segments were an artefact of deciding the phase per state vector with no temporal aggregation.</strong> One misclassified sample at 5-second spacing injects a spurious start-and-end pair, and the reference implementation’s 60-second majority smoothing — which the original port carried the membership functions across but dropped — removes most of them.</p>
+<p><strong>Compared with reference data.</strong> <strong>None is possible</strong>, as for <a href="#top-of-climb-top-of-descent">top-of-climb / top-of-descent</a>.</p>
+<p><strong>Limitations.</strong> The count fell by two thirds, and nothing external says which count is closer to the truth. That the smoothed number is more plausible is an argument, not a measurement.</p>
+</section>
+<section id="published-flight-level-crossings" class="level2" data-number="4.5">
+<h2 data-number="4.5" class="anchored" data-anchor-id="published-flight-level-crossings"><span class="header-section-number">4.5</span> Published flight-level crossings</h2>
+<p><em>Types:</em> <code>first-xing-fl50</code>, <code>first-xing-fl70</code>, <code>first-xing-fl100</code>, <code>first-xing-fl245</code>, <code>last-xing-fl50</code>, <code>last-xing-fl70</code>, <code>last-xing-fl100</code>, <code>last-xing-fl245</code>.</p>
+<p><strong>What it is.</strong> The first and last time a track crosses each monitored flight level.</p>
+<p><strong>How it is detected.</strong> Each sample’s flight level is compared with the next one’s; the sample <em>before</em> the crossing is reported. A guard requires it to be within 10 flight levels of the boundary, rejecting crossings inferred across a gap. The first and last per level are kept; everything between is discarded.</p>
+<p><strong>Parameters.</strong> The level set — FL50, FL70, FL100, FL245 — and the 10 FL guard, both published values.</p>
+<p><strong>Compared with the published algorithm.</strong> These types are emitted <strong>only</strong> under <code>events_v0.0.2</code>: 95,845 <code>first-xing-fl100</code> events under legacy, 0 under the new version. They are replaced by <a href="#flight-level-crossings">Flight-level crossings</a>, and the migration is <code>crossing_seq == 1</code>.</p>
+<p><strong>Compared with reference data.</strong> <strong>None is possible.</strong> APDF records no flight-level crossings at all. Their only comparison is against their replacement.</p>
+<p><strong>Limitations — three, which is why they were replaced.</strong> Keeping only first and last discards every crossing between, which are exactly the ones a vertical-efficiency indicator is about. Reporting the bracketing sample biases every timestamp by up to one sample interval, always in the same direction. And the level is chosen by a first-match chain, so a 5-second gap spanning FL50 <em>and</em> FL70 reports only one of them.</p>
+</section>
+<section id="flight-level-crossings" class="level2" data-number="4.6">
+<h2 data-number="4.6" class="anchored" data-anchor-id="flight-level-crossings"><span class="header-section-number">4.6</span> Flight-level crossings</h2>
+<p><em>Types:</em> <code>xing-fl50</code>, <code>xing-fl70</code>, <code>xing-fl100</code>, <code>xing-fl245</code>.</p>
+<p><strong>What it is.</strong> Every crossing of each monitored flight level, with the instant interpolated to the level itself.</p>
+<p><strong>How it is detected.</strong> A Schmitt trigger. For a level <code>L</code> and dead band <code>h</code>, a sample is <code>+1</code> above <code>L + h</code>, <code>−1</code> below <code>L − h</code>, and null inside the band; that side is forward-filled, and a crossing is confirmed where the filled value flips. An aircraft cruising <em>at</em> the level never leaves the band, so its side never resolves and <strong>no event is emitted</strong> — without this, barometric noise at a cruise level produces a crossing on almost every sample.</p>
+<p>The instant is then interpolated to exactly <code>L</code> <strong>between the two samples that straddle it</strong>, which is a <em>different row</em> from the one that confirmed the crossing: confirmation happens at the band edge, the crossing itself is earlier. Conflating them reintroduces the one-sided bias this replaces.</p>
+<p><strong>Parameters.</strong></p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 25%">
+<col style="width: 25%">
+<col style="width: 25%">
+<col style="width: 25%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Parameter</th>
+<th>Value</th>
+<th>Source</th>
+<th>Governs</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>crossing_levels_fl</code></td>
+<td>50, 70, 100, 245</td>
+<td>published vocabulary</td>
+<td>which levels are monitored</td>
+</tr>
+<tr class="even">
+<td><code>crossing_hysteresis_ft</code></td>
+<td>300 ft</td>
+<td>ours</td>
+<td>chatter suppression vs missed crossings</td>
+</tr>
+<tr class="odd">
+<td><code>crossing_all_occurrences</code></td>
+<td>on</td>
+<td>ours</td>
+<td>every crossing rather than first and last</td>
+</tr>
+<tr class="even">
+<td><code>crossing_interpolate</code></td>
+<td>on</td>
+<td>ours</td>
+<td>interpolate to the level rather than report a sample</td>
+</tr>
+</tbody>
+</table>
+<p>Each event carries <code>crossing_seq</code> (1-based, in time order), <code>direction</code>, and <code>bracket_s</code> — the spacing of the two interpolated-between samples, so a consumer can tell an instant measured across 5 seconds from one inferred across four minutes.</p>
+<p><strong>Compared with the published algorithm.</strong> 215,959 <code>xing-fl100</code> events against 191,690 first-and-last events under legacy — a factor of 1.13.</p>
+<p><strong>That factor is the finding, and it is smaller than expected.</strong> Most flights cross a given level exactly twice — once up, once down — so for most trajectories the published first-and-last rule was already capturing everything there was. The extra 13% is concentrated in the flights that step through a level repeatedly, which are precisely the ones a vertical-efficiency indicator is about. <strong>The case for this detector is therefore not volume.</strong> It is that the timestamps are interpolated rather than displaced by up to a sample interval, that a gap spanning two levels now reports both, and that the flights where the old rule lost information are exactly the interesting ones.</p>
+<p><strong>Compared with reference data.</strong> <strong>None is possible</strong> — APDF holds no flight-level crossings. The detector’s <em>mechanism</em> is nonetheless validated where the same code is applied to rings, which APDF does record: see <a href="#ring-crossings">Ring crossings</a>.</p>
+<p><strong>Limitations.</strong> A flight that climbs and levels off <strong>exactly at</strong> a threshold never clears the far edge and registers no crossing there. That case is described by the level-segment and top-of-climb events instead, but it is a real semantic change from the published detector.</p>
+</section>
+<section id="ring-crossings" class="level2" data-number="4.7">
+<h2 data-number="4.7" class="anchored" data-anchor-id="ring-crossings"><span class="header-section-number">4.7</span> Ring crossings</h2>
+<p><em>Types:</em> <code>xing-40nm</code>, <code>xing-100nm</code>.</p>
+<p><strong>What it is.</strong> Crossings of the 40 NM and 100 NM cylinders around the flight’s <strong>own</strong> origin and destination — ICAO’s ASMA cylinder for KPI08 and the reference area for KPI05.</p>
+<p><strong>How it is detected.</strong> The same Schmitt trigger as <a href="#flight-level-crossings">Flight-level crossings</a>, with distance to an aerodrome as the quantity and a 1 NM dead band. The rings come from the flight list’s ADEP and ADES rather than from the H3 aerodrome zone table: that is what the indicators mean, and what APDF records — one crossing per movement, not one per aerodrome overflown. It is also far cheaper, multiplying each sample by at most two rather than by every aerodrome within 110 NM.</p>
+<p>Bearing is computed <strong>from</strong> the interpolated crossing position rather than interpolated alongside it. A bearing is circular: averaging 359 and 1 gives 180, wrong by half a turn on any crossing near due north.</p>
+<p><strong>Parameters.</strong></p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>Parameter</th>
+<th>Value</th>
+<th>Source</th>
+<th>Governs</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>ring_radii_nm</code></td>
+<td>40, 100 NM</td>
+<td>ICAO</td>
+<td>which cylinders</td>
+</tr>
+<tr class="even">
+<td><code>ring_hysteresis_nm</code></td>
+<td>1 NM</td>
+<td>ours</td>
+<td>chatter suppression</td>
+</tr>
+<tr class="odd">
+<td><code>crossing_interpolate</code></td>
+<td>on</td>
+<td>ours</td>
+<td>shared with the level crossings</td>
+</tr>
+</tbody>
+</table>
+<p><code>info</code> carries <code>crossing_seq</code>, <code>direction</code> (inbound/outbound), <code>apt_icao</code>, <code>bearing</code> and <code>flight_level</code>, matching <code>C40_CROSS_{TIME,LAT,LON,FL}</code> and <code>C40_BEARING</code> column for column, so the comparison is direct rather than a translation.</p>
+<p><strong>Compared with the published algorithm.</strong> New in this version: 151,526 and 138,512 events where the published algorithm emitted none.</p>
+<p><strong>Compared with reference data — the strongest result in this study.</strong></p>
+<div id="tbl-rings" class="cell quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl quarto-uncaptioned" id="tbl-rings-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;5
+</figcaption>
+<div aria-describedby="tbl-rings-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<table class="caption-top table table-sm table-striped small">
+<colgroup>
+<col style="width: 11%">
+<col style="width: 14%">
+<col style="width: 14%">
+<col style="width: 14%">
+<col style="width: 14%">
+<col style="width: 14%">
+<col style="width: 14%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Ring</th>
+<th style="text-align: right;">Coverage</th>
+<th style="text-align: right;">Bias</th>
+<th style="text-align: right;">MAD</th>
+<th style="text-align: right;">p90</th>
+<th style="text-align: right;">within 10 s</th>
+<th style="text-align: right;">Median position error</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>xing-100nm</code></td>
+<td style="text-align: right;">93.56%</td>
+<td style="text-align: right;">+0.2 s</td>
+<td style="text-align: right;">2.2 s</td>
+<td style="text-align: right;">10.3 s</td>
+<td style="text-align: right;">83.93%</td>
+<td style="text-align: right;">0.216 NM</td>
+</tr>
+<tr class="even">
+<td><code>xing-40nm</code></td>
+<td style="text-align: right;">94.21%</td>
+<td style="text-align: right;">+0.4 s</td>
+<td style="text-align: right;">2.5 s</td>
+<td style="text-align: right;">17.1 s</td>
+<td style="text-align: right;">80.49%</td>
+<td style="text-align: right;">0.152 NM</td>
+</tr>
+</tbody>
+</table>
+</div>
+</figure>
+</div>
+<p>Read against the yardstick: the inter-source floor is p10 −9 s / p90 +11 s at 40 NM and −6 s / +7 s at 100 NM. <strong>The detector’s spread sits inside the disagreement between two EUROCONTROL derivations of the same crossing.</strong> A median error under half a second and a median position error of about 0.2 NM say the interpolation is doing exactly what it was built to do.</p>
+<p>This is also the only place a seconds-level claim in this study is defensible, because ring reference times are second-resolution where the movement times are not.</p>
+<p><strong>Limitations.</strong> Single-period: 2024 emits no ring events because it has no flight list. And a ring crossing is not detected for an aerodrome merely overflown — correct for these indicators, but not a general-purpose airspace crossing.</p>
+<p><strong>A bug worth recording, because it shaped this detector.</strong> The first run produced 2.85 million 40 NM crossings against 236,899 tracks, with <em>identical</em> counts for both rings on the worst flights — a signature real geometry cannot produce. <code>haversine_nm</code> clamped the argument of <code>asin</code> with <code>F.least(a, 1.0)</code>, and <code>F.least</code> skips nulls, so a missing coordinate became <code>asin(1)</code> = 10,807 NM, the antipodal distance. A transponder parked at Budapest transmitted for the whole 72-hour sample; cleaning nulled its repeated positions as stale broadcasts, and its distance series then alternated between 0.7 NM and the antipode. The fix reduced the counts nineteen- and twenty-three-fold. It was found by the extraction inventory — not by the tests, and not by the scored metrics.</p>
+</section>
+<section id="airport-layout-events" class="level2" data-number="4.8">
+<h2 data-number="4.8" class="anchored" data-anchor-id="airport-layout-events"><span class="header-section-number">4.8</span> Airport layout events</h2>
+<p>The next seven chapters share one detector, described once here.</p>
+<p><strong>How they are detected.</strong> Low-altitude samples are matched against OpenStreetMap aeroway geometry pre-rasterised to H3 resolution 12 in <code>hexaero_airport_layouts</code>. A sample joins a feature when its <code>h3_res_12</code> cell matches <em>and</em> the feature’s aerodrome is one the flight list names for that flight. Consecutive matches on the same feature form a traversal; a gap over 300 seconds starts a new one. Each traversal yields an entry and an exit event.</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 25%">
+<col style="width: 25%">
+<col style="width: 25%">
+<col style="width: 25%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Parameter</th>
+<th>Value</th>
+<th>Source</th>
+<th>Governs</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>airport_max_fl</code></td>
+<td>FL20</td>
+<td>published</td>
+<td>altitude gate for layout matching</td>
+</tr>
+<tr class="even">
+<td><code>airport_trace_gap_seconds</code></td>
+<td>300 s</td>
+<td>published</td>
+<td>when a traversal is considered ended</td>
+</tr>
+<tr class="odd">
+<td><code>airport_events_ordered</code></td>
+<td>on</td>
+<td>ours</td>
+<td>attributes taken at the entry/exit <em>times</em></td>
+</tr>
+<tr class="even">
+<td>H3 resolution</td>
+<td>12</td>
+<td><code>H3Config</code></td>
+<td>matching granularity</td>
+</tr>
+</tbody>
+</table>
+<p><code>airport_events_ordered</code> is a correctness fix, not a tuning knob: the published detector used <code>first</code>/<code>last</code> inside a group-by, which take <strong>partition order, not time order</strong>, so a reported entry position was not guaranteed to be the position at the reported entry time.</p>
+<p><strong>Compared with reference data — none is possible for any of them.</strong> APDF records a runway designator (<code>AP_C_RWY</code>) and a stand (<code>AP_C_STND</code>), but <strong>no entry or exit times for any surface feature</strong>. So a runway <em>identity</em> can be checked indirectly through <a href="#atot-lift-off">ATOT — lift-off</a>, but no aeroway event’s <em>timing</em> can be checked at all.</p>
+<p><strong>Shared limitations.</strong> The detector cannot fire for an aerodrome the flight list did not name; it depends on OSM coverage, built only for large and medium aerodromes in the ingestion area; and a traversal completed inside a single 5-second sample is dropped, because its duration is zero. All counts below are single-period — 2024 emits none of these.</p>
+<section id="entry-runway-exit-runway" class="level3" data-number="4.8.1">
+<h3 data-number="4.8.1" class="anchored" data-anchor-id="entry-runway-exit-runway"><span class="header-section-number">4.8.1</span> entry-runway / exit-runway</h3>
+<p>The runway surface. 31,233 → 26,787 entries and 31,175 → 26,787 exits. The fall is the cleaned track table: cleaning nulls repeated positions as stale broadcasts, which removes surface samples.</p>
+</section>
+<section id="entry-taxiway-exit-taxiway" class="level3" data-number="4.8.2">
+<h3 data-number="4.8.2" class="anchored" data-anchor-id="entry-taxiway-exit-taxiway"><span class="header-section-number">4.8.2</span> entry-taxiway / exit-taxiway</h3>
+<p>30,934 → 18,587 entries, 29,433 → 18,029 exits. The most numerous aeroway feature and the most sensitive to surface reception.</p>
+</section>
+<section id="entry-apron-exit-apron" class="level3" data-number="4.8.3">
+<h3 data-number="4.8.3" class="anchored" data-anchor-id="entry-apron-exit-apron"><span class="header-section-number">4.8.3</span> entry-apron / exit-apron</h3>
+<p>2,565 → 1,679 entries, 2,564 → 1,679 exits.</p>
+</section>
+<section id="entry-parking_position-exit-parking_position" class="level3" data-number="4.8.4">
+<h3 data-number="4.8.4" class="anchored" data-anchor-id="entry-parking_position-exit-parking_position"><span class="header-section-number">4.8.4</span> entry-parking_position / exit-parking_position</h3>
+<p>The stand. 6,531 → 3,109 entries, 6,479 → 3,077 exits. These anchor <a href="#aobt-aibt-block-times">AOBT / AIBT — block times</a>: without them a track first received mid-taxi would report its first movement as an off-block.</p>
+</section>
+<section id="entry-threshold-exit-threshold" class="level3" data-number="4.8.5">
+<h3 data-number="4.8.5" class="anchored" data-anchor-id="entry-threshold-exit-threshold"><span class="header-section-number">4.8.5</span> entry-threshold / exit-threshold</h3>
+<p>774 → 9 entries, 774 → 9 exits.</p>
+<p><strong>The largest relative fall of any event type, and it deserves an explanation rather than a row in a table.</strong> Threshold polygons are the smallest features in the layout set, so they are the most sensitive to which samples survive cleaning. This is trajectory cleaning removing the samples a detector depends on — not a detector change — and it is the clearest instance of that effect in the study.</p>
+</section>
+<section id="entry-hangar-exit-hangar" class="level3" data-number="4.8.6">
+<h3 data-number="4.8.6" class="anchored" data-anchor-id="entry-hangar-exit-hangar"><span class="header-section-number">4.8.6</span> entry-hangar / exit-hangar</h3>
+<p>34 → 21 entries, 34 → 21 exits. Rare by nature; included for completeness.</p>
+</section>
+<section id="entry-deicing_pad-exit-deicing_pad" class="level3" data-number="4.8.7">
+<h3 data-number="4.8.7" class="anchored" data-anchor-id="entry-deicing_pad-exit-deicing_pad"><span class="header-section-number">4.8.7</span> entry-deicing_pad / exit-deicing_pad</h3>
+<p>In the emitted vocabulary but <strong>not observed on either sample</strong> — de-icing pads are tagged in OSM for few of the aerodromes covered, and the sample is June.</p>
+</section>
+</section>
+<section id="atot-lift-off" class="level2" data-number="4.9">
+<h2 data-number="4.9" class="anchored" data-anchor-id="atot-lift-off"><span class="header-section-number">4.9</span> ATOT — lift-off</h2>
+<p><strong>What it is.</strong> The take-off time, anchored on the runway the movement actually used. ICAO’s T08 in all but name; APDF’s <code>MVT_TIME_UTC</code> for a departure.</p>
+<p><strong>How it is detected.</strong> A native port of <code>traffic</code>’s <code>TrackBasedRunwayDetection</code>. Samples are kept when they are within 5 NM of the aerodrome, below 1,500 ft above field elevation, faster than 30 kt over the ground, and climbing faster than 257 ft/min. At least four must survive. The median track of the survivors is matched against each runway’s bearing and the nearest within 10° wins; parallel runways are separated by cross-track distance to each centreline, in closed form where <code>traffic</code> uses a geometry library. <strong>ATOT is the earliest surviving sample</strong> of that window.</p>
+<p>Runway geometry comes from <code>oa_runways</code> — the OurAirports table step 00d has generated since it was written and which nothing had ever read. Bearings are computed from the two threshold positions rather than from <code>le_heading_degT</code>, which is often null and sometimes magnetic rather than true.</p>
+<p><strong>Parameters.</strong></p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 25%">
+<col style="width: 25%">
+<col style="width: 25%">
+<col style="width: 25%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Parameter</th>
+<th>Value</th>
+<th>Source</th>
+<th>Governs</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>runway_max_dist_nm</code></td>
+<td>5 NM</td>
+<td><code>traffic</code></td>
+<td>how far from the aerodrome samples count</td>
+</tr>
+<tr class="even">
+<td><code>runway_max_height_ft</code></td>
+<td>1,500 ft</td>
+<td><code>traffic</code></td>
+<td>ceiling of the detection window</td>
+</tr>
+<tr class="odd">
+<td><code>runway_min_vert_rate_ftmin</code></td>
+<td>257 ft/min</td>
+<td><code>traffic</code></td>
+<td>separates the climb from ground movement</td>
+</tr>
+<tr class="even">
+<td><code>runway_min_groundspeed_kt</code></td>
+<td>30 kt</td>
+<td><code>traffic</code></td>
+<td>excludes taxiing</td>
+</tr>
+<tr class="odd">
+<td><code>runway_max_bearing_deg</code></td>
+<td>10°</td>
+<td><code>traffic</code></td>
+<td>abstention threshold</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Compared with the published algorithm.</strong> New: 46,355 events where the published algorithm emitted none. Its predecessor is <a href="#take-off">take-off</a>, and the comparison is the point of this study — see the two tables above and below.</p>
+<p><strong>Compared with reference data.</strong></p>
+<div id="tbl-atot" class="cell quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl quarto-uncaptioned" id="tbl-atot-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;6
+</figcaption>
+<div aria-describedby="tbl-atot-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<table class="caption-top table table-sm table-striped small">
+<thead>
+<tr class="header">
+<th>Detector</th>
+<th style="text-align: right;">Coverage</th>
+<th style="text-align: right;">Bias</th>
+<th style="text-align: right;">MAD</th>
+<th style="text-align: right;">p90</th>
+<th style="text-align: right;">±60 s</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>take-off</code></td>
+<td style="text-align: right;">0.39%</td>
+<td style="text-align: right;">-1 s</td>
+<td style="text-align: right;">16 s</td>
+<td style="text-align: right;">39 s</td>
+<td style="text-align: right;">0.38%</td>
+</tr>
+<tr class="even">
+<td><code>ATOT</code></td>
+<td style="text-align: right;">63.30%</td>
+<td style="text-align: right;">+19 s</td>
+<td style="text-align: right;">21 s</td>
+<td style="text-align: right;">59 s</td>
+<td style="text-align: right;">58.63%</td>
+</tr>
+</tbody>
+</table>
+</div>
+</figure>
+</div>
+<p><strong>This is a trade, not a clean win.</strong> The published <code>take-off</code> has the better median — one second, against nineteen. But it has it on 0.39% of departures, where <code>ATOT</code> has 63.30%, and even the published algorithm’s own configuration only reached 1.81% with a 90th-percentile error of over an hour. <code>ATOT</code> gets a 90th-percentile error of about a minute on two thirds of all departures. For an indicator averaged over a population, a detector that is never wildly wrong is worth more than one that is sometimes perfect and almost always absent.</p>
+<p>Runway identity, against <code>AP_C_RWY</code>:</p>
+<div id="tbl-rwy" class="cell quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl quarto-uncaptioned" id="tbl-rwy-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;7
+</figcaption>
+<div aria-describedby="tbl-rwy-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<table class="caption-top table table-sm table-striped small">
+<thead>
+<tr class="header">
+<th>Milestone</th>
+<th style="text-align: right;">Named</th>
+<th style="text-align: right;">Exactly right</th>
+<th style="text-align: right;">Share of named</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>ALDT</code></td>
+<td style="text-align: right;">49,366 (86.06%)</td>
+<td style="text-align: right;">32,944</td>
+<td style="text-align: right;"><strong>66.73%</strong></td>
+</tr>
+<tr class="even">
+<td><code>ATOT</code></td>
+<td style="text-align: right;">36,313 (63.30%)</td>
+<td style="text-align: right;">26,319</td>
+<td style="text-align: right;"><strong>72.48%</strong></td>
+</tr>
+</tbody>
+</table>
+</div>
+</figure>
+</div>
+<p><strong>This is the weak spot of the family.</strong> Roughly a quarter of the runways <code>ATOT</code> names are wrong. Designators are compared case-insensitively with whitespace stripped and not otherwise fuzzed, because <code>07R</code> and <code>07L</code> are different runways and a lenient match would hide exactly the error worth finding.</p>
+<p><strong>Limitations.</strong> The time is a <strong>proxy</strong> — the extreme of a detection window, not a measured wheels-off — and its bias is reported rather than assumed. Single-period. The detector abstains where no runway is within tolerance, which is deliberate: naming the wrong runway corrupts a movement count, naming none is an explicit null.</p>
+</section>
+<section id="aldt-touchdown" class="level2" data-number="4.10">
+<h2 data-number="4.10" class="anchored" data-anchor-id="aldt-touchdown"><span class="header-section-number">4.10</span> ALDT — touchdown</h2>
+<p><strong>What it is.</strong> The landing time with its runway. ICAO’s T17; APDF’s <code>MVT_TIME_UTC</code> for an arrival.</p>
+<p><strong>How it is detected.</strong> As <a href="#atot-lift-off">ATOT — lift-off</a>, with the vertical-rate gate inverted — descending faster than 257 ft/min — and <strong>ALDT taken as the latest surviving sample</strong> of the window.</p>
+<p><strong>Parameters.</strong> Identical to <a href="#atot-lift-off">ATOT — lift-off</a>; the role decides the sign of the vertical-rate gate.</p>
+<p><strong>Compared with the published algorithm.</strong> New: 65,886 events. Its predecessor is <a href="#landing">landing</a>.</p>
+<p><strong>Compared with reference data.</strong></p>
+<div id="tbl-aldt" class="cell quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl quarto-uncaptioned" id="tbl-aldt-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;8
+</figcaption>
+<div aria-describedby="tbl-aldt-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<table class="caption-top table table-sm table-striped small">
+<thead>
+<tr class="header">
+<th>Detector</th>
+<th style="text-align: right;">Coverage</th>
+<th style="text-align: right;">Bias</th>
+<th style="text-align: right;">MAD</th>
+<th style="text-align: right;">p90</th>
+<th style="text-align: right;">±60 s</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>landing</code></td>
+<td style="text-align: right;">1.86%</td>
+<td style="text-align: right;">+21 s</td>
+<td style="text-align: right;">21 s</td>
+<td style="text-align: right;">49 s</td>
+<td style="text-align: right;">1.78%</td>
+</tr>
+<tr class="even">
+<td><code>ALDT</code></td>
+<td style="text-align: right;">86.06%</td>
+<td style="text-align: right;">-2 s</td>
+<td style="text-align: right;">19 s</td>
+<td style="text-align: right;">52 s</td>
+<td style="text-align: right;">80.38%</td>
+</tr>
+</tbody>
+</table>
+</div>
+</figure>
+</div>
+<p><strong>An unambiguous win, unlike take-off</strong> — better on every axis at once: forty-six times the coverage, a median two seconds early rather than twenty-one late, and four detections in five within a minute against fewer than two in a hundred.</p>
+<p>Runway identity is in the table under <a href="#atot-lift-off">ATOT — lift-off</a>: <code>ALDT</code> names a runway for 86.06% of arrivals and gets <strong>66.73%</strong> of those exactly right. <strong>A third of named landing runways are wrong</strong>, which is worse than the departure case and is the single most improvable number in the study.</p>
+<p><strong>Limitations.</strong> As <a href="#atot-lift-off">ATOT — lift-off</a>. The touchdown time is a proxy; the runway identity is measured and mediocre.</p>
+</section>
+<section id="aobt-aibt-block-times" class="level2" data-number="4.11">
+<h2 data-number="4.11" class="anchored" data-anchor-id="aobt-aibt-block-times"><span class="header-section-number">4.11</span> AOBT / AIBT — block times</h2>
+<p><strong>What it is.</strong> Off-block and on-block — ICAO’s T04 and T21, and the inputs to KPI02 and KPI13.</p>
+<p><strong>How it is detected.</strong> The aircraft is moving once its groundspeed stays above 2 kt for a sustained 30 seconds — the signal from <code>traffic</code>’s <code>StartMoving</code>, where the <em>sustained</em> part separates a push from a jitter in the speed field. The start of the first such run is the off-block candidate and the end of the last the on-block candidate.</p>
+<p>Both are <strong>anchored on the parking-position events</strong>: a candidate is only emitted for a track actually seen leaving or entering a stand. Without that anchor a track first received mid-taxi would report its first movement as an off-block — a different event, and one that reads as an implausibly short taxi rather than as a miss.</p>
+<p><code>traffic</code>’s own parking-position path is deliberately not used: it resolves stands through a live OpenStreetMap Overpass query whose cache does not survive serialisation to an executor.</p>
+<p><strong>Parameters.</strong></p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 25%">
+<col style="width: 25%">
+<col style="width: 25%">
+<col style="width: 25%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Parameter</th>
+<th>Value</th>
+<th>Source</th>
+<th>Governs</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>ground_speed_threshold_kt</code></td>
+<td>2 kt</td>
+<td><code>traffic</code></td>
+<td>what counts as moving</td>
+</tr>
+<tr class="even">
+<td><code>ground_move_min_seconds</code></td>
+<td>30 s</td>
+<td><code>traffic</code></td>
+<td>how long movement must persist</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Compared with the published algorithm.</strong> New: 1,842 AOBT and 1,842 AIBT events where the published algorithm emitted none.</p>
+<p><strong>Compared with reference data.</strong></p>
+<div id="tbl-blocks" class="cell quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl quarto-uncaptioned" id="tbl-blocks-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;9
+</figcaption>
+<div aria-describedby="tbl-blocks-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<table class="caption-top table table-sm table-striped small">
+<thead>
+<tr class="header">
+<th>Milestone</th>
+<th style="text-align: right;">Coverage</th>
+<th style="text-align: right;">Bias</th>
+<th style="text-align: right;">MAD</th>
+<th style="text-align: right;">p90</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>AOBT</code></td>
+<td style="text-align: right;">2.63%</td>
+<td style="text-align: right;">+744 s</td>
+<td style="text-align: right;">748 s</td>
+<td style="text-align: right;">1191 s</td>
+</tr>
+<tr class="even">
+<td><code>AIBT</code></td>
+<td style="text-align: right;">2.65%</td>
+<td style="text-align: right;">-323 s</td>
+<td style="text-align: right;">323 s</td>
+<td style="text-align: right;">610 s</td>
+</tr>
+</tbody>
+</table>
+</div>
+</figure>
+</div>
+<p><strong>Coverage is the limitation and it is not an algorithm problem.</strong> ADS-B surface reception is sparse — an aircraft on a stand is often not received at all. The bias is also structural rather than noise: sustained movement is detectable only once reception begins, which is typically well after the aircraft actually leaves the stand, so the off-block proxy fires around twelve minutes late.</p>
+<p>Both numbers are reported as the finding rather than tuned away, and they are why pushback (T05) was not built: it needs strictly more coverage than this.</p>
+<p><strong>Limitations.</strong> Single-period. The bias is large enough that these milestones are not usable for KPI02 or KPI13 as they stand — that is the honest reading.</p>
+</section>
+<section id="level-off-climb-level-off-descent" class="level2" data-number="4.12">
+<h2 data-number="4.12" class="anchored" data-anchor-id="level-off-climb-level-off-descent"><span class="header-section-number">4.12</span> level-off-climb / level-off-descent</h2>
+<p><em>Types:</em> <code>level-off-climb-start</code>, <code>level-off-climb-end</code>, <code>level-off-descent-start</code>, <code>level-off-descent-end</code>.</p>
+<p><strong>What it is.</strong> Level flight during climb and descent — the inputs to ICAO’s KPI17 and KPI19.</p>
+<p><strong>How it is detected.</strong> ICAO specifies these with a complete algorithm rather than leaving detection to the implementer, and this is that algorithm:</p>
+<blockquote class="blockquote">
+<p>a data point starts a level segment when the altitude difference with the next data point is ≤ the level band limit and the vertical speed towards it is ≤ the vertical speed limit. The segment ends when the altitude differs from the segment’s starting altitude by more than the level band limit, or the vertical speed between two consecutive points exceeds the limit.</p>
+</blockquote>
+<p>The anchoring is what a plain window function cannot express: a segment’s end is defined against <em>its own start</em>, a running value that resets. It is implemented as a sessionisation — mark where flatness begins, forward-fill the anchor within the group — with each group truncated at its first failure, so a trajectory that leaves the band and drifts back is not stitched across the excursion. Anchoring against the segment start rather than the previous sample is what stops a slow drift being read as one long level segment.</p>
+<p>Segments are split into KPI17 and KPI19 by whether they fall before top-of-climb or after top-of-descent, with two exclusions: a <strong>minimum altitude</strong> below which the trajectory is not analysed, and an <strong>exclusion box</strong> removing a segment above 90% of the cruise altitude lasting over five minutes — that is cruise, not a level-off, and without it every cruise would be the largest level-off in the flight.</p>
+<p><strong>Parameters — all eight are ICAO’s published values.</strong></p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 25%">
+<col style="width: 25%">
+<col style="width: 25%">
+<col style="width: 25%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Parameter</th>
+<th>Value</th>
+<th>Source</th>
+<th>Governs</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>level_band_limit_ft</code></td>
+<td>200 ft</td>
+<td>ICAO</td>
+<td>altitude band defining “level”</td>
+</tr>
+<tr class="even">
+<td><code>level_vertical_speed_limit_ftmin</code></td>
+<td>300 ft/min</td>
+<td>ICAO</td>
+<td>rate defining “level”</td>
+</tr>
+<tr class="odd">
+<td><code>level_min_duration_seconds</code></td>
+<td>20 s</td>
+<td>ICAO</td>
+<td>shortest reportable segment</td>
+</tr>
+<tr class="even">
+<td><code>level_exclusion_box_pct</code></td>
+<td>90%</td>
+<td>ICAO</td>
+<td>lower edge of the cruise exclusion</td>
+</tr>
+<tr class="odd">
+<td><code>level_exclusion_box_seconds</code></td>
+<td>300 s</td>
+<td>ICAO</td>
+<td>duration above which a high segment is cruise</td>
+</tr>
+<tr class="even">
+<td><code>level_min_altitude_climb_ft</code></td>
+<td>3,000 ft</td>
+<td>ICAO</td>
+<td>where climb analysis starts</td>
+</tr>
+<tr class="odd">
+<td><code>level_min_altitude_descent_ft</code></td>
+<td>1,800 ft</td>
+<td>ICAO</td>
+<td>where descent analysis stops</td>
+</tr>
+<tr class="even">
+<td><code>level_analysis_radius_nm</code></td>
+<td>200 NM</td>
+<td>ICAO</td>
+<td>radius around the aerodrome analysed</td>
+</tr>
+</tbody>
+</table>
+<p><strong>These must not be tuned</strong> — see <a href="#the-parameter-sweep-designed">The parameter sweep, designed</a>.</p>
+<p><strong>Compared with the published algorithm.</strong> New: 13,945 climb level-offs and 103,769 descent level-offs where the published algorithm emitted none. Descent level-offs outnumber climb ones by roughly 7 to one, which matches the operational expectation: arrival sequencing produces far more level flight than departure.</p>
+<p><strong>Compared with reference data. None is possible, and this is the family where that matters most.</strong> No source available to OPDI holds level-segment truth. The claim made here is therefore <strong>conformance to ICAO’s published algorithm</strong>, tested on synthetic trajectories whose geometry is known by construction — a climb with an injected 90-second level-off at a known altitude must yield exactly one segment of that duration. That is checkable; “accurate” is not.</p>
+<p><strong>Limitations.</strong> Unvalidated against data, by necessity. Inherits top-of-climb and top-of-descent from the phase detector, so a flight with no cruise phase — a turboprop — produces no level-offs either.</p>
+</section>
+<section id="first_seen-last_seen" class="level2" data-number="4.13">
+<h2 data-number="4.13" class="anchored" data-anchor-id="first_seen-last_seen"><span class="header-section-number">4.13</span> first_seen / last_seen</h2>
+<p><strong>What it is.</strong> The first and last sample of each track.</p>
+<p><strong>How it is detected.</strong> Row number ascending and descending over the track, ordered by time. Emitted for every track without condition, which is why the count — 236,899 on the 2025 sample — is also the track count.</p>
+<p><strong>Parameters.</strong> None.</p>
+<p><strong>Compared with the published algorithm.</strong> Unchanged: 236,899 → 236,899.</p>
+<p><strong>Compared with reference data. None is possible, and not for want of a source.</strong> These are properties of <em>reception coverage</em>, not of the flight. There is nothing they could be right or wrong against — an aircraft is first seen when a receiver first hears it, which no reference dataset records because it is not a property of the operation.</p>
+<p><strong>Limitations.</strong> May carry a null position where the first sample has none.</p>
+</section>
+<section id="measurements" class="level2" data-number="4.14">
+<h2 data-number="4.14" class="anchored" data-anchor-id="measurements"><span class="header-section-number">4.14</span> Measurements</h2>
+<p>Two values attached to every event rather than being events themselves.</p>
+<p><strong><code>Distance flown (NM)</code></strong> is the cumulative great-circle distance from the start of the track, summed sample to sample with an Earth radius of 6,371 km and converted at 1.852 km per nautical mile. <strong><code>Time Passed (s)</code></strong> is elapsed time from the track’s first sample.</p>
+<p>Both are <strong>interpolated to the crossing instant</strong> for the crossing families rather than read from a neighbouring sample: a measurement attached to an interpolated event but taken from a different row would disagree with its own event.</p>
+<p><strong>Compared with reference data.</strong> APDF carries <code>C40_TRANSIT_DIST_KM</code> — the achieved distance inside the ring — which makes a distance comparison possible for the ring families. <strong>It has not been run</strong>; it is the most tractable remaining measurement in this study.</p>
+<hr>
+</section>
+</section>
+<section id="cross-cutting-findings" class="level1" data-number="5">
+<h1 data-number="5"><span class="header-section-number">5</span> Cross-cutting findings</h1>
+<p>Two results are about the programme rather than any one event.</p>
+<section id="requiring-complete-evidence-made-detection-worse-and-it-reproduces" class="level2" data-number="5.1">
+<h2 data-number="5.1" class="anchored" data-anchor-id="requiring-complete-evidence-made-detection-worse-and-it-reproduces"><span class="header-section-number">5.1</span> Requiring complete evidence made detection worse — and it reproduces</h2>
+<p>Spark’s <code>least</code>/<code>greatest</code> skip nulls, so a fuzzy rule missing an input became a minimum over fewer terms and could out-compete a complete rule. Requiring every input to be present is obviously more correct.</p>
+<p>On real data it removes most phase-based landings, on <strong>both</strong> periods:</p>
+<div id="tbl-d4" class="cell quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl quarto-uncaptioned" id="tbl-d4-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;10
+</figcaption>
+<div aria-describedby="tbl-d4-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<table class="caption-top table table-sm table-striped small">
+<thead>
+<tr class="header">
+<th>Rung</th>
+<th style="text-align: right;"><code>landing</code> coverage 2025</th>
+<th style="text-align: right;">2024</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>L01_clean_tracks</td>
+<td style="text-align: right;">6.39%</td>
+<td style="text-align: right;">6.66%</td>
+</tr>
+<tr class="even">
+<td>L02_smoothing</td>
+<td style="text-align: right;">6.49%</td>
+<td style="text-align: right;">0.96%</td>
+</tr>
+<tr class="odd">
+<td>L03_complete_rules</td>
+<td style="text-align: right;">0.69%</td>
+<td style="text-align: right;">0.23%</td>
+</tr>
+</tbody>
+</table>
+</div>
+</figure>
+</div>
+<p>A large relative collapse on both samples, so this is a property of the change rather than of a month. ADS-B carries a null velocity often enough that insisting on complete evidence discards most ground samples.</p>
+<p>It matters less than it looks, because the runway-anchored detectors replace that path entirely — but it is a genuine negative result about a fix this study introduced, and it is recorded rather than quietly reverted.</p>
+</section>
+<section id="the-smoothing-window-is-contradicted-by-the-second-period" class="level2" data-number="5.2">
+<h2 data-number="5.2" class="anchored" data-anchor-id="the-smoothing-window-is-contradicted-by-the-second-period"><span class="header-section-number">5.2</span> The smoothing window is contradicted by the second period</h2>
+<p>Restoring the reference implementation’s 60-second majority vote is the change with the strongest prior justification in the whole study: it is what OpenAP does, and the original port simply dropped it. It is near-neutral on 2025 and costs 86% of landing coverage on 2024.</p>
+<p><strong>One confound must be stated with it.</strong> The 2024 tracks predate step 02’s altitude repair, so that run substitutes the raw barometric altitude. The period differs in <em>input preparation</em> as well as in date, and the smoothing operates on phase labels derived from exactly that column. The divergence may be the substitution rather than the month, and this study cannot separate them.</p>
+<p>What it can say is that the change is <strong>not robust across the conditions tested</strong> — which is the actionable half: a fix that behaves this differently on noisier input should not be adopted on the strength of its rationale alone.</p>
+<hr>
+</section>
+</section>
+<section id="the-parameter-sweep-designed" class="level1" data-number="6">
+<h1 data-number="6"><span class="header-section-number">6</span> The parameter sweep, designed</h1>
+<p>Every threshold in this pipeline is named in <code>EventConfig</code>, which is what makes optimisation possible. This chapter says what should be optimised, against what, and at what cost. <strong>Nothing here has been run.</strong></p>
+<section id="the-objective-does-not-exist-yet-and-that-is-the-first-task" class="level2" data-number="6.1">
+<h2 data-number="6.1" class="anchored" data-anchor-id="the-objective-does-not-exist-yet-and-that-is-the-first-task"><span class="header-section-number">6.1</span> The objective does not exist yet, and that is the first task</h2>
+<p>The ADEP/ADES study could score a configuration with <code>correct − k·wrong</code> because its answer was categorical: an aerodrome is right, wrong or absent. A milestone is a <strong>time</strong>, so an objective has to trade coverage against error.</p>
+<p>The shape that fits the evidence here is <em>count within tolerance, minus k times count outside it</em>, with:</p>
+<ul>
+<li><strong>the tolerance taken from the inter-source floor</strong>, not chosen — ±10 s at 40 NM, ±7 s at 100 NM, and for the movement times something no tighter than the minute the reference is rounded to;</li>
+<li><strong>k stated and swept</strong>, as the ADEP/ADES work did at k = 1, 2, 3, because the exchange rate between a wrong answer and a silence is a judgement that should be visible rather than buried;</li>
+<li><strong>medians throughout</strong>, since one detection landing on the wrong flight carries an error of hours.</li>
+</ul>
+<p>Defining this is a prerequisite. A sweep without an objective produces a table nobody can rank.</p>
+</section>
+<section id="what-is-worth-sweeping" class="level2" data-number="6.2">
+<h2 data-number="6.2" class="anchored" data-anchor-id="what-is-worth-sweeping"><span class="header-section-number">6.2</span> What is worth sweeping</h2>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 33%">
+<col style="width: 33%">
+<col style="width: 33%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Parameter</th>
+<th>Now</th>
+<th>Why, and what to expect</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>phase_twindow_seconds</code></td>
+<td>60 s</td>
+<td><strong>First priority.</strong> The change the second period contradicted. Sweep 0–120 s on <em>both</em> periods: the question is not which value is best on one sample but whether any value is robust across both.</td>
+</tr>
+<tr class="even">
+<td><code>phase_require_complete_rules</code></td>
+<td>on</td>
+<td>Measured harmful on both periods. A boolean is not a sweep — the real question is a <em>partial</em> rule, requiring two of three inputs, which needs a small code change first. Highest expected value per unit of work.</td>
+</tr>
+<tr class="odd">
+<td><code>runway_min_groundspeed_kt</code> · <code>runway_max_height_ft</code> · <code>runway_max_dist_nm</code></td>
+<td>30 kt · 1,500 ft · 5 NM</td>
+<td>These three gates decide which samples define a movement, so they trade <code>ATOT</code> coverage against its +19 s bias directly. A 3×3×3 grid is the obvious start.</td>
+</tr>
+<tr class="even">
+<td><code>runway_max_bearing_deg</code></td>
+<td>10°</td>
+<td>Controls abstention <em>and</em> runway-identity error. Widening raises coverage and risks naming the wrong parallel — and identity is already the family’s weak point at 67–72% exact.</td>
+</tr>
+<tr class="odd">
+<td><code>ground_speed_threshold_kt</code> · <code>ground_move_min_seconds</code></td>
+<td>2 kt · 30 s</td>
+<td>Where the +744 s off-block bias lives. Unlikely to fix coverage, which is a reception limit, but may move the bias.</td>
+</tr>
+<tr class="even">
+<td><code>crossing_hysteresis_ft</code></td>
+<td>300 ft</td>
+<td>Trades chatter against crossings missed for aircraft levelling near a threshold. Cheap, and the effect is easy to reason about.</td>
+</tr>
+<tr class="odd">
+<td><code>phase_cruise_speed_kt</code></td>
+<td>600 kt</td>
+<td>Quantifies what deviating from OpenAP would buy for turboprop coverage — which is the evidence needed <em>before</em> deviating, not after.</td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="what-must-not-be-swept" class="level2" data-number="6.3">
+<h2 data-number="6.3" class="anchored" data-anchor-id="what-must-not-be-swept"><span class="header-section-number">6.3</span> What must not be swept</h2>
+<p><strong>The eight <code>level_*</code> parameters are ICAO’s published values.</strong> Tuning them would forfeit the only claim that family has — conformance to a published algorithm — in exchange for a number nothing can validate. There is no external truth for level segments, so a “better” tuned value would mean only “different”.</p>
+<p><strong><code>crossing_levels_fl</code> is the published vocabulary</strong>, not a knob. Changing it changes what OPDI publishes rather than how well it publishes it.</p>
+</section>
+<section id="making-it-affordable" class="level2" data-number="6.4">
+<h2 data-number="6.4" class="anchored" data-anchor-id="making-it-affordable"><span class="header-section-number">6.4</span> Making it affordable</h2>
+<p>A full ladder is about two hours per period. A 3×3×3 runway grid is 27 configurations — a week of cluster at that rate, which is not a sweep anyone will run.</p>
+<p>The way out is to separate parameters that change <strong>what is detected</strong> from those that only change <strong>post-processing</strong>. The runway gates, the phase parameters and the ground thresholds require re-running detection. But the crossing hysteresis, the sequence numbering and the interpolation operate on a trajectory that has already been read — a harness that caches the per-sample distance and altitude series could sweep those without touching the pipeline. Building that cache is a prerequisite for any grid worth the name.</p>
+</section>
+<section id="the-trap" class="level2" data-number="6.5">
+<h2 data-number="6.5" class="anchored" data-anchor-id="the-trap"><span class="header-section-number">6.5</span> The trap</h2>
+<p><strong>Fit on one period, validate on the other.</strong> This study has already produced one finding that reversed between samples. A parameter chosen on a single period is a parameter chosen on noise, and the smoothing result is the standing proof.</p>
+<hr>
+</section>
+</section>
+<section id="what-is-not-measured-and-why" class="level1" data-number="7">
+<h1 data-number="7"><span class="header-section-number">7</span> What is not measured, and why</h1>
+<p>The reasons differ, and lumping them together would hide that.</p>
+<p><strong>No source records it.</strong> Top of climb and descent, the phase-derived level segments, and the ICAO level-offs. APDF holds movement and block times, ring crossings, a runway and a stand — nothing about the cruise phase or level flight. For the ICAO family the substitute is conformance testing against the published algorithm; for the others there is none.</p>
+<p><strong>The source records the identity but not the timing.</strong> Every aeroway event. <code>AP_C_RWY</code> and <code>AP_C_STND</code> name a runway and a stand, but no surface feature has an entry or exit time in APDF.</p>
+<p><strong>There is nothing to be right about.</strong> <code>first_seen</code> and <code>last_seen</code> describe reception, not the flight.</p>
+<p><strong>Possible but not yet run.</strong> The ring distance comparison against <code>C40_TRANSIT_DIST_KM</code>, and the whole of the 2024 period for every aerodrome-dependent family — 2024 has no flight list, so it emits 16 types against 2025’s 34.</p>
+<p><strong>Provenance, honestly.</strong> Both ladder outputs read <strong>stale</strong> against the current code: they were produced before the changes that made the 2024 period runnable. Those changes cannot alter a 2025 result, but the fingerprint covers the file rather than the behaviour, so the chain reports staleness and this page says so rather than re-recording them as current. Clearing it means re-running them.</p>
+<hr>
+</section>
+<section id="breaking-changes-for-consumers" class="level1" data-number="8">
+<h1 data-number="8"><span class="header-section-number">8</span> Breaking changes for consumers</h1>
+<p><strong><code>first-xing-fl*</code> and <code>last-xing-fl*</code> are not re-emitted</strong> by the new version. They keep their meaning under the frozen <code>events_v0.0.2</code>, so published data stays reproducible, but consumers moving to <code>events_v0.1.0</code> must migrate to the crossing sequence number in each event’s <code>info</code>: the first crossing is <code>crossing_seq == 1</code>, the last is the maximum.</p>
+<p><strong><code>level-start</code>/<code>level-end</code> and <code>level-off-*</code> are not interchangeable.</strong> They answer different questions and only the latter corresponds to ICAO’s KPI17 and KPI19.</p>
+<p><strong>The event table shrinks, which is not what anyone expects from a version that adds four families.</strong></p>
+<div id="tbl-growth" class="cell quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl quarto-uncaptioned" id="tbl-growth-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;11
+</figcaption>
+<div aria-describedby="tbl-growth-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<p>On the three-day 2025 sample: <strong>3,769,690 events under the published algorithm, 2,938,976 under the new one</strong> — a factor of 0.78.</p>
+</div>
+</figure>
+</div>
+<p>The new families add several hundred thousand events, and the phase-flicker removal in <a href="#level-start-level-end">level-start / level-end</a> takes away roughly 1.5 million — so a consumer sizing storage from the type list alone would get the direction wrong. <strong>Volume is not a proxy for information here</strong>, and any consumer with a row-count alarm on the event table should expect it to fire.</p>
+<p><strong>Event identifiers are now derived from the event’s own identity</strong> — track, type, time and version — rather than a partition counter, so a re-run produces the same identifiers. This makes a re-run idempotent in <em>content</em>; it does not make the write idempotent, and re-processing safety still rests on the per-month progress logs.</p>
+<hr>
+</section>
+<section id="provenance" class="level1" data-number="9">
+<h1 data-number="9"><span class="header-section-number">9</span> Provenance</h1>
+<div id="tbl-provenance" class="cell quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl quarto-uncaptioned" id="tbl-provenance-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;12
+</figcaption>
+<div aria-describedby="tbl-provenance-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<table class="caption-top table table-sm table-striped small">
+<colgroup>
+<col style="width: 25%">
+<col style="width: 25%">
+<col style="width: 25%">
+<col style="width: 25%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Output</th>
+<th>Script</th>
+<th>Git SHA</th>
+<th>Produced</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>bridge_2024.json</code></td>
+<td><code>benchmarks/events_gt.py</code></td>
+<td><code>b0ac011</code></td>
+<td>2026-08-14</td>
+</tr>
+<tr class="even">
+<td><code>bridge_2025.json</code></td>
+<td><code>benchmarks/events_gt.py</code></td>
+<td><code>b0ac011</code></td>
+<td>2026-08-14</td>
+</tr>
+<tr class="odd">
+<td><code>floor_2025.csv</code></td>
+<td><code>benchmarks/events_compare.py</code></td>
+<td><code>2f44441</code> (dirty)</td>
+<td>2026-08-15</td>
+</tr>
+<tr class="even">
+<td><code>inventory_2024.csv</code></td>
+<td><code>benchmarks/event_bench.py</code></td>
+<td><code>b054e82</code></td>
+<td>2026-08-15</td>
+</tr>
+<tr class="odd">
+<td><code>inventory_2025.csv</code></td>
+<td><code>benchmarks/event_bench.py</code></td>
+<td><code>7dcb643</code></td>
+<td>2026-08-15</td>
+</tr>
+<tr class="even">
+<td><code>ladder_2024.csv</code></td>
+<td><code>benchmarks/event_bench.py</code></td>
+<td><code>b054e82</code></td>
+<td>2026-08-15</td>
+</tr>
+<tr class="odd">
+<td><code>ladder_2025.csv</code></td>
+<td><code>benchmarks/event_bench.py</code></td>
+<td><code>7dcb643</code></td>
+<td>2026-08-15</td>
+</tr>
+<tr class="even">
+<td><code>rings_2025.csv</code></td>
+<td><code>benchmarks/events_compare.py</code></td>
+<td><code>2f44441</code> (dirty)</td>
+<td>2026-08-15</td>
+</tr>
+<tr class="odd">
+<td><code>runway_2025.csv</code></td>
+<td><code>benchmarks/events_compare.py</code></td>
+<td><code>2f44441</code> (dirty)</td>
+<td>2026-08-15</td>
+</tr>
+</tbody>
+</table>
+</div>
+</figure>
+</div>
+<p>Every figure is produced by <code>benchmarks/regenerate_events.py</code>, which re-runs a job only when the source files that job depends on have changed. An output with no manifest entry is reported as unverified rather than shown as fact.</p>
+
+
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp('/' + window.location.host + '/');
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+</div> <!-- /content -->
+
+
+
+
+</body></html>
