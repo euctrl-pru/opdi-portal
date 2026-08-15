@@ -254,34 +254,68 @@ if (!is.null(ladder_2025)) {
 }
 ```
 
-## What has *not* been measured
+## What the numbers say
 
-This is version 1, and the honest position is narrower than the work might
-suggest.
+### Landing time is transformed; take-off trades sharpness for reach
 
-**The ladder has not been run.** The benchmark harness is built, tested and
-verified end to end on the ground-truth side, but the eleven-rung comparison
-from published `events_v0.0.2` to the shipped configuration requires many hours
-of serial cluster time and has not been executed. **No accuracy or coverage
-figure for any detector appears in this study**, including for the defects the
-authors are confident about. A defect demonstrated by a unit test is a defect
-demonstrated on a synthetic trajectory, not on traffic.
+Both the published fuzzy-phase pair and the new runway-anchored pair are scored
+against the same APDF truth, because which of them wins is the question this
+study exists to answer.
+
+The published `landing` is beaten on every axis at once: the new `ALDT` covers
+forty times as many flights, its median error is two seconds early rather than
+thirty-four late, and four in five detections fall within a minute against one
+in sixty.
+
+`take-off` is the more interesting case, and the honest reading is a trade
+rather than a win. The published detector has the *better median* — a one
+second bias against nineteen — but it fires on 1.8% of flights and its 90th
+percentile error is **4,273 seconds**. Seventy-one minutes. So it is often
+excellent and occasionally absurd, and nothing in its output distinguishes the
+two. The new `ATOT` covers thirty-five times more flights with a 90th
+percentile of 59 seconds. For an indicator averaged over a population, a
+detector that is never wildly wrong is worth more than one that is sometimes
+perfect.
+
+### Requiring complete evidence made detection worse
+
+The ladder's purpose is attribution, and it earned that here by contradicting
+one of this study's own fixes.
+
+`least`/`greatest` skip nulls, so a fuzzy rule missing an input became a
+minimum over fewer terms and could out-compete a complete rule. Requiring every
+input to be present is obviously more correct. On real data it removes 90% of
+phase-based landings — coverage falls from 6.49% to 0.69% — because ADS-B
+carries a null velocity often enough that insisting on complete evidence
+discards most ground samples.
+
+It matters less than it appears, since the runway-anchored detectors replace
+that path entirely. But it is a genuine negative result, it would have been
+invisible in a two-configuration comparison, and it is recorded here rather
+than quietly reverted.
+
+### Off-block and on-block are limited by reception, as expected
+
+Coverage of 2.6% and a bias of +744 seconds. The bias is not noise: sustained
+movement is detectable only once reception begins, which is typically well
+after the aircraft actually leaves the stand. Both numbers are reported as the
+finding rather than tuned away, and they are why T05 (pushback) was not built —
+it needs strictly more coverage than this.
+
+### What has still not been measured
 
 **The vertical family cannot be scored against data at all.** No source
-available to OPDI holds level-segment truth. The claim made for it is
-conformance to ICAO's published algorithm, tested on trajectories whose
-geometry is known by construction — which is checkable, where "accurate" is
-not.
+available to OPDI holds level-segment truth. The claim made for KPI17 and
+KPI19 is conformance to ICAO's published algorithm, tested on trajectories
+whose geometry is known by construction. That is checkable; "accurate" is not.
 
-**Touchdown and lift-off times are proxies.** They are the extremes of the
-runway-detection window. Their bias against the reference is exactly what the
-unrun ladder would report.
+**Top-of-climb and top-of-descent timing rests on no external evidence.** The
+counts move — 114,099 to 100,925 for TOC — but nothing says which is closer to
+the truth.
 
-**A useful yardstick, for when it is run.** The reference data contains two
-independent EUROCONTROL derivations of the same ring crossing, and they differ
-by −9 s at the 10th percentile and +11 s at the 90th. That spread is the floor
-on what agreement can mean here, and is a better basis for a tolerance than a
-round number chosen for looking reasonable.
+**Ring crossings are not yet scored against `C40_CROSS_TIME`.** The detector
+runs and its volumes are now plausible, but the comparison against the
+reference crossing times is not in this version.
 
 ## Breaking change for consumers
 
