@@ -1,0 +1,646 @@
+---
+title: "Detecting departure and destination aerodromes from ADS-B"
+subtitle: "Version 5.1 — why arrivals are hard, and what recovers part of them"
+author: "EUROCONTROL Performance Review Unit"
+date: last-modified
+---
+
+```{r setup}
+#| include: false
+library(knitr)
+library(ggplot2)
+
+# Read-only. Every number comes from a committed CSV under data/, produced by
+# benchmarks/{abstained_vertical,vertical_measure,motion_model_compare}.py in
+# the opdi repository.
+cache <- function(f) {
+  p <- file.path("data", f)
+  if (!file.exists(p)) return(NULL)
+  read.csv(p, stringsAsFactors = FALSE)
+}
+modes <- cache("mode_comparison.csv")
+typ   <- cache("per_type.csv")
+sweep <- cache("angle_sweep.csv")
+prof  <- cache("motion_profile.csv")
+vm    <- cache("vertical_measure.csv")
+cmp   <- cache("model_compare.csv")
+whole <- cache("whole_sample.csv")
+
+# The whole-sample experiment, scored the same way.
+ws <- function(model, role, field) whole[[paste0(role, "_", field)]][whole$model == model]
+wcnt <- function(model, role) {
+  ans <- round(ws(model, role, "coverage") * N_GT)
+  cor <- round(ws(model, role, "overall")  * N_GT)
+  list(ans = ans, cor = cor, wrong = ans - cor)
+}
+wdelta <- function(model, role) {
+  b <- wcnt("base", role); x <- wcnt(model, role)
+  list(dc = x$cor - b$cor, dw = x$wrong - b$wrong)
+}
+
+pct <- function(x) ifelse(is.na(x), "—", sprintf("%.2f%%", 100 * x))
+pp  <- function(x) ifelse(is.na(x), "—", sprintf("%+.2f pp", 100 * x))
+num <- function(x) format(round(x), big.mark = ",", trim = TRUE)
+
+m <- function(mode, field) {
+  v <- modes[[field]][modes$mode == mode]
+  if (length(v) == 0) NA_real_ else v[1]
+}
+N_GT   <- modes$n_ground_truth[1]
+OOA_SH <- m("endpoint", "ades_gt_ooa_share")
+IN_ARR <- round(N_GT * (1 - OOA_SH))
+
+# The in-area arrival decomposition, from the two modes' in-area figures.
+ne_ans <- round(m("nearest",  "ades_inarea_coverage") * IN_ARR)
+ne_cor <- round(m("nearest",  "ades_inarea_coverage") * m("nearest",  "ades_inarea_accuracy") * IN_ARR)
+ep_ans <- round(m("endpoint", "ades_inarea_coverage") * IN_ARR)
+ep_cor <- round(m("endpoint", "ades_inarea_coverage") * m("endpoint", "ades_inarea_accuracy") * IN_ARR)
+NO_CAND   <- IN_ARR - ne_ans
+ABSTAINED <- ne_ans - ep_ans
+WRONG     <- ep_ans - ep_cor
+GUESS_OK  <- ne_cor - ep_cor          # nearest's correct answers on the abstained block
+
+# Model comparison, in flights.
+C <- function(model, role, field) cmp[[paste0(role, "_", field)]][cmp$model == model]
+BASE <- "base (30 NM / 15,000 ft)"
+cnt <- function(model, role) {
+  ans <- round(C(model, role, "coverage") * N_GT)
+  cor <- round(C(model, role, "overall")  * N_GT)
+  list(ans = ans, cor = cor, wrong = ans - cor)
+}
+delta <- function(model, role) {
+  b <- cnt(BASE, role); x <- cnt(model, role)
+  dc <- x$cor - b$cor; dw <- x$wrong - b$wrong
+  list(dc = dc, dw = dw, ratio = if (dw > 0 && dc > 0) dc / dw else NA_real_)
+}
+BEAR   <- "+bearing 7 min / 0.10 deg"     # the recommended gate
+BEAR1  <- "+bearing 7 min / 1 deg"
+BEAR3  <- "+bearing 7 min / 3 deg"
+BEAR30 <- "+bearing 30 min / 1 deg"
+RATE   <- "+bearing 7 min / 1 deg +rate"
+# Net value of a gate when an error is priced at `k` correct labels -- the
+# exchange-rate reasoning of version 4.5, applied to choose among gates.
+net <- function(model, role, k = 2) {
+  d <- delta(model, role); d$dc - k * d$dw
+}
+```
+
+## Summary {.unnumbered}
+
+Version 4 established that arrivals are harder than departures on every measure
+and recommended not changing the arrivals algorithm. It did not say *why*, and
+"we do not know why" is a poor basis for leaving a quarter of the data
+unlabelled. This version takes the arrival deficit apart.
+
+**Three findings.**
+
+**The arrival deficit is silence, not error.** Of `r num(IN_ARR)` in-area
+arrivals, `r num(WRONG)` are answered wrongly and **`r num(ABSTAINED + NO_CAND)`
+are not answered at all**. Version 4's emphasis on misnaming — built on a vivid
+case, Bilbao — described `r pct(WRONG / (ABSTAINED + NO_CAND + WRONG))` of the
+problem.
+
+**Most of that silence is ours, but it is not cheap to break.** `r num(ABSTAINED)`
+flights had a usable candidate that the abstention refused; only `r num(NO_CAND)`
+had nothing at all. So the recoverable share is nearly twice the permanently
+lost one. But guessing on the refused flights scores
+`r pct(GUESS_OK / ABSTAINED)` — four right for eleven wrong. The abstention is
+doing its job.
+
+**One new signal beats that, and it is horizontal.** Whether the aircraft's
+course *points at* the candidate aerodrome, measured tightly enough, recovers
+`r num(delta(BEAR, "ades")$dc)` correct arrivals for only
+`r num(delta(BEAR, "ades")$dw)` new errors —
+**`r sprintf("%.2f:1", delta(BEAR, "ades")$ratio)`**, past the 2:1 exchange rate
+version 4.5 argued for, and the first thing tested to clear it. Vertical rate
+recovers nothing, and adding it destroys most of the gain.
+
+**It is still not adoptable, for a reason outside its own comparison.** The
+bearing test improves `endpoint`; production runs `trend` on arrivals, and
+`trend` beats the improved `endpoint` on *both* axes. The signal is real and the
+rule it improves is the wrong one (@sec-recommendation).
+
+There is a single reason for that asymmetry, and it is the most useful thing in
+this paper:
+
+::: {.callout-important}
+## Positions survive staleness; rates do not
+
+The OpenSky archive fills every second by carrying the last known position
+forward, and in this population roughly half the rows are repeats. A **bearing
+between two genuinely measured fixes is correct regardless of when they were
+measured**. A **rate divides by an elapsed time the timestamps get wrong** — the
+clock says ten minutes, the two real measurements may be ninety seconds apart.
+
+That one sentence explains why bearing alignment works, and why vertical rate,
+closing rate and the approach cone of version 4.5 all failed.
+:::
+
+## Where the arrival deficit sits {#sec-deficit}
+
+```{r deficit}
+t <- typ[typ$role == "arrivals", ]
+t <- t[order(-t$n_truth), ]
+t$missing <- t$n_truth - t$n_correct
+kable(data.frame(
+  Class = gsub("_", " ", t$apt_type),
+  Flights = num(t$n_truth),
+  Coverage = pct(t$coverage),
+  Accuracy = pct(t$accuracy),
+  Correct = num(t$n_correct),
+  Missing = num(t$missing),
+  `Share of deficit` = pct(t$missing / sum(t$missing)),
+  check.names = FALSE), row.names = FALSE, align = "lrrrrrr",
+  caption = sprintf("Arrivals not correctly labelled, by class of the true aerodrome. %s of %s flights over 2025-06-05 to 07.",
+                    num(sum(t$missing)), num(N_GT)))
+```
+
+Two thirds of the deficit is at large airports and a quarter is out-of-area.
+This paper addresses the first; the second remains the largest untouched block
+and is left for a successor.
+
+## Silence, not error {#sec-silence}
+
+"Not labelled" hides two situations that need opposite responses: **no candidate
+existed**, which is a receiver-coverage fact, and **a candidate existed and the
+rule refused it**, which is a choice. `nearest` never abstains, so its coverage
+is exactly the rate at which a candidate existed — no new computation is needed
+to separate them.
+
+```{r split}
+kable(data.frame(
+  Outcome = c("correctly labelled", "answered, wrong",
+              "candidate existed, abstained", "no candidate anywhere"),
+  Flights = num(c(ep_cor, WRONG, ABSTAINED, NO_CAND)),
+  Share = pct(c(ep_cor, WRONG, ABSTAINED, NO_CAND) / IN_ARR),
+  check.names = FALSE), row.names = FALSE, align = "lrr",
+  caption = sprintf("The %s in-area arrivals, decomposed. In-area means the true destination is a real aerodrome, so out-of-area flights are excluded.", num(IN_ARR)))
+```
+
+**`r pct(NO_CAND / IN_ARR)` of in-area arrivals have no candidate at all.** That
+is the hard ceiling: no endpoint-based method can exceed
+`r pct(1 - NO_CAND / IN_ARR)` coverage on this data, whatever rule it uses.
+
+## The abstained block is hard, not neglected {#sec-hard}
+
+The `r num(ABSTAINED)` refused flights look like free coverage. They are not.
+
+`endpoint` answers a subset of what `nearest` answers, and on shared flights
+both rank candidates by the same effective distance, so they return identical
+answers there. `nearest`'s *extra* correct answers are therefore exactly its
+score on the refused block: **`r num(GUESS_OK)` of `r num(ABSTAINED)`, or
+`r pct(GUESS_OK / ABSTAINED)`.**
+
+Answering them all would add `r num(GUESS_OK)` correct labels and
+`r num(ABSTAINED - GUESS_OK)` wrong ones —
+`r sprintf("%.2f:1", GUESS_OK / (ABSTAINED - GUESS_OK))`. Against the exchange
+rate version 4.5 argued for, that is not close. **"Relax the thresholds for
+arrivals" is now priced, and the price is bad.**
+
+Why are they hard? Because of what an arrival endpoint is. The state-vector
+decimation study measured that an arrival's last fix carries a position
+**measured a median of 190 s earlier** — at approach speed, roughly eight
+nautical miles back up the approach. The endpoint is not where the flight ended.
+Position alone cannot identify an aerodrome from eight miles out on a busy
+terminal area, and the abstention correctly declines to try.
+
+## Bearing alignment {#sec-bearing}
+
+If position is exhausted, motion might not be. The measure is the angle between
+**the direction the aircraft actually travelled** over a window and **the
+direction of the candidate aerodrome**, seen from the far end of that window.
+Zero degrees means the track runs straight at it.
+
+This involves no extrapolated position — it is an angle between two observed
+bearings — so the documented failures of trajectory extrapolation in version 2
+and the 2025 PRC report do not bind it.
+
+::: {.callout-note collapse="true"}
+## Why departures need no 180-degree correction
+
+A departing aircraft flies *away* from its aerodrome, so it looks as though the
+measure must be inverted for departures. It must not, because the origin of the
+angle already flips with the role.
+
+The window is measured from the arrival's **last** fix and the departure's
+**first**, so its far end is earlier in time for an arrival and later for a
+departure. The bearing from that far end toward the near end is therefore the
+course in one case and the reverse course in the other. The question becomes
+*"is the aerodrome in the direction I am heading"* for an arrival and *"is the
+aerodrome in the direction I came from"* for a departure, and both read zero for
+a correct match.
+
+The distinction matters because the two vertical and horizontal *rates* in the
+same analysis do carry an explicit per-role sign — they are signed along the
+time axis, and an angle between two bearings from a common origin is not.
+Confirmed empirically: correctly identified departures sit at a median of 2–9
+degrees, not 171–178.
+
+It also explains part of why the measure is weak for departures. By 30 minutes
+down-track the separation is 6 degrees against 2 — from far enough away, the
+true origin aerodrome and its neighbours all lie in much the same direction, so
+the angle stops discriminating. An arrival endpoint sits a median of eight
+nautical miles short of the runway, where the direction along the track is still
+informative.
+:::
+
+```{r sweep-matrix}
+s <- sweep[sweep$side == "arrival", ]
+# Local names, deliberately not single capitals: chunks share one
+# environment, and a bare W here once clobbered an accessor defined in setup.
+angles_sw <- c(1, 2, 3, 5, 10, 20, 30)
+wins_sw <- sort(unique(s$window_min))
+mat <- do.call(rbind, lapply(wins_sw, function(w) {
+  data.frame(Window = paste0(w, " min"),
+             setNames(lapply(angles_sw, function(a) {
+               v <- s$ratio[s$window_min == w & s$angle_deg == a]
+               if (length(v) == 0 || is.na(v)) "—" else sprintf("%.2f", v)
+             }), paste0(angles_sw, "°")),
+             check.names = FALSE)
+}))
+kable(mat, row.names = FALSE, align = "lrrrrrrr",
+      caption = "Correct labels per error on the abstained arrival block, by window and angle gate. The block's own baseline is 0.37. Note that these are computed on in-area truth only, and so overstate the population-level trade -- see the next section.")
+```
+
+Three things are visible and all three make physical sense.
+
+**Short windows carry no information.** At 2–3 minutes every cell sits near the
+0.37 baseline. Over two minutes the aircraft's displacement is small against its
+position error, so the bearing is noise.
+
+**It switches on at 5 minutes and peaks at 7.** A metric that were an artefact
+would not have an interior optimum with noise on both sides.
+
+**The gate should tighten as the window lengthens.** At loose gates short
+windows win, because over half an hour everything points roughly everywhere. At
+1° that reverses — a long baseline gives a more precise bearing, so a tight gate
+becomes meaningful rather than noise.
+
+**Accuracy plateaus at 70–76%** however tight the gate. Roughly one arrival in
+four that points straight at an aerodrome lands somewhere else. Bearing alone
+has a ceiling, and tuning it further is close to exhausted.
+
+## The comparison that matters {#sec-compare}
+
+The sweep above scores the abstained block with out-of-area truth excluded.
+That flatters it: rescuing a flight whose true destination is outside the
+observed area produces a wrong answer the block analysis never counted. The
+honest test is the whole population.
+
+```{r compare}
+mk <- function(role) do.call(rbind, lapply(cmp$model, function(md) {
+  x <- cnt(md, role); d <- delta(md, role)
+  data.frame(Model = sub("^\\+bearing ", "", md),
+             Coverage = pct(C(md, role, "coverage")),
+             Accuracy = pct(C(md, role, "accuracy")),
+             Overall  = pct(C(md, role, "overall")),
+             `d correct` = if (md == BASE) "—" else sprintf("%+s", num(d$dc)),
+             `d wrong`   = if (md == BASE) "—" else sprintf("%+s", num(d$dw)),
+             Ratio = if (md == BASE) "—" else
+               if (is.na(d$ratio)) "worse" else sprintf("%.2f:1", d$ratio),
+             `Net @2:1` = if (md == BASE) "—" else sprintf("%+s", num(net(md, role))),
+             check.names = FALSE)
+}))
+kable(mk("ades"), row.names = FALSE, align = "lrrrrrrr",
+      caption = sprintf("Arrivals, all %s ground-truth flights. *Net @2:1* prices each new error at two correct labels, the exchange rate of version 4.5; positive means the gate is worth adopting on that reasoning.", num(N_GT)))
+kable(mk("adep"), row.names = FALSE, align = "lrrrrrrr",
+      caption = "Departures, the same models. Every gate is a loss.")
+```
+
+Because the bearing test only ever *adds* answers — a flight that already passed
+the abstention is untouched, and the aerodrome named is the same candidate
+either way — every newly answered flight falls in exactly one of the two delta
+columns. Their sum is the number of flights the gate rescued, and
+
+$$\text{accuracy on the rescued} = \frac{\Delta\text{correct}}{\Delta\text{correct} + \Delta\text{wrong}}$$
+
+is how often the gate is right *when it overrides the abstention*. It is not the
+model's accuracy, which is swamped by the flights the change never touched: at
+3° the gate is right `r pct(delta(BEAR3,"ades")$dc / (delta(BEAR3,"ades")$dc + delta(BEAR3,"ades")$dw))`
+of the time on the `r num(delta(BEAR3,"ades")$dc + delta(BEAR3,"ades")$dw)` flights
+it rescues, while the model's accuracy reads `r pct(C(BEAR3,"ades","accuracy"))`.
+The benchmark to hold it against is `r pct(GUESS_OK / ABSTAINED)` —
+what guessing blind on that population scores (@sec-hard).
+
+**The gate must be tight, and tighter than seems physical.** The ratio climbs
+monotonically as the gate narrows — `r sprintf("%.2f:1", delta(BEAR3,"ades")$ratio)`
+at 3°, `r sprintf("%.2f:1", delta(BEAR1,"ades")$ratio)` at 1°,
+`r sprintf("%.2f:1", delta(BEAR,"ades")$ratio)` at 0.1° — and accuracy on the
+rescued flights rises with it, from
+`r pct(delta(BEAR3,"ades")$dc / (delta(BEAR3,"ades")$dc + delta(BEAR3,"ades")$dw))`
+to `r pct(delta(BEAR,"ades")$dc / (delta(BEAR,"ades")$dc + delta(BEAR,"ades")$dw))`.
+Under 2:1 pricing the best gate is the tightest tested.
+
+::: {.callout-note}
+## A prediction this refuted
+
+Before running the sub-degree gates we argued they could not help. A runway
+complex spans 2–4 km, which from 40 NM subtends 2–3°, so a gate below a degree
+is tighter than the target: it should stop selecting for "heading to this
+airport" and start selecting for "aimed at the arbitrary reference coordinate
+OurAirports publishes". Accuracy was predicted to plateau and counts to collapse
+into noise.
+
+Accuracy did not plateau. It rose from
+`r pct(delta(BEAR3,"ades")$dc / (delta(BEAR3,"ades")$dc + delta(BEAR3,"ades")$dw))`
+at 3° to
+`r pct(delta(BEAR,"ades")$dc / (delta(BEAR,"ades")$dc + delta(BEAR,"ades")$dw))`
+at 0.1°, monotonically, on `r num(delta(BEAR,"ades")$dc + delta(BEAR,"ades")$dw)`
+flights — not a handful.
+
+The reasoning was wrong about what the gate selects. It is not resolving which
+runway an aircraft is aimed at; it is separating tracks *deliberately* pointed
+at a field, over a long straight leg, from tracks that happen to line up by
+coincidence. Coincidental alignment is common at 3° and rare at 0.1°, and that
+is the whole of the discrimination.
+:::
+
+**Volume and rate trade against each other, and the rate wins.** The widest
+gate tested, `r BEAR30`, recovers `r num(delta(BEAR30, "ades")$dc)` correct
+labels — five times the tightest — but at
+`r sprintf("%.2f:1", delta(BEAR30, "ades")$ratio)` it costs
+`r num(-net(BEAR30, "ades"))` on the 2:1 reckoning. Chasing volume here is what
+the exchange rate exists to prevent.
+
+**Departures lose.** The same test adds `r num(delta(BEAR, "adep")$dc)` correct
+departures for `r num(delta(BEAR, "adep")$dw)` errors,
+`r sprintf("%.2f:1", delta(BEAR, "adep")$ratio)`. Consistent with everything
+this study has found: departures are not short of evidence, and adding evidence
+to a rule that is not short of it costs accuracy. **Bearing should not be
+applied to departures.**
+
+::: {.callout-warning}
+## The block-level ratios were optimistic, and this is why
+
+The abstained-block sweep reports `r sprintf("%.2f:1", sweep$ratio[sweep$side=="arrival" & sweep$window_min==7 & sweep$angle_deg==3])`
+at 7 min / 3°. The same rule on the full population gives
+`r sprintf("%.2f:1", delta(BEAR3, "ades")$ratio)` — the same gate, the same
+rule, a third less. The difference is entirely the out-of-area flights the block
+analysis filtered out and the population cannot.
+
+The lesson generalises: a rule evaluated on the subset it was designed for will
+beat its own field performance, and by a wide margin. Every ratio quoted in
+@sec-bearing should be read as an upper bound.
+:::
+
+## Why the vertical channel is dead {#sec-vertical}
+
+Vertical rate is the obvious second signal, and it does not work. Two
+independent measures of the same quantity — the broadcast `vert_rate`, and an
+ordinary least squares fit of altitude on time across the window — agree in sign
+at close to chance.
+
+```{r vertical}
+v <- vm[!duplicated(vm$window_min), ]
+kable(data.frame(
+  Window = paste0(v$window_min, " min"),
+  `vert_rate vs OLS` = pct(v$overall_vr_vs_ols),
+  `2-point vs OLS` = pct(v$overall_t2pt_vs_ols),
+  `rows with vert_rate = 0` = pct(v$vr_zero_share),
+  `rows fresher than 5 s` = pct(v$fresh_share),
+  check.names = FALSE), row.names = FALSE, align = "lrrrr",
+  caption = "Sign agreement between vertical measures on the abstained arrival block. 50% is chance.")
+```
+
+```{r vertical-bands}
+b <- vm[vm$window_min == 20, ]
+kable(data.frame(
+  `Window freshness` = substring(b$freshness, 4),
+  Flights = num(b$flights),
+  `vert_rate vs OLS` = pct(b$vr_vs_ols),
+  `2-point vs OLS` = pct(b$t2pt_vs_ols),
+  check.names = FALSE), row.names = FALSE, align = "lrrr",
+  caption = "The same agreement at 20 minutes, banded by the share of rows carrying a position fresher than 5 s. Agreement tracks freshness, which identifies the cause rather than inferring it.")
+```
+
+Agreement rises with freshness, and `r pct(v$vr_zero_share[1])` of rows carry a
+vertical rate of exactly zero — the signature of a value held over rather than
+measured. **There is no vertical signal to extract here in either form.**
+
+The measured consequence is in the comparison table: adding the vertical test to
+the bearing test cuts the arrival gain from `r num(delta(BEAR, "ades")$dc)`
+correct to `r num(delta(RATE, "ades")$dc)`, and the ratio from
+`r sprintf("%.2f:1", delta(BEAR, "ades")$ratio)` to
+`r sprintf("%.2f:1", delta(RATE, "ades")$ratio)`. It does not merely fail to
+help — **it discards flights the bearing test correctly rescued.**
+
+## Recommendation {#sec-recommendation}
+
+::: {.callout-important}
+## The bearing test improves `endpoint`, and `endpoint` is still the wrong rule for arrivals
+
+The comparison above scores every variant against the `endpoint` base. Scored
+against **production** instead, the picture changes completely.
+
+```{r vs-trend}
+tr <- c(cov = m("trend","ades_coverage"), acc = m("trend","ades_accuracy"),
+        ovr = m("trend","ades_overall"))
+best <- "rescue: gate OR align<=0.1"
+rw <- function(lab, cov, acc, ovr) data.frame(
+  Model = lab, Coverage = pct(cov), Accuracy = pct(acc), Overall = pct(ovr),
+  Correct = num(ovr * N_GT), Wrong = num((cov - ovr) * N_GT), check.names = FALSE)
+kable(rbind(
+  rw("trend (production)", tr["cov"], tr["acc"], tr["ovr"]),
+  rw("endpoint 30 NM / 15,000 ft", ws("base","ades","coverage"),
+     ws("base","ades","accuracy"), ws("base","ades","overall")),
+  rw("endpoint + bearing 0.10 deg", ws(best,"ades","coverage"),
+     ws(best,"ades","accuracy"), ws(best,"ades","overall"))),
+  row.names = FALSE, align = "lrrrrr",
+  caption = "Arrivals against production. The best bearing variant still loses on both axes.")
+```
+
+`trend` returns `r num((tr["ovr"] - ws(best,"ades","overall")) * N_GT)` more
+correct arrivals **and**
+`r num(((ws(best,"ades","coverage") - ws(best,"ades","overall")) - (tr["cov"] - tr["ovr"])) * N_GT)`
+fewer wrong ones. It dominates: there is no exchange rate at which the bearing
+model wins.
+
+The bearing test is a real signal and it genuinely improves `endpoint`. But
+`endpoint` was never the right rule for arrivals — version 4.5 concluded that
+already — so improving it does not produce a rule worth adopting. Earlier drafts
+of this section recommended the bearing test for arrivals without checking it
+against production. That was an error of comparison, not of measurement.
+:::
+
+**Departures: `endpoint` at 30 NM, 15,000 ft, 10 NM scheduled-service penalty.**
+Against production this is +10,993 correct labels for +645 wrong, about 17:1.
+Unchanged from version 4.5 and still the one clear win in this study.
+
+**Arrivals: keep `trend`.** Nothing in versions 4, 5 or 5.1 beats it.
+
+**Do not apply the bearing test to departures** — every gate is a loss, the best
+at `r sprintf("%.2f:1", max(sapply(cmp$model[grepl("bearing", cmp$model) & !grepl("rate", cmp$model)], function(x) delta(x,"adep")$ratio), na.rm=TRUE))`.
+**Do not pursue vertical rate** (@sec-vertical). **Do not use bearing as a veto,
+a replacement or a naming rule** (@sec-whole).
+
+**Publish the provenance columns.** `adep_source` / `ades_source` distinguish
+"named an aerodrome", "outside the observed area" and "could not determine",
+which are one indistinguishable null in the published flight list today. Still
+the highest value per line of code in the study.
+
+### What the bearing test still needs {#sec-next}
+
+It has only ever been tested as a rescue for **`endpoint`'s** abstention.
+`trend` — the rule actually recommended for arrivals — abstains on about a third
+of them, and **whether bearing can rescue those flights is untested.** That is
+the experiment that would give this finding somewhere to land, and the machinery
+now exists to run it.
+
+**And out-of-area remains the larger prize**:
+`r pct(t$missing[t$apt_type == "out of area"] / sum(t$missing))` of the arrival
+deficit, `r num(t$missing[t$apt_type == "out of area"])` flights, current recall
+`r pct(m("endpoint","ades_ooa_recall"))`. Unlike the abstained block, nobody has
+shown it is hard.
+
+## Bearing on the whole sample {#sec-whole}
+
+Used as a rescue, the bearing test can only *add* answers. That is a structural
+limit rather than a property of the data: a flight the abstention already
+accepts is untouched, so the
+`r num(round(C(BASE,"ades","coverage")*N_GT) - round(C(BASE,"ades","overall")*N_GT))`
+arrivals the base rule gets **wrong** were unreachable by every variant in
+@sec-compare. No rescue can raise accuracy.
+
+Applying the test to every flight opens three questions the rescue framing
+cannot ask.
+
+* **Veto** — require alignment on flights the gate accepts, so bearing can
+  remove answers. The only variant that can raise accuracy.
+* **Replace** — alignment instead of the distance and height gate, testing
+  whether that box carries anything the course does not.
+* **Rerank** — choose *which* aerodrome by alignment rather than by effective
+  distance. Version 4.5 argued the abstention is a gate and never a naming
+  rule, and that arrivals fail by misnaming; this is the naming rule that
+  argument implies.
+
+```{r whole-table}
+sel <- c("base",
+         "rescue: gate OR align<=0.1", "rescue: gate OR align<=3.0",
+         "veto: gate AND align<=3.0", "veto: gate AND align<=0.1",
+         "replace: align<=3.0 only", "replace: align<=0.1 only",
+         "rerank by alignment, then gate", "rerank, gate OR align<=0.1")
+kable(do.call(rbind, lapply(sel, function(md) {
+  d <- wdelta(md, "ades")
+  data.frame(Model = md,
+             Coverage = pct(ws(md, "ades", "coverage")),
+             Accuracy = pct(ws(md, "ades", "accuracy")),
+             Overall  = pct(ws(md, "ades", "overall")),
+             `d correct` = if (md == "base") "—" else sprintf("%+s", num(d$dc)),
+             `d wrong`   = if (md == "base") "—" else sprintf("%+s", num(d$dw)),
+             check.names = FALSE)
+})), row.names = FALSE, align = "lrrrrr",
+  caption = "Arrivals: the bearing test used four ways. Only the rescue helps; the other three are catastrophic.")
+```
+
+**All three fail, and not marginally.** The veto costs
+`r num(-wdelta("veto: gate AND align<=3.0", "ades")$dc)` correct arrivals at 3°.
+Replace costs `r num(-wdelta("replace: align<=3.0 only", "ades")$dc)`. Rerank
+costs `r num(-wdelta("rerank by alignment, then gate", "ades")$dc)` correct
+labels *and* adds `r num(wdelta("rerank by alignment, then gate", "ades")$dw)`
+wrong ones, dropping accuracy from `r pct(ws("base","ades","accuracy"))` to
+`r pct(ws("rerank by alignment, then gate","ades","accuracy"))`.
+
+### Why: the measure is out of domain on flights that landed {#sec-domain}
+
+The diagnosis is not that alignment is a weak signal. It is that the flights the
+gate already accepts are the wrong population to ask.
+
+| | no course computable | median alignment | within 3° | on ground at the endpoint |
+|---|---|---|---|---|
+| gate accepts | 23.8% | **21°** | 18.4% | **43.1%** |
+| gate refuses | 24.3% | 53° | 5.2% | 0.6% |
+
+**43% of accepted arrivals are on the ground at their endpoint.** For those, the
+last seven minutes are the approach, the landing roll and the taxi to stand —
+and the "course" over that window is dominated by ground manoeuvring, which
+points wherever the taxiways happen to run. A further quarter have no computable
+course at all. A veto at 3° therefore rejects roughly four in five flights it
+should keep.
+
+The bearing test was developed on the abstained block, where every endpoint is
+airborne and en route by construction. **Its domain is airborne endpoints, and
+the flights the gate accepts are mostly not that.** Used as a rescue it never
+leaves its domain, which is why it works there and nowhere else.
+
+### Rerank refutes the naming-rule argument {#sec-naming}
+
+The reranking result deserves its own note, because version 4.5 predicted the
+opposite. Its argument was that the abstention decides only *whether* to answer
+and never *what* to answer, that arrivals fail predominantly by misnaming, and
+that a trajectory-based naming rule was therefore the most promising fix
+available.
+
+Ranking candidates by alignment instead of distance is that rule, and it is far
+worse than ranking by distance. The reason is geometric: **an aerodrome 200 NM
+directly ahead is perfectly aligned.** Alignment has no sense of scale, so as a
+ranking criterion it systematically prefers distant aerodromes that happen to lie
+on the track. Distance was doing enormous work that the argument did not credit.
+
+Alignment is a **filter over distance-ranked candidates**, not a ranking
+criterion. That is what the rescue variant does, and it is the only form in
+which the signal is worth anything.
+
+::: {.callout-note}
+## A small correction to @sec-compare
+
+The whole-sample run computes alignment without requiring an altitude, because
+alignment is purely horizontal; @sec-compare's figures came from a routine that
+also fitted the vertical slope and so discarded samples with no altitude. The
+rescue numbers here are consequently a little higher —
+`r num(wdelta("rescue: gate OR align<=0.1", "ades")$dc)` correct against
+`r num(delta(BEAR, "ades")$dc)` at the same gate. The direction and the
+recommendation are unchanged; the earlier figures were conservative.
+:::
+
+## What is now ruled out {#sec-ruled-out}
+
+Recorded so it is not re-attempted:
+
+* **Relaxing the abstention thresholds** — priced at
+  `r sprintf("%.2f:1", GUESS_OK / (ABSTAINED - GUESS_OK))` (@sec-hard).
+* **The approach cone** — version 4.5 measured it against the rectangle at
+  matched coverage; departures lost up to 2.55 pp of accuracy, arrivals were a
+  wash.
+* **Bucket decimation** — the state-vector study measured +55 correct arrivals
+  per day for a change that rewrites `track_id` for every published row.
+* **Vertical rate, in any form** (@sec-vertical).
+* **Trajectory extrapolation** — version 2 and the 2025 PRC report,
+  independently.
+* **Bearing as a veto, a replacement, or a naming rule** (@sec-whole). Only the
+  rescue form works, and only because it stays inside the measure's domain.
+
+## Limitations {#sec-limitations}
+
+* **One sample.** Three days, 2025-06-05 to 07. The operating points were chosen
+  as the argmax over 120 grid cells of that same sample, so the ratios are
+  optimistic. The 2° and 3° columns peak cleanly at 7 minutes, which is why the
+  *region* is credible; the specific numbers are not validated.
+* **Two measurement bugs were found in this work**, both by sanity checks rather
+  than by anything failing: `angle_between` used `%`, and Spark's remainder
+  keeps the sign of the dividend, so bearings 20° apart measured 340° whenever
+  the pair straddled north — the tell was a median alignment of 186° on a
+  0–180° scale. And the altitude slope divided an altitude change by an elapsed
+  time drawn from different rows, because `min_by` skips nulls where `min` does
+  not. Both are fixed; both had already produced numbers that were reported
+  before being caught.
+* **The `>=90% fresh` band reverses the freshness trend** for the 2-point
+  measure, on about a thousand flights. Either small-sample noise or something
+  real about very short tracks. Not resolved.
+* **`nearest` and `endpoint` are assumed to answer identically where both
+  answer**, which underpins @sec-hard. It follows from both ranking on the same
+  effective distance, but it is an argument, not a measurement.
+
+## Reproducing {#sec-reproducing}
+
+```bash
+# the abstained block, its motion profile, and the angle x window sweep
+python benchmarks/abstained_vertical.py --results-dir <dir>
+
+# which vertical measure to trust, banded by freshness
+python benchmarks/vertical_measure.py --results-dir <dir>
+
+# base against the motion variants, whole population
+python benchmarks/motion_model_compare.py --results-dir <dir>
+```
+
+Rendering this page needs no credentials, no database and no cluster.
