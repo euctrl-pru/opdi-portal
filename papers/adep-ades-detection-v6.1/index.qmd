@@ -1,0 +1,357 @@
+---
+title: "Detecting departure and destination aerodromes from ADS-B"
+subtitle: "Version 6.1 — the altitude cut, and which datum it is measured against"
+author: "EUROCONTROL Performance Review Unit"
+date: last-modified
+---
+
+```{r regenerate}
+#| include: false
+#| cache: false
+
+# Rendering this page runs the analysis behind it.
+#
+# `regenerate_v61.py` is the executable definition of the study: every CSV read
+# below is produced by exactly one job it declares, with exactly the arguments
+# it declares. It re-runs a job when the *code that job depends on* has changed
+# since the output was written -- not when the file is old, which says nothing.
+#
+# Running a stale job needs cluster credentials, because the numbers come from
+# Spark over S3 against Network Manager reference data and there is no way to
+# recompute them without the data they are computed from. Set OPDI_RENDER=check
+# to fail fast on staleness instead, OPDI_RENDER=allow-stale to render a draft
+# from whatever is staged -- which the provenance table at the foot of this page
+# will then show as unverified -- or OPDI_RENDER=skip to render the prose alone.
+REPO   <- normalizePath(file.path(getwd(), "..", "..", "..", "opdi"), mustWork = FALSE)
+PYTHON <- Sys.getenv("OPDI_PYTHON", file.path(REPO, ".venv310", "bin", "python"))
+MODE   <- Sys.getenv("OPDI_RENDER", "run")
+
+regen <- file.path(REPO, "benchmarks", "regenerate_v61.py")
+if (file.exists(regen) && MODE != "skip") {
+  flags <- switch(MODE,
+                  "run" = character(0),
+                  "check" = "--check",
+                  "allow-stale" = c("--check", "--allow-stale"),
+                  character(0))
+  status <- system2(PYTHON, c(shQuote(regen), flags), stdout = "", stderr = "")
+  if (!identical(status, 0L)) {
+    stop("regenerate_v61.py exited ", status,
+         " -- the figures below would not match the code that is checked out. ",
+         "Set OPDI_RENDER=allow-stale to render anyway.")
+  }
+}
+```
+
+```{r setup}
+#| include: false
+library(knitr)
+library(ggplot2)
+
+DATA <- file.path(getwd(), "data")
+
+read_if <- function(name) {
+  path <- file.path(DATA, name)
+  if (file.exists(path)) read.csv(path, stringsAsFactors = FALSE) else NULL
+}
+
+# Emit a mermaid diagram, but only into an HTML render.
+#
+# Not `::: {.content-visible when-format="html"}`. That hides the block from the
+# PDF *after* Quarto has already tried to rasterise it, and rasterising mermaid
+# needs headless Chromium -- which does not start in this environment. The PDF
+# render then waits on it forever: no error, no output, just a stalled process
+# and a trail of defunct chrome-headless children.
+#
+# Writing the fence from knitr means that in a PDF render the mermaid block
+# never exists at all, so nothing tries to draw it. Each diagram supplies a
+# table alongside, which is what the PDF shows instead -- the same two-form
+# arrangement version 7 uses, made robust to a broken Chromium.
+mermaid <- function(label, caption, lines) {
+  if (!knitr::is_html_output()) return(invisible(NULL))
+  cat("```{mermaid}\n")
+  cat("%%| label: ", label, "\n", sep = "")
+  cat('%%| fig-cap: "', caption, '"\n', sep = "")
+  cat(paste(lines, collapse = "\n"), "\n", sep = "")
+  cat("```\n")
+}
+```
+
+## What this version changes
+
+Version 6 tuned `trend`'s altitude cut and left its *datum* alone. This version
+changes the datum, and measures what that is worth.
+
+`trend` admitted a state vector to its vote when the aircraft was below a
+**flight level** — pressure altitude above the standard datum, the same number
+everywhere. `endpoint` had never worked that way: since version 6 its height
+gate has been measured **above the aerodrome's own field elevation**, on the
+stated grounds that "a fixed altitude cut-off means nothing at an aerodrome
+sitting at 5,000 ft". Step 04's ground-phase detection moved to the same datum
+for the same reason.
+
+`trend` was the last of the three still referenced to sea level. That is the
+asymmetry this version removes.
+
+The consequence is not inaccuracy but **silence**, and it falls unevenly. At
+FL60 an aerodrome at sea level offers 6,000 ft of climb and descent for the
+vote to read. Madrid, at 1,998 ft, offers about 4,100. Ankara, at 3,125 ft,
+about 2,975. The altitude trace has progressively less room to rise or fall
+*clearly*, so the method abstains more often — and it abstains in proportion to
+how high the aerodrome sits.
+
+::: {.callout-note}
+## What this change cannot do
+
+`trend` votes on the **sign** of a smoothed altitude change. Adding a constant
+offset to every altitude in a track cannot flip a sign, so the field elevation
+changes only *which samples are admitted to vote*, never how a vote is cast.
+
+This is therefore a **coverage** result first. Any movement in accuracy is a
+second-order consequence of answering more flights, not of discriminating
+better between them. The report is written to keep those apart.
+:::
+
+## How a flight gets its aerodromes {#sec-method}
+
+Version 6 describes the three methods and the reasoning behind them; this
+section does not repeat that. What it adds is the part version 6 states only in
+prose — the **order** the pipeline does things in, and which datum each
+altitude gate is measured against — because the change this version makes is a
+change to that order.
+
+Both methods answer two questions per track, separately: which aerodrome the
+flight departed from (`ADEP`) and which it arrived at (`ADES`). The shipped
+configuration takes departures from `endpoint` and arrivals from `trend`.
+
+### The steps
+
+Every box in the diagrams below is one of these.
+
+**S1 — Read the track.** One aircraft's state vectors for one flight, already
+split into a track by step 02 and cleaned by step 02a.
+
+**S2 — Smooth the altitude.** A centred five-sample rolling mean over
+barometric altitude, computed over the *whole* track before any altitude cut.
+Smoothing after the cut would truncate the window exactly where altitude is
+changing fastest, which is the worst place to lose half of it.
+
+**S3 — Pre-filter on pressure altitude.** A cheap, deliberately loose cut whose
+only job is to keep the aerodrome join affordable. Its ceiling is the
+configured cap *plus the highest field elevation in the reference*, so it
+cannot discard a sample that the exact test at S6 would have kept.
+
+**S4 — Join the aerodrome zones.** Each sample is matched to candidate
+aerodromes through an H3 index at resolution 7, then narrowed to those within
+the detection radius by exact great-circle distance.
+
+**S5 — Attach the field elevation.** Each candidate aerodrome's elevation, from
+OurAirports. A candidate whose elevation is unknown gets zero, which reduces the
+next step to the sea-level behaviour rather than dropping the aerodrome.
+
+**S6 — Cut on altitude.** *This is the step this version changes.* Samples
+above the ceiling are excluded from the vote. `trend` now measures that ceiling
+**above field elevation**; before this version it was a flight level.
+
+**S7 — Vote.** Each surviving sample votes on the sign of its smoothed altitude
+change: rising for a departure, falling for an arrival.
+
+**S8 — Decide, or abstain.** If one direction leads the other by more than the
+margin, the track is departing or arriving. Otherwise `trend` says nothing.
+
+**E1 — Take the endpoint fix.** `endpoint` reads one sample, not many: the
+track's first fix for a departure, its last for an arrival.
+
+**E2 — Test the gates.** The fix must be within the radius, and either flagged
+on the ground or no higher than the height gate **above field elevation**.
+
+**E3 — Rank the survivors.** Nearest wins, on exact great-circle distance, plus
+a penalty for aerodromes without scheduled service so that a military or
+general-aviation field must be *clearly* nearest rather than merely nearest.
+
+**E4 — Or say where it came from.** Where the gates fail and the fix sits at
+the edge of the observed area, `endpoint` reports **out-of-area** rather than
+guessing. Precedence is aerodrome first, border second: Ponta Delgada lies
+about 8 NM inside the western edge, and the other order labelled its departures
+out-of-area with the aircraft still on the runway.
+
+### `trend`, arrivals
+
+```{r fig-trend-arrival-src}
+#| echo: false
+#| results: asis
+mermaid(
+  "fig-trend-arrival",
+  "`trend` naming an arrival aerodrome (ADES). S6 is the step this version changes.",
+  c(
+    'flowchart TD',
+    '    T[("S1 · track<br/>state vectors")] --> SM["S2 · smooth baro_altitude<br/><i>centred 5-sample mean</i>"]',
+    '    SM --> PRE["S3 · pre-filter<br/><i>cap + highest field elevation</i>"]',
+    '    PRE --> J{{"S4 · join H3 aerodrome zones<br/><i>res 7, then exact distance</i>"}}',
+    '    J --> EL["S5 · attach field elevation<br/><i>OurAirports; unknown &rarr; 0</i>"]',
+    '    EL --> CUT["<b>S6 · altitude cut</b><br/><b><i>height above field &le; cap</i></b>"]',
+    '    CUT --> V["S7 · vote per sample<br/><i>sign of smoothed change</i>"]',
+    '    V --> M{"S8 · descending votes<br/>lead by the margin?"}',
+    '    M -->|yes| R["E3 · rank survivors<br/><i>distance + scheduled penalty</i>"]',
+    '    M -->|no| U(["undetermined"])',
+    '    R --> A(["ADES = nearest survivor"])'
+  )
+)
+```
+
+:::: {.content-visible when-format="pdf"}
+| Step | What it does |
+|---|---|
+| S1 | Read the track's state vectors |
+| S2 | Smooth `baro_altitude` over a centred 5-sample window, before any cut |
+| S3 | Pre-filter on pressure altitude at the cap plus the highest field elevation |
+| S4 | Join the H3 aerodrome zones at resolution 7, then cut on exact distance |
+| S5 | Attach the candidate aerodrome's field elevation; unknown becomes zero |
+| **S6** | **Cut on height above field elevation** — the step this version changes |
+| S7 | Each surviving sample votes on the sign of its smoothed altitude change |
+| S8 | If descending votes lead by the margin the track is arriving; else *undetermined* |
+| E3 | Rank survivors on distance plus the scheduled-service penalty; nearest becomes `ADES` |
+
+::::
+
+### `trend`, departures
+
+The same machinery reading the same samples; only the direction of the winning
+vote differs. `trend` has **no out-of-area concept** — it names an aerodrome or
+says nothing — which is why the shipped configuration does not use it for
+departures.
+
+```{r fig-trend-departure-src}
+#| echo: false
+#| results: asis
+mermaid(
+  "fig-trend-departure",
+  "`trend` naming a departure aerodrome (ADEP). Identical to the arrival case except at S8.",
+  c(
+    'flowchart TD',
+    '    T[("S1 · track<br/>state vectors")] --> SM["S2 · smooth baro_altitude<br/><i>centred 5-sample mean</i>"]',
+    '    SM --> PRE["S3 · pre-filter<br/><i>cap + highest field elevation</i>"]',
+    '    PRE --> J{{"S4 · join H3 aerodrome zones<br/><i>res 7, then exact distance</i>"}}',
+    '    J --> EL["S5 · attach field elevation<br/><i>OurAirports; unknown &rarr; 0</i>"]',
+    '    EL --> CUT["<b>S6 · altitude cut</b><br/><b><i>height above field &le; cap</i></b>"]',
+    '    CUT --> V["S7 · vote per sample<br/><i>sign of smoothed change</i>"]',
+    '    V --> M{"S8 · climbing votes<br/>lead by the margin?"}',
+    '    M -->|yes| R["E3 · rank survivors<br/><i>distance + scheduled penalty</i>"]',
+    '    M -->|no| U(["undetermined<br/><i>never out-of-area</i>"])',
+    '    R --> A(["ADEP = nearest survivor"])'
+  )
+)
+```
+
+:::: {.content-visible when-format="pdf"}
+Identical to the arrival table above, with one difference: at **S8** the track
+is a departure when *climbing* votes lead by the margin. Failing that, `trend`
+returns *undetermined* — it has no out-of-area answer available to it.
+
+::::
+
+### `endpoint`, departures
+
+```{r fig-endpoint-departure-src}
+#| echo: false
+#| results: asis
+mermaid(
+  "fig-endpoint-departure",
+  "`endpoint` naming a departure aerodrome (ADEP). One fix, two gates, three possible answers.",
+  c(
+    'flowchart TD',
+    '    T[("S1 · track<br/>state vectors")] --> E1["E1 · take the FIRST fix"]',
+    '    E1 --> J{{"S4 · candidate aerodromes<br/><i>within the radius</i>"}}',
+    '    J --> EL["S5 · attach field elevation<br/><i>OurAirports</i>"]',
+    '    EL --> G{"E2 · within radius AND<br/>(on ground OR<br/><b>height above field &le; gate</b>)?"}',
+    '    G -->|yes| R["E3 · rank survivors<br/><i>distance + scheduled penalty</i>"]',
+    '    G -->|no| B{"E4 · fix at the edge<br/>of the observed area?"}',
+    '    R --> A(["ADEP = nearest survivor"])',
+    '    B -->|yes| OOA(["out-of-area"])',
+    '    B -->|no| U(["undetermined"])'
+  )
+)
+```
+
+:::: {.content-visible when-format="pdf"}
+| Step | What it does |
+|---|---|
+| S1 | Read the track's state vectors |
+| E1 | Take the **first** fix — one sample, not many |
+| S4 | Find candidate aerodromes within the radius |
+| S5 | Attach each candidate's field elevation |
+| **E2** | Gate: within the radius **and** either on the ground or **no higher than the gate above field elevation** |
+| E3 | Passing: rank on distance plus the scheduled-service penalty; nearest becomes `ADEP` |
+| E4 | Failing, with the fix at the edge of the observed area: **out-of-area**. Otherwise *undetermined* |
+
+Precedence is aerodrome first, border second — the other order labelled Ponta
+Delgada's departures out-of-area with the aircraft still on the runway.
+
+::::
+
+### `endpoint`, arrivals
+
+```{r fig-endpoint-arrival-src}
+#| echo: false
+#| results: asis
+mermaid(
+  "fig-endpoint-arrival",
+  "`endpoint` naming an arrival aerodrome (ADES). The last fix rather than the first.",
+  c(
+    'flowchart TD',
+    '    T[("S1 · track<br/>state vectors")] --> E1["E1 · take the LAST fix"]',
+    '    E1 --> J{{"S4 · candidate aerodromes<br/><i>within the radius</i>"}}',
+    '    J --> EL["S5 · attach field elevation<br/><i>OurAirports</i>"]',
+    '    EL --> G{"E2 · within radius AND<br/>(on ground OR<br/><b>height above field &le; gate</b>)?"}',
+    '    G -->|yes| R["E3 · rank survivors<br/><i>distance + scheduled penalty</i>"]',
+    '    G -->|no| B{"E4 · fix at the edge<br/>of the observed area?"}',
+    '    R --> A(["ADES = nearest survivor"])',
+    '    B -->|yes| OOA(["out-of-area"])',
+    '    B -->|no| U(["undetermined"])'
+  )
+)
+```
+
+:::: {.content-visible when-format="pdf"}
+Identical to the departure table above, with one difference: at **E1** the
+method reads the track's **last** fix rather than its first.
+
+::::
+
+### Where the two datums part company
+
+Only **S6** and **E2** read an altitude, and until this version they read it
+against different references:
+
+| Test | Threshold | Datum, before v6.1 | Datum, from v6.1 |
+|---|---|---|---|
+| `trend` S6 | `trend_max_height_ft` | flight level (sea level) | **above field elevation** |
+| `endpoint` E2 | `endpoint_height_ft` | above field elevation | above field elevation |
+| step 04 ground phase | `phase_ground_ceiling_ft` | above field elevation | above field elevation |
+| `nearest` | *none* | — | — |
+
+`nearest` applies no altitude condition at all, on any datum. That is
+deliberate: it is the naive `traffic`-faithful baseline the other methods are
+scored against, and giving it a gate would defeat its purpose.
+
+::: {.callout-important}
+## A flight level is not a height
+
+`FL60` is not the same cut as `6,000 ft`. The pipeline derives the flight level
+with an integer cast, so `flight_level <= 60` admits everything below **6,100
+ft**. The datum comparison in this report therefore holds the ceiling at 6,100
+ft above field, not 6,000 — otherwise it would move the ceiling and the datum
+at the same time and could not attribute the result to either.
+:::
+
+## Results
+
+```{r results-placeholder}
+#| echo: false
+#| results: asis
+if (is.null(read_if("datum_swap_2025.csv"))) {
+  cat("::: {.callout-warning}\n## Not yet measured\n\n",
+      "The arms defined in `regenerate_v61.py` have not been run against this ",
+      "checkout, so this section is deliberately empty rather than populated ",
+      "with numbers carried over from another study.\n:::\n", sep = "")
+}
+```
