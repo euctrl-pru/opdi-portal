@@ -4,6 +4,34 @@
 > (recommended) or superpowers:executing-plans to implement this plan task-by-task.
 > Steps use checkbox (`- [ ]`) syntax for tracking.
 
+---
+
+## STATUS — Tasks 1-5 executed, Tasks 6-9 not started
+
+**Executed 2026-08-21/22.** Tasks 1-5 are complete, reviewed and pushed:
+branch `track-construction-v1` on `euctrl-pru/opdi`, ten commits, **249 tests passing**.
+That is the whole tested foundation — the engine, all eight arms, the ground-truth join and
+the metrics. Nothing has been run against real data yet.
+
+**Tasks 6-9 are deliberately not started.** They need cluster credentials, occupy the shared
+single-job Spark slot for hours, and write ~5 GB to a bucket already at ~67 of ~100 GB. Those
+are side effects on shared infrastructure that were not triggered unattended.
+
+**Read `execution-log/ledger.md` before continuing.** It records every ruling made during
+execution, several of which changed this plan, plus measurements this document predates.
+Where the two disagree, the ledger is newer. In particular:
+
+* **Open question 1 below is answered** — see the amended section.
+* **Arm A6 changed.** It now accumulates a stationary run rather than only firing on
+  reception gaps, and it floors on legacy's *general* 30-minute gap rule rather than the
+  full legacy rule — deliberately not inheriting the low-altitude rule, because replacing
+  that rule is what A6 is for. A5 and A7 floor on full legacy.
+* **The ground-truth join and `flight_key` changed** — `flight_key` includes `t_off`, and
+  the APDF join disambiguates by proximity rather than deduplicating.
+* `execution-log/` also holds each task's implementation report and the final fix report.
+
+---
+
 **Goal:** Determine, against Network Manager ground truth, the best way to segment
 OpenSky state vectors into flight tracks — and quantify what the winner buys the
 OPDI flight list's ADEP/ADES accuracy.
@@ -2738,10 +2766,21 @@ Per CLAUDE.md: commit inside each submodule first, then the pointer in the meta-
 
 These are recorded rather than guessed. None blocks Task 1.
 
-1. **`TAXI_TIME_3` semantics** — Task 4 Step 1 settles this empirically. Flagged here
-   because if it turns out NM cannot give a usable airborne interval at all, the
-   *matching* denominator shrinks to APDF-covered airports and the study's coverage
-   claim weakens. Worth knowing before Task 6 runs.
+1. ~~**`TAXI_TIME_3` semantics**~~ — **ANSWERED 2026-08-22, and better than hoped.**
+   `TAXI_TIME_3` is **taxi-out only**. Measured over `flights_202506` (957,396 rows) against
+   `apdf_202506`: `AOBT_3 + TAXI_TIME_3` predicts real APDF ATOT with **median error 0 s,
+   IQR 17 s** (14 s when the join is also keyed on `ADEP`, showing the tail is
+   callsign-collision noise rather than inference error). The arrival side was measured too,
+   which the plan did not ask for and which mattered more: `ARVT_3` vs real APDF ALDT gives
+   **median 0 s, IQR 25 s** — so `ARVT_3` already *is* the landing time, not an in-block
+   time, and there is no taxi-in bias to correct.
+   **Consequence:** NM-inferred boundaries are good enough for boundary error, not merely
+   for matching. The coverage claim does not weaken; boundary accuracy can be reported
+   across the whole ECAC sample rather than only APDF-covered airports.
+   **But note the open decision:** `boundary_error` still filters to `t_source == "apdf"`,
+   written before this measurement existed. Widening it is a claim-scope decision that was
+   left to the human rather than made by an agent. Recipes for both numbers are in
+   `benchmarks/DATASETS.md` under "Ground truth semantics".
 2. **Which V7 run name is "recommended"** — `track_payoff.py:V7_RECOMMENDED_RUN` guesses
    `"recommended"`. Confirm against `benchmarks/V7_RUN_LOG.md`. A wrong name silently
    benchmarks a different configuration and every payoff number is then measured against
