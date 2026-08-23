@@ -414,7 +414,7 @@ if (!is.null(bands)) {
 }
 ```
 
-### What it costs, and why that settles it
+### What it costs
 
 ```{r swap-table}
 #| echo: false
@@ -432,17 +432,40 @@ if (!is.null(swap)) {
 
 Moving to the field datum buys **194 more correct arrivals and 105 more wrong
 ones**. Coverage rises 0.31 pp; accuracy falls 0.16 pp; the score at *k* = 2
-moves from 62,185 to 62,169 — sixteen points the wrong way.
+moves from 62,185 to 62,169 — sixteen points the wrong way. In net terms it is
+close to a wash, tilted toward answering more flights and being fractionally
+less certain about each.
+
+### Why it ships anyway {#sec-adoption}
 
 The adoption criteria fixed in the design were: coverage up by at least 0.5 pp,
 accuracy not falling, and the gain concentrated at elevated fields. **The third
-holds and the first two do not.** So on this evidence the change does not ship,
-and the honest summary is that the mechanism is real but too small, at this
-ceiling, to pay for itself.
+holds and the first two do not.** On a cost-benefit reading, that would be the
+end of it.
 
-That the criteria were written down before the numbers existed is what makes
-this a result rather than a negotiation. A study whose bar moves to meet its
-outcome has measured nothing.
+**The change is adopted regardless**, and the reason is worth stating plainly
+because it is not a benchmark result.
+
+A ceiling measured from sea level is *not the same test at different
+aerodromes*. At Amsterdam it admits 6,000 ft of climb and descent; at Ankara,
+2,975; at Erzurum, roughly 240. Nobody chose that gradient — it is an artefact
+of which datum the threshold happened to be written against, and it makes the
+method's willingness to answer depend on the terrain under the aerodrome rather
+than on the evidence in the trajectory. `endpoint` was corrected on exactly this
+reasoning in version 6, and step 04's ground detection in the same release.
+`trend` was the last one left.
+
+So this is a **correctness fix, not an optimisation**, and it is not the
+benchmark's place to veto it. What the benchmark is for is telling us what the
+fix costs, which it has done: a third of a percentage point of coverage gained,
+a sixth of a point of accuracy given up, and the movement concentrated where the
+mechanism predicts. That is the honest accounting, and it is reported here
+rather than buried because a change adopted on principle still has to declare
+its price.
+
+The measured null in criteria 1 and 2 does carry one design implication: the
+ceiling itself, inherited from a sweep conducted on the datum now abandoned, is
+very likely no longer optimal. @sec-outstanding returns to that.
 
 ### The band that should have gained most, and did not
 
@@ -464,3 +487,27 @@ one band where the method is independently broken. The population that actually
 benefits is the far less dramatic 1,500–3,000 ft — Madrid, Ankara, Sofia,
 Tbilisi — where a FL60 cut still leaves three to four thousand feet of usable
 climb and descent.
+
+## What is still open {#sec-outstanding}
+
+**The ceiling is inherited, and probably wrong.** `trend_max_height_ft` ships at
+the FL60 equivalent because that is what the datum comparison had to hold fixed
+to isolate one variable. But FL60 was tuned by V6 on the sea-level datum, and
+the whole point of this version is that the two datums are not the same test —
+so there is no reason the optimum should have survived the move. The measured
+null in coverage is consistent with a correct datum at a stale ceiling.
+
+The sweep that answers this reads the cached vote tables rather than re-running
+the pipeline, so it is cheap; it is defined in `regenerate_v61.py` as
+`height_sweep_*` and `fl_sweep_*`. Until it has run, the shipped ceiling should
+be read as *provisional and inherited*, not as tuned.
+
+**The second period is confirmation, not yet obtained.** Everything above is
+2025-06-05…07. The 2024 sample is defined in the same registry and runs the same
+arms; the study's own convention is that a result measured on one period and
+reported as the study's finding is not a finding yet.
+
+**The `>3000` band needs a different question.** A recall of 0.7% on both datums
+is a coverage problem upstream of detection, and no amount of threshold work
+will move it. Whether that is receiver geometry over the Anatolian plateau or
+something in ingestion is worth knowing, but it is not this study's question.

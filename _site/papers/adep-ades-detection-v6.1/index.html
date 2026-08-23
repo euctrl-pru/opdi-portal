@@ -136,9 +136,11 @@ ul.task-list li input[type="checkbox"] {
   <li><a href="#results" id="toc-results" class="nav-link" data-scroll-target="#results"><span class="header-section-number">3</span> Results</a>
   <ul class="collapse">
   <li><a href="#sec-bands" id="toc-sec-bands" class="nav-link" data-scroll-target="#sec-bands"><span class="header-section-number">3.1</span> The band breakdown, read first</a></li>
-  <li><a href="#what-it-costs-and-why-that-settles-it" id="toc-what-it-costs-and-why-that-settles-it" class="nav-link" data-scroll-target="#what-it-costs-and-why-that-settles-it"><span class="header-section-number">3.2</span> What it costs, and why that settles it</a></li>
-  <li><a href="#the-band-that-should-have-gained-most-and-did-not" id="toc-the-band-that-should-have-gained-most-and-did-not" class="nav-link" data-scroll-target="#the-band-that-should-have-gained-most-and-did-not"><span class="header-section-number">3.3</span> The band that should have gained most, and did not</a></li>
+  <li><a href="#what-it-costs" id="toc-what-it-costs" class="nav-link" data-scroll-target="#what-it-costs"><span class="header-section-number">3.2</span> What it costs</a></li>
+  <li><a href="#sec-adoption" id="toc-sec-adoption" class="nav-link" data-scroll-target="#sec-adoption"><span class="header-section-number">3.3</span> Why it ships anyway</a></li>
+  <li><a href="#the-band-that-should-have-gained-most-and-did-not" id="toc-the-band-that-should-have-gained-most-and-did-not" class="nav-link" data-scroll-target="#the-band-that-should-have-gained-most-and-did-not"><span class="header-section-number">3.4</span> The band that should have gained most, and did not</a></li>
   </ul></li>
+  <li><a href="#sec-outstanding" id="toc-sec-outstanding" class="nav-link" data-scroll-target="#sec-outstanding"><span class="header-section-number">4</span> What is still open</a></li>
   </ul>
 <div class="quarto-alternate-formats"><h2>Other Formats</h2><ul><li><a href="index.pdf"><i class="bi bi-file-pdf"></i>PDF</a></li></ul></div></nav>
     </div>
@@ -508,8 +510,8 @@ Figure&nbsp;4: <code>endpoint</code> naming an arrival aerodrome (ADES). The las
 </div>
 </div>
 </section>
-<section id="what-it-costs-and-why-that-settles-it" class="level3" data-number="3.2">
-<h3 data-number="3.2" class="anchored" data-anchor-id="what-it-costs-and-why-that-settles-it"><span class="header-section-number">3.2</span> What it costs, and why that settles it</h3>
+<section id="what-it-costs" class="level3" data-number="3.2">
+<h3 data-number="3.2" class="anchored" data-anchor-id="what-it-costs"><span class="header-section-number">3.2</span> What it costs</h3>
 <div class="cell">
 <div class="cell-output-display">
 <table class="caption-top table table-sm table-striped small">
@@ -553,18 +555,31 @@ Figure&nbsp;4: <code>endpoint</code> naming an arrival aerodrome (ADES). The las
 </table>
 </div>
 </div>
-<p>Moving to the field datum buys <strong>194 more correct arrivals and 105 more wrong ones</strong>. Coverage rises 0.31 pp; accuracy falls 0.16 pp; the score at <em>k</em> = 2 moves from 62,185 to 62,169 — sixteen points the wrong way.</p>
-<p>The adoption criteria fixed in the design were: coverage up by at least 0.5 pp, accuracy not falling, and the gain concentrated at elevated fields. <strong>The third holds and the first two do not.</strong> So on this evidence the change does not ship, and the honest summary is that the mechanism is real but too small, at this ceiling, to pay for itself.</p>
-<p>That the criteria were written down before the numbers existed is what makes this a result rather than a negotiation. A study whose bar moves to meet its outcome has measured nothing.</p>
+<p>Moving to the field datum buys <strong>194 more correct arrivals and 105 more wrong ones</strong>. Coverage rises 0.31 pp; accuracy falls 0.16 pp; the score at <em>k</em> = 2 moves from 62,185 to 62,169 — sixteen points the wrong way. In net terms it is close to a wash, tilted toward answering more flights and being fractionally less certain about each.</p>
 </section>
-<section id="the-band-that-should-have-gained-most-and-did-not" class="level3" data-number="3.3">
-<h3 data-number="3.3" class="anchored" data-anchor-id="the-band-that-should-have-gained-most-and-did-not"><span class="header-section-number">3.3</span> The band that should have gained most, and did not</h3>
+<section id="sec-adoption" class="level3" data-number="3.3">
+<h3 data-number="3.3" class="anchored" data-anchor-id="sec-adoption"><span class="header-section-number">3.3</span> Why it ships anyway</h3>
+<p>The adoption criteria fixed in the design were: coverage up by at least 0.5 pp, accuracy not falling, and the gain concentrated at elevated fields. <strong>The third holds and the first two do not.</strong> On a cost-benefit reading, that would be the end of it.</p>
+<p><strong>The change is adopted regardless</strong>, and the reason is worth stating plainly because it is not a benchmark result.</p>
+<p>A ceiling measured from sea level is <em>not the same test at different aerodromes</em>. At Amsterdam it admits 6,000 ft of climb and descent; at Ankara, 2,975; at Erzurum, roughly 240. Nobody chose that gradient — it is an artefact of which datum the threshold happened to be written against, and it makes the method’s willingness to answer depend on the terrain under the aerodrome rather than on the evidence in the trajectory. <code>endpoint</code> was corrected on exactly this reasoning in version 6, and step 04’s ground detection in the same release. <code>trend</code> was the last one left.</p>
+<p>So this is a <strong>correctness fix, not an optimisation</strong>, and it is not the benchmark’s place to veto it. What the benchmark is for is telling us what the fix costs, which it has done: a third of a percentage point of coverage gained, a sixth of a point of accuracy given up, and the movement concentrated where the mechanism predicts. That is the honest accounting, and it is reported here rather than buried because a change adopted on principle still has to declare its price.</p>
+<p>The measured null in criteria 1 and 2 does carry one design implication: the ceiling itself, inherited from a sweep conducted on the datum now abandoned, is very likely no longer optimal. <a href="#sec-outstanding" class="quarto-xref">Section&nbsp;4</a> returns to that.</p>
+</section>
+<section id="the-band-that-should-have-gained-most-and-did-not" class="level3" data-number="3.4">
+<h3 data-number="3.4" class="anchored" data-anchor-id="the-band-that-should-have-gained-most-and-did-not"><span class="header-section-number">3.4</span> The band that should have gained most, and did not</h3>
 <p>The <code>&gt;3000</code> band is the one where a fixed sea-level ceiling ought to hurt worst, and it shows <strong>no change at all: 5 correct arrivals out of 705, on both datums.</strong></p>
 <p>That is not a null result about the datum. It is <code>trend</code> failing at those aerodromes for a different reason — a recall of 0.7% is not a method being mis-tuned, it is a method receiving almost nothing to work with. The likeliest cause is ADS-B coverage over the Anatolian plateau, where most of this band’s traffic sits; an aerodrome the feed barely sees cannot be named on any datum.</p>
 <p>This matters for how the change should be argued elsewhere. The motivating example in the design was Erzurum at 5,763 ft, where a FL60 cut leaves about 240 ft in which to vote. That example is arithmetically correct and doubly unrepresentative: such fields are rare in the sample, <strong>and</strong> they sit in the one band where the method is independently broken. The population that actually benefits is the far less dramatic 1,500–3,000 ft — Madrid, Ankara, Sofia, Tbilisi — where a FL60 cut still leaves three to four thousand feet of usable climb and descent.</p>
-
-
 </section>
+</section>
+<section id="sec-outstanding" class="level2" data-number="4">
+<h2 data-number="4" class="anchored" data-anchor-id="sec-outstanding"><span class="header-section-number">4</span> What is still open</h2>
+<p><strong>The ceiling is inherited, and probably wrong.</strong> <code>trend_max_height_ft</code> ships at the FL60 equivalent because that is what the datum comparison had to hold fixed to isolate one variable. But FL60 was tuned by V6 on the sea-level datum, and the whole point of this version is that the two datums are not the same test — so there is no reason the optimum should have survived the move. The measured null in coverage is consistent with a correct datum at a stale ceiling.</p>
+<p>The sweep that answers this reads the cached vote tables rather than re-running the pipeline, so it is cheap; it is defined in <code>regenerate_v61.py</code> as <code>height_sweep_*</code> and <code>fl_sweep_*</code>. Until it has run, the shipped ceiling should be read as <em>provisional and inherited</em>, not as tuned.</p>
+<p><strong>The second period is confirmation, not yet obtained.</strong> Everything above is 2025-06-05…07. The 2024 sample is defined in the same registry and runs the same arms; the study’s own convention is that a result measured on one period and reported as the study’s finding is not a finding yet.</p>
+<p><strong>The <code>&gt;3000</code> band needs a different question.</strong> A recall of 0.7% on both datums is a coverage problem upstream of detection, and no amount of threshold work will move it. Whether that is receiver geometry over the Anatolian plateau or something in ingestion is worth knowing, but it is not this study’s question.</p>
+
+
 </section>
 
 </main> <!-- /main -->
