@@ -1,0 +1,402 @@
+{
+  "datum_swap_2025.csv": {
+    "argv": [
+      "--months",
+      "202506",
+      "--days",
+      "2025-06-05",
+      "2025-06-06",
+      "2025-06-07",
+      "--runs",
+      "datum_msl",
+      "datum_field",
+      "legacy",
+      "--out-name",
+      "datum_comparison.csv",
+      "--executors",
+      "10"
+    ],
+    "bytes": 1861,
+    "code_fingerprint": "513b15ec3cc510b7",
+    "code_paths": [
+      "benchmarks/adep_ades.py",
+      "benchmarks/flight_list_v61.py",
+      "benchmarks/flight_list_v61.py",
+      "benchmarks/osn_sample.py",
+      "src/opdi/config.py",
+      "src/opdi/pipeline/flights.py"
+    ],
+    "git_dirty": false,
+    "git_sha": "6d34c1a",
+    "input_tables": {
+      "s3a://eurocontrol/opdi/h3_airport_detection_zones": {
+        "bytes": 215961011,
+        "newest": "2026-08-07T10:32:59.769000+00:00",
+        "objects": 151
+      },
+      "s3a://eurocontrol/opdi/opdi_endpoint_candidates": {
+        "bytes": 145538092,
+        "newest": "2026-08-22T12:16:59.597000+00:00",
+        "objects": 23
+      },
+      "s3a://eurocontrol/opdi/osn_tracks": {
+        "bytes": 10160581413,
+        "newest": "2026-08-10T22:07:13.808000+00:00",
+        "objects": 4
+      },
+      "s3a://eurocontrol/opdi/research/reference": {
+        "bytes": 536176358,
+        "newest": "2026-08-13T10:38:29.218000+00:00",
+        "objects": 6
+      }
+    },
+    "inputs": {},
+    "notes": "Arm A: FL60 against 6,100 ft above field, through process_dai itself. The ceiling is identical -- flight_level is an int cast, so FL60 reaches 6,100 -- which leaves the datum as the only difference. `legacy` rides along as the published-constants control",
+    "produced_utc": "2026-08-23T11:31:36+00:00",
+    "script": "benchmarks/flight_list_v61.py",
+    "sha256_16": "68833f3e80a9519a"
+  },
+  "elevation_bands_2025.csv": {
+    "argv": [
+      "--per-airport",
+      "/home/jupyter/work/opdi-workspace/opdi-portal/papers/adep-ades-detection-v6.1/data/per_airport_datum_2025.csv"
+    ],
+    "bytes": 762,
+    "code_fingerprint": "996bf0345b2a4e24",
+    "code_paths": [
+      "benchmarks/adep_ades.py",
+      "benchmarks/elevation_arms.py",
+      "benchmarks/elevation_arms.py",
+      "benchmarks/elevation_bands.py",
+      "benchmarks/flight_list_v61.py",
+      "benchmarks/osn_sample.py",
+      "src/opdi/config.py",
+      "src/opdi/pipeline/flights.py"
+    ],
+    "git_dirty": false,
+    "git_sha": "6d34c1a",
+    "input_tables": {
+      "s3a://eurocontrol/opdi/research/reference": {
+        "bytes": 536176358,
+        "newest": "2026-08-13T10:38:29.218000+00:00",
+        "objects": 6
+      }
+    },
+    "inputs": {},
+    "notes": "Arm C, the discriminating measurement: the datum's effect banded by field elevation, with both robustness controls. The census showed each treatment band rests on one aerodrome, so band means alone cannot separate an elevation effect from a Madrid effect",
+    "produced_utc": "2026-08-23T11:32:05+00:00",
+    "script": "benchmarks/elevation_arms.py",
+    "sha256_16": "95d2fe1414f51c14"
+  },
+  "elevation_per_airport_2025.csv": {
+    "argv": [
+      "--per-airport",
+      "/home/jupyter/work/opdi-workspace/opdi-portal/papers/adep-ades-detection-v6.1/data/per_airport_datum_2025.csv"
+    ],
+    "bytes": 60411,
+    "code_fingerprint": "996bf0345b2a4e24",
+    "code_paths": [
+      "benchmarks/adep_ades.py",
+      "benchmarks/elevation_arms.py",
+      "benchmarks/elevation_arms.py",
+      "benchmarks/elevation_bands.py",
+      "benchmarks/flight_list_v61.py",
+      "benchmarks/osn_sample.py",
+      "src/opdi/config.py",
+      "src/opdi/pipeline/flights.py"
+    ],
+    "git_dirty": false,
+    "git_sha": "6d34c1a",
+    "input_tables": {
+      "s3a://eurocontrol/opdi/research/reference": {
+        "bytes": 536176358,
+        "newest": "2026-08-13T10:38:29.218000+00:00",
+        "objects": 6
+      }
+    },
+    "inputs": {},
+    "notes": "Arm C, the discriminating measurement: the datum's effect banded by field elevation, with both robustness controls. The census showed each treatment band rests on one aerodrome, so band means alone cannot separate an elevation effect from a Madrid effect",
+    "produced_utc": "2026-08-23T11:32:05+00:00",
+    "script": "benchmarks/elevation_arms.py",
+    "sha256_16": "aed3be92cda43664"
+  },
+  "per_airport_datum_2025.csv": {
+    "argv": [
+      "--months",
+      "202506",
+      "--days",
+      "2025-06-05",
+      "2025-06-06",
+      "2025-06-07",
+      "--runs",
+      "datum_msl",
+      "datum_field",
+      "legacy",
+      "--out-name",
+      "datum_comparison.csv",
+      "--executors",
+      "10"
+    ],
+    "bytes": 295068,
+    "code_fingerprint": "513b15ec3cc510b7",
+    "code_paths": [
+      "benchmarks/adep_ades.py",
+      "benchmarks/flight_list_v61.py",
+      "benchmarks/flight_list_v61.py",
+      "benchmarks/osn_sample.py",
+      "src/opdi/config.py",
+      "src/opdi/pipeline/flights.py"
+    ],
+    "git_dirty": false,
+    "git_sha": "6d34c1a",
+    "input_tables": {
+      "s3a://eurocontrol/opdi/h3_airport_detection_zones": {
+        "bytes": 215961011,
+        "newest": "2026-08-07T10:32:59.769000+00:00",
+        "objects": 151
+      },
+      "s3a://eurocontrol/opdi/opdi_endpoint_candidates": {
+        "bytes": 145538092,
+        "newest": "2026-08-22T12:16:59.597000+00:00",
+        "objects": 23
+      },
+      "s3a://eurocontrol/opdi/osn_tracks": {
+        "bytes": 10160581413,
+        "newest": "2026-08-10T22:07:13.808000+00:00",
+        "objects": 4
+      },
+      "s3a://eurocontrol/opdi/research/reference": {
+        "bytes": 536176358,
+        "newest": "2026-08-13T10:38:29.218000+00:00",
+        "objects": 6
+      }
+    },
+    "inputs": {},
+    "notes": "Arm A: FL60 against 6,100 ft above field, through process_dai itself. The ceiling is identical -- flight_level is an int cast, so FL60 reaches 6,100 -- which leaves the datum as the only difference. `legacy` rides along as the published-constants control",
+    "produced_utc": "2026-08-23T11:31:37+00:00",
+    "script": "benchmarks/flight_list_v61.py",
+    "sha256_16": "ef7b44cc6c54c177"
+  },
+  "table:s3a://eurocontrol/opdi/h3_airport_detection_zones": {
+    "argv": [
+      "run",
+      "--env",
+      "opensky",
+      "--step",
+      "00",
+      "--start",
+      "2025-06-05",
+      "--end",
+      "2025-06-07"
+    ],
+    "code_fingerprint": "b59b101ff1235166",
+    "code_paths": [
+      "src/opdi/config.py",
+      "src/opdi/reference/h3_airport_zones.py",
+      "src/opdi/runner.py"
+    ],
+    "git_dirty": false,
+    "git_sha": "674d06b",
+    "input_tables": {
+      "s3a://eurocontrol/opdi/h3_airport_detection_zones": {
+        "bytes": 215961011,
+        "newest": "2026-08-07T10:32:59.769000+00:00",
+        "objects": 152
+      }
+    },
+    "inputs": {},
+    "notes": "H3 detection zones and the OurAirports reference the candidate builder reads field elevations from. Step ids are 00/01/02/... -- there is no 00a at this level, the substeps live inside 00 | PRE-EXISTING: identity recorded without a rebuild, so the command below is how it is built, not necessarily how this copy was built.",
+    "produced_utc": "2026-08-22T10:08:38+00:00",
+    "script": "/home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/v61-field-elevation/.venv310/bin/opdi"
+  },
+  "table:s3a://eurocontrol/opdi/opdi_endpoint_candidates": {
+    "argv": [
+      "-u",
+      "benchmarks/build_candidates.py",
+      "--month",
+      "202506",
+      "--executors",
+      "10"
+    ],
+    "code_fingerprint": "dd98d8d976479c0d",
+    "code_paths": [
+      "benchmarks/build_candidates.py",
+      "src/opdi/config.py",
+      "src/opdi/pipeline/flights.py"
+    ],
+    "git_dirty": false,
+    "git_sha": "6d34c1a",
+    "input_tables": {
+      "s3a://eurocontrol/opdi/h3_airport_detection_zones": {
+        "bytes": 215961011,
+        "newest": "2026-08-07T10:32:59.769000+00:00",
+        "objects": 151
+      },
+      "s3a://eurocontrol/opdi/opdi_endpoint_candidates": {
+        "bytes": 145538092,
+        "newest": "2026-08-22T12:16:59.597000+00:00",
+        "objects": 23
+      },
+      "s3a://eurocontrol/opdi/osn_tracks": {
+        "bytes": 10160581413,
+        "newest": "2026-08-10T22:07:13.808000+00:00",
+        "objects": 4
+      }
+    },
+    "inputs": {},
+    "notes": "first/last fix per track against every aerodrome within 110 NM; the cache the endpoint sweeps filter",
+    "produced_utc": "2026-08-22T12:17:01+00:00",
+    "script": "/home/jupyter/work/opdi-workspace/opdi/.venv310/bin/python"
+  },
+  "table:s3a://eurocontrol/opdi/osn_tracks": {
+    "argv": [
+      "-u",
+      "benchmarks/rebuild_sample.py",
+      "--start",
+      "2025-06-05",
+      "--end",
+      "2025-06-07",
+      "--executors",
+      "10"
+    ],
+    "code_fingerprint": "0544ecc943f672e1",
+    "code_paths": [
+      "benchmarks/rebuild_sample.py",
+      "src/opdi/config.py",
+      "src/opdi/ingestion/osn_statevectors.py",
+      "src/opdi/pipeline/tracks.py"
+    ],
+    "git_dirty": false,
+    "git_sha": "674d06b",
+    "input_tables": {
+      "s3a://eurocontrol/opdi/osn_tracks": {
+        "bytes": 10160581413,
+        "newest": "2026-08-10T22:07:13.808000+00:00",
+        "objects": 5
+      }
+    },
+    "inputs": {},
+    "notes": "ingest and track building with the configured sampler. Replaces rather than appends, because the rows being replaced were made by a different rule | PRE-EXISTING: identity recorded without a rebuild, so the command below is how it is built, not necessarily how this copy was built.",
+    "produced_utc": "2026-08-22T10:08:38+00:00",
+    "script": "/home/jupyter/work/opdi-workspace/opdi/.venv310/bin/python"
+  },
+  "table:s3a://eurocontrol/opdi/research/cand_2024": {
+    "argv": [
+      "-u",
+      "benchmarks/build_candidates_2024.py",
+      "--days",
+      "2024-06-05",
+      "2024-06-06",
+      "2024-06-07",
+      "--executors",
+      "10"
+    ],
+    "code_fingerprint": "89d9d5a432c7a094",
+    "code_paths": [
+      "benchmarks/build_candidates_2024.py",
+      "src/opdi/pipeline/flights.py"
+    ],
+    "git_dirty": false,
+    "git_sha": "e9df61e",
+    "input_tables": {
+      "s3a://eurocontrol/opdi/research/cand_2024": {
+        "bytes": 120808873,
+        "newest": "2026-08-12T20:44:34.891000+00:00",
+        "objects": 24
+      }
+    },
+    "inputs": {},
+    "notes": "endpoint candidates for the second period, built by the pipeline's own builder over a pre-reduced endpoint table | PRE-EXISTING: identity recorded without a rebuild, so the command below is how it is built, not necessarily how this copy was built.",
+    "produced_utc": "2026-08-22T10:20:27+00:00",
+    "script": "/home/jupyter/work/opdi-workspace/opdi/.venv310/bin/python"
+  },
+  "table:s3a://eurocontrol/opdi/research/trend_votes_agl": {
+    "argv": [
+      "-u",
+      "benchmarks/trend_sweep_agl.py",
+      "--months",
+      "202506",
+      "--days",
+      "2025-06-05",
+      "2025-06-06",
+      "2025-06-07",
+      "--build",
+      "--build-only",
+      "--cache",
+      "s3a://eurocontrol/opdi/research/trend_votes_agl",
+      "--executors",
+      "10",
+      "--results-dir",
+      "/tmp/v61_votecache_2025"
+    ],
+    "code_fingerprint": "c0e0c9df78711945",
+    "code_paths": [
+      "benchmarks/elevation_bands.py",
+      "benchmarks/trend_sweep_agl.py"
+    ],
+    "git_dirty": false,
+    "git_sha": "6d34c1a",
+    "input_tables": {
+      "s3a://eurocontrol/opdi/h3_airport_detection_zones": {
+        "bytes": 215961011,
+        "newest": "2026-08-07T10:32:59.769000+00:00",
+        "objects": 151
+      },
+      "s3a://eurocontrol/opdi/osn_tracks": {
+        "bytes": 10160581413,
+        "newest": "2026-08-10T22:07:13.808000+00:00",
+        "objects": 4
+      },
+      "s3a://eurocontrol/opdi/research/trend_votes_agl": {
+        "bytes": 666718758,
+        "newest": "2026-08-22T12:21:58.423000+00:00",
+        "objects": 253
+      }
+    },
+    "inputs": {},
+    "notes": "vote counts per (track, aerodrome) at every cap on BOTH datums, in one pass. Writes v6.1's own prefix; V6's trend_votes is left alone so V6 stays reproducible",
+    "produced_utc": "2026-08-22T12:22:00+00:00",
+    "script": "/home/jupyter/work/opdi-workspace/opdi/.venv310/bin/python"
+  },
+  "table:s3a://eurocontrol/opdi/research/trend_votes_agl_2024": {
+    "argv": [
+      "-u",
+      "benchmarks/trend_sweep_agl.py",
+      "--months",
+      "202406",
+      "--days",
+      "2024-06-05",
+      "2024-06-06",
+      "2024-06-07",
+      "--build",
+      "--tracks",
+      "s3a://eurocontrol/opdi/research/tracks",
+      "--add-h3",
+      "--cache",
+      "s3a://eurocontrol/opdi/research/trend_votes_agl_2024",
+      "--build-only",
+      "--executors",
+      "10",
+      "--results-dir",
+      "/tmp/v61_votecache_2024"
+    ],
+    "code_fingerprint": "c0e0c9df78711945",
+    "code_paths": [
+      "benchmarks/elevation_bands.py",
+      "benchmarks/trend_sweep_agl.py"
+    ],
+    "git_dirty": false,
+    "git_sha": "e9df61e",
+    "input_tables": {
+      "s3a://eurocontrol/opdi/research/trend_votes_agl_2024": {
+        "bytes": 618279574,
+        "newest": "2026-08-22T10:20:24.241000+00:00",
+        "objects": 425
+      }
+    },
+    "inputs": {},
+    "notes": "second period; its tracks pre-date H3 so the index is computed",
+    "produced_utc": "2026-08-22T10:20:27+00:00",
+    "script": "/home/jupyter/work/opdi-workspace/opdi/.venv310/bin/python"
+  }
+}
