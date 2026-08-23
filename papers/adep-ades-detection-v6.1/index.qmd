@@ -488,24 +488,78 @@ benefits is the far less dramatic 1,500–3,000 ft — Madrid, Ankara, Sofia,
 Tbilisi — where a FL60 cut still leaves three to four thousand feet of usable
 climb and descent.
 
+### The ceiling survives the move {#sec-ceiling}
+
+`trend_max_height_ft` ships at the FL60 equivalent because that is what the
+datum comparison had to hold fixed to isolate one variable. That left an obvious
+worry: FL60 was tuned by V6 *on the datum this version abandons*, so there was
+no reason its optimum should have survived. The two sweeps settle it.
+
+```{r ceiling-sweeps}
+#| echo: false
+hs <- read_if("height_sweep_2025.csv")
+fs <- read_if("fl_sweep_2025.csv")
+shipped <- function(d) d[d$radius_nm == 30 & d$margin == 0 & d$penalty_nm == 10, ]
+if (!is.null(hs) && !is.null(fs)) {
+  h <- shipped(hs); f <- shipped(fs)
+  out <- rbind(
+    data.frame(Datum = "above field", Ceiling = sprintf("%s ft", format(h$fl_cap, big.mark = ",")),
+               Coverage = sprintf("%.2f%%", 100 * h$ades_coverage),
+               Accuracy = sprintf("%.2f%%", 100 * h$ades_accuracy),
+               Score = h$ades_score),
+    data.frame(Datum = "flight level", Ceiling = sprintf("FL%s", f$fl_cap),
+               Coverage = sprintf("%.2f%%", 100 * f$ades_coverage),
+               Accuracy = sprintf("%.2f%%", 100 * f$ades_accuracy),
+               Score = f$ades_score)
+  )
+  kable(out, row.names = FALSE, format.args = list(big.mark = ","),
+        caption = "Arrivals, shipped geometry (30 NM, margin 0, penalty 10 NM). Both curves swept out of the same vote cache.")
+}
+```
+
+**Each datum peaks at the equivalent ceiling** — 6,100 ft above field, FL60 on
+sea level — and 6,100 ft wins at *every* radius from 20 NM outward, production's
+30 NM included. The shipped value is therefore tuned rather than inherited, and
+no change is indicated.
+
+Two honest limits. The grid is coarse near the peak (4,000 → 6,100 → 8,000), so
+the true optimum could sit anywhere in that span; and these are harness numbers,
+which V6 showed can differ from the pipeline's in level even when they agree in
+shape. What the sweep establishes is the *shape*: an interior optimum, falling
+away on both sides, at the value already shipping.
+
+### Why the aggregate was never going to show much {#sec-dilution}
+
+The two curves are also nearly identical in level — 60,952 against 60,857 at the
+shipped geometry, and 61,069 against 61,056 at each datum's own best cell. That
+looks like a change doing nothing, and it is worth being precise about why it is
+not.
+
+**Roughly seventy per cent of the ground-truth arrivals sit in the `<500 ft`
+band**, where the two datums are the same test by construction. A change that
+cannot move the majority of the sample cannot move an average over it, however
+well it works on the rest. The aggregate score is diluted by design, and judging
+a targeted correctness fix by it is using the wrong instrument — the reading is
+dominated by the aerodromes the fix was never about.
+
+That is precisely why @sec-bands exists and why it is read first. The signal is
+in the 1,500–3,000 ft band, and the aggregate is where that signal goes to be
+averaged away.
+
 ## What is still open {#sec-outstanding}
 
-**The ceiling is inherited, and probably wrong.** `trend_max_height_ft` ships at
-the FL60 equivalent because that is what the datum comparison had to hold fixed
-to isolate one variable. But FL60 was tuned by V6 on the sea-level datum, and
-the whole point of this version is that the two datums are not the same test —
-so there is no reason the optimum should have survived the move. The measured
-null in coverage is consistent with a correct datum at a stale ceiling.
+**The second period confirms through the sweeps, not the pipeline.** Everything
+above is 2025-06-05…07. The 2024 sample cannot run the pipeline arms at all:
+`process_dai` reads `h3_res_7` off the track table, and the 2024 tracks were
+built before this study indexed them, so the column is absent. V6 met the same
+wall and ran the pipeline on 2025 alone.
 
-The sweep that answers this reads the cached vote tables rather than re-running
-the pipeline, so it is cheap; it is defined in `regenerate_v61.py` as
-`height_sweep_*` and `fl_sweep_*`. Until it has run, the shipped ceiling should
-be read as *provisional and inherited*, not as tuned.
-
-**The second period is confirmation, not yet obtained.** Everything above is
-2025-06-05…07. The 2024 sample is defined in the same registry and runs the same
-arms; the study's own convention is that a result measured on one period and
-reported as the study's finding is not a finding yet.
+What 2024 *can* do is the paired sweeps, out of a vote cache built with the
+index computed at read time — so the second period tests whether the ceiling and
+the datum behave the same way there, which is the part most at risk of being a
+one-sample artefact. Those two jobs are the whole of this period's evidence, and
+the report should say so rather than implying a symmetry the data does not
+support.
 
 **The `>3000` band needs a different question.** A recall of 0.7% on both datums
 is a coverage problem upstream of detection, and no amount of threshold work

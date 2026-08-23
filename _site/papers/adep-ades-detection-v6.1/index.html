@@ -139,6 +139,8 @@ ul.task-list li input[type="checkbox"] {
   <li><a href="#what-it-costs" id="toc-what-it-costs" class="nav-link" data-scroll-target="#what-it-costs"><span class="header-section-number">3.2</span> What it costs</a></li>
   <li><a href="#sec-adoption" id="toc-sec-adoption" class="nav-link" data-scroll-target="#sec-adoption"><span class="header-section-number">3.3</span> Why it ships anyway</a></li>
   <li><a href="#the-band-that-should-have-gained-most-and-did-not" id="toc-the-band-that-should-have-gained-most-and-did-not" class="nav-link" data-scroll-target="#the-band-that-should-have-gained-most-and-did-not"><span class="header-section-number">3.4</span> The band that should have gained most, and did not</a></li>
+  <li><a href="#sec-ceiling" id="toc-sec-ceiling" class="nav-link" data-scroll-target="#sec-ceiling"><span class="header-section-number">3.5</span> The ceiling survives the move</a></li>
+  <li><a href="#sec-dilution" id="toc-sec-dilution" class="nav-link" data-scroll-target="#sec-dilution"><span class="header-section-number">3.6</span> Why the aggregate was never going to show much</a></li>
   </ul></li>
   <li><a href="#sec-outstanding" id="toc-sec-outstanding" class="nav-link" data-scroll-target="#sec-outstanding"><span class="header-section-number">4</span> What is still open</a></li>
   </ul>
@@ -571,12 +573,153 @@ Figure&nbsp;4: <code>endpoint</code> naming an arrival aerodrome (ADES). The las
 <p>That is not a null result about the datum. It is <code>trend</code> failing at those aerodromes for a different reason — a recall of 0.7% is not a method being mis-tuned, it is a method receiving almost nothing to work with. The likeliest cause is ADS-B coverage over the Anatolian plateau, where most of this band’s traffic sits; an aerodrome the feed barely sees cannot be named on any datum.</p>
 <p>This matters for how the change should be argued elsewhere. The motivating example in the design was Erzurum at 5,763 ft, where a FL60 cut leaves about 240 ft in which to vote. That example is arithmetically correct and doubly unrepresentative: such fields are rare in the sample, <strong>and</strong> they sit in the one band where the method is independently broken. The population that actually benefits is the far less dramatic 1,500–3,000 ft — Madrid, Ankara, Sofia, Tbilisi — where a FL60 cut still leaves three to four thousand feet of usable climb and descent.</p>
 </section>
+<section id="sec-ceiling" class="level3" data-number="3.5">
+<h3 data-number="3.5" class="anchored" data-anchor-id="sec-ceiling"><span class="header-section-number">3.5</span> The ceiling survives the move</h3>
+<p><code>trend_max_height_ft</code> ships at the FL60 equivalent because that is what the datum comparison had to hold fixed to isolate one variable. That left an obvious worry: FL60 was tuned by V6 <em>on the datum this version abandons</em>, so there was no reason its optimum should have survived. The two sweeps settle it.</p>
+<div class="cell">
+<div class="cell-output-display">
+<table class="caption-top table table-sm table-striped small">
+<caption>Arrivals, shipped geometry (30 NM, margin 0, penalty 10 NM). Both curves swept out of the same vote cache.</caption>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Datum</th>
+<th style="text-align: left;">Ceiling</th>
+<th style="text-align: left;">Coverage</th>
+<th style="text-align: left;">Accuracy</th>
+<th style="text-align: right;">Score</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">above field</td>
+<td style="text-align: left;">2,000 ft</td>
+<td style="text-align: left;">65.73%</td>
+<td style="text-align: left;">97.92%</td>
+<td style="text-align: right;">58,625</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">above field</td>
+<td style="text-align: left;">3,000 ft</td>
+<td style="text-align: left;">67.31%</td>
+<td style="text-align: left;">97.78%</td>
+<td style="text-align: right;">59,748</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">above field</td>
+<td style="text-align: left;">4,000 ft</td>
+<td style="text-align: left;">68.64%</td>
+<td style="text-align: left;">97.33%</td>
+<td style="text-align: right;">60,067</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">above field</td>
+<td style="text-align: left;">6,100 ft</td>
+<td style="text-align: left;">70.35%</td>
+<td style="text-align: left;">96.98%</td>
+<td style="text-align: right;">60,857</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">above field</td>
+<td style="text-align: left;">8,000 ft</td>
+<td style="text-align: left;">71.45%</td>
+<td style="text-align: left;">96.11%</td>
+<td style="text-align: right;">60,026</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">above field</td>
+<td style="text-align: left;">10,000 ft</td>
+<td style="text-align: left;">72.84%</td>
+<td style="text-align: left;">94.53%</td>
+<td style="text-align: right;">57,918</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">above field</td>
+<td style="text-align: left;">12,000 ft</td>
+<td style="text-align: left;">73.84%</td>
+<td style="text-align: left;">93.21%</td>
+<td style="text-align: right;">55,924</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">flight level</td>
+<td style="text-align: left;">FL20</td>
+<td style="text-align: left;">64.87%</td>
+<td style="text-align: left;">98.12%</td>
+<td style="text-align: right;">58,225</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">flight level</td>
+<td style="text-align: left;">FL30</td>
+<td style="text-align: left;">66.92%</td>
+<td style="text-align: left;">97.95%</td>
+<td style="text-align: right;">59,750</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">flight level</td>
+<td style="text-align: left;">FL40</td>
+<td style="text-align: left;">68.14%</td>
+<td style="text-align: left;">97.78%</td>
+<td style="text-align: right;">60,492</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">flight level</td>
+<td style="text-align: left;">FL60</td>
+<td style="text-align: left;">70.01%</td>
+<td style="text-align: left;">97.18%</td>
+<td style="text-align: right;">60,952</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">flight level</td>
+<td style="text-align: left;">FL80</td>
+<td style="text-align: left;">71.18%</td>
+<td style="text-align: left;">96.36%</td>
+<td style="text-align: right;">60,309</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">flight level</td>
+<td style="text-align: left;">FL100</td>
+<td style="text-align: left;">72.53%</td>
+<td style="text-align: left;">94.89%</td>
+<td style="text-align: right;">58,409</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">flight level</td>
+<td style="text-align: left;">FL120</td>
+<td style="text-align: left;">73.68%</td>
+<td style="text-align: left;">93.47%</td>
+<td style="text-align: right;">56,354</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">flight level</td>
+<td style="text-align: left;">FL150</td>
+<td style="text-align: left;">74.47%</td>
+<td style="text-align: left;">91.95%</td>
+<td style="text-align: right;">53,721</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">flight level</td>
+<td style="text-align: left;">FL200</td>
+<td style="text-align: left;">75.45%</td>
+<td style="text-align: left;">89.54%</td>
+<td style="text-align: right;">49,248</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<p><strong>Each datum peaks at the equivalent ceiling</strong> — 6,100 ft above field, FL60 on sea level — and 6,100 ft wins at <em>every</em> radius from 20 NM outward, production’s 30 NM included. The shipped value is therefore tuned rather than inherited, and no change is indicated.</p>
+<p>Two honest limits. The grid is coarse near the peak (4,000 → 6,100 → 8,000), so the true optimum could sit anywhere in that span; and these are harness numbers, which V6 showed can differ from the pipeline’s in level even when they agree in shape. What the sweep establishes is the <em>shape</em>: an interior optimum, falling away on both sides, at the value already shipping.</p>
+</section>
+<section id="sec-dilution" class="level3" data-number="3.6">
+<h3 data-number="3.6" class="anchored" data-anchor-id="sec-dilution"><span class="header-section-number">3.6</span> Why the aggregate was never going to show much</h3>
+<p>The two curves are also nearly identical in level — 60,952 against 60,857 at the shipped geometry, and 61,069 against 61,056 at each datum’s own best cell. That looks like a change doing nothing, and it is worth being precise about why it is not.</p>
+<p><strong>Roughly seventy per cent of the ground-truth arrivals sit in the <code>&lt;500 ft</code> band</strong>, where the two datums are the same test by construction. A change that cannot move the majority of the sample cannot move an average over it, however well it works on the rest. The aggregate score is diluted by design, and judging a targeted correctness fix by it is using the wrong instrument — the reading is dominated by the aerodromes the fix was never about.</p>
+<p>That is precisely why <a href="#sec-bands" class="quarto-xref">Section&nbsp;3.1</a> exists and why it is read first. The signal is in the 1,500–3,000 ft band, and the aggregate is where that signal goes to be averaged away.</p>
+</section>
 </section>
 <section id="sec-outstanding" class="level2" data-number="4">
 <h2 data-number="4" class="anchored" data-anchor-id="sec-outstanding"><span class="header-section-number">4</span> What is still open</h2>
-<p><strong>The ceiling is inherited, and probably wrong.</strong> <code>trend_max_height_ft</code> ships at the FL60 equivalent because that is what the datum comparison had to hold fixed to isolate one variable. But FL60 was tuned by V6 on the sea-level datum, and the whole point of this version is that the two datums are not the same test — so there is no reason the optimum should have survived the move. The measured null in coverage is consistent with a correct datum at a stale ceiling.</p>
-<p>The sweep that answers this reads the cached vote tables rather than re-running the pipeline, so it is cheap; it is defined in <code>regenerate_v61.py</code> as <code>height_sweep_*</code> and <code>fl_sweep_*</code>. Until it has run, the shipped ceiling should be read as <em>provisional and inherited</em>, not as tuned.</p>
-<p><strong>The second period is confirmation, not yet obtained.</strong> Everything above is 2025-06-05…07. The 2024 sample is defined in the same registry and runs the same arms; the study’s own convention is that a result measured on one period and reported as the study’s finding is not a finding yet.</p>
+<p><strong>The second period confirms through the sweeps, not the pipeline.</strong> Everything above is 2025-06-05…07. The 2024 sample cannot run the pipeline arms at all: <code>process_dai</code> reads <code>h3_res_7</code> off the track table, and the 2024 tracks were built before this study indexed them, so the column is absent. V6 met the same wall and ran the pipeline on 2025 alone.</p>
+<p>What 2024 <em>can</em> do is the paired sweeps, out of a vote cache built with the index computed at read time — so the second period tests whether the ceiling and the datum behave the same way there, which is the part most at risk of being a one-sample artefact. Those two jobs are the whole of this period’s evidence, and the report should say so rather than implying a symmetry the data does not support.</p>
 <p><strong>The <code>&gt;3000</code> band needs a different question.</strong> A recall of 0.7% on both datums is a coverage problem upstream of detection, and no amount of threshold work will move it. Whether that is receiver geometry over the Anatolian plateau or something in ingestion is worth knowing, but it is not this study’s question.</p>
 
 
