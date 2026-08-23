@@ -120,6 +120,108 @@
     "script": "benchmarks/elevation_arms.py",
     "sha256_16": "aed3be92cda43664"
   },
+  "fl_sweep_2025.csv": {
+    "argv": [
+      "--months",
+      "202506",
+      "--days",
+      "2025-06-05",
+      "2025-06-06",
+      "2025-06-07",
+      "--cache",
+      "s3a://eurocontrol/opdi/research/trend_votes_agl",
+      "--datum",
+      "msl",
+      "--out-name",
+      "trend_sweep.csv",
+      "--executors",
+      "10"
+    ],
+    "bytes": 120647,
+    "code_fingerprint": "4e6586f05b149793",
+    "code_paths": [
+      "benchmarks/adep_ades.py",
+      "benchmarks/elevation_bands.py",
+      "benchmarks/osn_sample.py",
+      "benchmarks/trend_sweep_agl.py",
+      "benchmarks/trend_sweep_agl.py"
+    ],
+    "git_dirty": false,
+    "git_sha": "dd918d9",
+    "input_tables": {
+      "s3a://eurocontrol/opdi/h3_airport_detection_zones": {
+        "bytes": 215961011,
+        "newest": "2026-08-07T10:32:59.769000+00:00",
+        "objects": 151
+      },
+      "s3a://eurocontrol/opdi/research/reference": {
+        "bytes": 536176358,
+        "newest": "2026-08-13T10:38:29.218000+00:00",
+        "objects": 6
+      },
+      "s3a://eurocontrol/opdi/research/trend_votes_agl": {
+        "bytes": 666718758,
+        "newest": "2026-08-22T12:21:58.423000+00:00",
+        "objects": 253
+      }
+    },
+    "inputs": {},
+    "notes": "the same sweep on the sea-level datum, out of the same cache. Without it the height sweep has no like-for-like curve to be read against, and a shape would be reported where a comparison belongs",
+    "produced_utc": "2026-08-23T16:51:15+00:00",
+    "script": "benchmarks/trend_sweep_agl.py",
+    "sha256_16": "4ad80d8684810ebf"
+  },
+  "height_sweep_2025.csv": {
+    "argv": [
+      "--months",
+      "202506",
+      "--days",
+      "2025-06-05",
+      "2025-06-06",
+      "2025-06-07",
+      "--cache",
+      "s3a://eurocontrol/opdi/research/trend_votes_agl",
+      "--datum",
+      "field",
+      "--out-name",
+      "trend_sweep.csv",
+      "--executors",
+      "10"
+    ],
+    "bytes": 95849,
+    "code_fingerprint": "4e6586f05b149793",
+    "code_paths": [
+      "benchmarks/adep_ades.py",
+      "benchmarks/elevation_bands.py",
+      "benchmarks/osn_sample.py",
+      "benchmarks/trend_sweep_agl.py",
+      "benchmarks/trend_sweep_agl.py"
+    ],
+    "git_dirty": false,
+    "git_sha": "dd918d9",
+    "input_tables": {
+      "s3a://eurocontrol/opdi/h3_airport_detection_zones": {
+        "bytes": 215961011,
+        "newest": "2026-08-07T10:32:59.769000+00:00",
+        "objects": 151
+      },
+      "s3a://eurocontrol/opdi/research/reference": {
+        "bytes": 536176358,
+        "newest": "2026-08-13T10:38:29.218000+00:00",
+        "objects": 6
+      },
+      "s3a://eurocontrol/opdi/research/trend_votes_agl": {
+        "bytes": 666718758,
+        "newest": "2026-08-22T12:21:58.423000+00:00",
+        "objects": 253
+      }
+    },
+    "inputs": {},
+    "notes": "Arm B: the above-field ceiling swept on its own terms, rather than inherited from the datum being abandoned",
+    "produced_utc": "2026-08-23T16:40:15+00:00",
+    "script": "benchmarks/trend_sweep_agl.py",
+    "sha256_16": "97b30cb398398324"
+  },
   "per_airport_datum_2025.csv": {
     "argv": [
       "--months",
