@@ -528,6 +528,52 @@ which V6 showed can differ from the pipeline's in level even when they agree in
 shape. What the sweep establishes is the *shape*: an interior optimum, falling
 away on both sides, at the value already shipping.
 
+### And it replicates on the second period {#sec-second-period}
+
+```{r second-period}
+#| echo: false
+h24 <- read_if("height_sweep_2024.csv")
+f24 <- read_if("fl_sweep_2024.csv")
+if (!is.null(h24) && !is.null(f24)) {
+  h <- shipped(h24)
+  kable(
+    data.frame(
+      Ceiling  = sprintf("%s ft", format(h$fl_cap, big.mark = ",")),
+      Coverage = sprintf("%.2f%%", 100 * h$ades_coverage),
+      Accuracy = sprintf("%.2f%%", 100 * h$ades_accuracy),
+      Score    = h$ades_score
+    ),
+    row.names = FALSE, format.args = list(big.mark = ","),
+    caption = "2024 sample, above-field datum, arrivals at the shipped geometry."
+  )
+}
+```
+
+**6,100 ft is the optimum on 2024 as well**, at every radius from 20 NM outward
+— the same value, the same interior peak, on an independent sample a year
+apart. A ceiling that survives that is tuned, not fitted.
+
+The datum comparison replicates too, including its sign: the best above-field
+cell scores 0.02% below the best sea-level cell on 2025 and 0.25% below on 2024.
+Both are fractions of a percent, and both are diluted for the reason
+@sec-dilution gives. What matters is that the second period tells the same story
+rather than a different one — the finding is the algorithm's and not the
+sample's.
+
+::: {.callout-note}
+## Why this period is sweeps only
+
+The 2024 tracks pre-date this study's H3 indexing, and `process_dai` reads
+`h3_res_7` off the track table directly, so the pipeline arms cannot run here at
+all. V6 met the same wall and ran the pipeline on 2025 alone. The sweeps get
+around it because their vote cache is built with the index computed at read
+time.
+
+So the second period confirms the *ceiling* and the *datum comparison*, which is
+what it is able to confirm. It does not independently reproduce the band
+breakdown, and this report does not claim that it does.
+:::
+
 ### Why the aggregate was never going to show much {#sec-dilution}
 
 The two curves are also nearly identical in level — 60,952 against 60,857 at the
