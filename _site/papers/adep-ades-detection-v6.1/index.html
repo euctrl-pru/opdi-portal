@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 <meta name="author" content="EUROCONTROL Performance Review Unit">
-<meta name="dcterms.date" content="2026-08-22">
+<meta name="dcterms.date" content="2026-08-23">
 
 <title>Detecting departure and destination aerodromes from ADS-B – OPDI Papers</title>
 <style>
@@ -133,7 +133,12 @@ ul.task-list li input[type="checkbox"] {
   <li><a href="#endpoint-arrivals" id="toc-endpoint-arrivals" class="nav-link" data-scroll-target="#endpoint-arrivals"><span class="header-section-number">2.5</span> <code>endpoint</code>, arrivals</a></li>
   <li><a href="#where-the-two-datums-part-company" id="toc-where-the-two-datums-part-company" class="nav-link" data-scroll-target="#where-the-two-datums-part-company"><span class="header-section-number">2.6</span> Where the two datums part company</a></li>
   </ul></li>
-  <li><a href="#results" id="toc-results" class="nav-link" data-scroll-target="#results"><span class="header-section-number">3</span> Results</a></li>
+  <li><a href="#results" id="toc-results" class="nav-link" data-scroll-target="#results"><span class="header-section-number">3</span> Results</a>
+  <ul class="collapse">
+  <li><a href="#sec-bands" id="toc-sec-bands" class="nav-link" data-scroll-target="#sec-bands"><span class="header-section-number">3.1</span> The band breakdown, read first</a></li>
+  <li><a href="#what-it-costs-and-why-that-settles-it" id="toc-what-it-costs-and-why-that-settles-it" class="nav-link" data-scroll-target="#what-it-costs-and-why-that-settles-it"><span class="header-section-number">3.2</span> What it costs, and why that settles it</a></li>
+  <li><a href="#the-band-that-should-have-gained-most-and-did-not" id="toc-the-band-that-should-have-gained-most-and-did-not" class="nav-link" data-scroll-target="#the-band-that-should-have-gained-most-and-did-not"><span class="header-section-number">3.3</span> The band that should have gained most, and did not</a></li>
+  </ul></li>
   </ul>
 <div class="quarto-alternate-formats"><h2>Other Formats</h2><ul><li><a href="index.pdf"><i class="bi bi-file-pdf"></i>PDF</a></li></ul></div></nav>
     </div>
@@ -160,7 +165,7 @@ ul.task-list li input[type="checkbox"] {
     <div>
     <div class="quarto-title-meta-heading">Published</div>
     <div class="quarto-title-meta-contents">
-      <p class="date">August 22, 2026</p>
+      <p class="date">August 23, 2026</p>
     </div>
   </div>
   
@@ -395,21 +400,171 @@ Figure&nbsp;4: <code>endpoint</code> naming an arrival aerodrome (ADES). The las
 </section>
 <section id="results" class="level2" data-number="3">
 <h2 data-number="3" class="anchored" data-anchor-id="results"><span class="header-section-number">3</span> Results</h2>
-<div class="callout callout-style-default callout-warning callout-titled">
+<section id="sec-bands" class="level3" data-number="3.1">
+<h3 data-number="3.1" class="anchored" data-anchor-id="sec-bands"><span class="header-section-number">3.1</span> The band breakdown, read first</h3>
+<p>This section comes before the headline deliberately. The headline is a single pair of numbers and it is consistent with several explanations; the band breakdown is the only part of this study that can distinguish between them. Read in the other order, it becomes a search for confirmation.</p>
+<p>The prediction the design committed to, before any of this was run: <strong>no movement at sea-level aerodromes, and gains concentrated at elevated ones.</strong></p>
+<div class="cell">
+<div class="cell-output-display">
+<table class="caption-top table table-sm table-striped small">
+<caption>Arrivals, 2025 sample. Δ is field minus sea level.</caption>
+<colgroup>
+<col style="width: 9%">
+<col style="width: 10%">
+<col style="width: 6%">
+<col style="width: 11%">
+<col style="width: 13%">
+<col style="width: 3%">
+<col style="width: 16%">
+<col style="width: 14%">
+<col style="width: 10%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Band</th>
+<th style="text-align: right;">Aerodromes</th>
+<th style="text-align: right;">Truth</th>
+<th style="text-align: right;">Correct MSL</th>
+<th style="text-align: right;">Correct field</th>
+<th style="text-align: right;">Δ</th>
+<th style="text-align: right;">Δ less top mover</th>
+<th style="text-align: right;">Δ less busiest</th>
+<th style="text-align: left;">Δ relative</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">&lt;500</td>
+<td style="text-align: right;">490</td>
+<td style="text-align: right;">66,612</td>
+<td style="text-align: right;">49,514</td>
+<td style="text-align: right;">49,571</td>
+<td style="text-align: right;">57</td>
+<td style="text-align: right;">33</td>
+<td style="text-align: right;">57</td>
+<td style="text-align: left;">+0.12%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">500-1500</td>
+<td style="text-align: right;">164</td>
+<td style="text-align: right;">15,285</td>
+<td style="text-align: right;">12,593</td>
+<td style="text-align: right;">12,621</td>
+<td style="text-align: right;">28</td>
+<td style="text-align: right;">17</td>
+<td style="text-align: right;">28</td>
+<td style="text-align: left;">+0.22%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">1500-3000</td>
+<td style="text-align: right;">77</td>
+<td style="text-align: right;">4,434</td>
+<td style="text-align: right;">1,919</td>
+<td style="text-align: right;">2,028</td>
+<td style="text-align: right;">109</td>
+<td style="text-align: right;">70</td>
+<td style="text-align: right;">110</td>
+<td style="text-align: left;">+5.68%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">&gt;3000</td>
+<td style="text-align: right;">26</td>
+<td style="text-align: right;">705</td>
+<td style="text-align: right;">5</td>
+<td style="text-align: right;">5</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: left;">+0.00%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">unknown</td>
+<td style="text-align: right;">49</td>
+<td style="text-align: right;">8,080</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: left;">+0.00%</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<p><strong>The effect is where it was predicted to be.</strong> Measured against each band’s own base of correct arrivals — which is the honest denominator, since the bands differ in size by two orders of magnitude — the sea-level control band moves by +0.12% and the 1,500–3,000 ft band by <strong>+5.7%</strong>. That is a difference of roughly forty-fold between the band where the datum change is arithmetically a no-op and the band where it bites hardest.</p>
+<p>It also survives both robustness checks. The census run before this study began showed each treatment band resting on a single aerodrome, so a band mean alone could not separate an elevation effect from a Madrid effect. Removing the largest mover leaves +70 of the +109; removing Madrid, the busiest field in the band, leaves +110 — very slightly <em>more</em>. The result is not one aerodrome’s result.</p>
+<div class="callout callout-style-default callout-note callout-titled">
 <div class="callout-header d-flex align-content-center">
 <div class="callout-icon-container">
 <i class="callout-icon"></i>
 </div>
 <div class="callout-title-container flex-fill">
-<span class="screen-reader-only">Warning</span>Not yet measured
+<span class="screen-reader-only">Note</span>The control that had to hold, and did
 </div>
 </div>
 <div class="callout-body-container callout-body">
-<p>The arms defined in <code>regenerate_v61.py</code> have not been run against this checkout, so this section is deliberately empty rather than populated with numbers carried over from another study.</p>
+<p><strong>Departures move by exactly zero in every band.</strong> The shipped configuration takes departures from <code>endpoint</code>, which never reads <code>trend</code>’s altitude cut — so a non-zero number anywhere in that row would have meant this change was touching something it has no business touching. It is the cheapest available check that the intervention is the one described.</p>
 </div>
 </div>
+</section>
+<section id="what-it-costs-and-why-that-settles-it" class="level3" data-number="3.2">
+<h3 data-number="3.2" class="anchored" data-anchor-id="what-it-costs-and-why-that-settles-it"><span class="header-section-number">3.2</span> What it costs, and why that settles it</h3>
+<div class="cell">
+<div class="cell-output-display">
+<table class="caption-top table table-sm table-striped small">
+<caption>Arrivals through <code>process_dai</code> itself, 2025 sample.</caption>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Run</th>
+<th style="text-align: left;">Coverage</th>
+<th style="text-align: left;">Accuracy</th>
+<th style="text-align: right;">Correct</th>
+<th style="text-align: right;">Wrong</th>
+<th style="text-align: right;">Score (k=2)</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">datum_msl</td>
+<td style="text-align: left;">68.29%</td>
+<td style="text-align: left;">98.58%</td>
+<td style="text-align: right;">64,031</td>
+<td style="text-align: right;">923</td>
+<td style="text-align: right;">62,185</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">datum_field</td>
+<td style="text-align: left;">68.60%</td>
+<td style="text-align: left;">98.42%</td>
+<td style="text-align: right;">64,225</td>
+<td style="text-align: right;">1,028</td>
+<td style="text-align: right;">62,169</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">legacy</td>
+<td style="text-align: left;">66.99%</td>
+<td style="text-align: left;">98.19%</td>
+<td style="text-align: right;">62,564</td>
+<td style="text-align: right;">1,151</td>
+<td style="text-align: right;">60,262</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<p>Moving to the field datum buys <strong>194 more correct arrivals and 105 more wrong ones</strong>. Coverage rises 0.31 pp; accuracy falls 0.16 pp; the score at <em>k</em> = 2 moves from 62,185 to 62,169 — sixteen points the wrong way.</p>
+<p>The adoption criteria fixed in the design were: coverage up by at least 0.5 pp, accuracy not falling, and the gain concentrated at elevated fields. <strong>The third holds and the first two do not.</strong> So on this evidence the change does not ship, and the honest summary is that the mechanism is real but too small, at this ceiling, to pay for itself.</p>
+<p>That the criteria were written down before the numbers existed is what makes this a result rather than a negotiation. A study whose bar moves to meet its outcome has measured nothing.</p>
+</section>
+<section id="the-band-that-should-have-gained-most-and-did-not" class="level3" data-number="3.3">
+<h3 data-number="3.3" class="anchored" data-anchor-id="the-band-that-should-have-gained-most-and-did-not"><span class="header-section-number">3.3</span> The band that should have gained most, and did not</h3>
+<p>The <code>&gt;3000</code> band is the one where a fixed sea-level ceiling ought to hurt worst, and it shows <strong>no change at all: 5 correct arrivals out of 705, on both datums.</strong></p>
+<p>That is not a null result about the datum. It is <code>trend</code> failing at those aerodromes for a different reason — a recall of 0.7% is not a method being mis-tuned, it is a method receiving almost nothing to work with. The likeliest cause is ADS-B coverage over the Anatolian plateau, where most of this band’s traffic sits; an aerodrome the feed barely sees cannot be named on any datum.</p>
+<p>This matters for how the change should be argued elsewhere. The motivating example in the design was Erzurum at 5,763 ft, where a FL60 cut leaves about 240 ft in which to vote. That example is arithmetically correct and doubly unrepresentative: such fields are rare in the sample, <strong>and</strong> they sit in the one band where the method is independently broken. The population that actually benefits is the far less dramatic 1,500–3,000 ft — Madrid, Ankara, Sofia, Tbilisi — where a FL60 cut still leaves three to four thousand feet of usable climb and descent.</p>
 
 
+</section>
 </section>
 
 </main> <!-- /main -->
