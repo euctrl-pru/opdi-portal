@@ -765,6 +765,47 @@ if (is.null(swap)) {
 }
 ```
 
+### The two sweeps are one measurement {#sec-equivalence}
+
+Everything in this chapter compares an above-field curve against a sea-level
+curve. That comparison is only worth reading if the two are the same
+measurement differing in one respect, so this is checked rather than assumed.
+
+They come out of a single vote cache. `trend_sweep_agl.py` counts each track's
+votes at every ceiling on **both** datums in one pass, so the two curves are two
+readings of one table rather than two studies that happen to share a grid. Its
+parameter grid is identical to the sweep version 6 published — same flight-level
+caps, same vote margins, same radii, same penalties — with the above-field
+ceilings added alongside.
+
+The consequence is testable: the sea-level arm should reproduce version 6's
+committed sweep exactly. It does.
+
+```{r sweep-equivalence}
+#| echo: false
+#| results: asis
+eq <- read_if("sweep_equivalence.csv")
+if (is.null(eq)) {
+  cat("*(the equivalence check has not been run against this checkout)*\n")
+} else {
+  kable(data.frame(
+    Period          = eq$period,
+    `Shared cells`  = num(eq$shared_cells),
+    `Only in v6`    = num(eq$only_in_old),
+    `Only in v6.2`  = num(eq$only_in_new),
+    `Differing values` = num(eq$differing_values),
+    check.names = FALSE
+  ))
+  if (all(eq$differing_values == 0)) {
+    cat(sprintf(
+      "\nAcross %s grid cells on each period, **not one value differs**. That is what licensed retiring version 6's two `trend_sweep` jobs rather than re-running them: they would have recomputed numbers this study already produces. It is also evidence in its own right — extending the harness to a second datum did not perturb the measurement it was extending.\n",
+      num(eq$shared_cells[1])))
+  } else {
+    cat("\n::: {.callout-important}\n## The retirement was wrong\n\nCells differ, so the sea-level arm is *not* version 6's sweep and this report must not serve version 6's numbers from it.\n:::\n")
+  }
+}
+```
+
 ### The band breakdown, read first {#sec-bands}
 
 This section comes before the headline deliberately. The headline is a single
@@ -1990,21 +2031,54 @@ if (is.null(e24)) {
 ## What ships {#sec-defaults}
 
 The pipeline's `DetectionConfig` defaults are now the values this study
-measured. Six changed. The ordering below is deliberate: the ranking rule comes
-first, because without it none of the rest holds.
+measured. Seven changed. The ordering below is deliberate: the ranking rule
+comes first, because without it none of the rest holds, and the datum second,
+because it decides what the ceiling below it even means.
 
 | Parameter | Legacy | Now ships | Evidence |
 |---|---|---|---|
 | `trend_rank_by` | `ring` | **`haversine`** | The enabling change. Ring-count selection discarded candidates before measuring them; every tuned trend value fails under it and gains under exact distance. |
-| `trend_max_fl` | 40 | **60** | Pipeline grid over FL 40–120: arrivals peak at FL60 and fall on both sides. |
-| `trend_radius_nm` | 30 | **20** | Preferred at every flight level in the grid, both roles. |
+| `trend_max_datum` | `msl` | **`field`** | @sec-datum. Aligns `trend`'s altitude cut with every other altitude gate in the pipeline. Costs a little accuracy, buys a little coverage, and is adopted for neither reason — @sec-adoption. |
+| `trend_max_height_ft` | — | **6,000** | The ceiling the datum above is measured against. Read `trend_max_fl` instead when the datum is `msl`. See the note below on 6,000 against 6,100. |
+| `trend_max_fl` | 40 | 60 | Retained, and inert while the datum is `field`. It is what `legacy()` reads, so published lists stay reproducible. |
+| `trend_radius_nm` | 30 | **20** | Preferred at every ceiling in the grid, both roles. |
 | `trend_vote_margin` | 4 | **2** | Sweep harness only — the grid held it fixed. The weakest-supported value here. |
 | `trend_sched_penalty_nm` | 0 | **10** | A tie-break `trend` never had. Improves 9 of the hundred busiest aerodromes, worsens none. |
 | `endpoint_radius_nm` | 40 | **30** | Interior optimum; pipeline reproduces the sweep exactly. |
 | `endpoint_height_ft` | 15,000 | 15,000 | Confirmed where it already was. |
 | `endpoint_sched_penalty_nm` | 10 | 10 | Unchanged. |
 
-Three of these — the cap, the radius and the vote margin — were **rejected
+```{r ceiling-6000-6100}
+#| echo: false
+#| results: asis
+tgc <- cache("trend_grid_v6.csv")
+if (is.null(tgc)) {
+  cat("*(the pipeline ceiling grid has not been run against this checkout, so the 6,000 against 6,100 question is not settled here)*\n")
+} else {
+  capof <- function(run) as.numeric(sub("^grid_h([0-9]+)_.*$", "\\1", run))
+  g <- tgc[grepl("^grid_h", tgc$run), ]
+  g$cap <- capof(g$run)
+  best <- function(cap) {
+    x <- g[g$cap == cap, ]
+    if (!nrow(x)) return(NA_real_) else max(x$ades_score)
+  }
+  s6000 <- best(6000)
+  s6100 <- best(6100)
+  if (!is.na(s6000) && !is.na(s6100)) {
+    d <- s6100 - s6000
+    cat(sprintf("**6,000 ft or 6,100?** The shipped ceiling is 6,000 ft; the research sweep called 6,100 optimal — on a grid that never contained 6,000, so that recommendation was never a comparison. Run through `process_dai` itself, the best arrival score at 6,000 ft is %s and at 6,100 ft is %s, a difference of %s. %s\n\n",
+      num(s6000), num(s6100), sgn(d),
+      if (abs(d) < 50)
+        "That is inside what one three-day sample resolves, so the shipped 6,000 ft stands: there is no measured reason to move it, and moving a published constant needs one."
+      else if (d > 0)
+        "The pipeline prefers 6,100 ft, and by more than sampling noise. That is a recommendation to move the shipped ceiling, and it is recorded here rather than acted on inside this study."
+      else
+        "The pipeline prefers the shipped 6,000 ft, so the sweep's preference for 6,100 does not survive contact with production — the same pattern version 6 found for its flight-level cap."))
+  }
+}
+```
+
+Three of these — the ceiling, the radius and the vote margin — were **rejected
 earlier in this study and reinstated**. The rejection was measured under
 ring-count selection, where raising the cap genuinely did lose ground. The
 lesson is not that the first measurement was careless but that it answered a
@@ -2181,6 +2255,30 @@ optimum rather than only its location. A parameter sitting on a broad plateau
 is a safe recommendation even from one sample; one sitting on a sharp isolated
 peak is not, however good its score.
 
-<!-- Remaining: the two-period stability table, the parameter justification
-     table, the verdict, the top-100 comparison, and the pipeline-fidelity
-     check. -->
+### The second period confirms through the sweeps, not the pipeline
+
+Every pipeline number on this page is 2025-06-05…07. The 2024 sample cannot run
+the pipeline arms at all: `process_dai` reads `h3_res_7` off the track table,
+and the 2024 tracks were built before this study indexed them, so the column is
+absent and the run fails outright. Version 6 met the same wall and ran the
+pipeline on 2025 alone.
+
+What 2024 *can* do is the paired sweeps, out of a vote cache built with the
+index computed at read time. So the second period tests whether the ceiling and
+the datum behave the same way there — the part most at risk of being a
+one-sample artefact — and it does not independently reproduce the band
+breakdown or the pipeline fidelity check. This report does not claim that it
+does.
+
+### The `>3000` band needs a different question
+
+The highest elevation band is not a datum problem and this study cannot fix it.
+Recall there is under one percent on **both** datums, which is a coverage
+failure upstream of detection: the aerodrome never becomes a candidate, so no
+threshold anywhere in `trend` can reach it. Whether that is receiver geometry
+over the Anatolian plateau or something in ingestion is worth knowing and is
+not this study's question.
+
+It is worth stating plainly because that band is where an elevation-aware cut
+should have helped most, and the fact that it did not is evidence about
+coverage rather than evidence against the datum — @sec-bands.
