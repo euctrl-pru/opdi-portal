@@ -1820,12 +1820,24 @@ if (!is.null(trend)) {
                       "ades")
     if (is.null(x) || nrow(x) == 0) NA else x$score[1]
   }
+  # The legacy ceiling, on whichever datum this sweep was measured.
+  #
+  # `legacy()` is FL40. On the above-field grid the comparable ceiling is its
+  # height equivalent, 4,100 ft — and since the grid does not contain 4,100
+  # either, the nearest point stands in. Hardcoding 40 here would make every
+  # `cellv` call return NA on a field-datum sweep, and the `ok` filter below
+  # would then drop the affected rows *silently*: a shorter ladder that still
+  # renders, still sums to 100%, and is missing its first two steps.
+  dtm <- datum_of(trend)
+  caps <- sort(unique(s1$fl_cap))
+  lc <- if (identical(dtm, "msl")) 40 else caps[which.min(abs(caps - 4100))]
   steps <- list(
-    list(lab = "legacy constants (FL40, margin 4, 30 NM, no penalty)",
+    list(lab = sprintf("legacy constants (%s, margin 4, 30 NM, no penalty)",
+                       cap_label(lc, dtm)),
          s = s0$score),
     list(lab = sprintf("+ scheduled-service penalty of %g NM", b$penalty_nm),
-         s = cellv(40, 4, 30, b$penalty_nm)),
-    list(lab = sprintf("+ altitude ceiling %s", cap_label(b$fl_cap, datum_of(trend))),
+         s = cellv(lc, 4, 30, b$penalty_nm)),
+    list(lab = sprintf("+ altitude ceiling %s", cap_label(b$fl_cap, dtm)),
          s = cellv(b$fl_cap, 4, 30, b$penalty_nm)),
     list(lab = sprintf("+ vote margin %g", b$margin),
          s = cellv(b$fl_cap, b$margin, 30, b$penalty_nm)),
@@ -1833,6 +1845,15 @@ if (!is.null(trend)) {
          s = cellv(b$fl_cap, b$margin, b$radius_nm, b$penalty_nm)))
 
   ok <- !sapply(steps, function(x) is.na(x$s))
+  if (any(!ok)) {
+    # Loud, because a dropped rung leaves a ladder that still renders, still
+    # sums to 100%, and quietly attributes the missing step's gain to its
+    # neighbour.
+    cat(sprintf("\n::: {.callout-warning}\n## %d rung(s) of this ladder are missing\n\nThe sweep grid has no cell for: %s. The percentages below are shares of the gain across the rungs that *are* present, not of the whole distance from legacy to recommended.\n:::\n\n",
+                sum(!ok),
+                paste(sub("^\\+ ", "", sapply(steps[!ok], function(x) x$lab)),
+                      collapse = "; ")))
+  }
   steps <- steps[ok]
   sc <- sapply(steps, function(x) x$s)
   tab <- data.frame(
