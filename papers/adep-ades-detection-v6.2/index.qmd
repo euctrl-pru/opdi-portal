@@ -2201,23 +2201,92 @@ if (is.null(e24)) {
 
 ## What ships {#sec-defaults}
 
-The pipeline's `DetectionConfig` defaults are now the values this study
-measured. Seven changed. The ordering below is deliberate: the ranking rule
-comes first, because without it none of the rest holds, and the datum second,
-because it decides what the ceiling below it even means.
+This table is **read from the runs themselves**, not written out here. The
+`legacy` column is the configuration the `legacy` run was built with, and the
+`ships` column is the configuration the `recommended` run was built with — and
+`recommended` is constructed as a bare `DetectionConfig()`, so it is by
+definition whatever the pipeline currently defaults to.
 
-| Parameter | Legacy | Now ships | Evidence |
-|---|---|---|---|
-| `trend_rank_by` | `ring` | **`haversine`** | The enabling change. Ring-count selection discarded candidates before measuring them; every tuned trend value fails under it and gains under exact distance. |
-| `trend_max_datum` | `msl` | **`field`** | @sec-datum. Aligns `trend`'s altitude cut with every other altitude gate in the pipeline. Costs a little accuracy, buys a little coverage, and is adopted for neither reason — @sec-adoption. |
-| `trend_max_height_ft` | — | **6,000** | The ceiling the datum above is measured against. Read `trend_max_fl` instead when the datum is `msl`. See the note below on 6,000 against 6,100. |
-| `trend_max_fl` | 40 | 60 | Retained, and inert while the datum is `field`. It is what `legacy()` reads, so published lists stay reproducible. |
-| `trend_radius_nm` | 30 | **20** | Preferred at every ceiling in the grid, both roles. |
-| `trend_vote_margin` | 4 | **2** | Sweep harness only — the grid held it fixed. The weakest-supported value here. |
-| `trend_sched_penalty_nm` | 0 | **10** | A tie-break `trend` never had. Improves 9 of the hundred busiest aerodromes, worsens none. |
-| `endpoint_radius_nm` | 40 | **30** | Interior optimum; pipeline reproduces the sweep exactly. |
-| `endpoint_height_ft` | 15,000 | 15,000 | Confirmed where it already was. |
-| `endpoint_sched_penalty_nm` | 10 | 10 | Unchanged. |
+That matters more than it sounds. The equivalent table in version 6 was typed
+by hand, and it had drifted: it named two values the code does not have. A
+table asserting what ships, on a page whose whole argument is that hand-copied
+figures cannot be trusted, is the one place that must not be hand-copied.
+
+```{r what-ships}
+#| echo: false
+#| results: asis
+if (is.null(modes) || !"recommended" %in% modes$run) {
+  cat("*(the pipeline runs have not been made against this checkout, so what ships cannot be read from them)*\n")
+} else {
+  L <- modes[modes$run == "legacy", ][1, ]
+  S <- modes[modes$run == "recommended", ][1, ]
+
+  fmtv <- function(v) {
+    if (is.null(v) || length(v) == 0 || is.na(v)) return("—")
+    if (is.numeric(v)) format(v, big.mark = ",", trim = TRUE, scientific = FALSE)
+    else as.character(v)
+  }
+
+  # Ordering is deliberate: the ranking rule first, because without it none of
+  # the rest holds; the datum second, because it decides what the ceiling
+  # underneath it even means.
+  spec <- list(
+    list("trend_rank_by", "The enabling change. Ring-count selection discarded candidates before measuring them; every tuned trend value fails under it and gains under exact distance."),
+    list("trend_max_datum", "@sec-datum. Aligns `trend`'s altitude cut with every other altitude gate in the pipeline."),
+    list("trend_max_height_ft", "The ceiling that datum is measured against, and inert while the datum is `msl` — which is why the legacy column shows a value legacy never applied. See @sec-pipeline on 6,000 against 6,100."),
+    list("trend_max_fl", "Retained, and inert while the datum is `field`. It is what `legacy()` reads, so published lists stay reproducible."),
+    list("trend_radius_nm", "Swept in @sec-trend-sweep and through the pipeline in @sec-pipeline."),
+    list("trend_vote_margin", "Sweep harness only — the pipeline grid holds it fixed. The weakest-supported value here."),
+    list("trend_sched_penalty_nm", "A tie-break `trend` never had. The single largest contributor to the arrival gain."),
+    list("endpoint_radius_nm", "Interior optimum; the pipeline reproduces the sweep exactly."),
+    list("endpoint_height_ft", "A height above field elevation, and always was."),
+    list("endpoint_sched_penalty_nm", "Unchanged.")
+  )
+
+  rows <- do.call(rbind, lapply(spec, function(s) {
+    p <- s[[1]]
+    if (!p %in% names(modes)) return(NULL)
+    lv <- fmtv(L[[p]]); sv <- fmtv(S[[p]])
+    data.frame(Parameter = sprintf("`%s`", p),
+               Legacy = lv,
+               Ships = if (identical(lv, sv)) sv else sprintf("**%s**", sv),
+               Evidence = s[[2]], check.names = FALSE)
+  }))
+  print(kable(rows, row.names = FALSE))
+  changed <- sum(rows$Legacy != gsub("\\*\\*", "", rows$Ships))
+  cat(sprintf("\n%d of the %d parameters differ from the legacy constants.\n",
+              changed, nrow(rows)))
+}
+```
+
+```{r ships-vs-study}
+#| echo: false
+#| results: asis
+# Does what ships match what this study recommends?
+#
+# `recommended` is a bare DetectionConfig(); `combined` is assembled from the
+# sweep optima. Where they differ, the pipeline is running something the study
+# did not choose -- which is worth surfacing rather than leaving for a reader
+# to notice by comparing two tables.
+if (!is.null(modes) && all(c("recommended", "combined") %in% modes$run)) {
+  R <- modes[modes$run == "recommended", ][1, ]
+  C <- modes[modes$run == "combined", ][1, ]
+  pars <- intersect(c("trend_radius_nm", "trend_vote_margin", "trend_ceiling",
+                      "trend_sched_penalty_nm", "trend_rank_by"), names(modes))
+  diff <- pars[sapply(pars, function(p) !isTRUE(all.equal(R[[p]], C[[p]])))]
+  if (length(diff)) {
+    cat("::: {.callout-important}\n## What ships is not what the sweeps chose\n\n")
+    cat("The shipped configuration and this study's swept optimum differ in",
+        length(diff), "parameter(s):\n\n")
+    cat("| Parameter | Ships | Sweep optimum |\n|---|---|---|\n")
+    for (p in diff)
+      cat(sprintf("| `%s` | %s | %s |\n", p,
+                  format(R[[p]], trim = TRUE), format(C[[p]], trim = TRUE)))
+    cat(sprintf("\nBoth are measured above: `recommended` is the shipped row, `combined` the swept one, and on arrivals they score %s against %s. This is reported rather than resolved — changing a published default is a decision for the pipeline's maintainers, and this page's job is to make the gap visible.\n:::\n",
+                num(R$ades_score), num(C$ades_score)))
+  }
+}
+```
 
 ```{r ceiling-6000-6100}
 #| echo: false
@@ -2249,12 +2318,19 @@ if (is.null(tgc)) {
 }
 ```
 
-Three of these — the ceiling, the radius and the vote margin — were **rejected
-earlier in this study and reinstated**. The rejection was measured under
-ring-count selection, where raising the cap genuinely did lose ground. The
-lesson is not that the first measurement was careless but that it answered a
-narrower question than it appeared to: *given this selection rule*, the tuning
-fails. Changing the rule changed the answer.
+The ceiling and the vote margin were **rejected earlier in this study and
+reinstated**. That rejection was measured under ring-count selection, where
+raising the ceiling genuinely did lose ground. The lesson is not that the first
+measurement was careless but that it answered a narrower question than it
+appeared to: *given this selection rule*, the tuning fails. Changing the rule
+changed the answer.
+
+The radius is a different story, and version 6 told it wrongly. Its table
+recorded `trend_radius_nm` as shipping at 20 NM. The table above — read from a
+bare `DetectionConfig()` rather than typed — shows it at **30 NM**, unchanged
+from legacy. The recommendation was made and never applied, and no later
+version noticed because every later version copied the claim rather than
+measuring it.
 
 Every OPDI flight list published before this change was built with the
 legacy column, and `DetectionConfig.legacy()` still returns exactly those
