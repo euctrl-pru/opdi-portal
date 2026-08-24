@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 <meta name="author" content="EUROCONTROL Performance Review Unit">
-<meta name="dcterms.date" content="2026-08-12">
+<meta name="dcterms.date" content="2026-08-13">
 
 <title>Reply to the review of version 6 – OPDI Papers</title>
 <style>
@@ -202,7 +202,7 @@ window.Quarto = {
     <div>
     <div class="quarto-title-meta-heading">Published</div>
     <div class="quarto-title-meta-contents">
-      <p class="date">August 12, 2026</p>
+      <p class="date">August 13, 2026</p>
     </div>
   </div>
   
@@ -225,8 +225,9 @@ window.Quarto = {
 </div>
 <div class="callout-body-container callout-body">
 <p>This answers the review of <strong>version 6</strong> point by point, in the review’s own order. Every number on it comes from the committed CSVs under <code>data/</code> — the same files version 6 was rendered from — so it answers the numbers that were actually reviewed.</p>
-<p>Several points asked for measurements that did not exist. Those are being run now and land in <strong>version 7</strong>, the report written for the people who will use the flight list rather than for the people building it. Where that is the case this page says so explicitly rather than estimating.</p>
-<p>Two decisions follow from the review and change everything downstream: step 02a (trajectory cleaning) is being wired into the flight-list path, and every parameter will be chosen on both periods jointly rather than on 2025 alone. Both mean version 7’s figures will differ from the ones quoted here. That is the point of the exercise, not a defect in it.</p>
+<p>Several points asked for measurements that did not exist. Those were run, and they land in <strong>version 7</strong> — the report written for the people who will use the flight list rather than for the people building it. Where a point is answered there rather than here, this page says so rather than estimating.</p>
+<p>Two decisions from the review changed everything downstream: step 02a (trajectory cleaning) is wired into the flight-list path, and every parameter is now chosen on both periods jointly rather than on 2025 alone. <strong>Version 7’s figures therefore differ from the ones quoted here, and three shipped values changed as a result</strong> — the arrival radius back to 30 NM, the vote margin to 0, and out-of-area labelling for <code>trend</code> left off. Each is measured on both samples; version 7 states the evidence.</p>
+<p>That the numbers moved is the point of the exercise, not a defect in it. This page is deliberately pinned to what was reviewed, because a reply whose figures shift under it answers nothing.</p>
 </div>
 </div>
 <section id="general-remarks" class="level2" data-number="1">
@@ -659,7 +660,7 @@ window.Quarto = {
 <td style="text-align: right;">63,049</td>
 <td style="text-align: right;">63,064</td>
 <td style="text-align: right;">+15</td>
-<td style="text-align: right;">+0.00 pp</td>
+<td style="text-align: right;">+0.0032 pp</td>
 </tr>
 <tr class="even">
 <td style="text-align: right;">legacy</td>
@@ -667,7 +668,7 @@ window.Quarto = {
 <td style="text-align: right;">60,610</td>
 <td style="text-align: right;">60,600</td>
 <td style="text-align: right;">−10</td>
-<td style="text-align: right;">-0.00 pp</td>
+<td style="text-align: right;">-0.0011 pp</td>
 </tr>
 <tr class="odd">
 <td style="text-align: right;">shipped</td>
@@ -675,7 +676,7 @@ window.Quarto = {
 <td style="text-align: right;">72,855</td>
 <td style="text-align: right;">72,837</td>
 <td style="text-align: right;">−18</td>
-<td style="text-align: right;">+0.00 pp</td>
+<td style="text-align: right;">+0.0000 pp</td>
 </tr>
 <tr class="even">
 <td style="text-align: right;">shipped</td>
@@ -683,7 +684,7 @@ window.Quarto = {
 <td style="text-align: right;">60,952</td>
 <td style="text-align: right;">60,944</td>
 <td style="text-align: right;">−8</td>
-<td style="text-align: right;">+0.01 pp</td>
+<td style="text-align: right;">+0.0074 pp</td>
 </tr>
 </tbody>
 </table>
@@ -988,14 +989,32 @@ window.Quarto = {
 </tbody>
 </table>
 <p>Arrivals ship <code>trend</code>, so the arrival row is all zeros: 8.37% of reference arrivals genuinely originate outside the observed area and <strong>none of them can ever be labelled as such</strong>. Departures ship <code>endpoint</code> and do get labels — accurately, at 89.49% precision — but only 7.98% of the ones that qualify.</p>
-<p>So there are two things to fix, not one: <code>trend</code> has no out-of-area concept at all, and <code>endpoint</code>’s recall is low even where it does. Version 7 gives <code>trend</code> the same border test <code>endpoint</code> uses, keeping <code>endpoint</code>’s precedence rule — aerodrome first, border second, because the other order labels departures from aerodromes near the edge as out-of-area while the aircraft is still on the runway. Both roles are then re-measured with out-of-area reported separately from naming skill, so a method cannot buy headline accuracy by labelling liberally.</p>
+<p>So there are two things to fix, not one: <code>trend</code> has no out-of-area concept at all, and <code>endpoint</code>’s recall is low even where it does.</p>
+<div class="callout callout-style-default callout-important callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Important</span>Built, measured — and left off. Not the answer this reply first gave.
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>An earlier version of this page said version 7 would give <code>trend</code> the same border test <code>endpoint</code> uses. It does have it, behind <code>DetectionConfig.trend_ooa</code>, with <code>endpoint</code>’s precedence preserved — aerodrome first, border second, because the other order labels departures from aerodromes near the edge as out-of-area with the aircraft still on the runway.</p>
+<p><strong>Measured on both periods, it is switched off.</strong> In the shipped configuration departures come from <code>endpoint</code>, so the switch reaches only <em>arrivals</em> — and an arrival label is right about <strong>half</strong> the time, against <strong>89%</strong> for the same test applied to departures. Every label replaces a <em>silence</em>, so at the study’s exchange rate of two correct per wrong, a coin flip is a losing trade. It costs score on both samples.</p>
+<p>The asymmetry is geometric, not a tuning failure. A track that <em>begins</em> at the edge of the observed area almost certainly entered from outside. A track that <em>ends</em> near the edge is ambiguous: it may be leaving, or it may be a flight still bound somewhere inside whose reception was lost. The test ports cleanly to departures because the geometry supports it, and does not port to arrivals.</p>
+<p><strong>What would make it shippable</strong> is a direction requirement — the track must be heading <em>out</em> of the area, not merely be near its edge. The course is already computed for the bearing tie-break, so the machinery exists; the rule and its measurement do not. Version 7 states this as the clearest open item.</p>
+<p>You asked for this specifically, so it is worth being plain: the capability was built as requested, and the measurement said not to ship it for the role that would have used it.</p>
+</div>
+</div>
+<p>Both roles are measured with out-of-area reported separately from naming skill, so a method cannot buy headline accuracy by labelling liberally.</p>
 </section>
 <section id="what-happens-to-each-point" class="level2" data-number="13">
 <h2 data-number="13" class="anchored" data-anchor-id="what-happens-to-each-point"><span class="header-section-number">13</span> What happens to each point</h2>
 <table class="caption-top table">
 <colgroup>
-<col style="width: 37%">
-<col style="width: 62%">
+<col style="width: 30%">
+<col style="width: 69%">
 </colgroup>
 <thead>
 <tr class="header">
@@ -1118,7 +1137,7 @@ window.Quarto = {
 </tr>
 <tr class="odd">
 <td style="text-align: left;">17 — out-of-area for trend</td>
-<td style="text-align: left;">Being implemented for v7</td>
+<td style="text-align: left;">Implemented; measured at 50% arrival precision and left off. A direction test would fix it — see v7</td>
 </tr>
 </tbody>
 </table>
