@@ -1272,6 +1272,90 @@
     "script": "benchmarks/trend_bearing.py",
     "sha256_16": "a5930b7880440770"
   },
+  "trend_grid_v6.csv": {
+    "argv": [
+      "--months",
+      "202506",
+      "--days",
+      "2025-06-05",
+      "2025-06-06",
+      "2025-06-07",
+      "--trend-sweep",
+      "/home/jupyter/work/opdi-workspace/opdi-portal/papers/adep-ades-detection-v6.2/data/height_sweep_2025.csv",
+      "--trend-sweep-msl",
+      "/home/jupyter/work/opdi-workspace/opdi-portal/papers/adep-ades-detection-v6.2/data/fl_sweep_2025.csv",
+      "--endpoint-sweep",
+      "/home/jupyter/work/opdi-workspace/opdi-portal/papers/adep-ades-detection-v6.2/data/sweep_radius_height_2025.csv",
+      "--runs",
+      "grid_h3000_r20_m2",
+      "grid_h3000_r30_m2",
+      "grid_h4000_r20_m2",
+      "grid_h4000_r30_m2",
+      "grid_h6000_r20_m2",
+      "grid_h6000_r30_m2",
+      "grid_h6100_r20_m2",
+      "grid_h6100_r30_m2",
+      "grid_h8000_r20_m2",
+      "grid_h8000_r30_m2",
+      "grid_h10000_r20_m2",
+      "grid_h10000_r30_m2",
+      "--grid-height",
+      "3000",
+      "4000",
+      "6000",
+      "6100",
+      "8000",
+      "10000",
+      "--grid-radius",
+      "20",
+      "30",
+      "--grid-margin",
+      "2",
+      "--trend-rank-by",
+      "haversine",
+      "--executors",
+      "10"
+    ],
+    "bytes": 5394,
+    "code_fingerprint": "e1dd87483a4778c9",
+    "code_paths": [
+      "benchmarks/adep_ades.py",
+      "benchmarks/flight_list_v62.py",
+      "benchmarks/flight_list_v62.py",
+      "benchmarks/osn_sample.py",
+      "src/opdi/config.py",
+      "src/opdi/pipeline/flights.py"
+    ],
+    "git_dirty": false,
+    "git_sha": "56cc9b5",
+    "input_tables": {
+      "s3a://eurocontrol/opdi/h3_airport_detection_zones": {
+        "bytes": 215961011,
+        "newest": "2026-08-07T10:32:59.769000+00:00",
+        "objects": 151
+      },
+      "s3a://eurocontrol/opdi/opdi_endpoint_candidates": {
+        "bytes": 145538092,
+        "newest": "2026-08-22T12:16:59.597000+00:00",
+        "objects": 23
+      },
+      "s3a://eurocontrol/opdi/osn_tracks": {
+        "bytes": 10160581413,
+        "newest": "2026-08-10T22:07:13.808000+00:00",
+        "objects": 4
+      },
+      "s3a://eurocontrol/opdi/research/reference": {
+        "bytes": 536176358,
+        "newest": "2026-08-13T10:38:29.218000+00:00",
+        "objects": 6
+      }
+    },
+    "inputs": {},
+    "notes": "the trend ceiling x radius swept through process_dai itself, in feet above field elevation. Brackets the shipped 6,000 ft with the 6,100 the sweep preferred: the sweep grid never contained 6,000, so until this runs the claim that the ceiling is tuned rests on a grid missing the shipped value",
+    "produced_utc": "2026-08-24T19:40:39+00:00",
+    "script": "benchmarks/flight_list_v62.py",
+    "sha256_16": "45a9923c61d4eabe"
+  },
   "vertical_measure_v6.csv": {
     "argv": [
       "--executors",

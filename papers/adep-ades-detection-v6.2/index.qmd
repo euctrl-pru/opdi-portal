@@ -1706,6 +1706,31 @@ if (!is.null(tg)) {
                 if (interior) "is an optimum rather than the best cell that happened to be tried"
                 else "may not be an optimum: the grid should be widened before the value is trusted"))
   }
+  # Which radius each role prefers, read off the grid rather than asserted.
+  # Version 6 stated that both roles prefer the tighter radius at every cell,
+  # and cited that as the stronger evidence for adopting 20 NM. On this datum
+  # it is not true for arrivals, so it is computed here instead of repeated.
+  radii <- sort(unique(tg$trend_radius_nm))
+  if (length(radii) == 2) {
+    tight <- radii[1]; wide <- radii[2]
+    pref <- function(role) {
+      caps <- sort(unique(tg[[CEIL]]))
+      vapply(caps, function(c) {
+        a <- tg[[paste0(role, "_score")]][tg[[CEIL]] == c & tg$trend_radius_nm == tight]
+        b <- tg[[paste0(role, "_score")]][tg[[CEIL]] == c & tg$trend_radius_nm == wide]
+        if (!length(a) || !length(b)) NA_real_ else a[1] - b[1]
+      }, numeric(1))
+    }
+    da <- pref("ades"); dd <- pref("adep")
+    caps <- sort(unique(tg[[CEIL]]))
+    cat(sprintf("\n**Which radius wins depends on the ceiling, and on the role.** Departures prefer the tighter %g NM at %d of %d ceilings; arrivals prefer it at only %d, and at every ceiling from %s upward they prefer the wider %g NM — which includes the ceiling that ships.\n",
+                tight, sum(dd > 0, na.rm = TRUE), length(caps),
+                sum(da > 0, na.rm = TRUE),
+                cap_label(min(caps[which(da < 0)]), dtm), wide))
+    cat(sprintf("\nThat matters because version 6 reported the opposite — that both roles prefer the tighter radius at every cell — and cited it as the stronger evidence for lowering `trend_radius_nm` to %g NM. On the datum that ships, the grid does not support that for arrivals, which are the role `trend` actually serves. The value was never applied to `DetectionConfig` regardless, and this study does not renew the recommendation.\n",
+                tight))
+  }
+
   cat("\nOne caveat, stated rather than buried: the grid holds the **vote margin** fixed at 2 while varying the ceiling and radius. That value therefore rests on the sweep harness alone, and is the weakest-supported of the shipped parameters.\n")
 }
 ```
@@ -1881,7 +1906,7 @@ if (!is.null(trend)) {
   cat(sprintf("\nThe gain is not spread evenly. **%s** accounts for %.0f%% of it on its own. That is worth stating plainly: the single most valuable change to arrival detection is not a tuned threshold at all, but applying to `trend` the scheduled-service tie-break that `endpoint` already had and `trend` never did.\n",
               sub("^\\+ ", "", steps[[dom + 1]]$lab),
               100 * max(diff(sc)) / (sc[length(sc)] - sc[1])))
-  cat(sprintf("\nBy contrast the radius step is worth %s flights out of %s here — inside what one three-day sample can resolve, and on this evidence alone it would not justify moving a published constant. It is adopted anyway, on stronger evidence gathered later: the pipeline grid in @sec-pipeline prefers the tighter radius at *every* flight level for *both* roles, which is a consistent effect across ten cells rather than a single argmax.\n",
+  cat(sprintf("\nBy contrast the radius step is worth %s flights out of %s here — inside what one three-day sample can resolve, and on this evidence alone it would not justify moving a published constant. Version 6 adopted it anyway, citing the pipeline grid as stronger evidence. On the datum that ships, that grid no longer supports it: see @sec-pipeline, where arrivals prefer the *wider* 30 NM at every ceiling from 6,000 ft up, which is where the shipped ceiling sits. The 20 NM recommendation was never applied to `DetectionConfig` in any case, and this study does not renew it.\n",
               num(sc[length(sc)] - sc[length(sc) - 1]), num(sc[length(sc)])))
 }
 ```
