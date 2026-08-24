@@ -227,7 +227,7 @@ account: what the three candidate methods are, how each behaves across its
 whole parameter space, which settings are best for departures and for arrivals,
 what the ideas that did *not* work were, and what the pipeline should ship.
 
-The short version is in three parts.
+The short version is in four parts.
 
 **The two roles want different algorithms.** Departures are best served by
 `endpoint` — take the aerodrome nearest the first fix, but only commit when the
@@ -255,10 +255,26 @@ values are worth
 under ring selection and
 **`r if (!is.null(cache("pipeline_path_v6.csv"))) { pp_ <- cache("pipeline_path_v6.csv"); sgn(pp_$ades_score[pp_$run=="path4_radius"] - pp_$ades_score[pp_$run=="path0_legacy"]) } else "—"`**
 under exact distance — the same parameters, the same data, opposite signs.
-Raising the flight-level gate admits samples from higher up, where more
+Raising the altitude gate admits samples from higher up, where more
 aerodromes fall in the same ring, so the coarse rule had most work to do
 exactly where it was least able to do it. Every tuned arrival value that fails
 under ring selection gains under exact distance.
+
+**`trend`'s altitude cut now measures from the aerodrome, not from sea level.**
+This is what version 6.2 adds. Until it, `trend` gated on a flight level while
+every other altitude test in the pipeline — `endpoint`'s, step 04's ground
+phase — gated on a height above the aerodrome's own field elevation. The two
+agree at sea level and diverge by the field elevation everywhere else, so the
+same nominal ceiling gave a Madrid arrival 2,000 ft less room to vote than an
+Amsterdam one.
+
+Moving it costs a little accuracy and buys a little coverage, and the aggregate
+of those two is close to nothing — @sec-dilution explains why it was never
+going to be otherwise, since most arrivals are at aerodromes below 500 ft where
+the two datums are identical by construction. The case for the change is
+not the aggregate: it is that the cut now means the same thing at every
+aerodrome, and that @sec-bands shows the gain landing precisely where elevation
+predicts it should.
 
 ::: {.callout-note}
 ## Reading this page
@@ -945,7 +961,7 @@ its price.
 
 The measured null in criteria 1 and 2 does carry one design implication: the
 ceiling itself, inherited from a sweep conducted on the datum now abandoned, is
-very likely no longer optimal. @sec-outstanding returns to that.
+very likely no longer optimal. @sec-limitations returns to that.
 
 ### The band that should have gained most, and did not
 
@@ -1075,8 +1091,21 @@ shipped geometry, and 61,069 against 61,056 at each datum's own best cell. That
 looks like a change doing nothing, and it is worth being precise about why it is
 not.
 
-**Roughly seventy per cent of the ground-truth arrivals sit in the `<500 ft`
-band**, where the two datums are the same test by construction. A change that
+```{r dilution-share}
+#| echo: false
+#| results: asis
+bb <- read_if("elevation_bands_2025.csv")
+if (!is.null(bb)) {
+  arr <- bb[bb$role == "arrivals", ]
+  lo <- arr$n_truth[arr$band == "<500"] / sum(arr$n_truth)
+  cat(sprintf("**%s of the ground-truth arrivals sit in the `<500 ft` band**, where the two datums are the same test by construction.\n",
+              pct(lo)))
+} else {
+  cat("**Most of the ground-truth arrivals sit in the `<500 ft` band**, where the two datums are the same test by construction.\n")
+}
+```
+
+A change that
 cannot move the majority of the sample cannot move an average over it, however
 well it works on the rest. The aggregate score is diluted by design, and judging
 a targeted correctness fix by it is using the wrong instrument — the reading is
@@ -2366,18 +2395,18 @@ peak is not, however good its score.
 
 ### The second period confirms through the sweeps, not the pipeline
 
-Every pipeline number on this page is 2025-06-05…07. The 2024 sample cannot run
-the pipeline arms at all: `process_dai` reads `h3_res_7` off the track table,
-and the 2024 tracks were built before this study indexed them, so the column is
-absent and the run fails outright. Version 6 met the same wall and ran the
-pipeline on 2025 alone.
+Every pipeline number on this page is 2025-06-05…07. The 2024 tracks pre-date
+this study's H3 indexing and `process_dai` reads `h3_res_7` off the track table
+directly, so the pipeline arms cannot run on that period at all — version 6 met
+the same wall and ran the pipeline on 2025 alone. @sec-ceiling states the
+consequence where it arises.
 
-What 2024 *can* do is the paired sweeps, out of a vote cache built with the
-index computed at read time. So the second period tests whether the ceiling and
-the datum behave the same way there — the part most at risk of being a
-one-sample artefact — and it does not independently reproduce the band
-breakdown or the pipeline fidelity check. This report does not claim that it
-does.
+Repeated here because it bounds every two-period claim in this report: the
+second period tests the ceiling and the datum comparison, which is the part
+most at risk of being a one-sample artefact, and it does **not** independently
+reproduce the band breakdown, the tuning ladder, or the pipeline fidelity
+check. A caveat that appears only beside the result it qualifies is easy to
+read past.
 
 ### The `>3000` band needs a different question
 
