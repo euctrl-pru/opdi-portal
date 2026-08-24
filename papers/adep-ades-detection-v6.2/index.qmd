@@ -1506,11 +1506,17 @@ which is the whole finding.
 #| results: asis
 ppath <- cache("pipeline_path_v6.csv")
 if (!is.null(ppath)) {
+  # Rungs 0-4 walk the SEA-LEVEL tuning, so they are the same ladder version 6
+  # published and are directly comparable to it. Rung 5 moves the datum and
+  # nothing else, at the ceiling that admits the identical band -- which is
+  # what makes its delta attributable to the datum rather than to a ceiling
+  # that moved along with it.
   lab <- c(path0_legacy = "legacy constants",
            path1_penalty = "+ scheduled-service penalty",
-           path2_flcap = "+ flight-level cap",
+           path2_ceiling = "+ altitude ceiling",
            path3_margin = "+ vote margin",
-           path4_radius = "+ radius")
+           path4_radius = "+ radius",
+           path5_datum = "+ field-elevation datum")
   ppath <- ppath[order(match(ppath$run, names(lab))), ]
   sc <- ppath$ades_score
 
@@ -1530,9 +1536,17 @@ if (!is.null(ppath)) {
     Coverage = pct(ppath$ades_coverage), Accuracy = pct(ppath$ades_accuracy),
     check.names = FALSE), row.names = FALSE, align = "r"))
 
-  cat(sprintf("\nUnder ring selection the tuning is worth %s; under exact distance it is worth %s. The flight-level cap is the step that flips hardest — %s against %s — and it is the step that admits samples from higher up, where more aerodromes share a ring and the ring rule is least able to separate them.\n",
+  cat(sprintf("\nUnder ring selection the tuning is worth %s; under exact distance it is worth %s. The altitude ceiling is the step that flips hardest — %s against %s — and it is the step that admits samples from higher up, where more aerodromes share a ring and the ring rule is least able to separate them.\n",
               sgn(ring[length(ring)] - ring[1]), sgn(sc[length(sc)] - sc[1]),
               sgn(diff(ring)[2]), sgn(diff(sc)[2])))
+
+  # The fifth rung, reported separately: it is the only step that moves the
+  # datum, so it is the only one whose delta is the datum's own contribution
+  # inside the pipeline.
+  if ("path5_datum" %in% ppath$run && length(sc) >= 6) {
+    cat(sprintf("\nThe fifth rung is the datum, and it is the reason this version exists. Moving `trend`'s altitude cut from a flight level onto the aerodrome's own field elevation — at the ceiling admitting the identical band, so nothing else moves with it — is worth %s under exact distance and %s under ring selection. @sec-datum takes that apart by field elevation, which is where the number stops being a single figure and starts being an explanation.\n",
+                sgn(diff(sc)[5]), sgn(diff(ring)[5])))
+  }
   cat("\nSo the sweep harness was never over-estimating. It was measuring a *better algorithm* — one that measures every candidate before choosing — and the pipeline has now adopted it. `trend_rank_by` defaults to `\"haversine\"`; `DetectionConfig.legacy()` still returns `\"ring\"`, so every published flight list stays reproducible.\n")
 }
 ```
@@ -1541,7 +1555,8 @@ if (!is.null(ppath)) {
 
 The path adopts the values the *sweep* preferred. Whether those are also the
 **pipeline's** optima is a separate question, and it is answered by sweeping
-the flight-level cap and radius through `process_dai` directly.
+the altitude ceiling and radius through `process_dai` directly — on the datum
+that ships, so the ceilings below are feet above field elevation.
 
 Both roles are produced by `trend` in every cell of this grid. Held fixed
 throughout: vote margin 2, scheduled-service penalty 10 NM, ranking on exact
@@ -1549,37 +1564,61 @@ distance. The vote margin is a `trend` parameter only — the majority one
 direction must win by across the smoothed altitude samples before a track is
 called a departure or an arrival. `endpoint` has no votes; it reads one fix.
 
-The grid stops at FL120, which is far enough to find the arrival optimum and
-**not** far enough to close the departure side — see @sec-limitations.
+The grid runs from 3,000 ft to 10,000 ft above field, which is far enough to
+find the arrival optimum and **not** far enough to close the departure side —
+see @sec-limitations. It carries both 6,000 ft and 6,100 ft deliberately: the
+first is what ships and the second is what the research sweep preferred, and
+the sweep grid never contained the shipped value, so the two had never been
+compared until this table.
 
 ```{r pipeline-trend-grid}
 #| echo: false
 #| results: asis
 tg <- cache("trend_grid_v6.csv")
 if (!is.null(tg)) {
-  tg <- tg[order(tg$trend_max_fl, tg$trend_radius_nm), ]
+  # `trend_ceiling` means the right thing on either datum: feet above field
+  # when the datum is `field`, a flight level when it is `msl`. Keying on
+  # `trend_max_fl` would collapse every row of a height grid onto one cap,
+  # because that field is inert while the field datum is in force.
+  CEIL <- if ("trend_ceiling" %in% names(tg)) "trend_ceiling" else "trend_max_fl"
+  dtm <- if ("trend_max_datum" %in% names(tg)) unique(tg$trend_max_datum)[1] else "msl"
+  tg <- tg[order(tg[[CEIL]], tg$trend_radius_nm), ]
   wide <- function(col) {
-    w <- reshape(tg[, c("trend_max_fl", "trend_radius_nm", col)],
-                 idvar = "trend_max_fl", timevar = "trend_radius_nm",
+    w <- reshape(tg[, c(CEIL, "trend_radius_nm", col)],
+                 idvar = CEIL, timevar = "trend_radius_nm",
                  direction = "wide")
-    w <- w[order(w$trend_max_fl), ]
+    w <- w[order(w[[CEIL]]), ]
     names(w) <- sub(paste0("^", col, "\\."), "", names(w))
     w
   }
   a <- wide("ades_score"); d <- wide("adep_score")
-  tab <- data.frame(`FL cap` = a$trend_max_fl,
+  tab <- data.frame(Ceiling = vapply(a[[CEIL]], cap_label, "", datum = dtm),
                     `ADES 20 NM` = num(a[["20"]]), `ADES 30 NM` = num(a[["30"]]),
                     `ADEP 20 NM` = num(d[["20"]]), `ADEP 30 NM` = num(d[["30"]]),
                     check.names = FALSE)
-  cat("\n**Score by flight-level cap (rows) and radius (columns), through the pipeline, at vote margin 2 and penalty 10 NM.** Departures are shown for completeness -- they are served by `endpoint`, so that half is a check rather than a recommendation.\n\n")
+  cat(sprintf("\n**Score by altitude ceiling (rows) and radius in NM (columns), through the pipeline, at vote margin 2 and penalty 10 NM.** Ceilings are %s. Departures are shown for completeness -- they are served by `endpoint`, so that half is a check rather than a recommendation.\n\n",
+              if (identical(dtm, "field")) "heights above field elevation" else "flight levels"))
   print(kable(tab, row.names = FALSE, align = "r"))
 
   b <- tg[which.max(tg$ades_score), ]
   bd <- tg[which.max(tg$adep_score), ]
-  cat(sprintf("\nArrivals peak at **FL%g / %g NM** and fall away on both sides — an interior optimum, not an edge of the grid. Departures climb monotonically to **FL%g**, but departures are served by `endpoint`, so that column is a check rather than a recommendation. Both roles prefer the tighter radius at every flight level.\n",
-              b$trend_max_fl, b$trend_radius_nm, bd$trend_max_fl))
-  cat("\nThese are the values that ship. Both had been rejected earlier in this study on ring-ranked evidence, and both are reinstated here on the pipeline's own measurement.\n")
-  cat("\nOne caveat, stated rather than buried: the grid holds the **vote margin** fixed at 2 while varying the cap and radius. That value therefore rests on the sweep harness alone, and is the weakest-supported of the shipped parameters.\n")
+  cat(sprintf("\nArrivals peak at **%s / %g NM**. Departures climb to **%s**, but departures are served by `endpoint`, so that column is a check rather than a recommendation.\n",
+              cap_label(b[[CEIL]], dtm), b$trend_radius_nm,
+              cap_label(bd[[CEIL]], dtm)))
+
+  # Whether the arrival optimum is interior is a property of this grid, not a
+  # standing fact -- it was one in version 6 and the grid has since changed.
+  # Asserting it in prose would be asserting the previous grid's shape.
+  caps <- sort(unique(tg[[CEIL]]))
+  if (length(caps) > 2) {
+    interior <- b[[CEIL]] > min(caps) && b[[CEIL]] < max(caps)
+    cat(sprintf("\nThat arrival peak is %s of the grid, so it %s.\n",
+                if (interior) "interior, with the score falling away on both sides"
+                else "at an edge",
+                if (interior) "is an optimum rather than the best cell that happened to be tried"
+                else "may not be an optimum: the grid should be widened before the value is trusted"))
+  }
+  cat("\nOne caveat, stated rather than buried: the grid holds the **vote margin** fixed at 2 while varying the ceiling and radius. That value therefore rests on the sweep harness alone, and is the weakest-supported of the shipped parameters.\n")
 }
 ```
 
