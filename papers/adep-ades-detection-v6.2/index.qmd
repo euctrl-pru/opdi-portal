@@ -2325,6 +2325,76 @@ regenerating the airport zone table would change the candidate set under the
 whole study. For this version they *were* rebuilt, from the archive upward,
 because the sampler changed.
 
+### What moved underneath this version {#sec-drift}
+
+This version sets out to recompute version 6's study with **one** variable
+changed. That is a checkable claim, and it does not fully hold. Stating where
+it fails is the point of recording input identities in the first place.
+
+```{r input-drift}
+#| echo: false
+#| results: asis
+dr <- read_if("input_drift.csv")
+if (is.null(dr)) {
+  cat("*(the drift check has not been run against this checkout)*\n")
+} else {
+  show <- data.frame(
+    Table   = dr$table,
+    Objects = sprintf("%s → %s", dr$baseline_objects, dr$now_objects),
+    Size    = sprintf("%.2f → %.2f GB", dr$baseline_bytes / 1e9, dr$now_bytes / 1e9),
+    `Newest` = sprintf("%s → %s", substr(dr$baseline_newest, 1, 10),
+                       ifelse(dr$now_newest == "", "—", substr(dr$now_newest, 1, 10))),
+    Verdict = dr$verdict,
+    check.names = FALSE)
+  print(kable(show, row.names = FALSE, align = "r"))
+
+  reb <- dr$table[dr$verdict == "REBUILT"]
+  mk  <- dr$table[dr$verdict == "marker only"]
+  if (length(mk)) {
+    cat(sprintf("\n**%s**: byte-identical, same timestamp, one object fewer. That is the zero-byte directory marker MinIO leaves behind, which `provenance.s3_identity` stopped counting after it made a *deleted* table look populated. Bookkeeping, with no consequence for any figure.\n",
+                paste(sprintf("`%s`", mk), collapse = ", ")))
+  }
+  if (length(reb)) {
+    cat(sprintf("\n**%s**: genuinely rebuilt since version 6 recorded them. Every figure derived from them moved, and the datum does not explain any of it.\n",
+                paste(sprintf("`%s`", reb), collapse = ", ")))
+  }
+}
+```
+
+The one that matters is **`opdi_endpoint_candidates`**, rebuilt after version 6
+published: about 12% smaller, with the fresh-broadcast share roughly tripled —
+the signature of stale-broadcast removal, which the PRC challenge results
+recommend and which `endpoint` reads directly.
+
+Two consequences, and they pull in opposite directions.
+
+**The ground truth did *not* move.** `research/reference` grew by more than
+half, but it grew by gaining *other periods*: this study's three-day slice is
+unchanged, at 95,116 reference flights on 2025 and 92,799 on 2024 — the same
+counts version 6 reported. That is confirmed independently by @sec-equivalence,
+where the sea-level sweep reproduces version 6's cell for cell. So every
+denominator on this page is the one version 6 used, and the internal
+comparisons — which are what this study actually argues from — are sound.
+
+**But the endpoint-family numbers are not comparable to version 6's.** The
+endpoint sweeps, the bearing test and the vertical measures all read the
+rebuilt candidate table. Their figures differ from version 6's, and that
+difference is a data change rather than a finding.
+
+::: {.callout-warning}
+## A verification this version cannot make
+
+The intention was to verify directly that the datum change leaves departures
+alone: the endpoint family is datum-independent by construction, so recomputing
+it under the new code and recovering version 6's numbers would have settled it.
+
+The candidate rebuild makes that comparison uncontrolled, so the verification is
+**not available** and is not claimed. What remains is the within-study evidence
+in @sec-bands — departures gain nothing in *any* elevation band, measured
+where both arms read the same candidate table. That is genuine evidence and it
+is weaker than the check that was intended.
+:::
+
 ## Limitations {#sec-limitations}
 
 ### Parameters that were not swept
