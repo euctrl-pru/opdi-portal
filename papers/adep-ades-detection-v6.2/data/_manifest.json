@@ -1,4 +1,48 @@
 {
+  "bearing_whole_sample_v6.csv": {
+    "argv": [
+      "--months",
+      "202506",
+      "--days",
+      "2025-06-05",
+      "2025-06-06",
+      "2025-06-07",
+      "--executors",
+      "10"
+    ],
+    "bytes": 7205,
+    "code_fingerprint": "5ce3680db5189e34",
+    "code_paths": [
+      "benchmarks/abstained_vertical.py",
+      "benchmarks/adep_ades.py",
+      "benchmarks/bearing_whole_sample.py",
+      "benchmarks/osn_sample.py"
+    ],
+    "git_dirty": false,
+    "git_sha": "6a3121e",
+    "input_tables": {
+      "s3a://eurocontrol/opdi/opdi_endpoint_candidates": {
+        "bytes": 145538092,
+        "newest": "2026-08-22T12:16:59.597000+00:00",
+        "objects": 23
+      },
+      "s3a://eurocontrol/opdi/osn_tracks": {
+        "bytes": 10160581413,
+        "newest": "2026-08-10T22:07:13.808000+00:00",
+        "objects": 4
+      },
+      "s3a://eurocontrol/opdi/research/reference": {
+        "bytes": 536176358,
+        "newest": "2026-08-13T10:38:29.218000+00:00",
+        "objects": 6
+      }
+    },
+    "inputs": {},
+    "notes": "rescue / veto / replace / rerank against the endpoint baseline",
+    "produced_utc": "2026-08-24T10:59:08+00:00",
+    "script": "benchmarks/bearing_whole_sample.py",
+    "sha256_16": "edcde90af72cea3e"
+  },
   "datum_swap_2025.csv": {
     "argv": [
       "--months",
@@ -324,6 +368,80 @@
     "script": "benchmarks/trend_sweep_agl.py",
     "sha256_16": "97b30cb398398324"
   },
+  "input_drift.csv": {
+    "argv": [
+      "--baseline",
+      "/home/jupyter/work/opdi-workspace/opdi-portal/papers/adep-ades-detection-v6/data/_manifest.json"
+    ],
+    "bytes": 870,
+    "code_fingerprint": "79782b022371a585",
+    "code_paths": [
+      "benchmarks/input_drift.py",
+      "benchmarks/input_drift.py"
+    ],
+    "git_dirty": true,
+    "git_sha": "5ced37c",
+    "input_tables": {},
+    "inputs": {},
+    "notes": "each input table's identity as V6 recorded it, against the table as it stands now. Distinguishes the zero-byte directory marker that s3_identity stopped counting -- bookkeeping -- from a table genuinely rebuilt, which moves every figure derived from it",
+    "produced_utc": "2026-08-24T15:02:31+00:00",
+    "script": "benchmarks/input_drift.py",
+    "sha256_16": "4e1c7b2a36488e96"
+  },
+  "merge_agreement_v6.csv": {
+    "argv": [
+      "--executors",
+      "8"
+    ],
+    "bytes": 101,
+    "code_fingerprint": "e9b8f0820107bdd7",
+    "code_paths": [
+      "benchmarks/adep_ades.py",
+      "benchmarks/merge_diagnosis.py",
+      "benchmarks/osn_sample.py"
+    ],
+    "git_dirty": false,
+    "git_sha": "6a3121e",
+    "input_tables": {
+      "s3a://eurocontrol/opdi/research/reference": {
+        "bytes": 536176358,
+        "newest": "2026-08-13T10:38:29.218000+00:00",
+        "objects": 6
+      }
+    },
+    "inputs": {},
+    "notes": "whether taking the two roles from different methods loses arrivals, or only moves which track the benchmark pairs with each reference flight",
+    "produced_utc": "2026-08-24T11:02:23+00:00",
+    "script": "benchmarks/merge_diagnosis.py",
+    "sha256_16": "2003e6c7f0c3968d"
+  },
+  "merge_shapes_v6.csv": {
+    "argv": [
+      "--executors",
+      "8"
+    ],
+    "bytes": 163,
+    "code_fingerprint": "e9b8f0820107bdd7",
+    "code_paths": [
+      "benchmarks/adep_ades.py",
+      "benchmarks/merge_diagnosis.py",
+      "benchmarks/osn_sample.py"
+    ],
+    "git_dirty": false,
+    "git_sha": "6a3121e",
+    "input_tables": {
+      "s3a://eurocontrol/opdi/research/reference": {
+        "bytes": 536176358,
+        "newest": "2026-08-13T10:38:29.218000+00:00",
+        "objects": 6
+      }
+    },
+    "inputs": {},
+    "notes": "whether taking the two roles from different methods loses arrivals, or only moves which track the benchmark pairs with each reference flight",
+    "produced_utc": "2026-08-24T11:02:23+00:00",
+    "script": "benchmarks/merge_diagnosis.py",
+    "sha256_16": "83020d62ec5de824"
+  },
   "per_airport_datum_2025.csv": {
     "argv": [
       "--months",
@@ -400,6 +518,43 @@
     "script": "benchmarks/sampler_comparison.py",
     "sha256_16": "44a7764653b04833"
   },
+  "sweep_cone_2025.csv": {
+    "argv": [
+      "--months",
+      "202506",
+      "--days",
+      "2025-06-05",
+      "2025-06-06",
+      "2025-06-07",
+      "--sweeps-only"
+    ],
+    "bytes": 14110,
+    "code_fingerprint": "f3cc11cb7385b4ed",
+    "code_paths": [
+      "benchmarks/adep_ades.py",
+      "benchmarks/benchmark_modes.py",
+      "benchmarks/osn_sample.py"
+    ],
+    "git_dirty": false,
+    "git_sha": "6a3121e",
+    "input_tables": {
+      "s3a://eurocontrol/opdi/opdi_endpoint_candidates": {
+        "bytes": 145538092,
+        "newest": "2026-08-22T12:16:59.597000+00:00",
+        "objects": 23
+      },
+      "s3a://eurocontrol/opdi/research/reference": {
+        "bytes": 536176358,
+        "newest": "2026-08-13T10:38:29.218000+00:00",
+        "objects": 6
+      }
+    },
+    "inputs": {},
+    "notes": "--sweeps-only: this script can also score pipeline output written by another run, which the report does not use",
+    "produced_utc": "2026-08-24T10:51:21+00:00",
+    "script": "benchmarks/benchmark_modes.py",
+    "sha256_16": "69f533f8346b505a"
+  },
   "sweep_equivalence.csv": {
     "argv": [
       "--pairs",
@@ -420,6 +575,119 @@
     "produced_utc": "2026-08-24T09:28:21+00:00",
     "script": "benchmarks/sweep_equivalence.py",
     "sha256_16": "694369305fa11d9e"
+  },
+  "sweep_penalty_2025.csv": {
+    "argv": [
+      "--months",
+      "202506",
+      "--days",
+      "2025-06-05",
+      "2025-06-06",
+      "2025-06-07",
+      "--sweeps-only"
+    ],
+    "bytes": 2924,
+    "code_fingerprint": "f3cc11cb7385b4ed",
+    "code_paths": [
+      "benchmarks/adep_ades.py",
+      "benchmarks/benchmark_modes.py",
+      "benchmarks/osn_sample.py"
+    ],
+    "git_dirty": false,
+    "git_sha": "6a3121e",
+    "input_tables": {
+      "s3a://eurocontrol/opdi/opdi_endpoint_candidates": {
+        "bytes": 145538092,
+        "newest": "2026-08-22T12:16:59.597000+00:00",
+        "objects": 23
+      },
+      "s3a://eurocontrol/opdi/research/reference": {
+        "bytes": 536176358,
+        "newest": "2026-08-13T10:38:29.218000+00:00",
+        "objects": 6
+      }
+    },
+    "inputs": {},
+    "notes": "--sweeps-only: this script can also score pipeline output written by another run, which the report does not use",
+    "produced_utc": "2026-08-24T10:51:21+00:00",
+    "script": "benchmarks/benchmark_modes.py",
+    "sha256_16": "1cbd0f06bd08a62d"
+  },
+  "sweep_radius_height_2024.csv": {
+    "argv": [
+      "--months",
+      "202406",
+      "--days",
+      "2024-06-05",
+      "2024-06-06",
+      "2024-06-07",
+      "--sweeps-only",
+      "--candidates",
+      "s3a://eurocontrol/opdi/research/cand_2024"
+    ],
+    "bytes": 52614,
+    "code_fingerprint": "f3cc11cb7385b4ed",
+    "code_paths": [
+      "benchmarks/adep_ades.py",
+      "benchmarks/benchmark_modes.py",
+      "benchmarks/osn_sample.py"
+    ],
+    "git_dirty": false,
+    "git_sha": "6a3121e",
+    "input_tables": {
+      "s3a://eurocontrol/opdi/research/cand_2024": {
+        "bytes": 120808873,
+        "newest": "2026-08-12T20:44:34.891000+00:00",
+        "objects": 23
+      },
+      "s3a://eurocontrol/opdi/research/reference": {
+        "bytes": 536176358,
+        "newest": "2026-08-13T10:38:29.218000+00:00",
+        "objects": 6
+      }
+    },
+    "inputs": {},
+    "notes": "the endpoint grid on the second period",
+    "produced_utc": "2026-08-24T10:56:44+00:00",
+    "script": "benchmarks/benchmark_modes.py",
+    "sha256_16": "dcbff59aa51185f7"
+  },
+  "sweep_radius_height_2025.csv": {
+    "argv": [
+      "--months",
+      "202506",
+      "--days",
+      "2025-06-05",
+      "2025-06-06",
+      "2025-06-07",
+      "--sweeps-only"
+    ],
+    "bytes": 52731,
+    "code_fingerprint": "f3cc11cb7385b4ed",
+    "code_paths": [
+      "benchmarks/adep_ades.py",
+      "benchmarks/benchmark_modes.py",
+      "benchmarks/osn_sample.py"
+    ],
+    "git_dirty": false,
+    "git_sha": "6a3121e",
+    "input_tables": {
+      "s3a://eurocontrol/opdi/opdi_endpoint_candidates": {
+        "bytes": 145538092,
+        "newest": "2026-08-22T12:16:59.597000+00:00",
+        "objects": 23
+      },
+      "s3a://eurocontrol/opdi/research/reference": {
+        "bytes": 536176358,
+        "newest": "2026-08-13T10:38:29.218000+00:00",
+        "objects": 6
+      }
+    },
+    "inputs": {},
+    "notes": "--sweeps-only: this script can also score pipeline output written by another run, which the report does not use",
+    "produced_utc": "2026-08-24T10:51:21+00:00",
+    "script": "benchmarks/benchmark_modes.py",
+    "sha256_16": "997c2b7d56547c9e"
   },
   "table:s3a://eurocontrol/opdi/h3_airport_detection_zones": {
     "argv": [
@@ -760,5 +1028,88 @@
     "notes": "second period; its tracks pre-date H3 so the index is computed",
     "produced_utc": "2026-08-22T10:20:27+00:00",
     "script": "/home/jupyter/work/opdi-workspace/opdi/.venv310/bin/python"
+  },
+  "trend_bearing_v6.csv": {
+    "argv": [
+      "--months",
+      "202506",
+      "--days",
+      "2025-06-05",
+      "2025-06-06",
+      "2025-06-07",
+      "--executors",
+      "10"
+    ],
+    "bytes": 3985,
+    "code_fingerprint": "c5ad1d0fbb669e51",
+    "code_paths": [
+      "benchmarks/abstained_vertical.py",
+      "benchmarks/adep_ades.py",
+      "benchmarks/osn_sample.py",
+      "benchmarks/trend_bearing.py",
+      "benchmarks/trend_sweep_agl.py"
+    ],
+    "git_dirty": false,
+    "git_sha": "6a3121e",
+    "input_tables": {
+      "s3a://eurocontrol/opdi/osn_tracks": {
+        "bytes": 10160581413,
+        "newest": "2026-08-10T22:07:13.808000+00:00",
+        "objects": 4
+      },
+      "s3a://eurocontrol/opdi/research/reference": {
+        "bytes": 536176358,
+        "newest": "2026-08-13T10:38:29.218000+00:00",
+        "objects": 6
+      },
+      "s3a://eurocontrol/opdi/research/trend_votes_agl": {
+        "bytes": 666718758,
+        "newest": "2026-08-22T12:21:58.423000+00:00",
+        "objects": 253
+      }
+    },
+    "inputs": {},
+    "notes": "bearing applied to trend rather than to the endpoint family: rerank, tie-break and veto against the shipped configuration",
+    "produced_utc": "2026-08-24T11:04:42+00:00",
+    "script": "benchmarks/trend_bearing.py",
+    "sha256_16": "a5930b7880440770"
+  },
+  "vertical_measure_v6.csv": {
+    "argv": [
+      "--executors",
+      "10"
+    ],
+    "bytes": 1725,
+    "code_fingerprint": "12fe6561097e1c9d",
+    "code_paths": [
+      "benchmarks/abstained_vertical.py",
+      "benchmarks/adep_ades.py",
+      "benchmarks/osn_sample.py",
+      "benchmarks/vertical_measure.py"
+    ],
+    "git_dirty": false,
+    "git_sha": "6a3121e",
+    "input_tables": {
+      "s3a://eurocontrol/opdi/opdi_endpoint_candidates": {
+        "bytes": 145538092,
+        "newest": "2026-08-22T12:16:59.597000+00:00",
+        "objects": 23
+      },
+      "s3a://eurocontrol/opdi/osn_tracks": {
+        "bytes": 10160581413,
+        "newest": "2026-08-10T22:07:13.808000+00:00",
+        "objects": 4
+      },
+      "s3a://eurocontrol/opdi/research/reference": {
+        "bytes": 536176358,
+        "newest": "2026-08-13T10:38:29.218000+00:00",
+        "objects": 6
+      }
+    },
+    "inputs": {},
+    "notes": "which vertical measure can be trusted: broadcast rate, two-point slope, or OLS over the window",
+    "produced_utc": "2026-08-24T11:01:27+00:00",
+    "script": "benchmarks/vertical_measure.py",
+    "sha256_16": "6984fd20401fbdb8"
   }
 }
