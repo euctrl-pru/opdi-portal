@@ -170,6 +170,33 @@ datum_of <- function(df) {
   if (length(u) == 1) u else "mixed"
 }
 
+# The shipped arrival configuration, named once so no section can quote a
+# different one than its neighbour.
+#
+# Two ceilings because there are two datums: `trend_max_height_ft` is 6,000 ft
+# above field, and the sea-level cut admitting the same band is FL60.
+SHIPPED_TREND <- list(ceiling_field = 6000, ceiling_msl = 60,
+                      margin = 2, radius_nm = 20, penalty_nm = 10)
+
+shipped_ceiling <- function(datum) {
+  if (identical(datum, "msl")) SHIPPED_TREND$ceiling_msl
+  else SHIPPED_TREND$ceiling_field
+}
+
+# The grid point standing in for the shipped ceiling, and whether it *is* it.
+#
+# The research sweep's above-field grid does not contain 6,000 ft -- it was
+# built around 6,100, the height equivalent of FL60 -- so on that datum the
+# shipped value cannot be located exactly and the nearest point stands in.
+# Returning the substitution rather than hiding it lets each section say so.
+# The pipeline grid in @sec-pipeline does carry both and settles it.
+nearest_cap <- function(caps, datum) {
+  want <- shipped_ceiling(datum)
+  caps <- sort(unique(caps))
+  if (want %in% caps) return(list(cap = want, exact = TRUE, want = want))
+  list(cap = caps[which.min(abs(caps - want))], exact = FALSE, want = want)
+}
+
 # Emit a mermaid diagram, but only into an HTML render.
 #
 # Not `::: {.content-visible when-format="html"}`. That hides the block from the
@@ -636,8 +663,9 @@ if (!is.null(trend)) {
   for (role in c("adep", "ades")) {
     x <- with_metrics(s0, role)
     cat(sprintf(
-      "- **%s** at the legacy setting (FL%g, margin %g, %g NM, no penalty): coverage %s, accuracy %s, %s correct, %s wrong, score %s.\n",
-      toupper(role), s0$fl_cap[1], s0$margin[1], s0$radius_nm[1],
+      "- **%s** at the legacy setting (%s, margin %g, %g NM, no penalty): coverage %s, accuracy %s, %s correct, %s wrong, score %s.\n",
+      toupper(role), cap_label(s0$fl_cap[1], datum_of(trend)),
+      s0$margin[1], s0$radius_nm[1],
       pct(x$coverage), pct(x$accuracy), num(x$correct), num(x$wrong), num(x$score)))
   }
 }
@@ -652,8 +680,9 @@ if (!is.null(trend)) {
     b <- best_row(trend, role)
     s0 <- with_metrics(trend[trend$stage == 0, ], role)
     cat(sprintf(
-      "- **%s**: FL%g, margin %g, %g NM, penalty %g NM — coverage %s, accuracy %s, %s correct, %s wrong, score %s (%s against the untuned baseline).\n",
-      toupper(role), b$fl_cap, b$margin, b$radius_nm, b$penalty_nm,
+      "- **%s**: %s, margin %g, %g NM, penalty %g NM — coverage %s, accuracy %s, %s correct, %s wrong, score %s (%s against the untuned baseline).\n",
+      toupper(role), cap_label(b$fl_cap, datum_of(trend)),
+      b$margin, b$radius_nm, b$penalty_nm,
       pct(b$coverage), pct(b$accuracy), num(b$correct), num(b$wrong),
       num(b$score), sgn(b$score - s0$score)))
   }
@@ -680,10 +709,13 @@ if (!is.null(trend)) {
                  idvar = "fl_cap", timevar = "radius_nm", direction = "wide")
     w <- w[order(w$fl_cap), ]
     names(w) <- sub("^score\\.", "", names(w))
-    names(w)[1] <- "FL cap"
+    w[[1]] <- vapply(w[[1]], cap_label, "", datum = datum_of(trend))
+    names(w)[1] <- "Ceiling"
     for (j in 2:ncol(w)) w[[j]] <- format(w[[j]], big.mark = ",", trim = TRUE)
-    cat(sprintf("\n**%s — score at $k=2$, by flight-level cap (rows) and radius in NM (columns), at the winning vote margin of %g**\n\n",
-                toupper(role), b$margin))
+    cat(sprintf("\n**%s — score at $k=2$, by altitude ceiling (rows) and radius in NM (columns), at the winning vote margin of %g.** Ceilings are %s.\n\n",
+                toupper(role), b$margin,
+                if (identical(datum_of(trend), "field"))
+                  "heights above field elevation" else "flight levels"))
     print(kable(w, row.names = FALSE, align = "r"))
     cat("\n")
   }
@@ -938,10 +970,9 @@ climb and descent.
 
 ### The ceiling survives the move {#sec-ceiling}
 
-`trend_max_height_ft` ships at the FL60 equivalent because that is what the
-datum comparison had to hold fixed to isolate one variable. That left an obvious
-worry: FL60 was tuned by V6 *on the datum version 6.2 abandons*, so there was
-no reason its optimum should have survived. The two sweeps settle it.
+FL60 was tuned by version 6 *on the datum version 6.2 abandons*, so there was
+no reason its optimum should have survived the move. The two sweeps, read out
+of the same vote cache, settle whether it did.
 
 ```{r ceiling-sweeps}
 #| echo: false
@@ -967,8 +998,22 @@ if (!is.null(hs) && !is.null(fs)) {
 
 **Each datum peaks at the equivalent ceiling** — 6,100 ft above field, FL60 on
 sea level — and 6,100 ft wins at *every* radius from 20 NM outward, production's
-30 NM included. The shipped value is therefore tuned rather than inherited, and
-no change is indicated.
+30 NM included. So the ceiling survived the change of datum: it is tuned on the
+new datum rather than inherited from the old one.
+
+::: {.callout-note}
+## What this does not say
+
+It does not say the shipped ceiling is optimal. `trend_max_height_ft` ships at
+**6,000 ft**, and 6,000 ft is not on this grid — the above-field caps were
+chosen to bracket 6,100, the height equivalent of FL60, because that is what
+the *datum* comparison had to hold fixed to isolate one variable. A sweep that
+never evaluated the shipped value cannot endorse it.
+
+The two are 100 ft apart and the difference is very unlikely to matter, but
+"very unlikely to matter" is a prediction, not a measurement. @sec-pipeline
+carries both through `process_dai` and reports which the pipeline prefers.
+:::
 
 Two honest limits. The grid is coarse near the peak (4,000 → 6,100 → 8,000), so
 the true optimum could sit anywhere in that span; and these are harness numbers,
@@ -1138,8 +1183,9 @@ if (!is.null(trend) && !is.null(grid)) {
       bt <- best_row(trend, role, k); be <- best_row(grid, role, k)
       data.frame(
         k = k, Role = toupper(role),
-        `Best trend` = sprintf("FL%g, margin %g, %g NM, pen %g",
-                               bt$fl_cap, bt$margin, bt$radius_nm, bt$penalty_nm),
+        `Best trend` = sprintf("%s, margin %g, %g NM, pen %g",
+                               cap_label(bt$fl_cap, datum_of(trend)),
+                               bt$margin, bt$radius_nm, bt$penalty_nm),
         `trend score` = num(bt$score),
         `Best endpoint` = sprintf("%g NM, %s ft, pen %g", be$radius_nm,
                                   format(be$height_ft, big.mark = ",", trim = TRUE,
@@ -1698,7 +1744,9 @@ if (!is.null(trend) && !is.null(grid)) {
   # trend, for the role it is recommended for (arrivals), against the
   # production constants: FL40, margin 4, 30 NM.
   bt <- best_row(s1, "ades")
-  rows[[length(rows) + 1]] <- just_row(s1, "ades", bt, "fl_cap",    "trend FL cap",       40, fixed_names = tf)
+  rows[[length(rows) + 1]] <- just_row(s1, "ades", bt, "fl_cap",    "trend ceiling",
+                                     if (identical(datum_of(trend), "msl")) 40 else 4100,
+                                     fixed_names = tf)
   rows[[length(rows) + 1]] <- just_row(s1, "ades", bt, "margin",    "trend vote margin",   4, fixed_names = tf)
   rows[[length(rows) + 1]] <- just_row(s1, "ades", bt, "radius_nm", "trend radius (NM)",  30, fixed_names = tf)
 
@@ -1748,7 +1796,7 @@ if (!is.null(trend)) {
          s = s0$score),
     list(lab = sprintf("+ scheduled-service penalty of %g NM", b$penalty_nm),
          s = cellv(40, 4, 30, b$penalty_nm)),
-    list(lab = sprintf("+ flight-level cap FL%g", b$fl_cap),
+    list(lab = sprintf("+ altitude ceiling %s", cap_label(b$fl_cap, datum_of(trend))),
          s = cellv(b$fl_cap, 4, 30, b$penalty_nm)),
     list(lab = sprintf("+ vote margin %g", b$margin),
          s = cellv(b$fl_cap, b$margin, 30, b$penalty_nm)),
@@ -1838,8 +1886,12 @@ if (!is.null(modes) && !is.null(grid)) {
 
   if (!is.null(tg)) {
     b <- tg[which.max(tg$ades_score), ]
-    cat(sprintf("**Arrivals — `trend` at FL%g, vote margin %g, %g NM, %g NM penalty, ranked on exact distance.** Measured as an algorithm, on a trend-only flight list, that is %s against legacy's %s -- a gain of %s, won by converting %s silences into correct answers for %s extra wrong ones.\n\n",
-                b$trend_max_fl, b$trend_vote_margin, b$trend_radius_nm,
+    cat(sprintf("**Arrivals — `trend` at %s, vote margin %g, %g NM, %g NM penalty, ranked on exact distance.** Measured as an algorithm, on a trend-only flight list, that is %s against legacy's %s -- a gain of %s, won by converting %s silences into correct answers for %s extra wrong ones.\n\n",
+                # From the pipeline frame, not the sweep: it carries the datum
+                # it actually ran on, so the label cannot disagree with the run.
+                cap_label(if (!is.null(b$trend_ceiling)) b$trend_ceiling else b$trend_max_fl,
+                          if (!is.null(b$trend_max_datum)) b$trend_max_datum else "msl"),
+                b$trend_vote_margin, b$trend_radius_nm,
                 b$trend_sched_penalty_nm,
                 num(b$ades_score), num(m("legacy", "ades_score")),
                 sgn(b$ades_score - m("legacy", "ades_score")),
@@ -2008,7 +2060,7 @@ if (is.null(t24)) {
   rows <- do.call(rbind, lapply(c("adep", "ades"), function(role) {
     b25 <- best_row(s1_25, role); b24 <- best_row(s1_24, role)
     do.call(rbind, lapply(list(
-      list("trend FL cap", "fl_cap"), list("trend vote margin", "margin"),
+      list("trend ceiling", "fl_cap"), list("trend vote margin", "margin"),
       list("trend radius (NM)", "radius_nm")), function(pp_) {
         data.frame(Role = toupper(role), Parameter = pp_[[1]],
                    `2025 optimum` = b25[[pp_[[2]]]],
@@ -2032,12 +2084,29 @@ if (is.null(t24)) {
   mm$joint <- mm$ades_score_25 / mm$n_ground_truth_25 +
               mm$ades_score_24 / mm$n_ground_truth_24
   o <- mm[order(-mm$joint), ]
-  rk <- which(o$fl_cap_25 == 60 & o$margin_25 == 2 & o$radius_nm_25 == 20)
+  dtm <- datum_of(trend)
+  nc <- nearest_cap(o$fl_cap_25, dtm)
+  rk <- which(o$fl_cap_25 == nc$cap &
+              o$margin_25 == SHIPPED_TREND$margin &
+              o$radius_nm_25 == SHIPPED_TREND$radius_nm)
 
-  cat(sprintf("\nSo the cells are ranked here by **both periods at once**, with each period's score divided by its own ground-truth count so the larger sample cannot dominate. On that ranking the shipped arrival configuration — FL60, vote margin 2, 20 NM, 10 NM penalty — places **%d of %d**. The joint winner is FL%g / margin %g / %g NM: it differs in the radius alone, and by %s of normalised score.\n",
-              rk, nrow(o), o$fl_cap_25[1], o$margin_25[1], o$radius_nm_25[1],
-              sprintf("%.5f", o$joint[1] - o$joint[rk])))
-  cat("\nThe arrival tuning therefore does hold on both periods. What moves between them is which of several near-equivalent cells happens to come first, and the radius is the parameter that moves.\n")
+  if (!length(rk)) {
+    cat("\n*(the shipped arrival cell is not present in both periods' grids, so its joint rank cannot be reported)*\n")
+  } else {
+    rk <- rk[1]
+    cat(sprintf("\nSo the cells are ranked here by **both periods at once**, with each period's score divided by its own ground-truth count so the larger sample cannot dominate. On that ranking the shipped arrival configuration — %s, vote margin %g, %g NM, %g NM penalty — places **%d of %d**. The joint winner is %s / margin %g / %g NM, and differs by %s of normalised score.\n",
+                cap_label(nc$cap, dtm), SHIPPED_TREND$margin,
+                SHIPPED_TREND$radius_nm, SHIPPED_TREND$penalty_nm,
+                rk, nrow(o),
+                cap_label(o$fl_cap_25[1], dtm), o$margin_25[1], o$radius_nm_25[1],
+                sprintf("%.5f", o$joint[1] - o$joint[rk])))
+    if (!nc$exact) {
+      cat(sprintf("\nOne substitution, stated rather than buried: the shipped ceiling is %s, and the research sweep's grid does not contain it — the grid was built around %s, the height equivalent of FL60. So %s stands in above, and the ranking is that cell's rank, not the shipped cell's. The pipeline grid in @sec-pipeline carries both values and is where the two are actually compared.\n",
+                  cap_label(nc$want, dtm), cap_label(nc$cap, dtm),
+                  cap_label(nc$cap, dtm)))
+    }
+    cat("\nThe arrival tuning therefore does hold on both periods. What moves between them is which of several near-equivalent cells happens to come first, and the radius is the parameter that moves.\n")
+  }
 }
 ```
 
@@ -2271,16 +2340,17 @@ and is not implemented here.
 
 ### The grid stops before the departure optimum does
 
-The pipeline grid runs to FL120, and departures under `trend` are still rising
-there. The research sweep goes further and does turn — departures peak at FL120
-on the 2025 sample and FL100 on 2024, then fall away as accuracy drops faster
-than coverage rises — but "it turns in the sweep" is weaker evidence than "it
-turns in the pipeline", and the two have disagreed before.
+The pipeline grid runs to 10,000 ft above field, and departures under `trend`
+are still rising there. The research sweep goes further and does turn —
+departures peak near the top of its range on both periods, then fall away as
+accuracy drops faster than coverage rises — but "it turns in the sweep" is
+weaker evidence than "it turns in the pipeline", and the two have disagreed
+before.
 
 This costs nothing that ships, because departures are served by `endpoint` and
-the arrival optimum at FL60 is comfortably interior on both periods and in both
-stages. It does mean the departure half of the trend grid should not be quoted
-as an optimum.
+the arrival optimum is comfortably interior on both periods and in both stages.
+It does mean the departure half of the trend grid should not be quoted as an
+optimum.
 
 ### One sample, and what that does and does not license
 
