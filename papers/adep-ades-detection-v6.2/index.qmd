@@ -926,11 +926,24 @@ if (!is.null(swap)) {
 }
 ```
 
-Moving to the field datum buys **194 more correct arrivals and 105 more wrong
-ones**. Coverage rises 0.31 pp; accuracy falls 0.16 pp; the score at *k* = 2
-moves from 62,185 to 62,169 — sixteen points the wrong way. In net terms it is
-close to a wash, tilted toward answering more flights and being fractionally
-less certain about each.
+```{r datum-cost-prose}
+#| echo: false
+#| results: asis
+if (!is.null(swap)) {
+  g <- function(run, f) swap[[f]][swap$run == run][1]
+  dc <- g("datum_field", "ades_correct") - g("datum_msl", "ades_correct")
+  dw <- g("datum_field", "ades_wrong")   - g("datum_msl", "ades_wrong")
+  dcov <- g("datum_field", "ades_coverage") - g("datum_msl", "ades_coverage")
+  dacc <- g("datum_field", "ades_accuracy") - g("datum_msl", "ades_accuracy")
+  s_msl <- g("datum_msl", "ades_score"); s_fld <- g("datum_field", "ades_score")
+  cat(sprintf("Moving to the field datum buys **%s more correct arrivals and %s more wrong ones**. Coverage %s %s; accuracy %s %s; the score at $k=2$ moves from %s to %s — %s points %s. In net terms it is close to a wash, tilted toward answering more flights and being fractionally less certain about each.\n",
+              num(dc), num(dw),
+              if (dcov >= 0) "rises" else "falls", sub("^[+-]", "", pp(abs(dcov))),
+              if (dacc >= 0) "rises" else "falls", sub("^[+-]", "", pp(abs(dacc))),
+              num(s_msl), num(s_fld), num(abs(s_fld - s_msl)),
+              if (s_fld >= s_msl) "the right way" else "the wrong way"))
+}
+```
 
 ### Why it ships anyway {#sec-adoption}
 
