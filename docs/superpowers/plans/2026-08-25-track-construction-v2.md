@@ -1235,7 +1235,14 @@ no inputs."
 > **Scope widened mid-execution (ruling R25). This task was written as "re-run
 > the payoff jobs"; it is now "re-run all ten".**
 >
-> `--check` reports **10 stale, 4 current**. `payoff_*` changed genuinely —
+> **Expect fourteen, not ten (ruling R28).** The count below was taken before
+> Task 4b. `track_truth.py` is a declared dependency of the containment jobs
+> *and* the boundary histograms, so 4b's fix makes those four stale as well.
+> Establish the real list by running `--check` yourself at the moment you start;
+> do not work from a list fixed in advance. The four extras are cheap — roughly
+> 75 s each for the census — and the sweeps still dominate the bill.
+>
+> `--check` reported **10 stale, 4 current** before Task 4b. `payoff_*` changed genuinely —
 > Task 2 changed `flights.py` behaviour. `arms_*` and `sweep_*` are stale
 > because `config.py` and `track_score.py` are declared dependencies that this
 > plan edited, and their numbers provably should not move: the arms select
