@@ -181,8 +181,26 @@ datum_of <- function(df) {
 #
 # Two ceilings because there are two datums: `trend_max_height_ft` is 6,000 ft
 # above field, and the sea-level cut admitting the same band is FL60.
-SHIPPED_TREND <- list(ceiling_field = 6000, ceiling_msl = 60,
-                      margin = 2, radius_nm = 20, penalty_nm = 10)
+# Read from the `recommended` run, which the harness builds as a bare
+# DetectionConfig() -- so these ARE the shipped values, not a memory of them.
+#
+# They were hardcoded here first, as 20 NM and margin 2: version 6's claimed
+# values, which the code has never had. That is the precise failure this report
+# documents, reproduced inside the report documenting it. Hence no literals.
+#
+# The fallback is only for a render with no pipeline output at all, and is
+# marked as such wherever it could be mistaken for a measurement.
+SHIPPED_TREND <- local({
+  if (is.null(modes) || !"recommended" %in% modes$run)
+    return(list(ceiling_field = NA, ceiling_msl = NA, margin = NA,
+                radius_nm = NA, penalty_nm = NA))
+  r <- modes[modes$run == "recommended", ][1, ]
+  list(ceiling_field = as.numeric(r$trend_max_height_ft),
+       ceiling_msl   = as.numeric(r$trend_max_fl),
+       margin        = as.numeric(r$trend_vote_margin),
+       radius_nm     = as.numeric(r$trend_radius_nm),
+       penalty_nm    = as.numeric(r$trend_sched_penalty_nm))
+})
 
 shipped_ceiling <- function(datum) {
   if (identical(datum, "msl")) SHIPPED_TREND$ceiling_msl
@@ -2487,6 +2505,79 @@ the shipped values, and a third asserts the two differ, so the preset cannot
 quietly become vacuous.
 
 ::: {.callout-warning}
+### Is what ships what the pipeline prefers? {#sec-parity}
+
+The question every earlier version answered by assertion. It is answerable
+now, and only now, because the grid was widened until it contained the shipped
+configuration: it previously fixed the vote margin at 2 while `DetectionConfig`
+ships 0, so main's own cell had never been run.
+
+```{r parity}
+#| echo: false
+#| results: asis
+tgp <- cache("trend_grid_v6.csv")
+if (is.null(tgp)) {
+  cat("*(the pipeline grid has not been run against this checkout)*\n")
+} else {
+  g <- tgp[grepl("^grid_h", tgp$run), ]
+  g <- g[order(-g$ades_score), ]
+  # The shipped configuration, named once in the setup chunk.
+  hit <- which(g$trend_ceiling == SHIPPED_TREND$ceiling_field &
+               g$trend_radius_nm == SHIPPED_TREND$radius_nm &
+               g$trend_vote_margin == SHIPPED_TREND$margin)
+  if (!length(hit)) {
+    cat("::: {.callout-important}\n## Not checkable\n\nThe shipped configuration is not among the grid's cells, so this cannot be answered. Widen the grid.\n:::\n")
+  } else {
+    r <- hit[1]
+    gap <- g$ades_score[1] - g$ades_score[r]
+    cat(sprintf("The shipped configuration — %s, %g NM, vote margin %g — places **%d of %d** cells, %s behind the best.\n\n",
+                cap_label(SHIPPED_TREND$ceiling_field, "field"),
+                SHIPPED_TREND$radius_nm, SHIPPED_TREND$margin,
+                r, nrow(g), if (gap == 0) "level" else sgn(-gap)))
+    if (r == 1) {
+      cat("It **is** the best cell. Every parameter version 6 recommended and\nwhich was never applied — a 6,100 ft ceiling, a vote margin of 2, a 20 NM\nradius — loses to the value that actually ships:\n\n")
+      cmp <- function(col, alt, label) {
+        keep <- g[g$trend_ceiling == SHIPPED_TREND$ceiling_field &
+                  g$trend_radius_nm == SHIPPED_TREND$radius_nm &
+                  g$trend_vote_margin == SHIPPED_TREND$margin, ]
+        oth <- g[g[[col]] == alt, ]
+        for (nm in setdiff(c("trend_ceiling", "trend_radius_nm", "trend_vote_margin"), col))
+          oth <- oth[oth[[nm]] == keep[[nm]][1], ]
+        if (!nrow(oth) || !nrow(keep)) return(NULL)
+        data.frame(Parameter = label,
+                   `Version 6 recommended` = alt,
+                   `Ships` = keep[[col]][1],
+                   `Cost of v6's value` = sgn(oth$ades_score[1] - keep$ades_score[1]),
+                   check.names = FALSE)
+      }
+      rows <- do.call(rbind, list(
+        cmp("trend_ceiling", 6100, "altitude ceiling (ft above field)"),
+        cmp("trend_vote_margin", 2, "vote margin"),
+        cmp("trend_radius_nm", 20, "detection radius (NM)")))
+      if (!is.null(rows)) print(kable(rows, row.names = FALSE))
+      cat("\nSo the recommendations were not merely un-applied; applying them would\nhave made arrival detection worse. `benchmarks/check_main_parity.py`\nasserts this on every run, and fails if the two ever part company.\n")
+    } else {
+      cat("It is **not** the best cell. That is reported, not resolved: changing a published default is the pipeline maintainers' decision, and this study's job is to make the gap visible.\n")
+    }
+  }
+}
+```
+
+::: {.callout-note}
+## What this check cannot see
+
+The grid varies three parameters at one penalty and one ranking rule, on one
+three-day period, with `process_dai` unable to read the 2024 tracks. And the
+pipeline is not bit-reproducible: re-running moves a handful of flights where
+two aerodromes tie on effective distance, worth about ±15 points of score. A
+difference smaller than that is not a difference.
+
+The ceiling comparison below sits at roughly two to three times that bound and
+is consistent in sign across all six radius-and-margin combinations, which is
+why it is reported as a result rather than as noise.
+:::
+
+
 ## Running it {#sec-running}
 
 The configuration this report recommends is the **default**. `adep_mode` and
