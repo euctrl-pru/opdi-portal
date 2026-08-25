@@ -2385,6 +2385,62 @@ the shipped values, and a third asserts the two differ, so the preset cannot
 quietly become vacuous.
 
 ::: {.callout-warning}
+## Running it {#sec-running}
+
+The configuration this report recommends is the **default**. `adep_mode` and
+`ades_mode` default to `None`, which means the pipeline uses `DetectionConfig`'s
+own values — so you get the recommendation by not overriding anything.
+
+Step `03` is the flight list: one row per track, carrying ADEP and ADES.
+
+```python
+from datetime import date
+from opdi.runner import run_pipeline
+
+run_pipeline(
+    env="opensky",              # plain parquet over S3A; no Hive, no Iceberg
+    step="03",
+    start_date=date(2025, 6, 1),
+    end_date=date(2025, 6, 30),
+)
+```
+
+The same thing from a shell, using the installed console script:
+
+```bash
+opdi run --env opensky --step 03 --start 2025-06-01 --end 2025-06-30
+```
+
+To depart from the recommendation, name the methods explicitly. Both accept
+`trend`, `endpoint` or `nearest`:
+
+```bash
+opdi run --env opensky --step 03 --start 2025-06-01 --end 2025-06-30 \
+         --adep-mode trend --ades-mode trend
+```
+
+That example asks for `trend` on both roles — the pre-2026 behaviour, and the
+`legacy` row in every comparison on this page.
+
+**Step 03 does not stand alone.** It reads the tracks written by step `02` and
+the aerodrome zones from step `00`, so those must have run for the same period
+first. Omitting `--step` runs the whole chain in order.
+
+::: {.callout-note}
+## What "recommended" means here, and how it is kept honest
+
+The values are not written into this page. @sec-defaults reads them from a
+bare `DetectionConfig()` — the same object the pipeline constructs — so the
+table cannot describe a configuration the code does not have. The equivalent
+table in version 6 was typed by hand and named two values the code never had,
+for three versions.
+
+`benchmarks/check_main_parity.py` closes the loop the other way: it compares
+that configuration against the best cell of the pipeline grid, which is the
+only sweep that runs the shipped package rather than a re-implementation of
+it.
+:::
+
 ## Re-running a past month will not reproduce it
 These defaults change ADEP and ADES for any month re-processed with them. That
 is intended, and it is why the old behaviour remains reachable by name rather
