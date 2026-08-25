@@ -1293,6 +1293,29 @@ cd /home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v
 .venv310/bin/python -u benchmarks/regenerate_track_v1.py
 ```
 
+- [ ] **Step 2b: Report the measured `match_rates` delta (ruling R32)**
+
+The ground-truth fixes removed inflated intervals — up to 26.9 hours, where a
+nightly service took its `t_off` from yesterday's rotation. Ten such intervals
+leave the 2025 sample and seven leave 2024.
+
+**Report what actually moved, and do not describe it as "fewer merges".** Traced
+through `match_rates`, the contamination worked three ways at once and none of
+them is inflated merging:
+
+- a neighbouring leg that lost *all* its samples to an inflated interval
+  vanished from `matched` entirely, so it left the **`n_flights` denominator**
+  rather than counting as merged;
+- the inflated flight itself spanned several tracks and scored **fragmented**;
+- a track that genuinely merged two real legs carried only one `flight_key`, so
+  a **real merge was masked**.
+
+Nobody has measured the size of this. Both earlier reports counted inflated
+*intervals*, never flights absorbed. So: quote `n_flights`, `clean_match_pct`,
+`fragmented_pct` and `merged_pct` before and after for both periods, and let the
+numbers say which way it went. This is a figure the paper will carry, so it must
+come from the re-run rather than from anyone's reasoning about the mechanism.
+
 - [ ] **Step 3: The two payoff arms should now agree — and that agreement is the test**
 
 **Read this before interpreting the numbers (ruling R18).** This step was
