@@ -1110,13 +1110,36 @@ cd /home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v
 .venv310/bin/python -u benchmarks/regenerate_track_v1.py
 ```
 
-- [ ] **Step 3: Verify the fixed run reproduces the previously-repaired numbers**
+- [ ] **Step 3: The two payoff arms should now agree — and that agreement is the test**
 
-The old `payoff_fixcallsign_*` CSVs measured the repair applied in the
-benchmark; the new `payoff_*` CSVs measure it applied in production. They should
-agree closely. **A material disagreement means the production fix and the
-benchmark repair are not the same operation** — find out which is right before
-publishing either.
+**Read this before interpreting the numbers (ruling R18).** This step was
+written when production still had the bug: `payoff_*` measured the pipeline
+as-shipped, `payoff_fixcallsign_*` measured it with the benchmark repairing the
+labelling, and the *gap between them* was the finding.
+
+Task 2 removed the bug from production, so the gap should now be gone.
+`flight_list_v7.py`'s `--fix-callsign` applies a repair to a frame production has
+already resolved, and the operation is idempotent — so the two arms should
+produce the same numbers.
+
+That inverts what this step checks, and makes it a stronger test than it was:
+
+- **They agree** → the production fix and the benchmark repair are the same
+  operation on the same rows. That is the convergence requirement, confirmed
+  from the other direction.
+- **They disagree** → they are *not* the same operation, and one of them is
+  wrong. That is now a finding, not a measurement. Do not publish either number
+  until you know which.
+
+Both jobs still run. Keep them both: two jobs that agree are the evidence, and a
+future change to either side breaks the agreement visibly. Task 6 must say why
+both are run, or a reader meets two identical columns and reads it as
+redundancy.
+
+One known and accepted difference, which does **not** apply to this sample:
+production resolves after the month filter while the benchmark resolves over its
+whole redirected table, so the two can differ for a track straddling a month
+boundary. V1's payoff samples three June days; no track in it straddles one.
 
 - [ ] **Step 4: Commit**
 
