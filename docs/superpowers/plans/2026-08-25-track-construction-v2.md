@@ -3,7 +3,7 @@
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Land the recommended segmentation and the flight-list labelling fix in
-the `opdi/` pipeline behind a new version string; revise
+the `opdi/` pipeline as the shipped default; revise
 `papers/track-construction-v1/` against nine reviewer comments; and publish
 `papers/track-construction-v2/` as a release note measured by running the real
 pipeline.
@@ -260,26 +260,31 @@ aggregate expression changes.
 from opdi.pipeline.flights import dominant_flight_id
 
 
+def _label(df):
+    """The one-row-per-track label frame, as a dict, for readable assertions."""
+    return {r["track_id"]: r["_dominant_flight_id"]
+            for r in dominant_flight_id(df).collect()}
+
+
 def test_blank_samples_do_not_win_the_label(spark):
     """F.min returns "" here. That is the bug, in one test."""
     df = spark.createDataFrame(
         [("t1", ""), ("t1", ""), ("t1", "SAS123"), ("t1", "SAS123")],
         "track_id string, flight_id string",
     )
-    out = {r["track_id"]: r["_FLT_ID"]
-           for r in df.groupBy("track_id").agg(dominant_flight_id()).collect()}
-    assert out == {"t1": "SAS123"}
+    assert _label(df) == {"t1": "SAS123"}
 
 
 def test_the_most_frequent_callsign_wins_not_the_smallest(spark):
-    """Two real callsigns in one track: frequency decides, not the alphabet."""
+    """Two real callsigns in one track: frequency decides, not the alphabet.
+
+    AAA111 sorts first and would win under any smallest-real rule. It must lose.
+    """
     df = spark.createDataFrame(
         [("t1", "ZZZ999"), ("t1", "ZZZ999"), ("t1", "ZZZ999"), ("t1", "AAA111")],
         "track_id string, flight_id string",
     )
-    out = {r["track_id"]: r["_FLT_ID"]
-           for r in df.groupBy("track_id").agg(dominant_flight_id()).collect()}
-    assert out == {"t1": "ZZZ999"}
+    assert _label(df) == {"t1": "ZZZ999"}
 
 
 def test_ties_break_deterministically_on_the_callsign(spark):
@@ -288,18 +293,19 @@ def test_ties_break_deterministically_on_the_callsign(spark):
         [("t1", "BBB222"), ("t1", "AAA111")],
         "track_id string, flight_id string",
     )
-    out = {r["track_id"]: r["_FLT_ID"]
-           for r in df.groupBy("track_id").agg(dominant_flight_id()).collect()}
-    assert out == {"t1": "AAA111"}
+    assert _label(df) == {"t1": "AAA111"}
 
 
-def test_a_track_that_never_broadcast_a_callsign_keeps_a_blank(spark):
-    """Not NULL, and not dropped: the flight exists, it is just unlabelled."""
+def test_a_track_that_never_broadcast_a_callsign_has_no_row(spark):
+    """It drops out of the label frame, and the caller's left join restores "".
+
+    Asserted here so the contract is explicit: this function does not invent a
+    blank, the join does. A caller using an inner join would silently lose the
+    flight, which is why Step 4 specifies a left join and a coalesce.
+    """
     df = spark.createDataFrame(
         [("t1", ""), ("t1", "")], "track_id string, flight_id string")
-    out = {r["track_id"]: r["_FLT_ID"]
-           for r in df.groupBy("track_id").agg(dominant_flight_id()).collect()}
-    assert out == {"t1": ""}
+    assert _label(df) == {}
 
 
 def test_a_callsign_homogeneous_track_is_unchanged(spark):
@@ -312,9 +318,17 @@ def test_a_callsign_homogeneous_track_is_unchanged(spark):
         [("t1", "SAS123"), ("t1", "SAS123")],
         "track_id string, flight_id string",
     )
-    out = {r["track_id"]: r["_FLT_ID"]
-           for r in df.groupBy("track_id").agg(dominant_flight_id()).collect()}
-    assert out == {"t1": "SAS123"}
+    assert _label(df) == {"t1": "SAS123"}
+
+
+def test_two_tracks_are_labelled_independently(spark):
+    """The window partitions by track. A leak across tracks is the same class of
+    bug as the unbounded lookback that cost 31 points of fragmentation in V1."""
+    df = spark.createDataFrame(
+        [("t1", "SAS123"), ("t1", ""), ("t2", "KLM456"), ("t2", "")],
+        "track_id string, flight_id string",
+    )
+    assert _label(df) == {"t1": "SAS123", "t2": "KLM456"}
 ```
 
 - [ ] **Step 3: Run them to confirm they fail**
@@ -327,6 +341,26 @@ cd /home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v
 Expected: `ImportError: cannot import name 'dominant_flight_id'`.
 
 - [ ] **Step 4: Implement it**
+
+> **Controller ruling R1 — read before writing any code.** The aggregate at
+> line 441 sits inside a `groupBy` whose input has *already been filtered* to
+> the first and last sample of each track (`flights.py:428`,
+> `(_rn == 1) | (_rr == 1)`). A mode computed there would range over at most two
+> rows and its ties would fall back to the alphabet — reproducing the blank-first
+> bug in a form that passes any test written over a synthetic full frame and
+> does nothing in production.
+>
+> **Compute the dominant callsign over the full `sv` frame**, which is in scope
+> at line 422 before the filter, as a separate per-`track_id` frame, and join it
+> into the result. The aggregate at 441 then takes the joined value (or is
+> dropped in favour of it). The five tests below are written against a full
+> frame and remain the contract.
+>
+> **Controller ruling R2.** `_FLT_ID` is set at line 441; line 1178 separately
+> does `.withColumnRenamed("flight_id", "FLT_ID")`. Before implementing,
+> establish every path by which a flight acquires its callsign label, fix all of
+> them consistently, and **state in your report which sites you found and what
+> you did to each**. If only one matters, say why.
 
 Add to `$OPDI/src/opdi/pipeline/flights.py`, near the other module-level
 helpers:
@@ -356,39 +390,38 @@ def dominant_flight_id():
     flight, not an absent one, and dropping it would shrink the denominator of
     every downstream rate.
     """
-    real = F.when(F.trim(F.col("flight_id")) != "", F.trim(F.col("flight_id")))
-    # sort_array on (-count, callsign) structs: the head is the most frequent,
-    # ties resolved by the callsign. Done inside the aggregate so this stays one
-    # expression and the caller's groupBy shape is untouched.
-    counted = F.map_entries(
-        F.aggregate(
-            F.collect_list(real),
-            F.create_map().cast("map<string,int>"),
-            lambda acc, x: F.map_concat(
-                F.map_filter(acc, lambda k, _v: k != x),
-                F.create_map(x, F.coalesce(acc[x], F.lit(0)) + F.lit(1)),
-            ),
-        )
+    blank = F.trim(F.coalesce(F.col("flight_id"), F.lit(""))) == ""
+    counts = (
+        df.filter(~blank)
+        .groupBy(track_col, "flight_id")
+        .agg(F.count(F.lit(1)).alias("_n"))
     )
-    ranked = F.sort_array(
-        F.transform(counted, lambda e: F.struct(
-            (-e["value"]).alias("neg_n"), e["key"].alias("callsign")))
+    rank = Window.partitionBy(track_col).orderBy(
+        F.col("_n").desc(), F.col("flight_id").asc()
     )
-    return F.coalesce(ranked[0]["callsign"], F.lit("")).alias("_FLT_ID")
+    return (
+        counts.withColumn("_r", F.row_number().over(rank))
+        .filter(F.col("_r") == 1)
+        .select(track_col, F.col("flight_id").alias("_dominant_flight_id"))
+    )
 ```
 
-> **Implementer note:** if the `aggregate`/`map_concat` form proves awkward on
-> this Spark version, the equivalent two-stage form is acceptable — count per
-> `(track_id, flight_id)` in one `groupBy`, rank with a window on
-> `(count desc, callsign asc)`, take rank 1, then join back. It must produce
-> identical results on all five tests. Do not change the tests to fit the
-> implementation.
+with the signature `def dominant_flight_id(df, track_col="track_id"):` — it
+returns a **frame**, one row per track, not an aggregate expression. Join it into
+`_track_border_flags`'s result on `track_id` and take
+`F.coalesce("_dominant_flight_id", F.lit(""))` as `_FLT_ID`, replacing
+`F.min("flight_id").alias("_FLT_ID")`. The left join keeps tracks that never
+broadcast a callsign; `coalesce` gives them `""` rather than NULL.
 
-Then replace line 441's `F.min("flight_id").alias("_FLT_ID"),` with:
+Build `counts` from the **unfiltered** `sv`, before the `_rn`/`_rr` filter — see
+ruling R1. `Window` is already imported in this module.
 
-```python
-                dominant_flight_id(),
-```
+> **Implementer note:** this mirrors `benchmarks/flight_list_v7.py:167`
+> (`dominant_callsign`), which is the same operation on the benchmark side and
+> was validated in V1. Prefer converging on its logic exactly — Task 5 Step 3
+> checks that the production fix and the benchmark repair produce the same
+> numbers, and that check is only meaningful if they were written to be the same
+> operation.
 
 - [ ] **Step 5: Bump the version**
 
@@ -412,7 +445,7 @@ cd /home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v
 .venv310/bin/python -m pytest tests/ -q
 ```
 
-Expected: 5 passed, then the whole suite green (260+ as of 2026-08-23).
+Expected: 6 passed, then the whole suite green (260+ as of 2026-08-23).
 
 - [ ] **Step 7: Commit**
 
