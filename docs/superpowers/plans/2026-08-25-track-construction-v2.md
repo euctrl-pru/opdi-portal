@@ -584,7 +584,165 @@ A no-op on legacy tracks, verified by test. FLIGHT_LIST_VERSION -> v5.0.0."
 
 ---
 
+### Task 2b: The same invariant in `events.py`
+
+**Added mid-execution (ruling R8).** Task 2's implementer found the identical
+latent fan-out in step 04 and correctly left it alone. It cannot stay left
+alone, because Task 3 flips the production **default** — and step 04 being out
+of scope for the *measurement* does not put it out of scope for the *release*.
+
+`src/opdi/pipeline/events.py:912-913` does the same rename this plan has now
+fixed three times:
+
+```python
+    sv_f = sv_f.withColumnRenamed("callsign", "flight_id")
+    sv_f = sv_f.fillna({"flight_id": ""})
+```
+
+and line 968 groups on it without aggregating:
+
+```python
+    result = df_labelled.groupBy(
+        "track_id", "icao24", "flight_id",
+        "hexaero_apt_icao", "hexaero_osm_id", "hexaero_aeroway", "hexaero_ref", "trace_id",
+    ).agg(...)
+```
+
+Under `standard`, one track that traverses one airport zone while broadcasting
+two callsigns becomes **two event groups** — two `entry-runway` events where one
+aircraft entered one runway once. Line 1003 then publishes `flight_id` as
+`osn_flight_id`, so the duplication reaches the published milestone table, which
+is OPDI's actual deliverable.
+
+**Files:**
+- Modify: `$OPDI/src/opdi/pipeline/events.py:912-913`
+- Test: `$OPDI/tests/test_events_labelling.py`
+
+**Interfaces:**
+- Consumes: `resolve_flight_id(sv, track_col="track_id")` from wherever Task 2
+  placed it. **Import it; do not reimplement it.** Two copies of this logic is
+  how production and the benchmark drifted apart in the first place — the
+  finding that started this whole study.
+
+- [ ] **Step 1: Locate the helper Task 2 wrote**
+
+```bash
+cd /home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v1
+grep -rn "def resolve_flight_id" src/opdi/
+```
+
+Import from wherever it is. If it sits in `flights.py` and importing
+`pipeline.flights` from `pipeline.events` would create a cycle, move it to a
+module both can import and update `flights.py`'s import — moving it is correct,
+copying it is not.
+
+- [ ] **Step 2: Write the failing test**
+
+```python
+# $OPDI/tests/test_events_labelling.py
+"""Step 04 must not emit one event per callsign a track happened to broadcast."""
+from pyspark.sql import functions as F
+
+
+def test_a_track_with_two_callsigns_yields_one_group_per_zone(spark):
+    """The fan-out, stated as the thing a reader would notice in the data.
+
+    One aircraft entering one runway once must be one event. Grouping on an
+    unresolved `flight_id` makes it two, and both look entirely plausible in
+    isolation -- which is why this needs a test rather than an inspection.
+    """
+    from opdi.pipeline.events import resolve_flight_id  # or its shared home
+
+    df = spark.createDataFrame(
+        [("t1", "abc123", "SAS123", "EKCH", "rwy04L"),
+         ("t1", "abc123", "", "EKCH", "rwy04L"),
+         ("t1", "abc123", "SAS123", "EKCH", "rwy04L")],
+        "track_id string, icao24 string, flight_id string, "
+        "hexaero_apt_icao string, hexaero_ref string",
+    )
+    grouped = (
+        resolve_flight_id(df)
+        .groupBy("track_id", "icao24", "flight_id",
+                 "hexaero_apt_icao", "hexaero_ref")
+        .agg(F.count(F.lit(1)).alias("n"))
+    )
+    rows = grouped.collect()
+    assert len(rows) == 1, f"expected one group, got {len(rows)}"
+    assert rows[0]["flight_id"] == "SAS123"
+    assert rows[0]["n"] == 3
+```
+
+- [ ] **Step 3: Run it to confirm it fails**
+
+```bash
+cd /home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v1
+.venv310/bin/python -m pytest tests/test_events_labelling.py -v
+```
+
+Expected: FAIL with two groups, one of them labelled `""`.
+
+- [ ] **Step 4: Apply the helper**
+
+After line 913:
+
+```python
+    sv_f = sv_f.withColumnRenamed("callsign", "flight_id")
+    sv_f = sv_f.fillna({"flight_id": ""})
+    # One callsign per track, before flight_id is used as a grouping key at
+    # line 968. Without this, a track that broadcast two callsigns while
+    # crossing one runway emits two entry-runway events for one crossing --
+    # and line 1003 publishes the result as osn_flight_id, so the duplication
+    # reaches the milestone table rather than staying an internal artefact.
+    sv_f = resolve_flight_id(sv_f)
+```
+
+- [ ] **Step 5: Verify, including the whole suite**
+
+```bash
+cd /home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v1
+.venv310/bin/python -m pytest tests/test_events_labelling.py -v
+.venv310/bin/python -m pytest tests/ -q
+```
+
+The suite stood at **277 passed** after Task 2. Report the new count. If an
+existing events test fails, report it rather than weakening it — under the old
+default nothing exercised a multi-callsign track, so a failure here is
+information about the change.
+
+- [ ] **Step 6: Check whether any other event path groups on `flight_id`**
+
+```bash
+grep -n "flight_id" src/opdi/pipeline/events.py
+```
+
+Known at time of writing: 912/913 (rename), 918 (column list), 968 (**the
+grouping**), 1003 (published as `osn_flight_id`), 1314
+(`col("track_id").alias("flight_id")` — a different thing, leave it), 1456 (DDL
+comment). Confirm nothing else groups or joins on it, and say so in the report.
+
+- [ ] **Step 7: Commit**
+
+```bash
+cd /home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v1
+uvx ruff check src/opdi/pipeline/events.py tests/test_events_labelling.py
+git add src/opdi/pipeline/events.py tests/test_events_labelling.py
+git commit -m "fix(events): one event per zone crossing, not one per callsign
+
+events.py groups on flight_id at line 968 without aggregating it, which is only
+sound while a track carries one callsign -- true by construction under legacy
+segmentation, false under standard. A track broadcasting two callsigns across
+one runway emitted two entry-runway events, and line 1003 publishes flight_id as
+osn_flight_id, so the duplication reached the milestone table.
+
+Same resolution helper as flights.py, imported rather than copied."
+```
+
+---
+
 ### Task 3: Ship `standard` as the default
+
+**Prerequisite (ruling R8): Task 2b must be complete.** Flipping the default
+before `events.py` is fixed ships duplicate published events.
 
 Reviewer comment 9: *"implement the whole recommended algorithm in the opdi/
 main branch"*, with the user's decision that it becomes the default.
