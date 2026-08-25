@@ -277,6 +277,82 @@ aerodrome, and that @sec-bands shows the gain landing precisely where elevation
 predicts it should.
 
 ::: {.callout-note}
+## What this is about {#sec-orientation}
+
+If you have not met this project before, this section is the whole of what you
+need. Nothing later on assumes another document.
+
+**OPDI — the Open Performance Data Initiative — publishes a description of
+European air traffic derived from what aircraft themselves broadcast.** Most
+airliners transmit their position, altitude and identity several times a
+second over ADS-B, and a network of ground receivers records it. That signal is
+open, but it is raw: a stream of positions with no notion of a *flight*. OPDI's
+job is to turn it into something you can count with, and to publish the result
+openly rather than behind a data-sharing agreement.
+
+**The flight list is the backbone of that.** The pipeline groups each aircraft's
+positions into **tracks** — one continuous journey, split where the signal
+stops for long enough — and then gives each track a row: when it started, when
+it ended, which aircraft, and the two fields this report is about.
+
+**ADEP and ADES are the departure and destination aerodromes.** They are ICAO
+codes: `EHAM` for Amsterdam, `LEMD` for Madrid. Almost every question anyone
+asks of flight data needs them — how many movements an airport had, how long a
+city pair takes, which routes grew. Get them wrong and every count built on top
+is wrong in a way that is hard to see.
+
+**Nothing in the ADS-B signal says where a flight is going.** The aircraft
+broadcasts where it *is*. So the aerodromes have to be inferred from the shape
+of the trajectory, and that is harder than it sounds:
+
+- Aerodromes cluster. Several of London's lie within a few minutes' flying
+  of one another, and the nearest to a descending aircraft is often not the
+  one it lands at.
+- Coverage is uneven. Low-altitude reception is poor in places, so a track may
+  simply stop before it reaches the ground, or start well after take-off.
+- Some flights genuinely begin or end outside the observed area, and a method
+  that always answers will confidently name a wrong aerodrome for them.
+
+**So this report is about three ways of guessing, and how well each does.**
+Each looks at the trajectory near a candidate aerodrome and decides whether to
+commit:
+
+- **`trend`** watches whether the aircraft is climbing or descending near each
+  candidate, and abstains when the altitude trace says neither clearly.
+- **`endpoint`** takes the aerodrome nearest the first or last position, but
+  only commits when that position is close and low; otherwise it abstains.
+- **`nearest`** takes the closest aerodrome unconditionally. It never abstains,
+  and it is included as the external baseline — it is what the widely used
+  `traffic` library does.
+
+Two of the three can refuse to answer, and that is the point. A method that
+always answers has perfect **coverage** and poor **accuracy**; one that answers
+only when certain has the reverse. Neither number means much alone, which is
+why @sec-metrics sets out how they are traded against one another.
+
+**What this version adds.** Version 6.2 changes one thing in `trend`: the
+altitude ceiling below which a position is allowed to vote is now measured
+**from the aerodrome's own elevation** rather than from sea level. The two are
+the same at a coastal airport and differ by half a mile at a highland one.
+@sec-datum reports what that was worth.
+
+### A glossary
+
+Terms this report uses without further explanation.
+
+| Term | Meaning |
+|---|---|
+| **ADEP / ADES** | The departure and destination aerodrome, as ICAO codes. |
+| **Track** | One continuous run of positions from a single aircraft, split where the signal gaps. The unit each row of the flight list describes. |
+| **State vector** | A single broadcast position: latitude, longitude, altitude, velocity, at one instant. |
+| **H3 cell** | A hexagon from Uber's H3 grid, used to index aerodromes by location so candidates can be found without comparing against every airport in Europe. |
+| **Coverage** | The share of reference flights the method answered at all. Abstaining lowers it. |
+| **Accuracy** | Of the flights it answered, the share it got right. |
+| **Score, *k*** | Coverage and accuracy pull against each other, so runs are ranked by `correct − k × wrong`. *k* is the exchange rate: how many correct answers one wrong answer is worth. This report uses *k* = 2 throughout and @sec-k shows what happens at other values. |
+| **Out-of-area** | A flight that genuinely began or ended outside the observed region. Saying so is a *correct* answer, not an abstention. |
+| **Abstention** | The method declining to name an aerodrome. Distinct from being wrong, and distinct from out-of-area. |
+| **Ground truth** | EUROCONTROL Network Manager flight data, used as the reference. Not published with this report; see @sec-provenance. |
+
 ## Reading this page
 Every number below is an inline expression over a CSV in `data/`, and every one
 of those CSVs is produced by a job in `benchmarks/regenerate_v62.py` — which
