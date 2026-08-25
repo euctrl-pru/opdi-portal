@@ -681,19 +681,37 @@ cd /home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v
 
 Expected: FAIL with two groups, one of them labelled `""`.
 
-- [ ] **Step 4: Apply the helper**
+- [ ] **Step 4: Apply the helper — *before* the `dropna`, not after**
 
-After line 913:
+> **Corrected mid-execution (ruling R21). The original instruction here said
+> "after line 913", which was wrong**, because line 921 is
+> `sv.dropna(subset=["lat", "lon", "baro_altitude_c"])` and resolving after it
+> breaks the contract the helper's own docstring states: *resolve on the
+> unfiltered frame*.
+>
+> Step 03 votes over the whole month's rows. Resolving after that `dropna` would
+> make step 04 vote only over samples carrying position **and** barometric
+> altitude — and velocity-only broadcasts carry a callsign with no position,
+> while cleaning NULLs bad `baro_altitude_c`. A track whose real callsign
+> appears mostly in non-positional samples would then be `SAS123` in
+> `opdi_flight_list` and `""` in the same track's `info.osn_flight_id`.
+
+Order: rename, `fillna`, guarded resolve, **then** `dropna`.
 
 ```python
     sv_f = sv_f.withColumnRenamed("callsign", "flight_id")
     sv_f = sv_f.fillna({"flight_id": ""})
-    # One callsign per track, before flight_id is used as a grouping key at
-    # line 968. Without this, a track that broadcast two callsigns while
-    # crossing one runway emits two entry-runway events for one crossing --
-    # and line 1003 publishes the result as osn_flight_id, so the duplication
-    # reaches the milestone table rather than staying an internal artefact.
-    sv_f = resolve_flight_id(sv_f)
+    # One callsign per track, before flight_id becomes a grouping key below.
+    # Without this, a track that broadcast two callsigns while crossing one
+    # runway emits two entry-runway events for one crossing, and the result is
+    # published as osn_flight_id -- so the duplication reaches the milestone
+    # table rather than staying an internal artefact.
+    #
+    # Before the dropna, not after: step 03 resolves over the whole month, and
+    # a narrower population here would let the flight list and the event table
+    # name the same track differently.
+    sv_f = resolve_flight_id(sv_f)   # guarded; see the version note in Step 1
+    sv_f = sv_f.dropna(subset=["lat", "lon", "baro_altitude_c"])
 ```
 
 - [ ] **Step 5: Verify, including the whole suite**
@@ -1536,6 +1554,21 @@ and `allow-stale`, plus the `cache()` reader and the knitr-emitted
     knowing the release date; and one more, which the study's own machinery
     produced:
 
+    **The release's safety guards are keyed on configuration, because the data
+    carries no provenance.** Both `flights.py` and `events.py` skip callsign
+    resolution when the run stamps a legacy version string, so a correctly
+    configured legacy re-run reproduces its released month byte for byte. But
+    neither guard can ask the question it actually needs answered — *were the
+    tracks I am reading built with the legacy rule?* — because no column records
+    it. A legacy-stamped run over an `osn_tracks` rebuilt with `standard`
+    therefore fans out while stamping the frozen version, and nothing in the
+    output reveals it. `flights.py`'s `tracks_table == "osn_tracks"` clause
+    distinguishes raw tracks from *clean* ones, not legacy-built from
+    standard-built. Say plainly that this is the cost of shipping without a
+    segmentation marker, and name the one shipped configuration it already
+    affects: `benchmarks/event_bench.py`'s rungs `L00`–`L12` inherit
+    `events_v0.0.2` and so run unresolved.
+
     **Production and the benchmark resolve the callsign over different rows at a
     month boundary.** Production resolves inside the reader, *after* the month
     filter, because moving it earlier defeats partition pruning. The benchmark
@@ -1591,10 +1624,29 @@ prefix nobody dares delete.
 
 - [ ] **Step 4: Update the stale notes in `CLAUDE.md`**
 
-The workspace `CLAUDE.md` states that `tracks.py:_add_track_id` is frozen and
-marked `CRITICAL - DO NOT MODIFY`. As of Task 3 that is false in both the code
-and the release. Update the "Conventions that matter" and "Known
-inconsistencies" sections to describe the versioned position instead.
+Three edits, not one.
+
+1. The workspace `CLAUDE.md` states that `tracks.py:_add_track_id` is frozen and
+   marked `CRITICAL - DO NOT MODIFY`. As of Task 3 that is false in both the
+   code and the release. Replace it with the versioned position: segmentation is
+   a release decision, `standard` is what ships, `legacy` remains selectable and
+   reproduces pre-release ids.
+
+2. Record the **provenance blind spot** (ruling R20) under "Conventions that
+   matter", because it is the rule a future contributor most needs and cannot
+   infer: `osn_tracks` carries no marker of which segmentation produced a row,
+   so the legacy-reproduction guards in `flights.py` and `events.py` key on the
+   run's *configuration*, not on the data. A legacy-stamped run over
+   standard-built tracks silently produces wrong output. Anyone reprocessing a
+   released month must confirm the tracks were built with `legacy`, because
+   nothing will check it for them.
+
+3. Add the **callsign-resolution invariant** itself, which is now load-bearing
+   across three modules: `flight_id` is used as a grouping and join key
+   downstream and is never aggregated, so it must carry exactly one value per
+   `track_id`. `resolve_flight_id` establishes that at the point the track table
+   is read. It lives in `flights.py`; `events.py` imports it. **Do not copy it.**
+   The whole study exists because two copies of a rule drifted.
 
 - [ ] **Step 5: Commit locally, do not push**
 
