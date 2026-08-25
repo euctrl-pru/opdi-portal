@@ -1092,7 +1092,165 @@ git commit -m "data(track-v1): containment census and boundary-error histograms"
 
 ---
 
-### Task 5: Re-run V1's payoff jobs against the fixed flight list
+### Task 4b: The ground-truth midnight defect, and the manifest's empty `inputs`
+
+**Added mid-execution (rulings R26, R27).** Task 4's containment census found a
+real ground-truth defect while cross-checking its own numbers.
+
+`benchmarks/track_truth.py:162-164`:
+
+```python
+    nm = nm.filter(F.col("icao24").isNotNull()).withColumn("day", F.to_date("aobt"))
+    if days:
+        nm = nm.filter(F.col("day").isin([str(d) for d in days]))
+```
+
+`day` is the **off-block** day. The `t_off`/`t_land` window is applied *after*
+this filter, so a flight that pushed back at 23:5x and got airborne after
+midnight is dropped by the day key even though its interval lies wholly inside
+the sampled window. Measured: **53 flights (2025), 55 (2024)** — 0.06%, and
+one-directional, so it is a small systematic bias rather than noise.
+
+The module's own docstring at lines 125-143 already argues that the window must
+be expressed on `t_off`/`t_land` *rather than* on `day`, because `day` is the
+departure day and the two windows do not close at the same instant. Line 164
+contradicts the design the docstring states. This is the third midnight-boundary
+defect found in this module — the arrival-side join key was fixed earlier for a
+closely related reason, and that fix is documented in the same file.
+
+**Why now:** in isolation 0.06% would not justify invalidating every published
+V1 figure. But ruling R25 already re-runs all ten stale jobs, so the marginal
+cost of this fix is a code review rather than a re-run. Deferring it means
+paying the re-run bill twice.
+
+**Files:**
+- Modify: `$OPDI/benchmarks/track_truth.py:162-164`
+- Modify: `$OPDI/benchmarks/regenerate_track_v1.py` (`Job.run`)
+- Test: `$OPDI/tests/test_track_truth_window.py`
+
+**Interfaces:**
+- `load_flight_intervals` keeps its signature and its returned columns
+  (`t_off`, `t_land`, `t_source`, `day`, plus identity). Only which rows survive
+  changes.
+
+- [ ] **Step 1: Write the failing test**
+
+```python
+# $OPDI/tests/test_track_truth_window.py
+"""Ground truth is windowed on the flight, not on the day it pushed back."""
+
+
+def test_a_flight_off_block_before_midnight_is_kept(spark):
+    """The defect, in one case.
+
+    Off-block 23:52 on the day before the sample; airborne 00:14 and landed
+    04:30 inside it. The interval lies wholly within the window, so the flight
+    belongs in the sample -- but a filter keyed on the off-block day drops it.
+    """
+    ...  # implementer: build the minimal NM frame load_flight_intervals reads,
+         # or exercise the day-filter expression directly if constructing the
+         # full frame needs the reference parquet. Say which you chose and why.
+
+
+def test_a_flight_genuinely_outside_the_window_is_still_dropped(spark):
+    """Widening the pre-filter must not widen the window itself.
+
+    The point of the fix is that the pre-filter stops deciding membership, not
+    that membership gets looser. A flight airborne before the window opens stays
+    out.
+    """
+    ...
+```
+
+> **Implementer note.** The right fix is almost certainly to widen the `day`
+> pre-filter by one day on each side and let the existing `t_off`/`t_land`
+> window make the exact cut — the pre-filter exists for partition pruning, not
+> for correctness, and the docstring already says the window is the authority.
+> **Do not simply delete the pre-filter**: it is what keeps this from scanning
+> more than it needs.
+>
+> One edge to handle explicitly: `CLAUDE.md` warns that `apdf_tidy()` covers one
+> month at a time and that a wide window silently drops rows. Widening by a day
+> at a month boundary can reach outside the loaded months. Both study samples
+> are mid-June so neither hits it, but say in your report what your fix does at
+> a month edge rather than leaving it to be discovered.
+
+- [ ] **Step 2: Run the tests to confirm they fail**
+
+```bash
+cd /home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v1
+.venv310/bin/python -m pytest tests/test_track_truth_window.py -v
+```
+
+- [ ] **Step 3: Fix the pre-filter, and say so where the design is documented**
+
+Amend the docstring at `track_truth.py:125-143` to record that the `day`
+pre-filter is a pruning aid widened past the window, and that the
+`t_off`/`t_land` comparison is what decides membership. The docstring already
+argues the principle; it should now describe the code that implements it.
+
+- [ ] **Step 4: Fix the manifest's empty `inputs` (ruling R27)**
+
+`Job.run` in `regenerate_track_v1.py` re-records provenance after the script
+exits, without `inputs`, overwriting the entry the script itself wrote. Every
+one of the ten existing outputs carries `inputs: {}` as a result. Two lines.
+The re-run that follows is the one chance to have the manifest come out right
+without a third pass.
+
+- [ ] **Step 5: Full suite**
+
+```bash
+.venv310/bin/python -m pytest tests/ -q
+```
+
+It stood at **312 passed**. Report the new count. **Do not run any regeneration
+job in this task** — Task 5 owns the re-run, and a run launched here would be
+invalidated by any later text edit anyway.
+
+- [ ] **Step 6: Commit**
+
+```bash
+cd /home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v1
+uvx ruff check benchmarks/track_truth.py benchmarks/regenerate_track_v1.py tests/test_track_truth_window.py
+git add benchmarks/track_truth.py benchmarks/regenerate_track_v1.py tests/test_track_truth_window.py
+git commit -m "fix(bench): window ground truth on the flight, not on its off-block day
+
+load_flight_intervals pre-filtered on to_date(aobt) and only then applied the
+t_off/t_land window, so a flight that pushed back at 23:5x and got airborne
+after midnight was dropped although its interval lay wholly inside the sample.
+53 flights in 2025, 55 in 2024 -- small, but one-directional.
+
+The docstring already argued the window must be expressed on t_off/t_land
+rather than on day. The code did not do it. The pre-filter is now widened past
+the window and kept only for pruning.
+
+Also stops Job.run overwriting each output's provenance entry with one that has
+no inputs."
+```
+
+---
+
+### Task 5: Re-run every stale job against the fixed code
+
+> **Scope widened mid-execution (ruling R25). This task was written as "re-run
+> the payoff jobs"; it is now "re-run all ten".**
+>
+> `--check` reports **10 stale, 4 current**. `payoff_*` changed genuinely —
+> Task 2 changed `flights.py` behaviour. `arms_*` and `sweep_*` are stale
+> because `config.py` and `track_score.py` are declared dependencies that this
+> plan edited, and their numbers provably should not move: the arms select
+> their rule explicitly rather than through the default, and the `track_score`
+> refactor is behaviour-preserving by 14 tests.
+>
+> **Re-run them anyway.** Narrowing a declared dependency to dodge a re-run is
+> the move that lets a real change through later, and "I am confident the
+> numbers did not move" is not verification — that distinction is the whole
+> premise of the manifest. Expect roughly **8–14 hours** of contended cluster
+> time; the sweeps dominate.
+>
+> Run `--check` with `OPDI_PAPER_DIR` set. Without it, `REPO.parent` resolves
+> inside `.claude/worktrees` and every output reads as "missing" — a confident
+> lie the module documents and which I walked into once already.
 
 Task 2 changed `flights.py`, which `regenerate_track_v1.py` declares as a
 dependency of the payoff jobs. They are therefore **stale by fingerprint**, and
