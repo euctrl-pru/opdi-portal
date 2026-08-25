@@ -1143,14 +1143,47 @@ Comment-by-comment, with V1's section numbering (Summary is unnumbered, so
 
 - [ ] **Step 1: §2 — drop the identity-churn framing and the freeze claim (comment 2)**
 
-Two things go. **"Identity churn is a problem"** is not the argument any more:
-`track_id` changing between algorithms is a *consequence* of shipping a better
-one, to be documented and versioned, not a cost weighed against the improvement.
-Rewrite the section so churn appears as something the release manages —
-pointing forward to the version column added in Task 3 — rather than as an
-objection. **The `CRITICAL - DO NOT MODIFY` claim** is gone from the code and
-must go from the paper; replace it with the versioning position, which is what
-actually governs.
+Two exact passages, both in `## What a track is, and why the question is open
+{#sec-problem}` (around lines 214-235 of `index.qmd`).
+
+**First, this bullet goes**, leaving three failure modes rather than four:
+
+```
+- **Identity churn** — the same physical flight gets a different `track_id`
+  depending on when the pipeline ran.
+```
+
+The reviewer's position, which is now the project's: churn is not a failure of a
+segmentation. A `track_id` changing when the rule changes is a *consequence* of
+shipping a better rule — something a release documents and consumers are told
+about — not a cost to be weighed against the improvement. Nothing in the study
+measures it, either, so listing it beside three measured failures overstated it.
+Check the sentence after the list ("Merging is the more damaging failure...")
+still reads correctly against three items.
+
+**Second, this closing paragraph is now false and must be rewritten:**
+
+```
+The rule has never been benchmarked. It is also frozen: `_add_track_id` is
+marked *CRITICAL — DO NOT MODIFY*, because changing it breaks `track_id`
+continuity with every dataset OPDI has published. This study therefore
+re-implements it inside a generic engine and measures the re-implementation,
+rather than editing production code.
+```
+
+Every clause after the first is out of date. The marker is gone from the code,
+the rule is versioned rather than frozen, and as of this release `standard` is
+what production runs. Replace it with the position that actually governs:
+segmentation is a versioned choice; changing it is a release decision that
+consumers must be told about, and one that has now been taken. Keep "the rule
+has never been benchmarked" as the study's motivation — that part is still true
+and is why V1 exists.
+
+Then say plainly why V1 still measures a re-implementation: it was a study of
+*algorithms*, run in a harness so that eight arms could be compared without
+eight pipeline runs. That is a legitimate design and a real limitation, and V2
+is the paper that measures the pipeline itself. A reader arriving at V1 first
+must leave §2 knowing which of the two they are reading.
 
 - [ ] **Step 2: §3.3 — explain interval containment properly (comment 3)**
 
