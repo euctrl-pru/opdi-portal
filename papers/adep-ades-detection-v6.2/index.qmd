@@ -957,17 +957,52 @@ if (!is.null(bands)) {
 
 **The effect is where it was predicted to be.** Measured against each band's own
 base of correct arrivals — which is the honest denominator, since the bands
-differ in size by two orders of magnitude — the sea-level control band moves by
-+0.12% and the 1,500–3,000 ft band by **+5.7%**. That is a difference of roughly
-forty-fold between the band where the datum change is arithmetically a no-op and
-the band where it bites hardest.
+differ in size by two orders of magnitude — the sea-level control band and the
+band where the change should bite hardest move by very different amounts.
+
+```{r band-effect}
+#| echo: false
+#| results: asis
+bb <- read_if("elevation_bands_2025.csv")
+if (!is.null(bb)) {
+  arr <- bb[bb$role == "arrivals", ]
+  rel <- function(band) {
+    r <- arr[arr$band == band, ]
+    if (!nrow(r) || r$n_correct_msl[1] == 0) return(NA_real_)
+    r$delta_correct[1] / r$n_correct_msl[1]
+  }
+  lo <- rel("<500"); hi <- rel("1500-3000")
+  cat(sprintf("The `<500 ft` control band moves by %s and the `1,500-3,000 ft` band by **%s**",
+              pct(lo), pct(hi)))
+  if (!is.na(lo) && !is.na(hi) && lo > 0) {
+    cat(sprintf(" -- a difference of roughly %.0f-fold between the band where the datum change is arithmetically a no-op and the band where it bites hardest.\n", hi / lo))
+  } else {
+    cat(".\n")
+  }
+}
+```
 
 It also survives both robustness checks. The census run before this study began
 showed each treatment band resting on a single aerodrome, so a band mean alone
 could not separate an elevation effect from a Madrid effect. Removing the
-largest mover leaves +70 of the +109; removing Madrid, the busiest field in the
-band, leaves +110 — very slightly *more*. The result is not one aerodrome's
-result.
+largest mover, and removing the busiest aerodrome in the band, both leave it
+substantially intact.
+
+```{r band-robustness}
+#| echo: false
+#| results: asis
+bb <- read_if("elevation_bands_2025.csv")
+if (!is.null(bb)) {
+  r <- bb[bb$role == "arrivals" & bb$band == "1500-3000", ]
+  if (nrow(r)) {
+    cat(sprintf("Removing the largest mover leaves %s of the %s; removing %s, the busiest field in the band, leaves %s%s. The result is not one aerodrome's result.\n",
+                sgn(r$delta_correct_loo[1]), sgn(r$delta_correct[1]),
+                r$busiest[1], sgn(r$delta_correct_ex_busiest[1]),
+                if (r$delta_correct_ex_busiest[1] > r$delta_correct[1])
+                  " -- very slightly *more*" else ""))
+  }
+}
+```
 
 ```{r departures-control}
 #| echo: false
@@ -1055,12 +1090,39 @@ very likely no longer optimal. @sec-limitations returns to that.
 ### The band that should have gained most, and did not
 
 The `>3000` band is the one where a fixed sea-level ceiling ought to hurt worst,
-and it shows **no change at all: 5 correct arrivals out of 705, on both
-datums.**
+and it shows no change at all.
+
+```{r high-band}
+#| echo: false
+#| results: asis
+bb <- read_if("elevation_bands_2025.csv")
+if (!is.null(bb)) {
+  r <- bb[bb$role == "arrivals" & bb$band == ">3000", ]
+  if (nrow(r)) {
+    cat(sprintf("**%s correct arrivals out of %s, on both datums** -- a delta of %s.\n",
+                num(r$n_correct_field[1]), num(r$n_truth[1]),
+                sgn(r$delta_correct[1])))
+  }
+}
+```
 
 That is not a null result about the datum. It is `trend` failing at those
-aerodromes for a different reason — a recall of 0.7% is not a method being
-mis-tuned, it is a method receiving almost nothing to work with. The likeliest
+aerodromes for a different reason:
+
+```{r high-band-recall}
+#| echo: false
+#| results: asis
+bb <- read_if("elevation_bands_2025.csv")
+if (!is.null(bb)) {
+  r <- bb[bb$role == "arrivals" & bb$band == ">3000", ]
+  if (nrow(r) && r$n_truth[1] > 0) {
+    cat(sprintf("a recall of %s is not a method being mis-tuned, it is a method receiving almost nothing to work with.\n",
+                pct(r$n_correct_field[1] / r$n_truth[1])))
+  }
+}
+```
+
+The likeliest
 cause is ADS-B coverage over the Anatolian plateau, where most of this band's
 traffic sits; an aerodrome the feed barely sees cannot be named on any datum.
 
@@ -1152,8 +1214,24 @@ if (!is.null(h24) && !is.null(f24)) {
 — the same value, the same interior peak, on an independent sample a year
 apart. A ceiling that survives that is tuned, not fitted.
 
-The datum comparison replicates too, including its sign: the best above-field
-cell scores 0.02% below the best sea-level cell on 2025 and 0.25% below on 2024.
+The datum comparison replicates too, including its sign.
+
+```{r datum-replication}
+#| echo: false
+#| results: asis
+gap <- function(h, f) {
+  if (is.null(h) || is.null(f)) return(NA_real_)
+  bh <- max(h$ades_score[h$stage == 1]); bf <- max(f$ades_score[f$stage == 1])
+  (bh - bf) / bf
+}
+g25 <- gap(trend, trend_msl)
+g24 <- gap(t24, t24_msl)
+if (!is.na(g25) && !is.na(g24)) {
+  cat(sprintf("The best above-field cell scores %s the best sea-level cell on 2025 and %s on 2024.\n",
+              sprintf("%.2f%% %s", abs(100 * g25), if (g25 < 0) "below" else "above"),
+              sprintf("%.2f%% %s", abs(100 * g24), if (g24 < 0) "below" else "above")))
+}
+```
 Both are fractions of a percent, and both are diluted for the reason
 @sec-dilution gives. What matters is that the second period tells the same story
 rather than a different one — the finding is the algorithm's and not the
@@ -1176,10 +1254,19 @@ breakdown, and this report does not claim that it does.
 
 ### Why the aggregate was never going to show much {#sec-dilution}
 
-The two curves are also nearly identical in level — 60,952 against 60,857 at the
-shipped geometry, and 61,069 against 61,056 at each datum's own best cell. That
-looks like a change doing nothing, and it is worth being precise about why it is
-not.
+```{r dilution-levels}
+#| echo: false
+#| results: asis
+hs <- read_if("height_sweep_2025.csv"); fs <- read_if("fl_sweep_2025.csv")
+if (!is.null(hs) && !is.null(fs)) {
+  at <- function(d) d[d$radius_nm == 30 & d$margin == 0 & d$penalty_nm == 10, ]
+  h <- at(hs); f <- at(fs)
+  best <- function(d) max(d$ades_score[d$stage == 1])
+  cat(sprintf("The two curves are also nearly identical in level — %s against %s at the shipped geometry, and %s against %s at each datum's own best cell. That looks like a change doing nothing, and it is worth being precise about why it is not.\n",
+              num(h$ades_score[1]), num(f$ades_score[1]),
+              num(best(hs)), num(best(fs))))
+}
+```
 
 ```{r dilution-share}
 #| echo: false
@@ -2538,7 +2625,7 @@ if (is.null(dr)) {
 ```
 
 The one that matters is **`opdi_endpoint_candidates`**, rebuilt after version 6
-published: about 12% smaller, with the fresh-broadcast share roughly tripled —
+published: `r if (!is.null(dr)) { x <- dr[dr$table == "opdi_endpoint_candidates", ]; if (nrow(x)) sprintf("about %.0f%% smaller", 100 * (x$baseline_bytes - x$now_bytes) / x$baseline_bytes) else "smaller" } else "smaller"`, with the fresh-broadcast share roughly tripled —
 the signature of stale-broadcast removal, which the PRC challenge results
 recommend and which `endpoint` reads directly.
 
@@ -2546,8 +2633,9 @@ Two consequences, and they pull in opposite directions.
 
 **The ground truth did *not* move.** `research/reference` grew by more than
 half, but it grew by gaining *other periods*: this study's three-day slice is
-unchanged, at 95,116 reference flights on 2025 and 92,799 on 2024 — the same
-counts version 6 reported. That is confirmed independently by @sec-equivalence,
+unchanged, at `r num(as.numeric(trend$n_ground_truth[1]))` reference flights on
+2025 and `r if (!is.null(t24)) num(as.numeric(t24$n_ground_truth[1])) else "—"`
+on 2024 — the same counts version 6 reported. That is confirmed independently by @sec-equivalence,
 where the sea-level sweep reproduces version 6's cell for cell. So every
 denominator on this page is the one version 6 used, and the internal
 comparisons — which are what this study actually argues from — are sound.
