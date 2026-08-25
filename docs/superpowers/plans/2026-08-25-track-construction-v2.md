@@ -1425,6 +1425,21 @@ and `allow-stale`, plus the `cache()` reader and the knitr-emitted
    State plainly that `osn_tracks` gains no version column, so a row does not
    say which segmentation produced it and the release date is the only
    discriminator.
+
+   **Three consumer-visible changes must appear here explicitly, not only in
+   commit messages** — a reader of this page is the release's audience:
+
+   - `FLT_ID` is now the track's *dominant* callsign, not the lexicographically
+     smallest. Under legacy segmentation the two agree on every track, so
+     historical data is unaffected.
+   - **Unlabelled overflights now carry `""` where they carried NULL.** The
+     column previously used `""` for unlabelled detected flights and NULL for
+     unlabelled overflights — two spellings of "no callsign" in one column, so
+     `WHERE FLT_ID IS NULL` and `WHERE FLT_ID = ''` answered the same question
+     differently. A consumer filtering overflights on `IS NULL` now silently
+     gets nothing back. Say so in those words.
+   - Step 04 emits one event per zone crossing rather than one per callsign
+     broadcast during it (Task 2b). Under legacy the two were identical.
 4. **What the pipeline does to a state vector before segmentation sees it** —
    the same steps 01→04 diagram as V1 §5, so V2 stands alone.
 5. **How a segmentation is scored** `{#sec-metrics}` — notation and the four
