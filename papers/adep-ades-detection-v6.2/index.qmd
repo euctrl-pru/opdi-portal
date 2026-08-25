@@ -49,6 +49,7 @@ if (file.exists(regen) && MODE != "skip") {
 #| include: false
 library(knitr)
 library(ggplot2)
+library(grid)
 
 # Read-only. Every figure and table on this page comes from a committed CSV
 # under data/. Nothing here reads S3, a database or a Spark cluster.
@@ -73,6 +74,11 @@ cache <- function(f) {
 # published sweep, cell for cell.
 trend      <- cache("height_sweep_2025.csv")
 trend_msl  <- cache("fl_sweep_2025.csv")
+# The second period, loaded here rather than where it is first
+# plotted: chunks run in document order, and the datum chapter
+# above the stability section needs these too.
+t24        <- cache("height_sweep_2024.csv")
+t24_msl    <- cache("fl_sweep_2024.csv")
 grid   <- cache("sweep_radius_height_2025.csv")
 pen    <- cache("sweep_penalty_2025.csv")
 cone   <- cache("sweep_cone_2025.csv")
@@ -197,25 +203,94 @@ nearest_cap <- function(caps, datum) {
   list(cap = caps[which.min(abs(caps - want))], exact = FALSE, want = want)
 }
 
-# Emit a mermaid diagram, but only into an HTML render.
+# A vertical flow diagram, drawn with grid so it renders through whatever
+# device Quarto has selected -- HTML and PDF alike, with no browser.
 #
-# Not `::: {.content-visible when-format="html"}`. That hides the block from the
-# PDF *after* Quarto has already tried to rasterise it, and rasterising mermaid
-# needs headless Chromium -- which does not start in this environment. The PDF
-# render then waits on it forever: no error, no output, just a stalled process
-# and a trail of defunct chrome-headless children.
-#
-# Writing the fence from knitr means that in a PDF render the mermaid block
-# never exists at all, so nothing tries to draw it. Each diagram supplies a
-# table alongside, which is what the PDF shows instead -- the same two-form
-# arrangement version 7 uses, made robust to a broken Chromium.
-mermaid <- function(label, caption, lines) {
-  if (!knitr::is_html_output()) return(invisible(NULL))
-  cat("```{mermaid}\n")
-  cat("%%| label: ", label, "\n", sep = "")
-  cat('%%| fig-cap: "', caption, '"\n', sep = "")
-  cat(paste(lines, collapse = "\n"), "\n", sep = "")
-  cat("```\n")
+# Rasterising mermaid needs a headless Chromium that does not start in this
+# environment, so the mermaid versions of these diagrams could only ever appear
+# in HTML. All four are the same shape: a chain of labelled steps, one of them
+# emphasised, ending in a decision; the endpoint pair has a second decision on
+# the failing branch. One helper serves all four -- four hand-placed drawings
+# would not have been worth the gain over the step tables they replace.
+
+
+.fd_lines <- function(s) paste(strsplit(s, "<br>")[[1]], collapse = "\n")
+
+#' @param steps      character vector, one per box. "A<br>B" splits to two lines.
+#' @param emphasis   index of the step drawn heavy (the datum-sensitive one).
+#' @param decision   the question in the first diamond.
+#' @param yes,no     outcomes of that decision. `no` may instead be a list
+#'                   describing a second decision: list(q=, yes=, no=).
+flow_diagram <- function(steps, emphasis = NA, decision = NULL,
+                         yes = NULL, no = NULL) {
+  nested <- is.list(no)
+  rows <- length(steps) + (!is.null(decision)) + nested + 1L
+
+  ytop <- 0.975; ybot <- 0.025
+  h <- (ytop - ybot) / rows
+  bh <- h * 0.58
+  yc <- function(i) ytop - (i - 0.5) * h
+
+  box <- function(x, y, label, heavy = FALSE, w = 0.60, cex = 0.70) {
+    grid.roundrect(x = x, y = y, width = w, height = bh,
+                   gp = gpar(lwd = if (heavy) 2.4 else 1,
+                             col = if (heavy) "black" else "grey35",
+                             fill = if (heavy) "grey92" else "white"))
+    grid.text(.fd_lines(label), x = x, y = y,
+              gp = gpar(cex = cex, fontface = if (heavy) "bold" else "plain"))
+  }
+
+  diamond <- function(x, y, label, w = 0.24) {
+    grid.polygon(x = c(x, x + w, x, x - w),
+                 y = c(y + bh * 0.62, y, y - bh * 0.62, y),
+                 gp = gpar(col = "grey35", fill = "white"))
+    grid.text(.fd_lines(label), x = x, y = y, gp = gpar(cex = 0.62))
+  }
+
+  arr <- function(x1, y1, x2, y2, label = NULL) {
+    grid.lines(x = c(x1, x2), y = c(y1, y2),
+               arrow = arrow(length = unit(2, "mm"), type = "closed"),
+               gp = gpar(fill = "black", col = "grey35"))
+    if (!is.null(label))
+      grid.text(label, x = (x1 + x2) / 2 + 0.035, y = (y1 + y2) / 2,
+                gp = gpar(cex = 0.58, col = "grey30"))
+  }
+
+  # --- the chain ------------------------------------------------------------
+  for (i in seq_along(steps)) {
+    box(0.5, yc(i), steps[i], heavy = !is.na(emphasis) && i == emphasis)
+    if (i > 1) arr(0.5, yc(i - 1) - bh / 2, 0.5, yc(i) + bh / 2)
+  }
+  if (is.null(decision)) return(invisible(NULL))
+
+  # --- first decision -------------------------------------------------------
+  d1 <- length(steps) + 1L
+  arr(0.5, yc(d1 - 1) - bh / 2, 0.5, yc(d1) + bh * 0.62)
+  diamond(0.5, yc(d1), decision)
+
+  if (!nested) {
+    ty <- yc(d1 + 1L)
+    arr(0.5 - 0.10, yc(d1) - bh * 0.5, 0.26, ty + bh / 2, "no")
+    box(0.26, ty, no, w = 0.40, cex = 0.68)
+    arr(0.5 + 0.10, yc(d1) - bh * 0.5, 0.74, ty + bh / 2, "yes")
+    box(0.74, ty, yes, w = 0.40, cex = 0.68)
+    return(invisible(NULL))
+  }
+
+  # --- nested decision on the failing branch --------------------------------
+  d2 <- d1 + 1L
+  ty <- yc(d2 + 1L)
+  # yes from the first decision goes straight to its outcome, skipping a row.
+  arr(0.5 + 0.12, yc(d1) - bh * 0.4, 0.76, yc(d2) + bh / 2, "yes")
+  box(0.76, yc(d2), yes, w = 0.40, cex = 0.68)
+  # no descends into the second question.
+  arr(0.5 - 0.12, yc(d1) - bh * 0.4, 0.30, yc(d2) + bh * 0.62, "no")
+  diamond(0.30, yc(d2), no$q, w = 0.22)
+  arr(0.30 - 0.08, yc(d2) - bh * 0.5, 0.16, ty + bh / 2, "no")
+  box(0.16, ty, no$no, w = 0.28, cex = 0.66)
+  arr(0.30 + 0.08, yc(d2) - bh * 0.5, 0.50, ty + bh / 2, "yes")
+  box(0.50, ty, no$yes, w = 0.28, cex = 0.66)
+  invisible(NULL)
 }
 ```
 
@@ -276,7 +351,6 @@ not the aggregate: it is that the cut now means the same thing at every
 aerodrome, and that @sec-bands shows the gain landing precisely where elevation
 predicts it should.
 
-::: {.callout-note}
 ## What this is about {#sec-orientation}
 
 If you have not met this project before, this section is the whole of what you
@@ -353,6 +427,7 @@ Terms this report uses without further explanation.
 | **Abstention** | The method declining to name an aerodrome. Distinct from being wrong, and distinct from out-of-area. |
 | **Ground truth** | EUROCONTROL Network Manager flight data, used as the reference. Not published with this report; see @sec-provenance. |
 
+::: {.callout-note}
 ## Reading this page
 Every number below is an inline expression over a CSV in `data/`, and every one
 of those CSVs is produced by a job in `benchmarks/regenerate_v62.py` — which
@@ -553,42 +628,24 @@ in version 6; before it, `trend` ranked on raw distance alone.
 
 ### `trend`, arrivals
 
-```{r fig-trend-arrival-src}
+```{r fig-trend-arrival}
 #| echo: false
-#| results: asis
-mermaid(
-  "fig-trend-arrival",
-  "`trend` naming an arrival aerodrome (ADES). S6 is where the two altitude datums differ.",
-  c(
-    'flowchart TD',
-    '    T[("S1 · track<br/>state vectors")] --> SM["S2 · smooth baro_altitude<br/><i>centred 5-sample mean</i>"]',
-    '    SM --> PRE["S3 · pre-filter<br/><i>cap + highest field elevation</i>"]',
-    '    PRE --> J{{"S4 · join H3 aerodrome zones<br/><i>res 7, then exact distance</i>"}}',
-    '    J --> EL["S5 · attach field elevation<br/><i>OurAirports; unknown &rarr; 0</i>"]',
-    '    EL --> CUT["<b>S6 · altitude cut</b><br/><b><i>height above field &le; cap</i></b>"]',
-    '    CUT --> V["S7 · vote per sample<br/><i>sign of smoothed change</i>"]',
-    '    V --> M{"S8 · descending votes<br/>lead by the margin?"}',
-    '    M -->|yes| R["E3 · rank survivors<br/><i>distance + scheduled penalty</i>"]',
-    '    M -->|no| U(["undetermined"])',
-    '    R --> A(["ADES = nearest survivor"])'
-  )
-)
+#| fig-cap: "`trend` naming an arrival aerodrome (ADES). S6 is where the two altitude datums differ."
+#| fig-width: 6.5
+#| fig-height: 8.2
+flow_diagram(
+  steps = c("S1 · track<br>state vectors",
+            "S2 · smooth baro_altitude<br>centred 5-sample mean",
+            "S3 · pre-filter<br>cap + highest field elevation",
+            "S4 · join H3 aerodrome zones<br>res 7, then exact distance",
+            "S5 · attach field elevation<br>OurAirports; unknown -> 0",
+            "S6 · altitude cut<br>height above field <= cap",
+            "S7 · vote per sample<br>sign of smoothed change"),
+  emphasis = 6,
+  decision = "S8 · descending votes<br>lead by the margin?",
+  yes = "E3 · rank survivors<br>ADES = nearest",
+  no  = "undetermined")
 ```
-
-:::: {.content-visible when-format="pdf"}
-| Step | What it does |
-|---|---|
-| S1 | Read the track's state vectors |
-| S2 | Smooth `baro_altitude` over a centred 5-sample window, before any cut |
-| S3 | Pre-filter on pressure altitude at the cap plus the highest field elevation |
-| S4 | Join the H3 aerodrome zones at resolution 7, then cut on exact distance |
-| S5 | Attach the candidate aerodrome's field elevation; unknown becomes zero |
-| **S6** | **Cut on height above field elevation** — the step measured against field elevation |
-| S7 | Each surviving sample votes on the sign of its smoothed altitude change |
-| S8 | If descending votes lead by the margin the track is arriving; else *undetermined* |
-| E3 | Rank survivors on distance plus the scheduled-service penalty; nearest becomes `ADES` |
-
-::::
 
 ### `trend`, departures
 
@@ -597,34 +654,24 @@ vote differs. `trend` has **no out-of-area concept** — it names an aerodrome o
 says nothing — which is why the shipped configuration does not use it for
 departures.
 
-```{r fig-trend-departure-src}
+```{r fig-trend-departure}
 #| echo: false
-#| results: asis
-mermaid(
-  "fig-trend-departure",
-  "`trend` naming a departure aerodrome (ADEP). Identical to the arrival case except at S8.",
-  c(
-    'flowchart TD',
-    '    T[("S1 · track<br/>state vectors")] --> SM["S2 · smooth baro_altitude<br/><i>centred 5-sample mean</i>"]',
-    '    SM --> PRE["S3 · pre-filter<br/><i>cap + highest field elevation</i>"]',
-    '    PRE --> J{{"S4 · join H3 aerodrome zones<br/><i>res 7, then exact distance</i>"}}',
-    '    J --> EL["S5 · attach field elevation<br/><i>OurAirports; unknown &rarr; 0</i>"]',
-    '    EL --> CUT["<b>S6 · altitude cut</b><br/><b><i>height above field &le; cap</i></b>"]',
-    '    CUT --> V["S7 · vote per sample<br/><i>sign of smoothed change</i>"]',
-    '    V --> M{"S8 · climbing votes<br/>lead by the margin?"}',
-    '    M -->|yes| R["E3 · rank survivors<br/><i>distance + scheduled penalty</i>"]',
-    '    M -->|no| U(["undetermined<br/><i>never out-of-area</i>"])',
-    '    R --> A(["ADEP = nearest survivor"])'
-  )
-)
+#| fig-cap: "`trend` naming a departure aerodrome (ADEP). The same machinery; only the winning vote direction differs."
+#| fig-width: 6.5
+#| fig-height: 8.2
+flow_diagram(
+  steps = c("S1 · track<br>state vectors",
+            "S2 · smooth baro_altitude<br>centred 5-sample mean",
+            "S3 · pre-filter<br>cap + highest field elevation",
+            "S4 · join H3 aerodrome zones<br>res 7, then exact distance",
+            "S5 · attach field elevation<br>OurAirports; unknown -> 0",
+            "S6 · altitude cut<br>height above field <= cap",
+            "S7 · vote per sample<br>sign of smoothed change"),
+  emphasis = 6,
+  decision = "S8 · climbing votes<br>lead by the margin?",
+  yes = "E3 · rank survivors<br>ADEP = nearest",
+  no  = "undetermined<br>never out-of-area")
 ```
-
-:::: {.content-visible when-format="pdf"}
-Identical to the arrival table above, with one difference: at **S8** the track
-is a departure when *climbing* votes lead by the margin. Failing that, `trend`
-returns *undetermined* — it has no out-of-area answer available to it.
-
-::::
 
 ### `nearest` — the *traffic* library's rule
 
@@ -648,71 +695,41 @@ somewhere outside the observed area, and it says so.
 
 ### `endpoint`, departures
 
-```{r fig-endpoint-departure-src}
+```{r fig-endpoint-departure}
 #| echo: false
-#| results: asis
-mermaid(
-  "fig-endpoint-departure",
-  "`endpoint` naming a departure aerodrome (ADEP). One fix, two gates, three possible answers.",
-  c(
-    'flowchart TD',
-    '    T[("S1 · track<br/>state vectors")] --> E1["E1 · take the FIRST fix"]',
-    '    E1 --> J{{"S4 · candidate aerodromes<br/><i>within the radius</i>"}}',
-    '    J --> EL["S5 · attach field elevation<br/><i>OurAirports</i>"]',
-    '    EL --> G{"E2 · within radius AND<br/>(on ground OR<br/><b>height above field &le; gate</b>)?"}',
-    '    G -->|yes| R["E3 · rank survivors<br/><i>distance + scheduled penalty</i>"]',
-    '    G -->|no| B{"E4 · fix at the edge<br/>of the observed area?"}',
-    '    R --> A(["ADEP = nearest survivor"])',
-    '    B -->|yes| OOA(["out-of-area"])',
-    '    B -->|no| U(["undetermined"])'
-  )
-)
+#| fig-cap: "`endpoint` naming a departure aerodrome (ADEP). E2 already measured height above field, and still does."
+#| fig-width: 7
+#| fig-height: 6.5
+flow_diagram(
+  steps = c("S1 · track state vectors",
+            "E1 · take the FIRST fix",
+            "S4 · candidate aerodromes<br>within the radius",
+            "S5 · attach field elevation<br>OurAirports"),
+  emphasis = 4,
+  decision = "E2 · within radius AND<br>(on ground OR<br>height above field <= gate)?",
+  yes = "E3 · rank survivors<br>ADEP = nearest",
+  no  = list(q = "E4 · fix at the edge<br>of the observed area?",
+             yes = "out-of-area", no = "undetermined"))
 ```
-
-:::: {.content-visible when-format="pdf"}
-| Step | What it does |
-|---|---|
-| S1 | Read the track's state vectors |
-| E1 | Take the **first** fix — one sample, not many |
-| S4 | Find candidate aerodromes within the radius |
-| S5 | Attach each candidate's field elevation |
-| **E2** | Gate: within the radius **and** either on the ground or **no higher than the gate above field elevation** |
-| E3 | Passing: rank on distance plus the scheduled-service penalty; nearest becomes `ADEP` |
-| E4 | Failing, with the fix at the edge of the observed area: **out-of-area**. Otherwise *undetermined* |
-
-Precedence is aerodrome first, border second — the other order labelled Ponta
-Delgada's departures out-of-area with the aircraft still on the runway.
-
-::::
 
 ### `endpoint`, arrivals
 
-```{r fig-endpoint-arrival-src}
+```{r fig-endpoint-arrival}
 #| echo: false
-#| results: asis
-mermaid(
-  "fig-endpoint-arrival",
-  "`endpoint` naming an arrival aerodrome (ADES). The last fix rather than the first.",
-  c(
-    'flowchart TD',
-    '    T[("S1 · track<br/>state vectors")] --> E1["E1 · take the LAST fix"]',
-    '    E1 --> J{{"S4 · candidate aerodromes<br/><i>within the radius</i>"}}',
-    '    J --> EL["S5 · attach field elevation<br/><i>OurAirports</i>"]',
-    '    EL --> G{"E2 · within radius AND<br/>(on ground OR<br/><b>height above field &le; gate</b>)?"}',
-    '    G -->|yes| R["E3 · rank survivors<br/><i>distance + scheduled penalty</i>"]',
-    '    G -->|no| B{"E4 · fix at the edge<br/>of the observed area?"}',
-    '    R --> A(["ADES = nearest survivor"])',
-    '    B -->|yes| OOA(["out-of-area"])',
-    '    B -->|no| U(["undetermined"])'
-  )
-)
+#| fig-cap: "`endpoint` naming an arrival aerodrome (ADES). Identical to the departure flow but reading the track's last fix."
+#| fig-width: 7
+#| fig-height: 6.5
+flow_diagram(
+  steps = c("S1 · track state vectors",
+            "E1 · take the LAST fix",
+            "S4 · candidate aerodromes<br>within the radius",
+            "S5 · attach field elevation<br>OurAirports"),
+  emphasis = 4,
+  decision = "E2 · within radius AND<br>(on ground OR<br>height above field <= gate)?",
+  yes = "E3 · rank survivors<br>ADES = nearest",
+  no  = list(q = "E4 · fix at the edge<br>of the observed area?",
+             yes = "out-of-area", no = "undetermined"))
 ```
-
-:::: {.content-visible when-format="pdf"}
-Identical to the departure table above, with one difference: at **E1** the
-method reads the track's **last** fix rather than its first.
-
-::::
 
 ### Where the two datums part company
 
@@ -2242,8 +2259,6 @@ already exist from earlier versions of this study.
 ```{r stability}
 #| echo: false
 #| results: asis
-t24 <- cache("height_sweep_2024.csv")
-t24_msl <- cache("fl_sweep_2024.csv")
 if (is.null(t24)) {
   cat("*The second-period sweep has not been staged yet.*\n")
 } else {
@@ -2788,8 +2803,6 @@ not this study's question.
 It is worth stating plainly because that band is where an elevation-aware cut
 should have helped most, and the fact that it did not is evidence about
 coverage rather than evidence against the datum — @sec-bands.
-
-# Appendices
 
 ## Appendix A — The busiest 100 aerodromes {#sec-top100}
 
