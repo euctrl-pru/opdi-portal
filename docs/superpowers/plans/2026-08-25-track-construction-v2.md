@@ -956,17 +956,22 @@ def containment_census(gt, window_start, window_end) -> dict:
     This does -- how many flights go, and how much of each one was actually
     visible -- so the paper can state the cost rather than assert there is none.
     """
-    inside = (F.col("t_start") >= F.lit(window_start)) & (
-        F.col("t_end") <= F.lit(window_end))
-    clipped_start = F.col("t_start") < F.lit(window_start)
-    clipped_end = F.col("t_end") > F.lit(window_end)
+    # t_off / t_land, NOT t_start / t_end. `load_flight_intervals` returns the
+    # ground-truth *flight* interval as (t_off, t_land, t_source, day);
+    # t_start/t_end are the *track* extents from `track_score.track_extents`,
+    # a different frame entirely. Mixing the two silently compares a track
+    # against a window it was never measured against.
+    inside = (F.col("t_off") >= F.lit(window_start)) & (
+        F.col("t_land") <= F.lit(window_end))
+    clipped_start = F.col("t_off") < F.lit(window_start)
+    clipped_end = F.col("t_land") > F.lit(window_end)
 
     observed = (
-        F.least(F.col("t_end").cast("long"), F.lit(window_end).cast("long"))
-        - F.greatest(F.col("t_start").cast("long"),
+        F.least(F.col("t_land").cast("long"), F.lit(window_end).cast("long"))
+        - F.greatest(F.col("t_off").cast("long"),
                      F.lit(window_start).cast("long"))
     )
-    total = F.col("t_end").cast("long") - F.col("t_start").cast("long")
+    total = F.col("t_land").cast("long") - F.col("t_off").cast("long")
 
     agg = gt.select(
         F.count(F.lit(1)).alias("n"),
@@ -993,29 +998,47 @@ def containment_census(gt, window_start, window_end) -> dict:
 
 ```python
 def boundary_histogram(matched, extents, bin_seconds: int = 30,
-                       span_seconds: int = 900):
+                       span_seconds: int = 1800):
     """The signed boundary offsets as a distribution, not three percentiles.
 
     p10/p50/p90 cannot distinguish a symmetric spread from a bimodal one, and
-    the two mean different things: a spread is noise to be tuned against, two
-    modes are two populations, one of which is probably a different failure
-    wearing the same number.
+    the two mean different things: a spread is noise to tune against, two modes
+    are two populations, one of which is probably a different failure wearing
+    the same number. ``boundary_error``'s own docstring makes exactly this
+    argument about ``abs()``; this is the same argument one level further out.
 
-    Sign convention follows :func:`track_score.boundary_error` -- a negative
-    ``off`` means the track starts *before* take-off. Bins are clamped to
-    +/- ``span_seconds`` so the tails do not stretch the axis into
-    uselessness; the clamped counts stay in the end bins rather than being
-    dropped, so the histogram still sums to the sample.
+    Sign convention is ``boundary_error``'s, unchanged: ``off = trk_start -
+    t_off``, so **negative ``off`` means the track starts before take-off**, and
+    ``land = trk_end - t_land``, so **positive ``land`` means it ends after
+    landing**. Both of those are the normal case -- an OPDI track includes
+    ground movement by design, while ground truth's interval is airborne only.
+    A histogram that loses this convention inverts the reader's diagnosis.
+
+    Restricted to ``t_source == "apdf"``, as ``boundary_error`` is.
+
+    Bins are clamped to +/- ``span_seconds`` so the tails do not stretch the
+    axis into uselessness. Clamped counts stay in the end bins rather than
+    being dropped, so the histogram sums to the sample and an end bin reads
+    honestly as "this many, at least this far out".
     """
-    ...  # implementer: reuse boundary_error's join, then bucket the signed
-         # offsets with F.floor(off / bin_seconds) * bin_seconds, clamped.
+    ...  # implementer: see the note below.
 ```
 
-> **Implementer note:** `track_score.boundary_error` at
-> `benchmarks/track_score.py:173` already computes the signed offsets and the
-> `extents` join. Factor that join into a helper both functions call rather than
-> duplicating it — a second copy will drift from the first, and the sign
-> convention is exactly the thing that must not drift.
+> **Implementer note — do this as a refactor, not a copy.**
+> `benchmarks/track_score.py:173` `boundary_error` already computes both signed
+> offsets and the `extents` join. Extract that shared part into a helper
+> returning a per-flight frame with the signed `off` and `land` in seconds, have
+> `boundary_error` call it, and build the histogram from the same helper.
+>
+> **`boundary_error`'s existing return values must not change** — V1's published
+> tables quote `off_err_p50_s = 109` and `land_err_p50_s = 374`, and the four
+> absolute fields are documented as kept unchanged so already-published runs
+> stay comparable. Run the existing `track_score` tests to prove the refactor is
+> behaviour-preserving before adding the histogram.
+>
+> Span is 1800 s rather than 900: `land_err_p50_s` is 374 s and that is a
+> *median*, so a 900 s span would clamp a large share of the arrival side into
+> the end bin and hide the very shape the figure exists to show.
 
 - [ ] **Step 3: Declare both jobs in the V1 regeneration spec**
 
