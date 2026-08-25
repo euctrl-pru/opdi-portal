@@ -1641,7 +1641,12 @@ Three edits, not one.
    released month must confirm the tracks were built with `legacy`, because
    nothing will check it for them.
 
-3. Add the **callsign-resolution invariant** itself, which is now load-bearing
+3. `docs/pipeline_overview.rst:56-58` still describes `track_id` assignment
+   purely as the legacy SHA-256/gap-threshold algorithm. It pre-dates this work
+   and already sits in `CLAUDE.md`'s "Known inconsistencies", but it is a place
+   a reader would plausibly meet the change, so correct it here.
+
+4. Add the **callsign-resolution invariant** itself, which is now load-bearing
    across three modules: `flight_id` is used as a grouping and join key
    downstream and is never aggregated, so it must carry exactly one value per
    `track_id`. `resolve_flight_id` establishes that at the point the track table
