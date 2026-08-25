@@ -238,7 +238,9 @@ callsign itself, so the result does not depend on partitioning.
 - Test: `$OPDI/tests/test_flights_labelling.py`
 
 **Interfaces:**
-- Produces: the `_FLT_ID` column is the dominant non-blank callsign of the
+- Produces: `dominant_flight_id(df, track_col)` -> one-row-per-track label frame;
+  `resolve_flight_id(sv, track_col)` -> the same frame with `flight_id` replaced
+  by the track dominant value. The `_FLT_ID` column is the dominant non-blank callsign of the
   track, or `""` when the track never broadcast one.
 - `FLIGHT_LIST_VERSION` becomes `"v5.0.0"`.
 
@@ -329,6 +331,68 @@ def test_two_tracks_are_labelled_independently(spark):
         "track_id string, flight_id string",
     )
     assert _label(df) == {"t1": "SAS123", "t2": "KLM456"}
+
+
+# --- resolve_flight_id: the invariant the rest of the module depends on ------
+
+def test_resolution_gives_every_sample_of_a_track_one_callsign(spark):
+    """flight_id is a grouping key at ten sites and is never aggregated.
+
+    One value per track is the invariant those sites were written on. This is
+    the test that says so.
+    """
+    from opdi.pipeline.flights import resolve_flight_id
+
+    df = spark.createDataFrame(
+        [("t1", "SAS123"), ("t1", ""), ("t1", "SAS123"), ("t1", "")],
+        "track_id string, flight_id string",
+    )
+    out = resolve_flight_id(df)
+    assert {r["flight_id"] for r in out.collect()} == {"SAS123"}
+
+
+def test_resolution_does_not_add_or_drop_samples(spark):
+    """A left join that fans out is the bug wearing the fix's clothes.
+
+    The failure this whole task addresses is a track becoming several rows at a
+    grouping key. A resolution step that duplicates rows would cause exactly
+    that, one stage earlier, and every downstream count would be wrong in a way
+    no label assertion catches.
+    """
+    from opdi.pipeline.flights import resolve_flight_id
+
+    df = spark.createDataFrame(
+        [("t1", "SAS123"), ("t1", ""), ("t2", "KLM456"), ("t2", "KLM456"),
+         ("t3", ""), ("t3", "")],
+        "track_id string, flight_id string",
+    )
+    assert resolve_flight_id(df).count() == df.count() == 6
+
+
+def test_resolution_leaves_an_unlabelled_track_blank_not_null(spark):
+    """Downstream code fillna's to "" and compares against it. NULL would slip
+    past those comparisons and reappear as a different bug."""
+    from opdi.pipeline.flights import resolve_flight_id
+
+    df = spark.createDataFrame(
+        [("t1", ""), ("t1", "")], "track_id string, flight_id string")
+    assert [r["flight_id"] for r in resolve_flight_id(df).collect()] == ["", ""]
+
+
+def test_resolution_is_a_no_op_on_a_legacy_style_track(spark):
+    """Legacy tracks are callsign-homogeneous by construction.
+
+    If this fails, the change is not backward compatible and the version bump
+    describes a regression rather than a capability.
+    """
+    from opdi.pipeline.flights import resolve_flight_id
+
+    df = spark.createDataFrame(
+        [("t1", "SAS123"), ("t1", "SAS123")],
+        "track_id string, flight_id string",
+    )
+    out = [r["flight_id"] for r in resolve_flight_id(df).collect()]
+    assert out == ["SAS123", "SAS123"]
 ```
 
 - [ ] **Step 3: Run them to confirm they fail**
@@ -342,25 +406,40 @@ Expected: `ImportError: cannot import name 'dominant_flight_id'`.
 
 - [ ] **Step 4: Implement it**
 
-> **Controller ruling R1 — read before writing any code.** The aggregate at
-> line 441 sits inside a `groupBy` whose input has *already been filtered* to
-> the first and last sample of each track (`flights.py:428`,
-> `(_rn == 1) | (_rr == 1)`). A mode computed there would range over at most two
-> rows and its ties would fall back to the alphabet — reproducing the blank-first
-> bug in a form that passes any test written over a synthetic full frame and
-> does nothing in production.
+> **Controller rulings R1/R2/R6 — read before writing any code. These change
+> the shape of the fix from what the section above describes.**
 >
-> **Compute the dominant callsign over the full `sv` frame**, which is in scope
-> at line 422 before the filter, as a separate per-`track_id` frame, and join it
-> into the result. The aggregate at 441 then takes the joined value (or is
-> dropped in favour of it). The five tests below are written against a full
-> frame and remain the contract.
+> The problem is not one aggregate. `flights.py` reads the track table at
+> **three** places, each doing the identical rename:
 >
-> **Controller ruling R2.** `_FLT_ID` is set at line 441; line 1178 separately
-> does `.withColumnRenamed("flight_id", "FLT_ID")`. Before implementing,
-> establish every path by which a flight acquires its callsign label, fix all of
-> them consistently, and **state in your report which sites you found and what
-> you did to each**. If only one matters, say why.
+> | Method | Line | Reads |
+> |---|---|---|
+> | `_track_border_flags` | ~422 | trend out-of-area flags |
+> | `build_endpoint_candidates` | ~534 | **the shipped departure path** |
+> | the airport-proximity / trend path | ~621 | arrival trend |
+>
+> Downstream, `flight_id` is used as a **grouping or join key** — never
+> aggregated — at lines 828, 839, 857, 873, 982, 1003, 1029, 1043, 1077 and
+> 1168. The module is written on the invariant **one `flight_id` per
+> `track_id`**, which legacy guarantees by construction because callsign is in
+> the track's group key.
+>
+> `standard` breaks that invariant. A track carrying several callsigns *fans out
+> into multiple rows* at every one of those keys — a larger failure than the
+> blank label, and the real reason coverage collapses.
+>
+> **Therefore: resolve `flight_id` to the track's dominant non-blank value at all
+> three entry points, immediately after the rename.** Every downstream grouping
+> then sees the invariant it was written for, and `F.min("flight_id")` at line
+> 441 becomes a minimum over identical values (replace it anyway, for clarity).
+>
+> Resolve on the **unfiltered** frame — `_track_border_flags` and
+> `build_endpoint_candidates` both filter to `(_rn == 1) | (_rr == 1)` a few
+> lines later, and a mode over two rows ties back to the alphabet, reproducing
+> the original bug in a subtler form.
+>
+> **Report which sites you changed and what you verified about each.** If you
+> conclude a site does not need it, say why.
 
 Add to `$OPDI/src/opdi/pipeline/flights.py`, near the other module-level
 helpers:
@@ -407,14 +486,53 @@ def dominant_flight_id():
 ```
 
 with the signature `def dominant_flight_id(df, track_col="track_id"):` — it
-returns a **frame**, one row per track, not an aggregate expression. Join it into
-`_track_border_flags`'s result on `track_id` and take
-`F.coalesce("_dominant_flight_id", F.lit(""))` as `_FLT_ID`, replacing
-`F.min("flight_id").alias("_FLT_ID")`. The left join keeps tracks that never
-broadcast a callsign; `coalesce` gives them `""` rather than NULL.
+returns a **frame**, one row per track, not an aggregate expression. `Window` is
+already imported in this module.
 
-Build `counts` from the **unfiltered** `sv`, before the `_rn`/`_rr` filter — see
-ruling R1. `Window` is already imported in this module.
+Then add a second helper that applies it, and call *that* at all three entry
+points:
+
+```python
+def resolve_flight_id(sv, track_col: str = "track_id"):
+    """Give every sample of a track the one callsign that track flew.
+
+    The rest of this module uses ``flight_id`` as a grouping and join key -- at
+    ten separate sites -- and never aggregates it. That is only safe while every
+    track carries exactly one value, which legacy segmentation guarantees by
+    construction because callsign is part of the track's group key.
+
+    A segmentation that groups on the airframe alone breaks the guarantee, and
+    then a track carrying two callsigns fans out into two rows at every one of
+    those keys. Resolving the column here, at the point the track table is read,
+    restores the invariant the module was written on instead of patching each
+    site that depends on it.
+
+    A track that never broadcast a callsign keeps ``""``: an unlabelled flight,
+    not an absent one. Dropping it would shrink the denominator of every
+    downstream rate.
+    """
+    labels = dominant_flight_id(sv, track_col)
+    return (
+        sv.join(labels, on=track_col, how="left")
+        .withColumn(
+            "flight_id",
+            F.coalesce(F.col("_dominant_flight_id"), F.lit("")),
+        )
+        .drop("_dominant_flight_id")
+    )
+```
+
+Call it immediately after the rename at each of the three sites, e.g.:
+
+```python
+        sv = sv.withColumnRenamed("callsign", "flight_id").fillna({"flight_id": ""})
+        sv = resolve_flight_id(sv)
+```
+
+and replace `F.min("flight_id").alias("_FLT_ID")` at line 441 with
+`F.first("flight_id").alias("_FLT_ID")` — after resolution every value in the
+group is identical, so the choice of aggregate no longer carries meaning, and
+`first` says that where `min` implied a decision.
 
 > **Implementer note:** this mirrors `benchmarks/flight_list_v7.py:167`
 > (`dominant_callsign`), which is the same operation on the benchmark side and
@@ -445,7 +563,7 @@ cd /home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v
 .venv310/bin/python -m pytest tests/ -q
 ```
 
-Expected: 6 passed, then the whole suite green (260+ as of 2026-08-23).
+Expected: 10 passed, then the whole suite green (260+ as of 2026-08-23).
 
 - [ ] **Step 7: Commit**
 
