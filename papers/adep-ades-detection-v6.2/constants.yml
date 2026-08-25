@@ -1,0 +1,136 @@
+# Numbers that appear in this paper's prose and are NOT results.
+#
+# Checked by `benchmarks/check_report_numbers.py`. Anything numeric in the
+# prose must be either computed by an inline `r` expression or listed here.
+#
+# Every entry must say WHY. A bare list of permitted numbers becomes a place to
+# silence the checker; a `why` that has to be written makes silencing it
+# visible in review. The test for an entry belonging here is simple: **would
+# this number change if the campaign were re-run on different data?** If yes it
+# is a result and belongs in an inline expression, not in this file.
+
+# --- the altitude cut, and the arithmetic that defines it -------------------
+
+- value: "6,100"
+  why: >
+    A definition, not a measurement. `flight_level` is an integer cast, so
+    `flight_level <= 60` admits everything below 6,100 ft. The number follows
+    from the cut rather than from the data, and is what makes the datum
+    comparison a one-variable change.
+
+- value: "6,000"
+  why: >
+    `trend_max_height_ft`, the shipped ceiling. A configured value, and it is
+    checked against the code by `check_main_parity.py` rather than measured
+    here.
+
+- value: "100"
+  why: >
+    The distance between the two ceilings above, 6,100 - 6,000. Arithmetic on
+    two configured values.
+
+# --- grid definitions --------------------------------------------------------
+#
+# These describe which cells were run, not what any of them scored. Changing
+# one changes the experiment; it is not something the experiment reports.
+
+- value: "3,000"
+  why: >
+    Also the lowest ceiling in the pipeline grid, and the upper edge of the
+    `1500-3000` elevation band. Both are definitions of where lines were drawn.
+
+- value: "4,000"
+  why: "A ceiling in the pipeline grid."
+
+- value: "8,000"
+  why: >
+    A ceiling in the pipeline grid, and separately the altitude at which ADS-B
+    reception is described as dying in the approach-cone discussion.
+
+- value: "10,000"
+  why: "The highest ceiling in the pipeline grid."
+
+- value: "20"
+  why: >
+    A detection radius in NM, swept by both grids and one of the two the
+    pipeline grid runs.
+
+- value: "30"
+  why: >
+    A detection radius in NM: the legacy value, the other cell of the pipeline
+    grid, and `trend_radius_nm` as shipped.
+
+- value: "10"
+  why: >
+    `trend_sched_penalty_nm` and `endpoint_sched_penalty_nm` in NM. A
+    configured value.
+
+- value: "15,000"
+  why: "`endpoint_height_ft`, a configured value."
+
+- value: "110"
+  context: "candidate"
+  why: >
+    The candidate builder's search radius in NM -- every aerodrome within this
+    distance of a track's first or last fix becomes a candidate.
+
+    Scoped deliberately. 110 is also the ex-busiest robustness control in the
+    elevation bands, which is a *result*; without the context this entry
+    silenced it, which is the exact failure this checker exists to catch.
+
+- value: "500"
+  why: "The lower elevation band edge in ft, a definition in elevation_bands.py."
+
+- value: "1,500"
+  why: "An elevation band edge in ft, a definition in elevation_bands.py."
+
+- value: "0.5"
+  why: >
+    The coverage-gain threshold in pp fixed in the design before the datum
+    arms were run. An adoption criterion set in advance, which is why it can
+    be reported as met or unmet rather than as a measurement.
+
+# --- physical and geographic facts ------------------------------------------
+
+- value: "5.2"
+  why: >
+    The edge length in km of an H3 cell at resolution 7. A property of the
+    indexing scheme, fixed by H3 and not by this study.
+
+- value: "5,763"
+  why: >
+    Erzurum's field elevation in ft, from OurAirports. A fact about an
+    aerodrome, not something this study measures.
+
+- value: "5,000"
+  why: >
+    A round figure for a high-elevation aerodrome, used to show that a fixed
+    altitude cut-off means different things at different fields.
+
+- value: "2,000"
+  why: >
+    Madrid's field elevation in ft, rounded, used in the same illustration.
+
+- value: "2,975"
+  why: >
+    The climb room a 6,100 ft sea-level ceiling leaves above Ankara --
+    arithmetic on that ceiling and Ankara's field elevation.
+
+- value: "240"
+  why: >
+    The same arithmetic at Erzurum: roughly what a 6,000 ft sea-level ceiling
+    leaves above a 5,763 ft field.
+
+- value: "8"
+  why: >
+    An illustrative distance in NM inside the ingestion region's western edge,
+    used to explain what "out of area" means.
+
+- value: "318"
+  why: >
+    Feet per NM on a 3-degree glideslope. Trigonometry, not measurement.
+
+- value: "333"
+  why: >
+    Feet per NM under the "three times the flight level" rule of thumb.
+    A rule of thumb, quoted as such.
