@@ -1122,8 +1122,9 @@ carries both through `process_dai` and reports which the pipeline prefers.
 
 Two honest limits. The grid is coarse near the peak (4,000 → 6,100 → 8,000), so
 the true optimum could sit anywhere in that span; and these are harness numbers,
-which V6 showed can differ from the pipeline's in level even when they agree in
-shape. What the sweep establishes is the *shape*: an interior optimum, falling
+which can differ from the pipeline's in level even when they agree in
+shape -- the harness re-implements the vote rule over a cached table, and
+@sec-pipeline measures the gap directly rather than assuming it away. What the sweep establishes is the *shape*: an interior optimum, falling
 away on both sides, at the value already shipping.
 
 ### And it replicates on the second period {#sec-second-period}
@@ -1164,7 +1165,7 @@ sample's.
 
 The 2024 tracks pre-date this study's H3 indexing, and `process_dai` reads
 `h3_res_7` off the track table directly, so the pipeline arms cannot run here at
-all. V6 met the same wall and ran the pipeline on 2025 alone. The sweeps get
+all. Version 6 met the same wall and ran the pipeline on 2025 alone. The sweeps get
 around it because their vote cache is built with the index computed at read
 time.
 
@@ -2121,80 +2122,22 @@ if (!is.null(typ)) {
 }
 ```
 
-## The busiest 100 aerodromes {#sec-top100}
+## The busiest 100 aerodromes
 
 Movement counts are what OPDI is for, so the last check is per aerodrome rather
 than per flight: for each of the hundred busiest in the reference, how many
-movements the recommended methodology finds, against how many the Network
-Manager data says there were, and how the legacy algorithm
-compares on the same aerodromes.
+movements the recommended methodology finds against how many the Network
+Manager data says there were.
 
-The matching is **flight by flight, not count against count**. Each reference
-flight is paired with an OPDI track on aircraft address (`icao24`) plus
-callsign plus date, and where several tracks match, the one starting closest to
-the reference off-block time. The columns then mean:
-
-| Column | Definition |
-|---|---|
-| Movements (truth) | Reference flights whose true aerodrome is this one. |
-| Found | Of those, how many OPDI gave any answer for. |
-| Correct | Of those, how many OPDI attributed to **this** aerodrome. |
-| Count ratio | Movements OPDI *assigns to* this aerodrome ÷ movements in truth. Includes flights that truly belong elsewhere, so it is what an operational count would show, and it can exceed 1. |
-| Recall | Correct ÷ movements in truth. **Per-aerodrome recall** — not the out-of-area recall of @sec-metrics, which is a different measure sharing the word. |
-| Recall, legacy | The same, for the algorithm published before 2026. |
-
-```{r top100}
+```{r top100-headline}
 #| echo: false
 #| results: asis
 if (!is.null(apt)) {
-  for (rl in c("departures", "arrivals")) {
-    r <- apt[apt$run == SHIPPED & apt$role == rl & apt$airport != "OOA", ]
-    l <- apt[apt$run == "legacy"      & apt$role == rl & apt$airport != "OOA", ]
-    if (nrow(r) == 0) next
-    r <- r[order(-r$n_truth), ][1:min(100, nrow(r)), ]
-    l <- l[match(r$airport, l$airport), ]
-    cat(sprintf("\n### %s\n\n", tools::toTitleCase(rl)))
-    print(kable(data.frame(
-      `#` = seq_len(nrow(r)),
-      Aerodrome = r$airport,
-      `Movements (truth)` = num(r$n_truth),
-      `Found` = num(r$n_predicted_here),
-      `Correct` = num(r$n_correct),
-      `Count ratio` = sprintf("%.3f", r$count_ratio),
-      `Recall` = pct(r$recall),
-      `Recall, legacy` = pct(l$recall),
-      `Δ recall` = pp(r$recall - l$recall),
-      check.names = FALSE), row.names = FALSE, align = "r"))
-  }
-}
-```
-
-```{r top100-summary}
-#| echo: false
-#| results: asis
-if (!is.null(apt)) {
-  cat("\n### Across the hundred\n\n")
-  rows <- do.call(rbind, lapply(c("departures", "arrivals"), function(rl) {
-    r <- apt[apt$run == SHIPPED & apt$role == rl & apt$airport != "OOA", ]
-    l <- apt[apt$run == "legacy"      & apt$role == rl & apt$airport != "OOA", ]
-    r <- r[order(-r$n_truth), ][1:min(100, nrow(r)), ]
-    l <- l[match(r$airport, l$airport), ]
-    data.frame(
-      Role = tools::toTitleCase(rl),
-      `Movements in truth` = num(sum(r$n_truth)),
-      `Recall, shipped` = pct(sum(r$n_correct) / sum(r$n_truth)),
-      `Recall, legacy`  = pct(sum(l$n_correct, na.rm = TRUE) / sum(l$n_truth, na.rm = TRUE)),
-      `Aerodromes improved` = sprintf("%d of %d", sum(r$recall > l$recall, na.rm = TRUE), nrow(r)),
-      `Median count ratio`  = sprintf("%.3f", median(r$count_ratio, na.rm = TRUE)),
-      check.names = FALSE)
-  }))
-  print(kable(rows, row.names = FALSE, align = "r"))
-  cat("\nA count ratio below one means the aerodrome is under-counted — the usual case, since every abstention is a movement not attributed. Above one means movements are being attributed to an aerodrome that did not see them, which is the more damaging error and the one the scoring penalises at rate $k$.\n")
-  cat("\nThe departure row is the result: recall rises by nearly nine points and the median aerodrome is within about one percent of its true movement count.\n")
-  arr <- rows[rows$Role == "Arrivals", ]
-  cat(sprintf("\n**The arrival row must be read with @sec-verdict in hand.** Recall reads %s against legacy's %s, improving on %s — which looks like a mild regression and is not one. Measured as an algorithm on a trend-only flight list, arrivals gain; the shortfall here comes from the merged list also containing departure-only tracks, which this table pairs with reference flights by start time, so some arrivals are counted against a track that carries none. The measurement moved; the data did not. It is left in the table rather than corrected away, because a benchmark that quietly adjusts its own alignment to flatter a result is worth less than one that shows where it is fragile.\n",
-              arr$`Recall, shipped`, arr$`Recall, legacy`,
-              arr$`Aerodromes improved`))
+  cat(sprintf("Across those hundred, the shipped configuration recovers **%s** of arrivals and **%s** of departures, against the legacy algorithm's %s and %s on the same aerodromes. The aerodrome-by-aerodrome tables are in @sec-top100.\n",
+              pct(top100_recall(SHIPPED, "arrivals")),
+              pct(top100_recall(SHIPPED, "departures")),
+              pct(top100_recall("legacy", "arrivals")),
+              pct(top100_recall("legacy", "departures"))))
 }
 ```
 
@@ -2701,3 +2644,82 @@ not this study's question.
 It is worth stating plainly because that band is where an elevation-aware cut
 should have helped most, and the fact that it did not is evidence about
 coverage rather than evidence against the datum — @sec-bands.
+
+# Appendices
+
+## Appendix A — The busiest 100 aerodromes {#sec-top100}
+
+Movement counts are what OPDI is for, so the last check is per aerodrome rather
+than per flight: for each of the hundred busiest in the reference, how many
+movements the recommended methodology finds, against how many the Network
+Manager data says there were, and how the legacy algorithm
+compares on the same aerodromes.
+
+The matching is **flight by flight, not count against count**. Each reference
+flight is paired with an OPDI track on aircraft address (`icao24`) plus
+callsign plus date, and where several tracks match, the one starting closest to
+the reference off-block time. The columns then mean:
+
+| Column | Definition |
+|---|---|
+| Movements (truth) | Reference flights whose true aerodrome is this one. |
+| Found | Of those, how many OPDI gave any answer for. |
+| Correct | Of those, how many OPDI attributed to **this** aerodrome. |
+| Count ratio | Movements OPDI *assigns to* this aerodrome ÷ movements in truth. Includes flights that truly belong elsewhere, so it is what an operational count would show, and it can exceed 1. |
+| Recall | Correct ÷ movements in truth. **Per-aerodrome recall** — not the out-of-area recall of @sec-metrics, which is a different measure sharing the word. |
+| Recall, legacy | The same, for the algorithm published before 2026. |
+
+```{r top100}
+#| echo: false
+#| results: asis
+if (!is.null(apt)) {
+  for (rl in c("departures", "arrivals")) {
+    r <- apt[apt$run == SHIPPED & apt$role == rl & apt$airport != "OOA", ]
+    l <- apt[apt$run == "legacy"      & apt$role == rl & apt$airport != "OOA", ]
+    if (nrow(r) == 0) next
+    r <- r[order(-r$n_truth), ][1:min(100, nrow(r)), ]
+    l <- l[match(r$airport, l$airport), ]
+    cat(sprintf("\n### %s\n\n", tools::toTitleCase(rl)))
+    print(kable(data.frame(
+      `#` = seq_len(nrow(r)),
+      Aerodrome = r$airport,
+      `Movements (truth)` = num(r$n_truth),
+      `Found` = num(r$n_predicted_here),
+      `Correct` = num(r$n_correct),
+      `Count ratio` = sprintf("%.3f", r$count_ratio),
+      `Recall` = pct(r$recall),
+      `Recall, legacy` = pct(l$recall),
+      `Δ recall` = pp(r$recall - l$recall),
+      check.names = FALSE), row.names = FALSE, align = "r"))
+  }
+}
+```
+
+```{r top100-summary}
+#| echo: false
+#| results: asis
+if (!is.null(apt)) {
+  cat("\n### Across the hundred\n\n")
+  rows <- do.call(rbind, lapply(c("departures", "arrivals"), function(rl) {
+    r <- apt[apt$run == SHIPPED & apt$role == rl & apt$airport != "OOA", ]
+    l <- apt[apt$run == "legacy"      & apt$role == rl & apt$airport != "OOA", ]
+    r <- r[order(-r$n_truth), ][1:min(100, nrow(r)), ]
+    l <- l[match(r$airport, l$airport), ]
+    data.frame(
+      Role = tools::toTitleCase(rl),
+      `Movements in truth` = num(sum(r$n_truth)),
+      `Recall, shipped` = pct(sum(r$n_correct) / sum(r$n_truth)),
+      `Recall, legacy`  = pct(sum(l$n_correct, na.rm = TRUE) / sum(l$n_truth, na.rm = TRUE)),
+      `Aerodromes improved` = sprintf("%d of %d", sum(r$recall > l$recall, na.rm = TRUE), nrow(r)),
+      `Median count ratio`  = sprintf("%.3f", median(r$count_ratio, na.rm = TRUE)),
+      check.names = FALSE)
+  }))
+  print(kable(rows, row.names = FALSE, align = "r"))
+  cat("\nA count ratio below one means the aerodrome is under-counted — the usual case, since every abstention is a movement not attributed. Above one means movements are being attributed to an aerodrome that did not see them, which is the more damaging error and the one the scoring penalises at rate $k$.\n")
+  cat("\nThe departure row is the result: recall rises by nearly nine points and the median aerodrome is within about one percent of its true movement count.\n")
+  arr <- rows[rows$Role == "Arrivals", ]
+  cat(sprintf("\n**The arrival row must be read with @sec-verdict in hand.** Recall reads %s against legacy's %s, improving on %s — which looks like a mild regression and is not one. Measured as an algorithm on a trend-only flight list, arrivals gain; the shortfall here comes from the merged list also containing departure-only tracks, which this table pairs with reference flights by start time, so some arrivals are counted against a track that carries none. The measurement moved; the data did not. It is left in the table rather than corrected away, because a benchmark that quietly adjusts its own alignment to flatter a result is worth less than one that shows where it is fragile.\n",
+              arr$`Recall, shipped`, arr$`Recall, legacy`,
+              arr$`Aerodromes improved`))
+}
+```
