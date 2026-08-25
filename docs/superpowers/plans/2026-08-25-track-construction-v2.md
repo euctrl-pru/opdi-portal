@@ -1508,9 +1508,20 @@ and `allow-stale`, plus the `cache()` reader and the knitr-emitted
 15. **Limitations** — one day per period; five V1 arms not re-run through the
     pipeline; step 04 events not measured; ground truth is Network Manager
     flights only; V1's figures are a different measurement and are not
-    differences from these; and **published data carries no marker of which
+    differences from these; **published data carries no marker of which
     segmentation produced it**, so distinguishing the two regimes depends on
-    knowing the release date.
+    knowing the release date; and one more, which the study's own machinery
+    produced:
+
+    **Production and the benchmark resolve the callsign over different rows at a
+    month boundary.** Production resolves inside the reader, *after* the month
+    filter, because moving it earlier defeats partition pruning. The benchmark
+    resolves over its whole redirected table. The two therefore agree for every
+    track that lies inside one month and can disagree for one that straddles a
+    boundary. No track in either sample straddles one — V1's payoff runs three
+    June days, V2 runs 2025-06-05 and 2024-06-05 — so nothing on this page is
+    affected. A whole-month comparison would meet it, which is why it is written
+    down rather than left for someone to rediscover.
 
 - [ ] **Step 3: Render and verify provenance**
 
