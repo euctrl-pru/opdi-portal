@@ -1,0 +1,12 @@
+# track_payoff.py writes one intermediate CSV per arm and one candidate-build
+# log directory per arm into its --results-dir before combining them. They are
+# runner state, not results: committing them puts files in the provenance table
+# that no declared job produced, so the page reports them as unverified and the
+# whole table stops meaning anything. Sixteen of twenty-six rows read
+# "unverified" before this was added.
+#
+# The regeneration entrypoint runs each job into a temporary directory and
+# stages only its declared outputs, so nothing here is needed for a normal run.
+# This catches a script pointed straight at data/ by hand.
+_payoff_*.csv
+logs-*/
