@@ -8,8 +8,8 @@
       "--out-name",
       "arms_2024.csv"
     ],
-    "bytes": 2083,
-    "code_fingerprint": "7840a64ac8f37832",
+    "bytes": 2090,
+    "code_fingerprint": "12ba1ec3f3e86f1b",
     "code_paths": [
       "benchmarks/osn_sample.py",
       "benchmarks/track_methods.py",
@@ -17,17 +17,27 @@
       "benchmarks/track_score.py",
       "benchmarks/track_truth.py",
       "src/opdi/config.py",
+      "src/opdi/pipeline/segmentation/__init__.py",
       "src/opdi/pipeline/segmentation/base.py",
       "src/opdi/pipeline/segmentation/methods.py"
     ],
     "git_dirty": false,
-    "git_sha": "7020af3",
-    "input_tables": {},
-    "inputs": {},
+    "git_sha": "6116873",
+    "input_tables": {
+      "s3a://eurocontrol/opdi/research/tracks_clean": {
+        "bytes": 6169338646,
+        "newest": "2026-08-12T20:37:03.739000+00:00",
+        "objects": 202
+      }
+    },
+    "inputs": {
+      "gt_flights": 90871,
+      "samples": 137655927
+    },
     "notes": "Eight segmentation arms scored against NM/APDF ground truth.",
-    "produced_utc": "2026-08-24T23:28:29+00:00",
+    "produced_utc": "2026-08-26T03:51:36+00:00",
     "script": "benchmarks/track_methods.py",
-    "sha256_16": "eb77a1dcc4194a42"
+    "sha256_16": "24733f13a3899413"
   },
   "arms_2025.csv": {
     "argv": [
@@ -147,20 +157,25 @@
       "containment_2024.csv"
     ],
     "bytes": 149,
-    "code_fingerprint": "47aaecd716ade294",
+    "code_fingerprint": "66d41f0d1100a5d5",
     "code_paths": [
       "benchmarks/track_diagnostics.py",
       "benchmarks/track_diagnostics.py",
+      "benchmarks/track_methods.py",
       "benchmarks/track_truth.py"
     ],
     "git_dirty": false,
-    "git_sha": "d5a423e",
+    "git_sha": "6116873",
     "input_tables": {},
-    "inputs": {},
+    "inputs": {
+      "gt_flights_inside_but_not_loaded_by_v1": 0,
+      "gt_flights_kept_by_v1": 90871,
+      "gt_flights_overlapping_window": 94682
+    },
     "notes": "How many ground-truth flights the wholly-inside-the-window restriction excludes, and how much of each was visible.",
-    "produced_utc": "2026-08-25T21:30:51+00:00",
+    "produced_utc": "2026-08-26T03:54:35+00:00",
     "script": "benchmarks/track_diagnostics.py",
-    "sha256_16": "f54503d81674ed17"
+    "sha256_16": "d61dc7287a98b627"
   },
   "containment_2025.csv": {
     "argv": [
@@ -171,21 +186,26 @@
       "--out-name",
       "containment_2025.csv"
     ],
-    "bytes": 149,
-    "code_fingerprint": "47aaecd716ade294",
+    "bytes": 147,
+    "code_fingerprint": "66d41f0d1100a5d5",
     "code_paths": [
       "benchmarks/track_diagnostics.py",
       "benchmarks/track_diagnostics.py",
+      "benchmarks/track_methods.py",
       "benchmarks/track_truth.py"
     ],
     "git_dirty": false,
-    "git_sha": "d5a423e",
+    "git_sha": "6116873",
     "input_tables": {},
-    "inputs": {},
+    "inputs": {
+      "gt_flights_inside_but_not_loaded_by_v1": 0,
+      "gt_flights_kept_by_v1": 93028,
+      "gt_flights_overlapping_window": 97082
+    },
     "notes": "How many ground-truth flights the wholly-inside-the-window restriction excludes, and how much of each was visible.",
-    "produced_utc": "2026-08-25T21:29:38+00:00",
+    "produced_utc": "2026-08-26T03:53:11+00:00",
     "script": "benchmarks/track_diagnostics.py",
-    "sha256_16": "216b08bf64a39386"
+    "sha256_16": "7942ebd1661da2ee"
   },
   "payoff_2024.csv": {
     "argv": [
