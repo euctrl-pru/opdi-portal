@@ -1109,67 +1109,203 @@ thresholds.
 
 ## What a better segmentation buys ADEP/ADES {#sec-payoff}
 
+*This section measures the thing that actually matters: what a segmentation does
+to the product OPDI publishes. It also records a defect the study found in the
+flight list, which has since been fixed, and why the ADEP/ADES ranking does not
+follow the segmentation ranking even now that it is.*
+
 The point of segmenting well is the product built on top of it. Each arm's
-assignment is fed to the V7 flight list at its own recommended configuration,
-with only `track_id` varying, so any difference in ADEP/ADES accuracy is
-attributable to the segmentation.
+assignment is fed to the V7 flight list with **only `track_id` varying** — same
+input table, same detection configuration, same reference data — so any
+difference in the result is attributable to the segmentation and to nothing
+else.
 
-The control is `legacy`, which reproduces the frozen algorithm: run through this
-harness it scores `r num(PAY_LEGACY_25)` against V7's published 134,168 for the
-same sample — a difference of 8, or 0.006%. That residual is itself informative
-and is explained in [Limitations](#sec-limitations).
+Three terms, because the flight list scores differently from the ladder:
 
-### The ranking inverts
+- **coverage** — the share of ground-truth flights the flight list gives *any*
+  aerodrome for, in that role;
+- **accuracy** — of those it does answer, the share it gets right;
+- **score** — `correct − k × wrong` at `k = 2`, so a wrong answer costs twice
+  what a right one earns and a silence costs nothing. `ADEP + ADES` is the sum
+  over both roles, and it is the single number the tables below rank on.
+
+The ground truth here is the flight-list studies' own, keyed on callsign and
+day, which is why its denominator (`r num(payoff$n_ground_truth[1])` flights on
+2025) differs from the ladder's. The two are measuring different things and are
+not interchangeable.
+
+As a control, `legacy` run through this harness scores `r num(PAY_LEGACY_25)`
+against V7's own published 134,168 for the same sample — a difference of 8, or
+0.006%. That residual is itself informative and is explained in
+[Limitations](#sec-limitations).
+
+### The flight-list configuration these numbers were produced at {#sec-detection}
+
+Every arm is scored at one fixed ADEP/ADES configuration. Naming it matters,
+because "the V7 recommended configuration" is a moving target and these numbers
+belong to one point on it. The table is read from the run's own recorded
+parameters rather than typed, so it cannot drift from what was executed.
+
+```{r detection-params}
+#| echo: false
+cfg <- payoff[payoff$period == "2025", ]
+fields <- c("adep_mode", "ades_mode",
+            "endpoint_radius_nm", "endpoint_height_ft",
+            "endpoint_sched_penalty_nm", "endpoint_candidate_radius_nm",
+            "trend_max_fl", "trend_radius_nm", "trend_radius_exact",
+            "trend_rank_by", "trend_vote_margin", "trend_sched_penalty_nm",
+            "trend_smooth_half_window", "trend_smooth_before_cut",
+            "trend_bearing_tiebreak_nm", "trend_ooa", "k")
+# Every arm must have been run at the same configuration, or the comparison is
+# not a comparison. Asserted rather than assumed: a silent disagreement here
+# would attribute a detection change to a segmentation.
+stopifnot(all(sapply(fields, function(f) length(unique(cfg[[f]])) == 1)))
+meaning <- c(
+  adep_mode = "Which algorithm names the departure aerodrome.",
+  ades_mode = "Which algorithm names the destination aerodrome.",
+  endpoint_radius_nm = "`endpoint`: how close the track's first or last fix must be to an aerodrome.",
+  endpoint_height_ft = "`endpoint`: how high that fix may be, above field elevation.",
+  endpoint_sched_penalty_nm = "Distance added to an aerodrome without scheduled service, so a military field must be clearly nearest.",
+  endpoint_candidate_radius_nm = "How far the cached candidate table reaches. Wider than any detection radius, so the radius stays sweepable.",
+  trend_max_fl = "`trend`: only samples below this flight level vote.",
+  trend_radius_nm = "`trend`: how close a sample must be to an aerodrome to vote for it.",
+  trend_radius_exact = "Cut that radius on exact great-circle distance rather than on H3 band.",
+  trend_rank_by = "How `trend` chooses among candidates: exact distance, not H3 ring count.",
+  trend_vote_margin = "How far one direction must beat the other before the vote counts. Zero is a simple majority.",
+  trend_sched_penalty_nm = "The scheduled-service penalty, on `trend`'s side.",
+  trend_smooth_half_window = "Half-width in samples of the rolling mean over barometric altitude.",
+  trend_smooth_before_cut = "Smooth altitude before applying the flight-level cut, not after.",
+  trend_bearing_tiebreak_nm = "Within this distance band, candidates are separated by course alignment rather than distance.",
+  trend_ooa = "Whether `trend` may emit the out-of-area marker. Off: on arrivals it is right barely half the time.",
+  k = "The scoring exchange rate: one wrong answer costs `k` right ones.")
+dp <- data.frame(
+  Parameter = paste0("`", fields, "`"),
+  Value = sapply(fields, function(f) as.character(cfg[[f]][1])),
+  Meaning = meaning[fields], check.names = FALSE)
+kable(dp, row.names = FALSE, align = "lll",
+      col.names = c("parameter", "value", "what it does"),
+      caption = "The ADEP/ADES configuration every arm in this section was scored at, identical across all eight arms and both periods.")
+```
+
+**Cross-checked, not copied.** Every value above was compared field by field
+against `DetectionConfig()` in the checkout these runs were made from, and they
+agree. Compared against the *v6.2* study's shipped configuration, one difference
+is real and is reported rather than smoothed over:
+
+> v6.2 gives `trend`'s altitude cut a **datum**, defaulting to field elevation:
+> the cut becomes `trend_max_height_ft` above the field rather than
+> `trend_max_fl` above mean sea level, and `trend_max_fl` is retained but inert.
+> That change landed on `main` **after** this study's base commit and is not
+> present in the checkout these payoff numbers were produced from. The runs
+> above therefore cut on FL60 above sea level.
+
+This does not affect any comparison on this page — every arm is scored at the
+same configuration, so the datum is held constant across all of them — but it
+does mean these absolute ADEP/ADES totals are not directly comparable with
+figures published by v6.2 or later.
+
+### Segmentation quality and downstream score do not line up
 
 ```{r payoff-table}
 #| echo: false
 p <- payoff[payoff$period == "2025", ]
 p$total <- p$adep_score + p$ades_score
 p$vs_legacy <- p$total - PAY_LEGACY_25
-p <- p[order(-p$total), c("arm", "total", "vs_legacy", "adep_coverage",
-                          "adep_accuracy")]
-p$adep_coverage <- 100 * p$adep_coverage
-p$adep_accuracy <- 100 * p$adep_accuracy
-kable(p, row.names = FALSE, digits = c(0, 0, 0, 2, 2),
-      col.names = c("arm", "ADEP+ADES", "vs legacy", "ADEP coverage %",
-                    "ADEP accuracy %"),
-      format.args = list(big.mark = ","))
+p$clean <- sapply(p$arm, function(a) A(a, "2025", "clean_match_pct"))
+p <- p[order(-p$total), ]
+out <- data.frame(
+  arm = p$arm,
+  clean = p$clean,
+  total = p$total,
+  vs = p$vs_legacy,
+  adep_cov = 100 * p$adep_coverage,
+  adep_acc = 100 * p$adep_accuracy,
+  ades_cov = 100 * p$ades_coverage,
+  ades_acc = 100 * p$ades_accuracy,
+  check.names = FALSE)
+kable(out, row.names = FALSE, digits = c(0, 2, 0, 0, 2, 2, 2, 2),
+      col.names = c("arm", "clean % (ladder)", "ADEP+ADES", "vs legacy",
+                    "ADEP cov %", "ADEP acc %", "ADES cov %", "ADES acc %"),
+      format.args = list(big.mark = ","),
+      caption = "2025. Ranked on ADEP+ADES score. The second column is the same arm's clean-match rate from the ladder, so the two rankings can be read against each other in one place.")
 ```
 
-The order is close to exactly reversed. The arm that reproduces individual
-flights best is *last*; the shipped algorithm, second-worst at segmentation, is
-first. Taken at face value this says a better segmentation makes the product
-worse.
+The two rankings disagree. `recommended` is first on the ladder and third here;
+`vertical_profile` is last on the ladder and has the **highest ADEP score of any
+arm**. A reader could take that to mean better segmentation makes the product
+worse. It does not, and the table says why in its last four columns.
 
-It is not what it says. **Accuracy barely moves across the whole table while
-coverage collapses** — the losing arms are not predicting *wrongly*, they are
-predicting for far fewer flights. That is the signature of a labelling failure,
-not a geometric one.
+**Accuracy barely moves.** Every arm lands within a couple of points on both
+roles. No arm is naming *wrong* aerodromes at a materially different rate.
 
-### One aggregate explains it
+**Coverage moves, and almost all of the movement is on the arrival side.** ADEP
+coverage spans a narrow band across all eight arms; ADES coverage runs from
+`r sprintf("%.1f", min(100 * p$ades_coverage))`% to
+`r sprintf("%.1f", max(100 * p$ades_coverage))`%. So the whole ranking is
+decided by how often the arrival algorithm can answer at all.
 
-The flight list builds one flight per `track_id` and labels it
-`F.min("flight_id")` — the lexicographically smallest callsign in the track. A
-blank sorts first.
+That is a mechanism, not a coincidence. `trend` names a destination by voting
+over samples below FL60 within 30 NM of an aerodrome — that is, over the
+descent. `ground_anchored` and `vertical_profile` both place their breaks at low
+altitude near the ground, which is exactly the part of the track those votes
+come from; cutting there leaves the arrival end of a track with too little to
+vote on. `legacy` and `recommended` place their breaks at gaps, and their
+arrival coverage is correspondingly close together. An arm that is good at
+recovering *flights* can still be bad at preserving the *evidence* a downstream
+detector needs.
 
-While callsign is part of the track's group key, every track is
-callsign-homogeneous by construction and that aggregate cannot lose anything:
-measured on 2025, legacy loses a real callsign on **0 of 235,949 tracks**. Drop
-callsign from the key and **64% of `airframe_only`'s tracks carry a real
-callsign alongside blank ones**, and `F.min` returns the blank. The flight
-becomes unidentifiable and never matches its ground-truth counterpart.
+### The labelling bug this study found, and why it is now history {#sec-labelling}
 
-So the coupling is tighter than "one callsign per track". The flight list
-requires **blank-callsign samples to sit in tracks of their own** — precisely
-what the legacy group key does as a side effect, and precisely what any fix to
-the fragmentation must undo. It is the same property, seen from both ends:
-legacy's 50% fragmentation and the downstream coverage collapse are one
-phenomenon.
+The measurement above could not be made until a defect in the flight list was
+fixed, and the defect is worth recording because it explains why an earlier
+version of this page reported the ranking as inverted, and because anyone
+meeting an OPDI flight list built before the fix needs to recognise it.
 
-### With the labelling repaired
+**What it was.** The flight list built one flight per `track_id` and labelled it
+with `F.min("flight_id")` — the lexicographically smallest callsign in the
+track. A blank sorts first.
 
-Relabelling each track with its most frequent non-blank callsign, and carrying
-`legacy` as a control that must not move:
+**Why it was harmless, until it was not.** While callsign is part of the track's
+group key, every track carries exactly one callsign by construction, so that
+aggregate can never lose anything. It is correct only because of a property
+`legacy` supplies *by accident*: blank-callsign samples sit in tracks of their
+own. Any fix to legacy's fragmentation necessarily destroys that property —
+which is the whole point of the fix. Drop callsign from the key and a track that
+carries a real callsign alongside blank ones is labelled blank; the flight
+becomes unidentifiable and matches no ground-truth counterpart.
+
+**What it cost.** Measured against the pipeline as it then stood, adopting the
+better segmentation *lost* ADEP/ADES points, and the losing arms lost them by
+coverage collapse with accuracy essentially unmoved — the signature of a
+labelling failure rather than a geometric one. So legacy's fragmentation and the
+downstream coverage collapse were one phenomenon seen from two ends, and the
+recommendation was, at that point, conditional: fix the label first, then ship
+the segmentation. Reversed, the pipeline would have spent the interval between
+the two changes at substantially reduced ADEP coverage.
+
+**What was actually wrong was larger than the label.** Tracing it found that
+`flight_id` is used as a grouping or join key in a dozen places downstream and
+is never aggregated to one value per track — so the flight list is written on
+the invariant *one `flight_id` per `track_id`*, which `legacy` guarantees and
+the new segmentation breaks. A track carrying several callsigns does not merely
+get labelled wrongly; it *fans out into several rows* at each of those keys. The
+same latent fan-out was present in the event extraction of step 04.
+
+**It is fixed.** Every point where the flight list and the event extraction read
+the track table now resolves `flight_id` to the track's dominant non-blank
+callsign, over the unfiltered frame, before anything groups or joins on it. Runs
+that stamp a legacy version string skip the resolution, so re-running a released
+month still reproduces what was released, column for column. The numbers
+throughout this page are from the fixed pipeline; there is no repaired-versus-
+unrepaired pairing to interpret any more.
+
+### The convergence check
+
+The benchmark kept its own independent repair — relabelling each track with its
+most frequent non-blank callsign, applied inside the harness — and both jobs are
+still run. Now that production does the same thing, their **agreement** is the
+verification that the production fix and the benchmark repair are the same
+operation. A disagreement would be a finding rather than a measurement.
 
 ```{r fix-table}
 #| echo: false
@@ -1177,62 +1313,91 @@ rows <- do.call(rbind, lapply(PERIODS, function(p) {
   data.frame(
     period = p,
     arm = c("legacy (control)", "recommended"),
-    before = c(P(payoff, "legacy", p), P(payoff, "recommended", p)),
-    after  = c(P(fixcs, "legacy", p), P(fixcs, "recommended", p)),
+    production = c(P(payoff, "legacy", p), P(payoff, "recommended", p)),
+    harness    = c(P(fixcs, "legacy", p), P(fixcs, "recommended", p)),
     check.names = FALSE)
 }))
-rows$delta <- rows$after - rows$before
+rows$delta <- rows$harness - rows$production
 kable(rows, row.names = FALSE, digits = 0,
-      col.names = c("period", "arm", "as the pipeline stands",
-                    "labelling repaired", "delta"),
-      format.args = list(big.mark = ","))
+      col.names = c("period", "arm", "production fix only",
+                    "production fix + harness repair", "difference"),
+      format.args = list(big.mark = ","),
+      caption = "The two jobs agree where it matters. `recommended` comes back identical on every recorded field in both periods; before the production fix the two differed by tens of thousands of flights.")
 ```
 
-The control returns **exactly +0**, on both periods and across three independent
-runs. That is what makes the other row attributable to the relabelling rather
-than to anything else the run touched.
+`recommended` agrees exactly, on both periods, which is the check passing.
 
-With the labelling repaired the recommended segmentation scores
-**`r num(FIX_REC_25)`** against legacy's **`r num(FIX_LEGACY_25)`** on 2025 and
-**`r num(FIX_REC_24)`** against **`r num(FIX_LEGACY_24)`** on 2024 — short by
-`r num(FIX_LEGACY_25 - FIX_REC_25)` and `r num(FIX_LEGACY_24 - FIX_REC_24)`
-points, 0.5% and 0.6% — while matching flights around
-`r sprintf("%.0f", CLEAN_REC_25 - CLEAN_LEGACY_25)` points better. Its ADEP
-coverage slightly *exceeds* legacy's on both periods.
+`legacy` does not, on 2025 only, and by
+`r num(abs(FIX_LEGACY_25 - PAY_LEGACY_25))` points confined entirely to the
+arrival side — the same flights answered, a handful labelled with a different
+aerodrome. That was traced, and it is not the callsign repair: it is a
+non-deterministic aggregate in shipped ADES detection, which is reported in
+[Limitations](#sec-limitations) because it is a real defect and it is not this
+study's to fix.
 
-The residual is real and is not rounded away: with the labelling fixed, what
-remains is merging, and the recommended arm still merges
-`r pct(MERGE_REC_25)` of flights where legacy merges
-`r pct(A("legacy", "2025", "merged_pct"))`.
+### Where the residual comes from
 
-## What ships {#sec-defaults}
+With the labelling fixed in production, the recommended segmentation scores
+**`r num(PAY_REC_25)`** against legacy's **`r num(PAY_LEGACY_25)`** on 2025 and
+**`r num(PAY_REC_24)`** against **`r num(PAY_LEGACY_24)`** on 2024 — short by
+`r num(PAY_SHORT_25)` and `r num(PAY_SHORT_24)` points,
+`r pct(100 * PAY_SHORT_25 / PAY_LEGACY_25)` and
+`r pct(100 * PAY_SHORT_24 / PAY_LEGACY_24)` — while recovering
+`r sprintf("%.0f", GAIN_25)` points more flights on the ladder. Its **ADEP**
+coverage slightly *exceeds* legacy's on both periods:
+`r sprintf("%.2f", 100 * PR(payoff, "recommended", "2025", "adep_coverage"))`%
+against `r sprintf("%.2f", 100 * PR(payoff, "legacy", "2025", "adep_coverage"))`%.
 
-**Recommended: the A8 rule — group on `icao24`, break on a genuine non-blank
-callsign change with the lookback bounded to the gap threshold, keeping legacy's
-gap rules as a floor.**
+The residual is not accuracy and it is not departures. It is arrival coverage,
+and it lands where [A8](#sec-a8) said it would: on merging. `recommended` merges
+`r pct(MERGE_REC_25)` of flights where `legacy` merges `r pct(MERGE_LEGACY_25)`,
+and a merged track has one arrival where there should be two — so one of the two
+flights loses its destination outright. That is the price of grouping on the
+airframe, it is stated rather than rounded away, and it is small enough that the
+`r sprintf("%.0f", GAIN_25)`-point gain in recovered flights buys it many times
+over.
 
-Conditional on one change to the flight list, and the order matters:
+## What shipped {#sec-defaults}
 
-1. **First**, change `flights.py`'s flight labelling so it does not choose a
-   callsign with `F.min`. Most-frequent non-blank is what this study measured;
-   any rule that ignores blanks would do. This is worth doing on its own merits
-   even if the segmentation never changes, because it is a silent trap for any
-   future change to track identity and it fails as a coverage statistic rather
-   than as an error.
-2. **Then** ship the segmentation.
+*This section says what was adopted, in what order, and what a consumer of OPDI
+data has to know about it.*
 
-Reversed, the pipeline spends the interval between the two changes at 55%
-ADEP coverage instead of 80%.
+**The A8 rule ships, as `segmentation.method = "standard"`:** group on `icao24`,
+break when the last non-blank callsign genuinely changes with the lookback
+bounded to the gap threshold, and keep legacy's gap rules as a floor.
 
-Two consequences of shipping it, both of which are decisions for the release
-plan rather than for this study:
+The recommendation was conditional when this study first reported, and the
+condition was an ordering rather than a hedge. Both steps have now been taken,
+in this order:
 
-- **`track_id` changes for all data from that release forward**, in shape as
-  well as value: A8 carries no `_{year}_{month}` suffix, so identifiers become
-  `{hash}_{offset}`. Any consumer parsing the suffix breaks in a way a pure
-  value change would not.
-- **Past months will not reproduce.** This study recommends; it does not
-  schedule.
+1. **First, the flight-list labelling was fixed.** `flights.py` no longer picks
+   a track's callsign with `F.min`; every read of the track table resolves
+   `flight_id` to the track's dominant non-blank callsign before anything groups
+   or joins on it, and the same fix was applied to step 04's event extraction.
+   This was worth doing on its own merits even had the segmentation never
+   changed, because it is a silent trap for any future change to track identity
+   and it fails as a *coverage* statistic rather than as an error — nothing
+   looks broken, there is simply less data.
+2. **Then the segmentation was switched.** Reversed, the pipeline would have
+   spent the interval between the two changes at substantially reduced ADEP
+   coverage.
+
+Three things a consumer needs to know, all of them consequences of the release
+rather than open questions:
+
+- **`track_id` changes for all data produced from this release forward**, in
+  shape as well as value: `standard` carries no `_{year}_{month}` suffix, so
+  identifiers become `{hash}_{offset}`. A consumer joining on `track_id` across
+  the boundary gets an empty join rather than an error, which reads as missing
+  data; a consumer parsing the suffix breaks outright.
+- **Past months do not reproduce under the new rule, and are not meant to.**
+  Setting `segmentation.method` back to `"legacy"` reproduces the published
+  identifiers, and the version-guarded paths in the flight list and the event
+  extraction reproduce the published labels alongside them.
+- **Nothing in the published data records which rule produced a row.**
+  `osn_tracks` carries no version column, so the only way to tell is to know
+  when the row was published. This is a deliberate decision and its cost is
+  written down in [Limitations](#sec-limitations).
 
 ## Provenance {#sec-provenance}
 
@@ -1273,24 +1438,113 @@ if (!requireNamespace("jsonlite", quietly = TRUE)) {
 
 ## Limitations {#sec-limitations}
 
-### The baseline is not the shipped `track_id`
+*This section is where the claims this page does **not** make are written down,
+together with the defects it found and did not fix.*
 
-A0 reproduces the legacy *rule*, but applied to cleaned tracks it does not
-reproduce the shipped identifiers exactly: it differs on 909 of 236,899 tracks,
-0.38%, and 8 of 134,176 ADEP/ADES points. The cause is exact and worth reporting
-upward on its own account. Production's identifiers were computed upstream on
-raw altitudes, while `osn_tracks_clean` masks bad altitudes to NULL — and
-`NULL < 5000` is NULL, not true, so the low-altitude split silently does not fire
-where it once did. Measured, **950 of 950 disagreements have a NULL barometric
-altitude**, against a 21.4% base rate.
+### The baseline is a re-implementation, not the published `track_id`
 
-The published `osn_tracks_clean` therefore carries a `track_id` that its own
-columns can no longer reproduce. Nothing is wrong with the published data, but
-anyone recomputing identifiers from the clean table — the obvious thing to do —
-gets different tracks and no warning.
+Two distinct things are meant by "the baseline", and neither is what production
+now runs.
 
-This does not affect the comparisons on this page: every arm reads the same
-cleaned table and is subject to the same behaviour.
+First, and as [§ what a track is](#sec-problem) states plainly, this study
+measures algorithms in a harness rather than the pipeline itself. A0 is a
+re-implementation of the legacy *rule* inside the generic segmentation engine.
+The engine is asserted by test to reproduce the frozen algorithm's partition
+under production parameters, which is the contract that makes A0 a fair
+baseline — but it is a contract on the partition, not a claim to have run the
+pipeline.
+
+Second, applied to *cleaned* tracks, the legacy rule does not reproduce the
+published identifiers exactly: it differs on 909 of 236,899 tracks, 0.38%, and 8
+of 134,176 ADEP/ADES points. The cause is exact and worth reporting on its own
+account. Production's identifiers were computed upstream on raw altitudes, while
+`osn_tracks_clean` masks bad altitudes to NULL — and `NULL < 5000` is NULL, not
+true, so the low-altitude split silently does not fire where it once did.
+Measured, **950 of 950 disagreements have a NULL barometric altitude**, against
+a 21.4% base rate. The published `osn_tracks_clean` therefore carries a
+`track_id` that its own columns can no longer reproduce: nothing is wrong with
+the published data, but anyone recomputing identifiers from the clean table —
+the obvious thing to do — gets different tracks and no warning.
+
+Neither point affects the comparisons on this page, because every arm reads the
+same cleaned table through the same engine and is subject to both behaviours
+equally. Version 2 of this study is the one that runs the pipeline end to end.
+
+### Published data carries no marker of which segmentation produced it
+
+`osn_tracks` has no version column, so **no row of published OPDI data says
+which segmentation rule built its `track_id`**. Distinguishing the two regimes
+depends entirely on knowing the release date.
+
+This is a consequence of a deliberate decision not to add such a column, and its
+cost is concrete rather than abstract. The guards that let a legacy re-run
+reproduce released labels — in `flights.py` and in `events.py` — key on the
+*run's configuration*, not on the data: they ask "is this run stamping a legacy
+version string?" when the question they need answered is "were the tracks I am
+reading built with the legacy rule?". Nothing in the data can tell them. So a
+legacy-configured run over tracks that were rebuilt with `standard` will take
+the legacy branch and publish under a frozen version string, and no check
+anywhere can catch it. The same blind spot reaches the flight-events ladder,
+whose lower rungs carry a legacy events version and would silently measure the
+new segmentation if re-run after the switch.
+
+### ADES values are not reproducible run to run
+
+**This is a defect in shipped ADEP/ADES detection, it predates this study, and
+it is not fixed.** It is recorded here because both this page and the
+flight-list studies quote ADES percentages to two decimals, and a figure that is
+not reproducible must say so.
+
+`flights.py:_rank_airports` ranks candidate aerodromes correctly with
+`row_number()`, and then names the winner with `first(apt_ident)` — an
+aggregate with no defined order. Adding a join upstream can change the answer.
+The defect is self-detecting, because the *runner-up* list is built from the
+rank rather than from `first()`, so a wrongly named aerodrome shows up in its
+own "not most likely" list.
+
+Measured across repeated runs on identical code and data: roughly 28 of 88,737
+named ADES per run, about 0.03%, come from the undefined-order aggregate, and
+about 20 can flip between two runs. The affected flights are short hops between
+neighbouring aerodromes. **ADEP is immune** — the departure path filters on the
+rank instead of aggregating, which is the correct pattern and already exists in
+the same file. `ades_mode` defaults to `trend`, so this is the shipped arrival
+path.
+
+It is the explanation for the one disagreement in
+[the convergence check](#sec-payoff): the control differs by a handful of ADES
+flights on one period and by none on the other, with coverage identical to six
+decimals.
+
+### Two ground-truth intervals over twenty hours survive in the 2024 sample
+
+Ground truth is built from Network Manager's own `AOBT_3`/`ARVT_3` pairing, and
+two intervals in the 2024 sample exceed twenty hours — the longest being 27.9 h,
+THY801 LTFM→SKBO. Because samples are attributed to a flight by containment, an
+over-long interval can absorb samples belonging to a neighbouring leg of the
+same airframe.
+
+These are **not** the defect that was fixed. A separate loader defect, since
+corrected, windowed ground truth on the off-block day rather than on the flight
+interval and keyed the APDF departure join on the off-block day rather than the
+take-off day; the second let a nightly service take its take-off time from
+yesterday's rotation, producing intervals of up to 26.9 hours. Fixing it removed
+every such interval from 2025 and all but these two from 2024, and moved the
+scored flight counts by about a tenth of a percent with every rate moving by no
+more than 0.038 pp.
+
+The two survivors are NM's own pairing and are undiagnosed. They were
+deliberately not filtered out: a length filter would change the denominator of
+every metric on this page, which is a larger and less examined intervention than
+the contamination it removes. The effect is carried, stated, and small.
+
+### The ADEP/ADES configuration predates the v6.2 datum change
+
+As [§ the flight-list configuration](#sec-detection) records, the payoff runs
+were made from a checkout that does not contain v6.2's altitude-cut datum, so
+`trend` cuts at FL60 above mean sea level rather than at a height above field
+elevation. The configuration is identical across all eight arms, so every
+comparison on this page is unaffected; the absolute ADEP/ADES totals are not
+comparable with figures published by v6.2 or later.
 
 ### Ground truth covers Network Manager flights only
 
@@ -1323,8 +1577,9 @@ is unlikely to change the ordering, but it is not measured.
 
 ### The payoff holds the flight list fixed
 
-Each arm is scored at V7's own recommended flight-list configuration rather than
-re-tuned per arm. A joint optimum might be better for some arm; finding it would
-multiply cluster time by the number of arms, and one Spark job runs at a time.
-The natural follow-up is to re-tune the flight list on the recommended arm alone
-— one extra grid, not eight — once the labelling is fixed.
+Each arm is scored at one flight-list configuration — the one tabulated in
+[§ the flight-list configuration](#sec-detection) — rather than re-tuned per
+arm. A joint optimum might be better for some arm; finding it would multiply
+cluster time by the number of arms, and one Spark job runs at a time. The
+natural follow-up, now that the labelling is fixed, is to re-tune the flight
+list on the recommended arm alone: one extra grid, not eight.
