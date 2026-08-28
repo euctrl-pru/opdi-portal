@@ -158,6 +158,22 @@ FIX_LEGACY_25 <- P(fixcs, "legacy", "2025")
 FIX_REC_25    <- P(fixcs, "recommended", "2025")
 FIX_LEGACY_24 <- P(fixcs, "legacy", "2024")
 FIX_REC_24    <- P(fixcs, "recommended", "2024")
+
+# The one figure on this page that comes from another paper rather than from a
+# CSV here: the V7 flight-list study's own published ADEP+ADES total for the same
+# sample. Held as a named constant so the difference below is arithmetic on it
+# rather than a second hand-typed number.
+V7_PUBLISHED <- 134168
+
+# Where each swept axis peaks, read off the grid rather than described from
+# memory. The low-altitude ceiling is the axis that needed the grid extended.
+axis_peak <- function(col) {
+  a <- aggregate(clean_match_pct ~ get(col), data = sweep1, FUN = max)
+  a[[1]][which.max(a[[2]])]
+}
+LOALT_PEAK <- axis_peak("low_alt_ft")
+LOALT_MAX  <- max(sweep1$low_alt_ft)
+LOALT_BASE_MAX <- max(D("sweep_2025_stage1.csv")$low_alt_ft)
 ```
 
 ## Summary {.unnumbered}
@@ -214,10 +230,11 @@ the fixed ones.
 With it fixed, the better segmentation costs
 **`r num(PAY_SHORT_25)`** ADEP/ADES points on 2025 and **`r num(PAY_SHORT_24)`**
 on 2024 — `r pct(100 * PAY_SHORT_25 / PAY_LEGACY_25)` and
-`r pct(100 * PAY_SHORT_24 / PAY_LEGACY_24)` of the total — while recovering
-`r sprintf("%.0f", GAIN_25)` points more flights. The residual is not accuracy,
-which is unchanged; it is arrival coverage, and it traces to the one failure mode
-the new rule makes slightly worse: merging.
+`r pct(100 * PAY_SHORT_24 / PAY_LEGACY_24)` of the total, where a *point* is the
+flight list's own score for one correctly named aerodrome and a wrong one costs
+two — while recovering `r sprintf("%.0f", GAIN_25)` points more flights. The
+residual is not accuracy, which is unchanged; it is arrival coverage, and it
+traces to the one failure mode the new rule makes slightly worse: merging.
 
 ## How to read this page
 
@@ -282,7 +299,8 @@ and a boundary error leaves the flight intact. The metrics below are chosen so
 that merging and fragmentation cannot be confused with each other, and the
 candidate rules are compared on both rather than on a single blended score.
 
-The rule has never been benchmarked, and that is why this study exists.
+Until this study, the rule had never been benchmarked, and that is why the study
+exists.
 
 What it is *not* is frozen. Segmentation is a versioned choice: a release states
 which rule built its `track_id` values, and changing that rule changes
@@ -315,7 +333,8 @@ page is a surprise. If you know the pipeline steps, skip to
 Segmentation is step 02 of a chain, and the samples reaching it are not raw
 OpenSky rows. Two earlier decisions in particular shape everything measured on
 this page: the ingestion filter decides which samples exist at all, and the
-decimation rule decides how densely a flight is described.
+**thinning** rule — which sample survives out of each short interval — decides
+how densely a flight is described.
 
 ```{r pipeline-diagram}
 #| echo: false
@@ -400,12 +419,20 @@ kable(ing, row.names = FALSE, align = "lll",
       col.names = c("Parameter", "Value", "Why it matters here"))
 ```
 
-Step 02a matters for a different reason, and it comes back in
-[Limitations](#sec-limitations): it masks bad values to NULL rather than
-deleting rows, and `NULL < 5000` is NULL rather than true. Every arm in this
-study reads the *cleaned* table, so all of them are subject to that behaviour
-equally — but the identifiers in published data were computed before it, which
-is a discrepancy worth knowing about.
+One ordering detail matters, because the diagram would otherwise mislead. In
+production, step 02 builds tracks and step 02a cleans them, in that order. This
+study runs the other way round: every candidate rule is applied to the *cleaned*
+table, so that all of them see exactly the same input and a difference between
+two of them cannot be an artefact of different cleaning.
+
+That is the right choice for a comparison and it has one consequence worth
+knowing. Cleaning masks bad values to NULL rather than deleting rows, and
+`NULL < 5000` evaluates to NULL rather than to true — so legacy's low-altitude
+split does not fire on a sample whose altitude the cleaner rejected, where it
+once did. Every arm is subject to that equally, so no comparison here is
+affected; but it means the identifiers in published data cannot be recomputed
+from the published clean table. That is picked up again in
+[Limitations](#sec-limitations).
 
 ## How a segmentation is scored {#sec-metrics}
 
@@ -967,10 +994,12 @@ rather than an arbitrary one, because a silence longer than the gap threshold
 *is already a break* — so there is nothing legitimate to carry across it.
 
 This is not a detail. Measured during implementation, the unbounded version
-fragmented 37.75% of flights against `airframe_only`'s 6.92%, while only 3.2% of
-tracks contain a real-to-real callsign transition at all. The mismatch between
-those two numbers is what exposed the bug: a rule that fires on 3% of tracks
-cannot legitimately cost 31 points of fragmentation.
+fragmented 37.75% of flights, where `airframe_only` — which does no callsign
+splitting at all — fragments
+`r pct(A("airframe_only", "2025", "fragmented_pct"))`, and where only 3.2% of
+tracks contain a genuine callsign transition to fire on. The mismatch between
+those two is what exposed the bug: a rule reaching one track in thirty cannot
+legitimately cost thirty points of fragmentation.
 
 #### What the measurement said
 
@@ -1048,11 +1077,11 @@ not an optimum — it is where you stopped looking.
 
 ### The extension, and why it was necessary
 
-`low_alt_ft` did not start out interior. The first grid ran it to 10,000 ft, and
-its best value was the largest tried, with the curve still rising — precisely
-the edge case above. This pipeline's own history contains a sweep that stopped
-early and was read as "higher is always better", so the grid was extended rather
-than the result reported.
+`low_alt_ft` did not start out interior. The first grid ran it to
+`r num(LOALT_BASE_MAX)` ft, and its best value was the largest tried, with the
+curve still rising — precisely the edge case above. This pipeline's own history
+contains a sweep that stopped early and was read as "higher is always better",
+so the grid was extended rather than the result reported.
 
 ```{r sweep-extension}
 #| echo: false
@@ -1073,10 +1102,10 @@ kable(tab, row.names = FALSE, digits = c(0, 0, 3),
       caption = "The low-altitude ceiling before and after the grid was extended. On the original grid the best value was the largest tried; extended, the curve turns over.")
 ```
 
-Extended, the ceiling peaks at 20,000 ft and falls again by 30,000 — as it must,
-since past cruise altitude every sample counts as "low", the two-threshold rule
-collapses into a single one, and `low_alt_gap_minutes` simply replaces
-`gap_minutes` everywhere.
+Extended, the ceiling peaks at `r num(LOALT_PEAK)` ft and falls again by
+`r num(LOALT_MAX)` — as it must, since past cruise altitude every sample counts
+as "low", the two-threshold rule collapses into a single one, and
+`low_alt_gap_minutes` simply replaces `gap_minutes` everywhere.
 
 ### What it is worth
 
@@ -1135,8 +1164,10 @@ day, which is why its denominator (`r num(payoff$n_ground_truth[1])` flights on
 not interchangeable.
 
 As a control, `legacy` run through this harness scores `r num(PAY_LEGACY_25)`
-against V7's own published 134,168 for the same sample — a difference of 8, or
-0.006%. That residual is itself informative and is explained in
+against the V7 flight-list study's own published `r num(V7_PUBLISHED)` for the
+same sample — a difference of `r num(abs(PAY_LEGACY_25 - V7_PUBLISHED))`, or
+`r sprintf("%.3f%%", 100 * abs(PAY_LEGACY_25 - V7_PUBLISHED) / V7_PUBLISHED)`.
+That residual is itself informative and is explained in
 [Limitations](#sec-limitations).
 
 ### The flight-list configuration these numbers were produced at {#sec-detection}
@@ -1401,6 +1432,8 @@ rather than open questions:
 
 ## Provenance {#sec-provenance}
 
+*This section says where every number on this page comes from.*
+
 Each row is one file this page reads: the job that produced it, the commit it
 was produced at, and when. Every figure on this page is regenerated by
 `benchmarks/regenerate_track_v1.py`, which the page runs before drawing
@@ -1436,6 +1469,34 @@ if (!requireNamespace("jsonlite", quietly = TRUE)) {
 }
 ```
 
+Two classes of figure on this page are **not** read from those files, and both
+are marked as such where they appear.
+
+- A handful of diagnostic measurements made while the arms were implemented —
+  the share of `legacy` tracks carrying no callsign, the share of
+  `airframe_only` tracks carrying more than one, and the cost of an unbounded
+  callsign lookback. They are quoted with their source named in the text
+  ("measured while the arm was implemented", "measured during implementation")
+  and they are not regenerated by this page.
+- The V7 flight-list study's own published total, used once as an external
+  control, and the ground-truth validation figures quoted in
+  [The sample](#sec-sample). Both belong to other papers and are cited, not
+  recomputed here.
+
+Everything else — every rate, count, percentile, table cell and plotted bar — is
+an expression evaluated over the files above at render time. None of it is typed
+into the prose, which is what stops the text and the tables drifting apart.
+
+The re-run behind the current numbers is itself worth a note on method. All
+fourteen files were regenerated after two defects were fixed in the ground-truth
+loader, including six jobs that were confidently predicted not to move: they had
+been reasoned about through two of their three declared dependencies, and the
+third had changed. Every cell of all four sweep files moved, by up to 0.023 pp,
+relocating no optimum and changing no conclusion — but the numbers on the page
+are different from the ones that were there. Narrowing a declared dependency to
+avoid a re-run is exactly how a page ends up publishing figures that nothing can
+account for.
+
 ## Limitations {#sec-limitations}
 
 *This section is where the claims this page does **not** make are written down,
@@ -1455,8 +1516,10 @@ baseline — but it is a contract on the partition, not a claim to have run the
 pipeline.
 
 Second, applied to *cleaned* tracks, the legacy rule does not reproduce the
-published identifiers exactly: it differs on 909 of 236,899 tracks, 0.38%, and 8
-of 134,176 ADEP/ADES points. The cause is exact and worth reporting on its own
+published identifiers exactly: it differs on 909 of 236,899 tracks, 0.38%, and
+on `r num(abs(PAY_LEGACY_25 - V7_PUBLISHED))` of this page's
+`r num(PAY_LEGACY_25)` ADEP/ADES points — which is the control residual noted in
+[the payoff](#sec-payoff). The cause is exact and worth reporting on its own
 account. Production's identifiers were computed upstream on raw altitudes, while
 `osn_tracks_clean` masks bad altitudes to NULL — and `NULL < 5000` is NULL, not
 true, so the low-altitude split silently does not fire where it once did.
