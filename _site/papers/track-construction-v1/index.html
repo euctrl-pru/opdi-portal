@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 <meta name="author" content="EUROCONTROL Performance Review Unit">
-<meta name="dcterms.date" content="2026-08-25">
+<meta name="dcterms.date" content="2026-08-28">
 
 <title>Turning ADS-B state vectors into flight tracks – OPDI Papers</title>
 <style>
@@ -121,43 +121,56 @@ ul.task-list li input[type="checkbox"] {
    
   <ul>
   <li><a href="#summary" id="toc-summary" class="nav-link active" data-scroll-target="#summary">Summary</a></li>
-  <li><a href="#reading-this-page" id="toc-reading-this-page" class="nav-link" data-scroll-target="#reading-this-page"><span class="header-section-number">1</span> Reading this page</a></li>
-  <li><a href="#sec-problem" id="toc-sec-problem" class="nav-link" data-scroll-target="#sec-problem"><span class="header-section-number">2</span> What a track is, and why the question is open</a></li>
-  <li><a href="#sec-metrics" id="toc-sec-metrics" class="nav-link" data-scroll-target="#sec-metrics"><span class="header-section-number">3</span> How a segmentation is scored</a>
+  <li><a href="#how-to-read-this-page" id="toc-how-to-read-this-page" class="nav-link" data-scroll-target="#how-to-read-this-page"><span class="header-section-number">1</span> How to read this page</a></li>
+  <li><a href="#sec-problem" id="toc-sec-problem" class="nav-link" data-scroll-target="#sec-problem"><span class="header-section-number">2</span> What a track is, and why the question was open</a></li>
+  <li><a href="#sec-pipeline" id="toc-sec-pipeline" class="nav-link" data-scroll-target="#sec-pipeline"><span class="header-section-number">3</span> What has already happened to a sample</a></li>
+  <li><a href="#sec-metrics" id="toc-sec-metrics" class="nav-link" data-scroll-target="#sec-metrics"><span class="header-section-number">4</span> How a segmentation is scored</a>
   <ul class="collapse">
-  <li><a href="#homogeneity-is-merging-completeness-is-fragmentation" id="toc-homogeneity-is-merging-completeness-is-fragmentation" class="nav-link" data-scroll-target="#homogeneity-is-merging-completeness-is-fragmentation"><span class="header-section-number">3.1</span> Homogeneity is merging; completeness is fragmentation</a></li>
-  <li><a href="#why-the-headline-is-one-to-one-matching" id="toc-why-the-headline-is-one-to-one-matching" class="nav-link" data-scroll-target="#why-the-headline-is-one-to-one-matching"><span class="header-section-number">3.2</span> Why the headline is one-to-one matching</a></li>
-  <li><a href="#joining-to-ground-truth-without-the-callsign" id="toc-joining-to-ground-truth-without-the-callsign" class="nav-link" data-scroll-target="#joining-to-ground-truth-without-the-callsign"><span class="header-section-number">3.3</span> Joining to ground truth without the callsign</a></li>
-  <li><a href="#boundary-error-reported-signed" id="toc-boundary-error-reported-signed" class="nav-link" data-scroll-target="#boundary-error-reported-signed"><span class="header-section-number">3.4</span> Boundary error, reported signed</a></li>
+  <li><a href="#homogeneity-is-merging-completeness-is-fragmentation" id="toc-homogeneity-is-merging-completeness-is-fragmentation" class="nav-link" data-scroll-target="#homogeneity-is-merging-completeness-is-fragmentation"><span class="header-section-number">4.1</span> Homogeneity is merging; completeness is fragmentation</a></li>
+  <li><a href="#the-headline-one-to-one-matching" id="toc-the-headline-one-to-one-matching" class="nav-link" data-scroll-target="#the-headline-one-to-one-matching"><span class="header-section-number">4.2</span> The headline: one-to-one matching</a></li>
+  <li><a href="#sec-containment" id="toc-sec-containment" class="nav-link" data-scroll-target="#sec-containment"><span class="header-section-number">4.3</span> Matching a track to a flight: interval containment</a></li>
+  <li><a href="#boundary-error-reported-signed" id="toc-boundary-error-reported-signed" class="nav-link" data-scroll-target="#boundary-error-reported-signed"><span class="header-section-number">4.4</span> Boundary error, reported signed</a></li>
   </ul></li>
-  <li><a href="#sec-sample" id="toc-sec-sample" class="nav-link" data-scroll-target="#sec-sample"><span class="header-section-number">4</span> The sample</a></li>
-  <li><a href="#sec-ladder" id="toc-sec-ladder" class="nav-link" data-scroll-target="#sec-ladder"><span class="header-section-number">5</span> The ladder</a>
+  <li><a href="#sec-sample" id="toc-sec-sample" class="nav-link" data-scroll-target="#sec-sample"><span class="header-section-number">5</span> The sample</a></li>
+  <li><a href="#sec-ladder" id="toc-sec-ladder" class="nav-link" data-scroll-target="#sec-ladder"><span class="header-section-number">6</span> The ladder: eight candidate rules</a>
   <ul class="collapse">
-  <li><a href="#a0-legacy-the-shipped-rule" id="toc-a0-legacy-the-shipped-rule" class="nav-link" data-scroll-target="#a0-legacy-the-shipped-rule"><span class="header-section-number">5.1</span> A0 <code>legacy</code> — the shipped rule</a></li>
-  <li><a href="#a2-no_month_suffix-untestable-on-this-sample" id="toc-a2-no_month_suffix-untestable-on-this-sample" class="nav-link" data-scroll-target="#a2-no_month_suffix-untestable-on-this-sample"><span class="header-section-number">5.2</span> A2 <code>no_month_suffix</code> — untestable on this sample</a></li>
-  <li><a href="#a3-traffic_style-the-reference-librarys-rule-does-not-transfer" id="toc-a3-traffic_style-the-reference-librarys-rule-does-not-transfer" class="nav-link" data-scroll-target="#a3-traffic_style-the-reference-librarys-rule-does-not-transfer"><span class="header-section-number">5.3</span> A3 <code>traffic_style</code> — the reference library’s rule does not transfer</a></li>
-  <li><a href="#a4-airframe_only-group-on-the-airframe" id="toc-a4-airframe_only-group-on-the-airframe" class="nav-link" data-scroll-target="#a4-airframe_only-group-on-the-airframe"><span class="header-section-number">5.4</span> A4 <code>airframe_only</code> — group on the airframe</a></li>
-  <li><a href="#a5-ground_anchored-and-a6-airport_anchored" id="toc-a5-ground_anchored-and-a6-airport_anchored" class="nav-link" data-scroll-target="#a5-ground_anchored-and-a6-airport_anchored"><span class="header-section-number">5.5</span> A5 <code>ground_anchored</code> and A6 <code>airport_anchored</code></a></li>
-  <li><a href="#a7-vertical_profile-a-negative-result-correctly-attributed" id="toc-a7-vertical_profile-a-negative-result-correctly-attributed" class="nav-link" data-scroll-target="#a7-vertical_profile-a-negative-result-correctly-attributed"><span class="header-section-number">5.6</span> A7 <code>vertical_profile</code> — a negative result, correctly attributed</a></li>
-  <li><a href="#a8-recommended-both-fixes-at-once" id="toc-a8-recommended-both-fixes-at-once" class="nav-link" data-scroll-target="#a8-recommended-both-fixes-at-once"><span class="header-section-number">5.7</span> A8 <code>recommended</code> — both fixes at once</a></li>
+  <li><a href="#a0-legacy-the-baseline" id="toc-a0-legacy-the-baseline" class="nav-link" data-scroll-target="#a0-legacy-the-baseline"><span class="header-section-number">6.1</span> A0 <code>legacy</code> — the baseline</a></li>
+  <li><a href="#a2-no_month_suffix-untestable-on-this-sample" id="toc-a2-no_month_suffix-untestable-on-this-sample" class="nav-link" data-scroll-target="#a2-no_month_suffix-untestable-on-this-sample"><span class="header-section-number">6.2</span> A2 <code>no_month_suffix</code> — untestable on this sample</a></li>
+  <li><a href="#a3-traffic_style-the-reference-librarys-rule-does-not-transfer" id="toc-a3-traffic_style-the-reference-librarys-rule-does-not-transfer" class="nav-link" data-scroll-target="#a3-traffic_style-the-reference-librarys-rule-does-not-transfer"><span class="header-section-number">6.3</span> A3 <code>traffic_style</code> — the reference library’s rule does not transfer</a></li>
+  <li><a href="#a4-airframe_only-delete-callsign-from-the-group-key" id="toc-a4-airframe_only-delete-callsign-from-the-group-key" class="nav-link" data-scroll-target="#a4-airframe_only-delete-callsign-from-the-group-key"><span class="header-section-number">6.4</span> A4 <code>airframe_only</code> — delete callsign from the group key</a></li>
+  <li><a href="#a5-ground_anchored-split-at-a-turnaround-using-the-on-ground-flag" id="toc-a5-ground_anchored-split-at-a-turnaround-using-the-on-ground-flag" class="nav-link" data-scroll-target="#a5-ground_anchored-split-at-a-turnaround-using-the-on-ground-flag"><span class="header-section-number">6.5</span> A5 <code>ground_anchored</code> — split at a turnaround, using the on-ground flag</a></li>
+  <li><a href="#a6-airport_anchored-split-only-where-an-aerodrome-actually-is" id="toc-a6-airport_anchored-split-only-where-an-aerodrome-actually-is" class="nav-link" data-scroll-target="#a6-airport_anchored-split-only-where-an-aerodrome-actually-is"><span class="header-section-number">6.6</span> A6 <code>airport_anchored</code> — split only where an aerodrome actually is</a></li>
+  <li><a href="#a7-vertical_profile-a-negative-result-correctly-attributed" id="toc-a7-vertical_profile-a-negative-result-correctly-attributed" class="nav-link" data-scroll-target="#a7-vertical_profile-a-negative-result-correctly-attributed"><span class="header-section-number">6.7</span> A7 <code>vertical_profile</code> — a negative result, correctly attributed</a></li>
+  <li><a href="#sec-a8" id="toc-sec-a8" class="nav-link" data-scroll-target="#sec-a8"><span class="header-section-number">6.8</span> A8 <code>recommended</code> — the two fixes, kept separate</a></li>
   </ul></li>
-  <li><a href="#sec-sweep" id="toc-sec-sweep" class="nav-link" data-scroll-target="#sec-sweep"><span class="header-section-number">6</span> The shipped algorithm’s tuning headroom</a></li>
-  <li><a href="#sec-payoff" id="toc-sec-payoff" class="nav-link" data-scroll-target="#sec-payoff"><span class="header-section-number">7</span> What a better segmentation buys ADEP/ADES</a>
+  <li><a href="#sec-sweep" id="toc-sec-sweep" class="nav-link" data-scroll-target="#sec-sweep"><span class="header-section-number">7</span> Was <code>legacy</code> simply mistuned?</a>
   <ul class="collapse">
-  <li><a href="#the-ranking-inverts" id="toc-the-ranking-inverts" class="nav-link" data-scroll-target="#the-ranking-inverts"><span class="header-section-number">7.1</span> The ranking inverts</a></li>
-  <li><a href="#one-aggregate-explains-it" id="toc-one-aggregate-explains-it" class="nav-link" data-scroll-target="#one-aggregate-explains-it"><span class="header-section-number">7.2</span> One aggregate explains it</a></li>
-  <li><a href="#with-the-labelling-repaired" id="toc-with-the-labelling-repaired" class="nav-link" data-scroll-target="#with-the-labelling-repaired"><span class="header-section-number">7.3</span> With the labelling repaired</a></li>
+  <li><a href="#the-three-axes" id="toc-the-three-axes" class="nav-link" data-scroll-target="#the-three-axes"><span class="header-section-number">7.1</span> The three axes</a></li>
+  <li><a href="#the-extension-and-why-it-was-necessary" id="toc-the-extension-and-why-it-was-necessary" class="nav-link" data-scroll-target="#the-extension-and-why-it-was-necessary"><span class="header-section-number">7.2</span> The extension, and why it was necessary</a></li>
+  <li><a href="#what-it-is-worth" id="toc-what-it-is-worth" class="nav-link" data-scroll-target="#what-it-is-worth"><span class="header-section-number">7.3</span> What it is worth</a></li>
   </ul></li>
-  <li><a href="#sec-defaults" id="toc-sec-defaults" class="nav-link" data-scroll-target="#sec-defaults"><span class="header-section-number">8</span> What ships</a></li>
-  <li><a href="#sec-provenance" id="toc-sec-provenance" class="nav-link" data-scroll-target="#sec-provenance"><span class="header-section-number">9</span> Provenance</a></li>
-  <li><a href="#sec-limitations" id="toc-sec-limitations" class="nav-link" data-scroll-target="#sec-limitations"><span class="header-section-number">10</span> Limitations</a>
+  <li><a href="#sec-payoff" id="toc-sec-payoff" class="nav-link" data-scroll-target="#sec-payoff"><span class="header-section-number">8</span> What a better segmentation buys ADEP/ADES</a>
   <ul class="collapse">
-  <li><a href="#the-baseline-is-not-the-shipped-track_id" id="toc-the-baseline-is-not-the-shipped-track_id" class="nav-link" data-scroll-target="#the-baseline-is-not-the-shipped-track_id"><span class="header-section-number">10.1</span> The baseline is not the shipped <code>track_id</code></a></li>
-  <li><a href="#ground-truth-covers-network-manager-flights-only" id="toc-ground-truth-covers-network-manager-flights-only" class="nav-link" data-scroll-target="#ground-truth-covers-network-manager-flights-only"><span class="header-section-number">10.2</span> Ground truth covers Network Manager flights only</a></li>
-  <li><a href="#one-arm-is-untested-not-null" id="toc-one-arm-is-untested-not-null" class="nav-link" data-scroll-target="#one-arm-is-untested-not-null"><span class="header-section-number">10.3</span> One arm is untested, not null</a></li>
-  <li><a href="#two-three-day-samples-in-june" id="toc-two-three-day-samples-in-june" class="nav-link" data-scroll-target="#two-three-day-samples-in-june"><span class="header-section-number">10.4</span> Two three-day samples in June</a></li>
-  <li><a href="#the-a1-sweep-varied-three-parameters" id="toc-the-a1-sweep-varied-three-parameters" class="nav-link" data-scroll-target="#the-a1-sweep-varied-three-parameters"><span class="header-section-number">10.5</span> The A1 sweep varied three parameters</a></li>
-  <li><a href="#the-payoff-holds-the-flight-list-fixed" id="toc-the-payoff-holds-the-flight-list-fixed" class="nav-link" data-scroll-target="#the-payoff-holds-the-flight-list-fixed"><span class="header-section-number">10.6</span> The payoff holds the flight list fixed</a></li>
+  <li><a href="#sec-detection" id="toc-sec-detection" class="nav-link" data-scroll-target="#sec-detection"><span class="header-section-number">8.1</span> The flight-list configuration these numbers were produced at</a></li>
+  <li><a href="#segmentation-quality-and-downstream-score-do-not-line-up" id="toc-segmentation-quality-and-downstream-score-do-not-line-up" class="nav-link" data-scroll-target="#segmentation-quality-and-downstream-score-do-not-line-up"><span class="header-section-number">8.2</span> Segmentation quality and downstream score do not line up</a></li>
+  <li><a href="#sec-labelling" id="toc-sec-labelling" class="nav-link" data-scroll-target="#sec-labelling"><span class="header-section-number">8.3</span> The labelling bug this study found, and why it is now history</a></li>
+  <li><a href="#the-convergence-check" id="toc-the-convergence-check" class="nav-link" data-scroll-target="#the-convergence-check"><span class="header-section-number">8.4</span> The convergence check</a></li>
+  <li><a href="#where-the-residual-comes-from" id="toc-where-the-residual-comes-from" class="nav-link" data-scroll-target="#where-the-residual-comes-from"><span class="header-section-number">8.5</span> Where the residual comes from</a></li>
+  </ul></li>
+  <li><a href="#sec-defaults" id="toc-sec-defaults" class="nav-link" data-scroll-target="#sec-defaults"><span class="header-section-number">9</span> What shipped</a></li>
+  <li><a href="#sec-provenance" id="toc-sec-provenance" class="nav-link" data-scroll-target="#sec-provenance"><span class="header-section-number">10</span> Provenance</a></li>
+  <li><a href="#sec-limitations" id="toc-sec-limitations" class="nav-link" data-scroll-target="#sec-limitations"><span class="header-section-number">11</span> Limitations</a>
+  <ul class="collapse">
+  <li><a href="#the-baseline-is-a-re-implementation-not-the-published-track_id" id="toc-the-baseline-is-a-re-implementation-not-the-published-track_id" class="nav-link" data-scroll-target="#the-baseline-is-a-re-implementation-not-the-published-track_id"><span class="header-section-number">11.1</span> The baseline is a re-implementation, not the published <code>track_id</code></a></li>
+  <li><a href="#published-data-carries-no-marker-of-which-segmentation-produced-it" id="toc-published-data-carries-no-marker-of-which-segmentation-produced-it" class="nav-link" data-scroll-target="#published-data-carries-no-marker-of-which-segmentation-produced-it"><span class="header-section-number">11.2</span> Published data carries no marker of which segmentation produced it</a></li>
+  <li><a href="#ades-values-are-not-reproducible-run-to-run" id="toc-ades-values-are-not-reproducible-run-to-run" class="nav-link" data-scroll-target="#ades-values-are-not-reproducible-run-to-run"><span class="header-section-number">11.3</span> ADES values are not reproducible run to run</a></li>
+  <li><a href="#two-ground-truth-intervals-over-twenty-hours-survive-in-the-2024-sample" id="toc-two-ground-truth-intervals-over-twenty-hours-survive-in-the-2024-sample" class="nav-link" data-scroll-target="#two-ground-truth-intervals-over-twenty-hours-survive-in-the-2024-sample"><span class="header-section-number">11.4</span> Two ground-truth intervals over twenty hours survive in the 2024 sample</a></li>
+  <li><a href="#the-adepades-configuration-predates-the-v6.2-datum-change" id="toc-the-adepades-configuration-predates-the-v6.2-datum-change" class="nav-link" data-scroll-target="#the-adepades-configuration-predates-the-v6.2-datum-change"><span class="header-section-number">11.5</span> The ADEP/ADES configuration predates the v6.2 datum change</a></li>
+  <li><a href="#ground-truth-covers-network-manager-flights-only" id="toc-ground-truth-covers-network-manager-flights-only" class="nav-link" data-scroll-target="#ground-truth-covers-network-manager-flights-only"><span class="header-section-number">11.6</span> Ground truth covers Network Manager flights only</a></li>
+  <li><a href="#one-arm-is-untested-not-null" id="toc-one-arm-is-untested-not-null" class="nav-link" data-scroll-target="#one-arm-is-untested-not-null"><span class="header-section-number">11.7</span> One arm is untested, not null</a></li>
+  <li><a href="#two-three-day-samples-in-june" id="toc-two-three-day-samples-in-june" class="nav-link" data-scroll-target="#two-three-day-samples-in-june"><span class="header-section-number">11.8</span> Two three-day samples in June</a></li>
+  <li><a href="#the-a1-sweep-varied-three-parameters" id="toc-the-a1-sweep-varied-three-parameters" class="nav-link" data-scroll-target="#the-a1-sweep-varied-three-parameters"><span class="header-section-number">11.9</span> The A1 sweep varied three parameters</a></li>
+  <li><a href="#the-payoff-holds-the-flight-list-fixed" id="toc-the-payoff-holds-the-flight-list-fixed" class="nav-link" data-scroll-target="#the-payoff-holds-the-flight-list-fixed"><span class="header-section-number">11.10</span> The payoff holds the flight list fixed</a></li>
   </ul></li>
   </ul>
 <div class="quarto-alternate-formats"><h2>Other Formats</h2><ul><li><a href="index.pdf"><i class="bi bi-file-pdf"></i>PDF</a></li></ul></div></nav>
@@ -168,7 +181,7 @@ ul.task-list li input[type="checkbox"] {
 <header id="title-block-header" class="quarto-title-block default">
 <div class="quarto-title">
 <h1 class="title">Turning ADS-B state vectors into flight tracks</h1>
-<p class="subtitle lead">Version 1 — what the segmentation is worth, and what stops it being worth it</p>
+<p class="subtitle lead">Version 1 — what the segmentation is worth, and what had to change downstream before a better one could ship</p>
 </div>
 
 
@@ -185,7 +198,7 @@ ul.task-list li input[type="checkbox"] {
     <div>
     <div class="quarto-title-meta-heading">Published</div>
     <div class="quarto-title-meta-contents">
-      <p class="date">August 25, 2026</p>
+      <p class="date">August 28, 2026</p>
     </div>
   </div>
   
@@ -199,67 +212,415 @@ ul.task-list li input[type="checkbox"] {
 
 <section id="summary" class="level2 unnumbered">
 <h2 class="unnumbered anchored" data-anchor-id="summary">Summary</h2>
-<p>Before OPDI can derive a flight list, it has to decide which state vectors belong to the same flight. That decision is made once, by a function that has not changed since the pipeline was written, and everything downstream inherits it. This page asks what that function is worth: how often it recovers a real flight, whether its thresholds are mistuned, whether the reference implementations or aviation domain knowledge do better, and what a better segmentation buys the product OPDI actually publishes.</p>
-<p>The short version is in four parts.</p>
-<p><strong>The shipped segmentation recovers about half the flights it should.</strong> On a three-day sample of 89,528 Network Manager flights it matches <strong>49.64%</strong> of them one-to-one; <strong>49.95%</strong> are split across more than one track. That is not a tuning problem, and the failure is almost entirely fragmentation rather than merging.</p>
-<p><strong>Its parameters are not the problem.</strong> A sweep of 262 cells, with every axis extended until the curve turned over inside the grid, spans 0.94 points. On the full three-day samples the best cell beats production by <strong>+0.34</strong> points on 2025 and <strong>+0.54</strong> on 2024. The shipped algorithm sits within a fifth of a point of the best setting anyone could pick for it.</p>
-<p><strong>The identity key is the problem.</strong> The track’s group key is <code>(icao24, callsign)</code>, and a null callsign therefore starts a track of its own. Grouping on the airframe and splitting only when the callsign <em>really</em> changes takes one-to-one matching to <strong>90.79%</strong> on 2025 and <strong>91.75%</strong> on 2024 — a gain of <strong>+41.15</strong> points, roughly two hundred times what the entire parameter sweep is worth.</p>
-<p><strong>But the flight list cannot consume it, and that is the most useful finding here.</strong> Adopting the better segmentation <em>as the pipeline stands</em> costs -45,957 ADEP/ADES points, because <code>flights.py</code> labels each flight with <code>F.min("flight_id")</code> — the lexicographically smallest callsign in the track, and a blank sorts first. That is correct only while every track is callsign-homogeneous, which is a property the legacy group key supplies by accident and which any fix to the fragmentation necessarily destroys. Repair the labelling and the same segmentation scores <strong>133,445</strong> against legacy’s <strong>134,176</strong> — behind by 731 points, <strong>0.5%</strong> — while matching flights 41 points better.</p>
-<p>So the recommendation is conditional, and the conditional is the result rather than a hedge: <strong>fix one aggregate in the flight list, then ship the segmentation.</strong> In that order. Reversed, the pipeline takes a 34% coverage loss in the interval between them.</p>
+<p><strong>The rule that built every <code>track_id</code> OPDI published up to v0.0.2 recovers about half the flights it should, the cause is one column in a grouping key rather than a mistuned threshold, and a rule that fixes it has now shipped.</strong> That is the whole finding. The rest of this page is how it was established, and what had to be repaired in the flight list before the better rule could be adopted without making the published product worse.</p>
+<p>Before OPDI can derive a flight list it has to decide which state vectors belong to the same flight. That decision — <strong>segmentation</strong> — is made once, and everything downstream inherits it: the flight list groups by <code>track_id</code>, events are extracted per track, measurements accumulate from a track’s start. This page asks what the decision is worth, in four parts.</p>
+<p><strong>The old rule recovers about half the flights it should.</strong> On a three-day sample of 89,609 Network Manager flights it matches <strong>49.64%</strong> of them one-to-one, meaning one flight, one track, that track holding nothing else; <strong>49.95%</strong> of flights are split across more than one track. The failure is almost entirely that splitting, and almost never the opposite error of running two flights together.</p>
+<p><strong>Its parameters are not the problem.</strong> Its three thresholds were swept over 262 combinations, every axis widened until the curve turned over inside the grid rather than at its edge. The whole grid spans 0.95 points of one-to-one matching, and on the full three-day samples the best combination beats the production setting by only <strong>+0.34</strong> points on 2025 and <strong>+0.54</strong> on 2024. The rule was already at, or a fraction of a point from, the best setting anyone could have picked for it.</p>
+<p><strong>The identity key is the problem.</strong> The old group key is <code>(icao24, callsign)</code>, so a state vector decoded without a callsign forms a group — and therefore a track — of its own. Grouping on the airframe alone, and splitting only when the callsign <em>genuinely</em> changes, takes one-to-one matching to <strong>90.80%</strong> on 2025 and <strong>91.75%</strong> on 2024: a gain of <strong>+41.15</strong> points, about 119 times everything the parameter sweep had to offer. This is the rule that now ships, as <code>segmentation.method = "standard"</code>.</p>
+<p><strong>The flight list could not consume it until one aggregate was fixed, and that is the most useful finding here.</strong> <code>flights.py</code> labelled each flight with the lexicographically smallest callsign in its track, and a blank sorts first. That is harmless only while every track carries exactly one callsign — a property the old group key supplied by accident, and which any fix to the fragmentation necessarily destroys. Measured against the pipeline as it then stood, the better segmentation therefore made the published product <em>worse</em>: not by predicting wrong aerodromes, but by producing flights that could no longer be identified at all. That labelling is now fixed in production, and the numbers on this page are the fixed ones.</p>
+<p>With it fixed, the better segmentation costs <strong>731</strong> ADEP/ADES points on 2025 and <strong>817</strong> on 2024 — 0.54% and 0.63% of the total, where a <em>point</em> is the flight list’s own score for one correctly named aerodrome and a wrong one costs two — while recovering 41 points more flights. The residual is not accuracy, which is unchanged, and it is not departures, where the new rule is slightly ahead. It is arrival coverage, and the one failure mode the new rule makes worse is merging.</p>
 </section>
-<section id="reading-this-page" class="level2" data-number="1">
-<h2 data-number="1" class="anchored" data-anchor-id="reading-this-page"><span class="header-section-number">1</span> Reading this page</h2>
-<p>Sections are ordered as the work was done, not as the conclusion would suggest. <a href="#sec-problem">The problem</a> says what a track is and why the question was open. <a href="#sec-metrics">The metrics</a> matter more than usual here, because the obvious scoring choice is misleading and the page says why before using something else. <a href="#sec-ladder">The ladder</a> is one section per candidate algorithm, each with what it fixed and what it cost. <a href="#sec-sweep">The sweep</a> prices the shipped algorithm’s own tuning. <a href="#sec-payoff">The payoff</a> is where the study turns: it measures the downstream effect, gets an answer that contradicts everything above it, and tracks that contradiction to a single line. <a href="#sec-defaults">What ships</a> states the recommendation and the order of operations it depends on.</p>
-<p>Every number is from a committed CSV regenerated by the entrypoint this page runs before drawing anything; <a href="#sec-provenance">Provenance</a> lists them file by file. <a href="#sec-limitations">Limitations</a> is where the claims this page does <em>not</em> make are written down.</p>
+<section id="how-to-read-this-page" class="level2" data-number="1">
+<h2 data-number="1" class="anchored" data-anchor-id="how-to-read-this-page"><span class="header-section-number">1</span> How to read this page</h2>
+<p>Sections are ordered as the work was done, not as the conclusion would suggest, because two of the results only make sense as answers to questions asked in order.</p>
+<p><a href="#sec-problem">What a track is</a> defines the object and says why the question was open. <a href="#sec-pipeline">What has already happened to a sample</a> is a map of the pipeline steps that run before any segmentation sees a state vector; skip it if you already know them. <a href="#sec-metrics">How a segmentation is scored</a> matters more than usual here, because the obvious scoring choice is misleading and this page says why before using something else; it also defines every term the later sections use. <a href="#sec-sample">The sample</a> says what ground truth is and where it comes from. <a href="#sec-ladder">The ladder</a> is one subsection per candidate rule, each with what it changes, what it is trying to fix, the rule itself in enough detail to reimplement, and what it scored. <a href="#sec-sweep">The sweep</a> asks whether the old rule was merely mistuned, and answers no. <a href="#sec-payoff">The payoff</a> measures the downstream effect on ADEP/ADES and explains why it does not track segmentation quality. <a href="#sec-defaults">What shipped</a> states what was adopted and what consumers have to know about it.</p>
+<p>Every number on this page is read from a committed CSV, regenerated by the entrypoint the page runs before drawing anything; <a href="#sec-provenance">Provenance</a> lists the files one by one. <a href="#sec-limitations">Limitations</a> is where the claims this page does <em>not</em> make are written down.</p>
 </section>
 <section id="sec-problem" class="level2" data-number="2">
-<h2 data-number="2" class="anchored" data-anchor-id="sec-problem"><span class="header-section-number">2</span> What a track is, and why the question is open</h2>
-<p>OPDI ingests OpenSky state vectors — position reports, one aircraft at a time, with no notion of a flight. A <strong>track</strong> is the pipeline’s answer to “which of these belong together”, and it is the unit everything downstream is built on: the flight list groups by <code>track_id</code>, events are extracted per track, and measurements accumulate from a track’s start.</p>
-<p>The shipped rule is short. Group the samples by <code>(icao24, callsign)</code>, order them by time, and start a new track when the gap to the previous sample exceeds 30 minutes, or exceeds 15 minutes while the aircraft is below 5,000 ft. The resulting identifier carries a month suffix.</p>
-<p>Four things can go wrong with such a rule, and they are not symmetric:</p>
+<h2 data-number="2" class="anchored" data-anchor-id="sec-problem"><span class="header-section-number">2</span> What a track is, and why the question was open</h2>
+<p><em>This section defines the object under study and the three ways a rule for building it can fail. By the end of it you will know what the rule under test was, and what “better” is going to mean.</em></p>
+<p>OPDI ingests OpenSky state vectors — position reports, one aircraft at a time, with no notion of a flight. A <strong>track</strong> is the pipeline’s answer to “which of these belong together”, and it is the unit everything downstream is built on: the flight list groups by <code>track_id</code>, events are extracted per track, and measurements accumulate from a track’s start. The procedure that produces tracks is called a <strong>segmentation</strong>, and a <strong>track identifier</strong> (<code>track_id</code>) is what it stamps on every sample it decides belongs to the same flight.</p>
+<p>The rule this study set out to evaluate — called <strong><code>legacy</code></strong> throughout, and the rule behind every dataset OPDI published up to v0.0.2 — is short. Group the samples by <code>(icao24, callsign)</code>, order them by time, and start a new track when the gap to the previous sample exceeds 30 minutes, or exceeds 15 minutes while the aircraft is below 5,000 ft. The resulting identifier carries a <code>_{year}_{month}</code> suffix.</p>
+<p>Three things can go wrong with such a rule, and they are not symmetric:</p>
 <ul>
 <li><strong>Fragmentation</strong> — one real flight becomes several tracks. Everything downstream sees several short flights where there was one.</li>
 <li><strong>Merging</strong> — several real flights become one track. The flight list emits one flight and the others simply do not exist in the output.</li>
 <li><strong>Boundary error</strong> — the track is one flight, but starts or ends in the wrong place, so first- and last-seen events and cumulative measurements are wrong.</li>
-<li><strong>Identity churn</strong> — the same physical flight gets a different <code>track_id</code> depending on when the pipeline ran.</li>
 </ul>
-<p>Merging is the more damaging failure, because a merged flight is unrecoverable downstream, while a fragmented one is at least present in pieces. The metrics below are chosen so that the two cannot be confused, and the arms are compared on both rather than on a single blended score.</p>
-<p>The rule has never been benchmarked. It is also frozen: <code>_add_track_id</code> is marked <em>CRITICAL — DO NOT MODIFY</em>, because changing it breaks <code>track_id</code> continuity with every dataset OPDI has published. This study therefore re-implements it inside a generic engine and measures the re-implementation, rather than editing production code.</p>
+<p>Of the three, merging is the most damaging, because a merged flight is unrecoverable downstream, while a fragmented one is at least present in pieces and a boundary error leaves the flight intact. The metrics below are chosen so that merging and fragmentation cannot be confused with each other, and the candidate rules are compared on both rather than on a single blended score.</p>
+<p>Until this study, the rule had never been benchmarked, and that is why the study exists.</p>
+<p>What it is <em>not</em> is frozen. Segmentation is a versioned choice: a release states which rule built its <code>track_id</code> values, and changing that rule changes <code>track_id</code> for everything produced from that release forward — in value, and in shape where the month suffix goes. That is a release decision, to be documented and communicated to consumers rather than avoided, and it is a decision that has now been taken. As of this release <code>segmentation.method</code> defaults to <code>"standard"</code>, which is the rule this study recommends. <code>"legacy"</code> remains selectable and reproduces the identifiers of every dataset published up to OPDI v0.0.2, so released data stays reproducible.</p>
+<p>One consequence for the reader, stated here so nothing later depends on inferring it. <strong>This paper measures algorithms, not the pipeline.</strong> Every rule below is expressed in a generic segmentation engine and scored in a harness, so that eight candidates could be compared without eight production pipeline runs — which at this data volume is the difference between a study and a quarter. That is a legitimate design and it is also a real limitation: what is measured here is a re-implementation of each rule, not the pipeline’s own output. Version 2 of this study is the paper that runs the pipeline itself, end to end, on the rule this one recommends. If you want to know what a rule is worth, you are in the right place; if you want to know what the pipeline now produces, read version 2.</p>
 </section>
-<section id="sec-metrics" class="level2" data-number="3">
-<h2 data-number="3" class="anchored" data-anchor-id="sec-metrics"><span class="header-section-number">3</span> How a segmentation is scored</h2>
-<p>Comparing a segmentation against ground truth is a <strong>clustering comparison</strong>: both the algorithm and the truth partition the same state vectors, and the question is how far the two partitions agree.</p>
-<section id="homogeneity-is-merging-completeness-is-fragmentation" class="level3" data-number="3.1">
-<h3 data-number="3.1" class="anchored" data-anchor-id="homogeneity-is-merging-completeness-is-fragmentation"><span class="header-section-number">3.1</span> Homogeneity is merging; completeness is fragmentation</h3>
-<p>The standard pair of clustering measures maps onto the two failure modes exactly, which is why they are used here rather than a bespoke score:</p>
+<section id="sec-pipeline" class="level2" data-number="3">
+<h2 data-number="3" class="anchored" data-anchor-id="sec-pipeline"><span class="header-section-number">3</span> What has already happened to a sample</h2>
+<p><em>Side information. This section says what the <code>/opdi</code> pipeline has already done to a state vector before any segmentation sees it, so that nothing later in this page is a surprise. If you know the pipeline steps, skip to <a href="#sec-metrics">the metrics</a>.</em></p>
+<p>Segmentation is step 02 of a chain, and the samples reaching it are not raw OpenSky rows. Two earlier decisions in particular shape everything measured on this page: the ingestion filter decides which samples exist at all, and the <strong>thinning</strong> rule — which sample survives out of each short interval — decides how densely a flight is described.</p>
+<div class="cell">
+<div class="cell-output-display">
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="index_files/figure-html/pipeline-diagram-1.png" class="img-fluid figure-img" width="672"></p>
+<figcaption>The pipeline steps that run before, and after, the decision this page studies. Step 02 is the one under test; everything above it has already happened to a sample by then, and everything below it inherits the result.</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<div class="cell">
+<div class="cell-output-display">
+<table class="caption-top table table-sm table-striped small">
+<colgroup>
+<col style="width: 2%">
+<col style="width: 88%">
+<col style="width: 9%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Step</th>
+<th style="text-align: left;">What it does</th>
+<th style="text-align: left;">Writes</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">00</td>
+<td style="text-align: left;">Builds reference tables: H3 airport detection zones, HexAero airport ground layouts, OurAirports, the OpenSky aircraft database. Read later; never rewritten by a pipeline run.</td>
+<td style="text-align: left;">reference tables</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">01</td>
+<td style="text-align: left;">Downloads OpenSky state vectors, restricts them to the OPDI bounding box, and thins them to one sample per aircraft per interval.</td>
+<td style="text-align: left;"><code>osn_statevectors</code></td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">02</td>
+<td style="text-align: left;">Groups samples into tracks and stamps <code>track_id</code>. <strong>This is the step under study.</strong> Also attaches the H3 index each later join uses.</td>
+<td style="text-align: left;"><code>osn_tracks</code></td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">02a</td>
+<td style="text-align: left;">Masks values that cannot be right — duplicates, out-of-range positions, stale broadcasts, derivative spikes, isolated points — to NULL, keeping the row. Writes a second table rather than editing the first.</td>
+<td style="text-align: left;"><code>osn_tracks_clean</code></td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">03</td>
+<td style="text-align: left;">One flight per <code>track_id</code>: departure and destination aerodrome, and the flight’s callsign label.</td>
+<td style="text-align: left;"><code>opdi_flight_list</code></td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">04</td>
+<td style="text-align: left;">Milestones per track — take-off, top-of-climb, level segments, landing — and the measurements attached to them.</td>
+<td style="text-align: left;">events, measurements</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<p>Two parameters of step 01 are worth naming, because every count on this page is conditioned on them.</p>
+<div class="cell">
+<div class="cell-output-display">
+<table class="caption-top table table-sm table-striped small">
+<colgroup>
+<col style="width: 15%">
+<col style="width: 13%">
+<col style="width: 71%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Parameter</th>
+<th style="text-align: left;">Value</th>
+<th style="text-align: left;">Why it matters here</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">bounding box (min lon, min lat, max lon, max lat)</td>
+<td style="text-align: left;">(-25.86653, 26.74617, 49.65699, 70.25976)</td>
+<td style="text-align: left;">A flight is observed only inside this box. A track that begins at its edge may have entered from outside, which is why an out-of-area label exists at all.</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">thinning interval</td>
+<td style="text-align: left;">5 s</td>
+<td style="text-align: left;">Consecutive samples of one aircraft are at least this far apart, so every gap threshold in this study is measured against a 5 s grid rather than a 1 Hz one.</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">thinning rule</td>
+<td style="text-align: left;"><code>bucket</code></td>
+<td style="text-align: left;">One row kept per aircraft per interval bin — the last, so a track’s final observation survives exactly. The earlier <code>modulo</code> rule kept the row whose epoch second divides the interval, and built every dataset published before it.</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<p>One ordering detail matters, because the diagram would otherwise mislead. In production, step 02 builds tracks and step 02a cleans them, in that order. This study runs the other way round: every candidate rule is applied to the <em>cleaned</em> table, so that all of them see exactly the same input and a difference between two of them cannot be an artefact of different cleaning.</p>
+<p>That is the right choice for a comparison and it has one consequence worth knowing. Cleaning masks bad values to NULL rather than deleting rows, and <code>NULL &lt; 5000</code> evaluates to NULL rather than to true — so legacy’s low-altitude split does not fire on a sample whose altitude the cleaner rejected, where it once did. Every arm is subject to that equally, so no comparison here is affected; but it means the identifiers in published data cannot be recomputed from the published clean table. That is picked up again in <a href="#sec-limitations">Limitations</a>.</p>
+</section>
+<section id="sec-metrics" class="level2" data-number="4">
+<h2 data-number="4" class="anchored" data-anchor-id="sec-metrics"><span class="header-section-number">4</span> How a segmentation is scored</h2>
+<p><em>This section defines every measurement used later: the two failure measures, the headline statistic, the rule that decides which track belongs to which flight, and the sign convention for boundary error. Nothing after this section introduces a metric.</em></p>
+<p>Comparing a segmentation against ground truth is a <strong>clustering comparison</strong>: both the algorithm and the truth partition the same state vectors — the algorithm into tracks, the truth into flights — and the question is how far the two partitions agree.</p>
+<section id="homogeneity-is-merging-completeness-is-fragmentation" class="level3" data-number="4.1">
+<h3 data-number="4.1" class="anchored" data-anchor-id="homogeneity-is-merging-completeness-is-fragmentation"><span class="header-section-number">4.1</span> Homogeneity is merging; completeness is fragmentation</h3>
+<p>Two standard clustering measures map onto the two failure modes exactly, which is why they are used here rather than a score invented for the occasion:</p>
 <ul>
-<li><strong>Homogeneity</strong> falls when a track contains samples from more than one flight — it is the merging measure.</li>
-<li><strong>Completeness</strong> falls when one flight’s samples are spread across more than one track — it is the fragmentation measure.</li>
+<li><strong>Homogeneity</strong> asks whether each track contains samples from only one flight. It falls when a track holds more than one flight — so it is the <em>merging</em> measure.</li>
+<li><strong>Completeness</strong> asks whether each flight’s samples all landed in one track. It falls when a flight is spread over several tracks — so it is the <em>fragmentation</em> measure.</li>
 </ul>
-<p><strong>V-measure</strong> is their harmonic mean, and it is reported below but never used to choose anything. The reason is measured rather than assumed: across the eight arms V-measure spans 0.9959 to 0.9977 — a range of 0.0018 — while one-to-one matching spans 37.5 to 91.7. Worse than insensitive, it is <em>misleading</em>: it ranks arms in a different order at the top, which is the only place a comparison looks. Both statistics are entropy-weighted over 143 million samples, and the overwhelming majority of samples sit in tracks that every arm gets right, so V-measure is dominated by agreement that carries no information about the arms’ differences.</p>
+<p>Both are entropy-based and both run from 0 to 1, with 1 meaning perfect agreement with ground truth on that axis alone.</p>
+<p><strong>V-measure</strong> is their harmonic mean — a single number summarising both. It is reported below and used to choose nothing, and the reason is measured rather than assumed. Across the eight candidate rules V-measure spans 0.9959 to 0.9977, a range of 0.0018, while the one-to-one matching rate defined next spans 37.5 to 91.8 points. Worse than insensitive, it is <em>misleading</em>: it ranks the candidates in a different order at the top, which is the only place a comparison ever looks. The cause is that both statistics are entropy-weighted over every sample in the period, and the overwhelming majority of samples sit in tracks that every candidate gets right — so V-measure is dominated by agreement that carries no information about where the candidates differ.</p>
 </section>
-<section id="why-the-headline-is-one-to-one-matching" class="level3" data-number="3.2">
-<h3 data-number="3.2" class="anchored" data-anchor-id="why-the-headline-is-one-to-one-matching"><span class="header-section-number">3.2</span> Why the headline is one-to-one matching</h3>
-<p>The headline statistic is <strong><code>clean_match_pct</code></strong>: the share of ground-truth flights matched by exactly one track, where that track covers no other flight. It is deliberately strict and deliberately blunt. Each flight is counted in exactly one of three mutually exclusive classes — clean, fragmented or merged — and a flight that is both merged and fragmented counts as merged, because merging is the worse failure and a flight should not be able to improve its classification by also being broken a second way.</p>
+<section id="the-headline-one-to-one-matching" class="level3" data-number="4.2">
+<h3 data-number="4.2" class="anchored" data-anchor-id="the-headline-one-to-one-matching"><span class="header-section-number">4.2</span> The headline: one-to-one matching</h3>
+<p>The headline statistic on this page is <strong><code>clean_match_pct</code></strong>, and it answers the question a data consumer actually has: <em>what share of real flights came out as exactly one track, holding nothing but that flight?</em></p>
+<p>Every ground-truth flight is placed in exactly one of three mutually exclusive classes, which sum to 100%:</p>
+<ul>
+<li><strong>clean</strong> — the flight’s samples are in one track, and that track carries no other flight;</li>
+<li><strong>fragmented</strong> — the flight’s samples span several tracks, none of which carries another flight;</li>
+<li><strong>merged</strong> — the flight’s dominant track also carries at least one other flight.</li>
+</ul>
+<p>A flight that is both merged and fragmented counts as <strong>merged</strong>, because merging is the worse failure and a flight should not be able to improve its classification by also being broken a second way. The definition is deliberately strict: a single stray sample in a second track costs a flight its clean match. The tolerant alternative — a dominant track covering some fraction of the flight — was rejected because that fraction would be a free parameter chosen after seeing the results. <code>clean_match_pct</code> is therefore a lower bound, and is reported as one.</p>
 </section>
-<section id="joining-to-ground-truth-without-the-callsign" class="level3" data-number="3.3">
-<h3 data-number="3.3" class="anchored" data-anchor-id="joining-to-ground-truth-without-the-callsign"><span class="header-section-number">3.3</span> Joining to ground truth without the callsign</h3>
-<p>Ground truth is joined to tracks on <strong><code>icao24</code> plus interval containment</strong>, and never on callsign. This differs from the V6/V7 flight-list studies, which key on callsign, and the difference is forced: one of the arms removes callsign from the track identity entirely, so a callsign-keyed join would be measuring the arm’s own identity choice rather than its segmentation. Flights are restricted to those whose whole airborne interval lies inside the sampled window, so a flight that departs on the last sampled day and lands after it cannot report a clipping artefact as a boundary error.</p>
+<section id="sec-containment" class="level3" data-number="4.3">
+<h3 data-number="4.3" class="anchored" data-anchor-id="sec-containment"><span class="header-section-number">4.3</span> Matching a track to a flight: interval containment</h3>
+<p>Every statistic above needs one thing first: a rule saying which ground-truth flight a given state vector belongs to. That rule is <strong>interval containment</strong>, and it is worth setting out fully, because it is where a comparison of this kind is most easily rigged without anyone noticing.</p>
+<p><strong>A ground-truth flight is an airframe and a span of time.</strong> The airframe is <code>icao24</code> — the same 24-bit address ADS-B broadcasts, which the Network Manager flight table carries as <code>AIRCRAFT_ADDRESS</code>. The span is the flight’s airborne interval, from take-off to landing:</p>
+<ul>
+<li>where APDF covers the aerodrome, from APDF’s measured movement times, the real ATOT and ALDT;</li>
+<li>elsewhere, inferred from Network Manager as <code>AOBT_3 + TAXI_TIME_3</code> for take-off and <code>ARVT_3</code> for landing. Both inferences were validated against real APDF movements before being relied on (see <a href="#sec-sample">The sample</a>).</li>
+</ul>
+<p>Each row carries which of the two it came from, so a statistic that needs measured times rather than inferred ones — boundary error does — can restrict itself to the APDF-backed subset.</p>
+<p><strong>The join is on <code>icao24</code> and time overlap, and never on callsign.</strong> This differs from the ADEP/ADES flight-list studies, which key on callsign, and the difference is forced rather than stylistic: one of the candidate rules below removes callsign from track identity entirely, and another splits on it. Joining on callsign would therefore score each candidate against a key it deliberately does or does not have, which is prejudging the very thing under comparison.</p>
+<p><strong>Containment, concretely.</strong> A state vector is attributed to the ground-truth flight of the same <code>icao24</code> whose interval holds its timestamp. A track and a flight are then <em>matched</em> when at least one of the track’s samples is attributed to that flight, and the contingency of tracks against flights is what the three classes above are counted from. Where two intervals of the same airframe touch, the boundary sample goes to the earlier one, so back-to-back legs cannot double-count it and inflate the merge rate.</p>
+<p>A worked example, one airframe with two rotations in an afternoon:</p>
+<div class="cell">
+<div class="cell-output-display">
+<table class="caption-top table table-sm table-striped small">
+<colgroup>
+<col style="width: 23%">
+<col style="width: 15%">
+<col style="width: 20%">
+<col style="width: 41%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Ground-truth flight</th>
+<th style="text-align: left;">Its interval</th>
+<th style="text-align: left;">A sample</th>
+<th style="text-align: left;">Attributed to</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">leg 1</td>
+<td style="text-align: left;">12:00–13:30</td>
+<td style="text-align: left;">12:05</td>
+<td style="text-align: left;">leg 1</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">leg 1</td>
+<td style="text-align: left;">12:00–13:30</td>
+<td style="text-align: left;">13:25</td>
+<td style="text-align: left;">leg 1</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">gap</td>
+<td style="text-align: left;">—</td>
+<td style="text-align: left;">13:50 (on stand)</td>
+<td style="text-align: left;">no flight — outside both intervals</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">leg 2</td>
+<td style="text-align: left;">14:10–15:40</td>
+<td style="text-align: left;">14:15</td>
+<td style="text-align: left;">leg 2</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">leg 2</td>
+<td style="text-align: left;">14:10–15:40</td>
+<td style="text-align: left;">15:35</td>
+<td style="text-align: left;">leg 2</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<p>If one track holds the 12:05 and 15:35 samples, both flights are <strong>merged</strong> into it. If leg 1’s two samples land in different tracks, leg 1 is <strong>fragmented</strong>. The samples on stand at 13:50 belong to no flight and are scored against nothing — segmentation is not penalised for what it does with them.</p>
+<p><strong>What the restriction costs.</strong> Ground truth is further restricted to flights whose <em>whole</em> airborne interval lies inside the sampled window. The reason is that a flight observed only for its last twenty minutes has no samples for the rest of itself: it would score as truncated however well the segmentation performed, and its boundary error would be a fact about where the window fell. That argument justifies the restriction but does not price it, so the price was measured.</p>
+<div class="cell">
+<div class="cell-output-display">
+<table class="caption-top table table-sm table-striped small">
+<colgroup>
+<col style="width: 5%">
+<col style="width: 20%">
+<col style="width: 10%">
+<col style="width: 12%">
+<col style="width: 11%">
+<col style="width: 5%">
+<col style="width: 34%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;">period</th>
+<th style="text-align: right;">any airborne time in window</th>
+<th style="text-align: right;">wholly inside</th>
+<th style="text-align: right;">clipped at start</th>
+<th style="text-align: right;">clipped at end</th>
+<th style="text-align: right;">kept %</th>
+<th style="text-align: right;">median observed fraction of an excluded flight</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">2025</td>
+<td style="text-align: right;">97,082</td>
+<td style="text-align: right;">93,028</td>
+<td style="text-align: right;">1,955</td>
+<td style="text-align: right;">2,099</td>
+<td style="text-align: right;">95.82</td>
+<td style="text-align: right;">0.500</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">2024</td>
+<td style="text-align: right;">94,682</td>
+<td style="text-align: right;">90,871</td>
+<td style="text-align: right;">1,856</td>
+<td style="text-align: right;">1,955</td>
+<td style="text-align: right;">95.97</td>
+<td style="text-align: right;">0.503</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<p>So the restriction keeps 95.82% of the 2025 flights that have any airborne time in the window, and 95.97% of the 2024 ones. The exclusion is near-symmetric between the two window edges, which is what a window artefact should look like and is evidence the rule is not systematically dropping one kind of flight — long-haul arrivals, for instance.</p>
+<p>The last column answers the obvious objection, that the rule might be discarding nearly-complete flights on a technicality. It does not: the median excluded flight had only about 50% of its airborne time inside the window on 2025, and 50% on 2024. A typical excluded flight really was about half observed, and could not have been scored fairly.</p>
+<p>One further gap is worth stating, because it explains a difference between two counts on this page. Of the 93,028 flights wholly inside the 2025 window, 89,609 are scored — the remaining 3,419 produced no ADS-B sample at all in the feed and so appear in no contingency. They are absent from the denominator for the same reason, and no candidate rule is credited or penalised for them.</p>
 </section>
-<section id="boundary-error-reported-signed" class="level3" data-number="3.4">
-<h3 data-number="3.4" class="anchored" data-anchor-id="boundary-error-reported-signed"><span class="header-section-number">3.4</span> Boundary error, reported signed</h3>
-<p>Boundary error is the distance from a track’s true first and last sample to the flight’s actual take-off and landing times. It is reported <strong>signed</strong>, and that is not cosmetic. Absolute error conflates two opposite conditions: a track starting <em>before</em> take-off is normal — the aircraft is on the ramp broadcasting — while a track starting <em>after</em> take-off has missed part of its own flight. The absolute median for the shipped algorithm is around a hundred seconds, which reads as a small tidy number; signed, the median is <strong>+11 s</strong> and the tenth percentile is <strong>-816 s</strong>, which says something quite different — the typical track begins just <em>after</em> wheels-off, while a minority carry a full quarter-hour of taxi-out. The distribution is two-sided and an absolute median over it is close to meaningless.</p>
+<section id="boundary-error-reported-signed" class="level3" data-number="4.4">
+<h3 data-number="4.4" class="anchored" data-anchor-id="boundary-error-reported-signed"><span class="header-section-number">4.4</span> Boundary error, reported signed</h3>
+<p>Boundary error is the distance in time from a track’s first and last sample to the flight’s actual take-off and landing. It is reported <strong>signed</strong>, with the convention that</p>
+<blockquote class="blockquote">
+<p><strong><code>off</code> = track start − take-off, <code>land</code> = track end − landing.</strong> A negative value means the track began (or ended) <em>before</em> the aircraft did.</p>
+</blockquote>
+<p>That is not cosmetic. An absolute error conflates two opposite conditions: a track starting <em>before</em> take-off is normal and often desirable — the aircraft is on the ramp broadcasting — while a track starting <em>after</em> take-off has missed part of its own flight. <code>legacy</code>’s absolute median is about a hundred seconds, which reads as a small tidy number. Signed, its median is <strong>+11 s</strong> and its tenth percentile is <strong>-816 s</strong> — which says something quite different: the typical track begins just <em>after</em> wheels-off, while a minority carry a full quarter-hour of taxi-out. The distribution is two-sided, and an absolute median over it is close to meaningless.</p>
 <p>The landing side is the opposite and far more uniform: every percentile is positive, with a median of <strong>+345 s</strong>. Tracks essentially always run on through taxi-in. That asymmetry is a coverage fact — on-ground ADS-B before departure reaches a minority of flights, while an arriving aircraft is still powered and broadcasting to the stand — and not an algorithm defect.</p>
+<p>The percentiles below are what the text quotes. They are computed over the flights whose ground-truth times are APDF-measured rather than NM-inferred — 22,069 of the 89,609 scored flights on 2025 — because a boundary error against an inferred time would partly be measuring the inference.</p>
+<div class="cell">
+<div class="cell-output-display">
+<table class="caption-top table table-sm table-striped small">
+<caption>Signed boundary error in seconds, 2025. Negative means the track began or ended before the aircraft did.</caption>
+<colgroup>
+<col style="width: 26%">
+<col style="width: 12%">
+<col style="width: 12%">
+<col style="width: 12%">
+<col style="width: 12%">
+<col style="width: 12%">
+<col style="width: 12%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;">arm</th>
+<th style="text-align: right;">dep p10</th>
+<th style="text-align: right;">dep p50</th>
+<th style="text-align: right;">dep p90</th>
+<th style="text-align: right;">arr p10</th>
+<th style="text-align: right;">arr p50</th>
+<th style="text-align: right;">arr p90</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">airframe_only</td>
+<td style="text-align: right;">-903</td>
+<td style="text-align: right;">3</td>
+<td style="text-align: right;">104</td>
+<td style="text-align: right;">59</td>
+<td style="text-align: right;">348</td>
+<td style="text-align: right;">741</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">recommended</td>
+<td style="text-align: right;">-851</td>
+<td style="text-align: right;">4</td>
+<td style="text-align: right;">118</td>
+<td style="text-align: right;">34</td>
+<td style="text-align: right;">346</td>
+<td style="text-align: right;">721</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">airport_anchored</td>
+<td style="text-align: right;">-856</td>
+<td style="text-align: right;">9</td>
+<td style="text-align: right;">104</td>
+<td style="text-align: right;">59</td>
+<td style="text-align: right;">348</td>
+<td style="text-align: right;">742</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">traffic_style</td>
+<td style="text-align: right;">-927</td>
+<td style="text-align: right;">9</td>
+<td style="text-align: right;">101</td>
+<td style="text-align: right;">84</td>
+<td style="text-align: right;">356</td>
+<td style="text-align: right;">768</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">legacy</td>
+<td style="text-align: right;">-816</td>
+<td style="text-align: right;">11</td>
+<td style="text-align: right;">119</td>
+<td style="text-align: right;">58</td>
+<td style="text-align: right;">345</td>
+<td style="text-align: right;">701</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">no_month_suffix</td>
+<td style="text-align: right;">-816</td>
+<td style="text-align: right;">11</td>
+<td style="text-align: right;">119</td>
+<td style="text-align: right;">58</td>
+<td style="text-align: right;">345</td>
+<td style="text-align: right;">701</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">ground_anchored</td>
+<td style="text-align: right;">-22</td>
+<td style="text-align: right;">19</td>
+<td style="text-align: right;">104</td>
+<td style="text-align: right;">59</td>
+<td style="text-align: right;">347</td>
+<td style="text-align: right;">724</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">vertical_profile</td>
+<td style="text-align: right;">22</td>
+<td style="text-align: right;">54</td>
+<td style="text-align: right;">114</td>
+<td style="text-align: right;">34</td>
+<td style="text-align: right;">346</td>
+<td style="text-align: right;">739</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<p>The shape is what the percentiles cannot show.</p>
+<div class="cell">
+<div class="cell-output-display">
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="index_files/figure-html/boundary-figure-1.png" class="img-fluid figure-img" width="768"></p>
+<figcaption>Signed boundary error on the 2025 sample, over the flights whose ground-truth times are APDF-measured. <strong>Negative means the track began, or ended, before the aircraft did.</strong> Departure: <code>legacy</code> and <code>recommended</code> both show a two-sided distribution — a spike just after wheels-off plus a long left tail of tracks that started on the ramp — while <code>ground_anchored</code> concentrates hard at zero, which is the arm cutting at the ground event rather than running back into the ramp. Arrival: all three are one-sided and nearly identical, because tracks essentially always run on through taxi-in. The outermost bin on each side is an overflow bin and carries everything beyond half an hour.</figcaption>
+</figure>
+</div>
+</div>
+</div>
 </section>
 </section>
-<section id="sec-sample" class="level2" data-number="4">
-<h2 data-number="4" class="anchored" data-anchor-id="sec-sample"><span class="header-section-number">4</span> The sample</h2>
-<p>Two three-day samples, 89,528 and 86,973 ground-truth flights: 5–7 June 2025 and 5–7 June 2024. Two periods, because a single sample cannot distinguish a real effect from one the sample happened to favour, and every conclusion on this page is required to hold on both.</p>
-<p>Ground truth is the Network Manager flight table, cross-checked against APDF where APDF covers the aerodrome. Take-off is inferred as <code>AOBT_3 + TAXI_TIME_3</code> and landing is taken from <code>ARVT_3</code> directly; both were validated against real APDF movement times before being relied on, at median error 0 s with an interquartile range of 17 s and 25 s respectively.</p>
+<section id="sec-sample" class="level2" data-number="5">
+<h2 data-number="5" class="anchored" data-anchor-id="sec-sample"><span class="header-section-number">5</span> The sample</h2>
+<p><em>This section says what is being measured against, and over what period.</em></p>
+<p>Two three-day samples, 89,609 and 87,048 scored ground-truth flights: 5–7 June 2025 and 5–7 June 2024. Two periods rather than one, because a single sample cannot distinguish a real effect from one that sample happened to favour — and every conclusion on this page is required to hold on both.</p>
+<p>Ground truth is the Network Manager flight table, which covers all of ECAC, cross-checked against APDF where APDF covers the aerodrome. Take-off is inferred as <code>AOBT_3 + TAXI_TIME_3</code> — off-block plus taxi-out — and landing is taken from <code>ARVT_3</code> directly, which is already a landing time rather than a gate arrival. Both inferences were validated against real APDF movement times before being relied on, at median error 0 s with an interquartile range of 17 s and 25 s respectively; that is what licenses using NM-inferred intervals for matching. Boundary error is nevertheless reported only over the APDF-measured subset, which is conservatism rather than necessity.</p>
 </section>
-<section id="sec-ladder" class="level2" data-number="5">
-<h2 data-number="5" class="anchored" data-anchor-id="sec-ladder"><span class="header-section-number">5</span> The ladder</h2>
-<p>Eight arms, each a grouping and a break predicate, all scored against the same ground truth on the same samples. Every arm reads one shared cleaned track table with only <code>track_id</code> varying, so a difference between arms cannot be an artefact of a different track build.</p>
+<section id="sec-ladder" class="level2" data-number="6">
+<h2 data-number="6" class="anchored" data-anchor-id="sec-ladder"><span class="header-section-number">6</span> The ladder: eight candidate rules</h2>
+<p><em>This section is the study proper. It defines what a candidate rule is, then takes each in turn: what it changes, what it is trying to fix, the rule itself, and what it scored. By the end you will know why one of them was recommended and why the other seven were not.</em></p>
+<p>A <strong>ladder</strong> here is a set of candidate segmentation rules run against the same ground truth, on the same samples, one change at a time. Each candidate is called an <strong>arm</strong>, borrowing the term from a controlled trial, and each arm is exactly two things: a <strong>grouping</strong> — which samples are even eligible to share a track — and a <strong>break predicate</strong> — a test evaluated at each sample in time order, which when true starts a new track.</p>
+<p>Every arm reads one shared cleaned track table, and only <code>track_id</code> varies between them, so a difference between two arms cannot be an artefact of a different track build. Arms are numbered A0 to A8; A1 is not an arm but a parameter sweep of A0, and has <a href="#sec-sweep">its own section</a>.</p>
+<p>Every domain-knowledge arm (A5, A6, A7) keeps a legacy gap rule as a <strong>floor</strong> — it can add splits to legacy’s, and in one deliberate exception replace one of them, but it cannot end up splitting less than a long silence demands. There are two reasons, and both matter for reading the numbers. The ladder measures one change at a time, so an arm that also silently removed a legacy split would report a delta mixing two changes; and an arm whose inputs are missing must not degrade into assigning an airframe’s whole month to a single track.</p>
 <div class="cell">
 <div class="cell-output-display">
 <table class="caption-top table table-sm table-striped small">
@@ -286,283 +647,892 @@ ul.task-list li input[type="checkbox"] {
 <tbody>
 <tr class="odd">
 <td style="text-align: left;">recommended</td>
-<td style="text-align: right;">90.79</td>
-<td style="text-align: right;">8.47</td>
+<td style="text-align: right;">90.80</td>
+<td style="text-align: right;">8.46</td>
 <td style="text-align: right;">0.74</td>
-<td style="text-align: right;">98,817</td>
+<td style="text-align: right;">98,873</td>
 <td style="text-align: right;">0.9973</td>
 <td style="text-align: right;">91.75</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">airframe_only</td>
-<td style="text-align: right;">88.55</td>
-<td style="text-align: right;">6.92</td>
+<td style="text-align: right;">88.56</td>
+<td style="text-align: right;">6.91</td>
 <td style="text-align: right;">4.53</td>
-<td style="text-align: right;">94,072</td>
+<td style="text-align: right;">94,126</td>
 <td style="text-align: right;">0.9968</td>
 <td style="text-align: right;">89.79</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">airport_anchored</td>
-<td style="text-align: right;">85.79</td>
-<td style="text-align: right;">9.88</td>
-<td style="text-align: right;">4.33</td>
-<td style="text-align: right;">96,942</td>
+<td style="text-align: right;">85.80</td>
+<td style="text-align: right;">9.87</td>
+<td style="text-align: right;">4.32</td>
+<td style="text-align: right;">96,994</td>
 <td style="text-align: right;">0.9969</td>
 <td style="text-align: right;">89.03</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">ground_anchored</td>
-<td style="text-align: right;">79.45</td>
-<td style="text-align: right;">19.39</td>
+<td style="text-align: right;">79.46</td>
+<td style="text-align: right;">19.38</td>
 <td style="text-align: right;">1.16</td>
-<td style="text-align: right;">107,229</td>
+<td style="text-align: right;">107,274</td>
 <td style="text-align: right;">0.9977</td>
-<td style="text-align: right;">77.23</td>
+<td style="text-align: right;">77.25</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">legacy</td>
 <td style="text-align: right;">49.64</td>
 <td style="text-align: right;">49.95</td>
 <td style="text-align: right;">0.40</td>
-<td style="text-align: right;">147,228</td>
+<td style="text-align: right;">147,306</td>
 <td style="text-align: right;">0.9968</td>
-<td style="text-align: right;">52.33</td>
+<td style="text-align: right;">52.32</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">no_month_suffix</td>
 <td style="text-align: right;">49.64</td>
 <td style="text-align: right;">49.95</td>
 <td style="text-align: right;">0.40</td>
-<td style="text-align: right;">147,228</td>
+<td style="text-align: right;">147,306</td>
 <td style="text-align: right;">0.9968</td>
-<td style="text-align: right;">52.33</td>
+<td style="text-align: right;">52.32</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">traffic_style</td>
 <td style="text-align: right;">45.89</td>
-<td style="text-align: right;">44.63</td>
-<td style="text-align: right;">9.48</td>
-<td style="text-align: right;">111,106</td>
+<td style="text-align: right;">44.62</td>
+<td style="text-align: right;">9.49</td>
+<td style="text-align: right;">111,152</td>
 <td style="text-align: right;">0.9960</td>
-<td style="text-align: right;">47.74</td>
+<td style="text-align: right;">47.73</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">vertical_profile</td>
-<td style="text-align: right;">37.46</td>
-<td style="text-align: right;">60.07</td>
+<td style="text-align: right;">37.49</td>
+<td style="text-align: right;">60.03</td>
 <td style="text-align: right;">2.48</td>
-<td style="text-align: right;">145,852</td>
+<td style="text-align: right;">145,905</td>
 <td style="text-align: right;">0.9968</td>
-<td style="text-align: right;">38.81</td>
+<td style="text-align: right;">38.83</td>
 </tr>
 </tbody>
 </table>
 </div>
 </div>
-<p>The ordering is identical on both periods and no arm moves by more than about three points between them, so what follows is a property of the algorithms rather than of one sample.</p>
-<section id="a0-legacy-the-shipped-rule" class="level3" data-number="5.1">
-<h3 data-number="5.1" class="anchored" data-anchor-id="a0-legacy-the-shipped-rule"><span class="header-section-number">5.1</span> A0 <code>legacy</code> — the shipped rule</h3>
-<p>49.64% clean, 49.95% fragmented, 0.40% merged. The failure is overwhelmingly fragmentation, and it is worth being precise about the cause, because the obvious reading is wrong. It is not that callsigns change mid-flight. It is that <strong>a null callsign forms its own group</strong>: 42% of legacy’s tracks are blank-callsign tracks, produced by samples the receiver decoded without a callsign. The group key turns a gap in the data into a separate flight.</p>
+<p>The ordering is identical on both periods, and no arm’s clean-match rate moves by more than 3.2 points between them, so what follows is a property of the algorithms rather than of one sample.</p>
+<p>Each arm below is given in the same four parts: what it changes relative to <code>legacy</code>, what it is trying to fix, the rule itself, and what the measurement said.</p>
+<section id="a0-legacy-the-baseline" class="level3" data-number="6.1">
+<h3 data-number="6.1" class="anchored" data-anchor-id="a0-legacy-the-baseline"><span class="header-section-number">6.1</span> A0 <code>legacy</code> — the baseline</h3>
+<p><strong>What it changes.</strong> Nothing. This is the rule that built every published <code>track_id</code> up to v0.0.2, and everything else is measured against it.</p>
+<p><strong>The rule.</strong> Group the samples by <code>(icao24, callsign)</code> — in production, by a SHA-2 hash of the two concatenated. Order each group by time. Break when the gap to the previous sample exceeds 30 minutes, or exceeds 15 minutes while barometric altitude is below 5,000 ft. The identifier carries a <code>_{year}_{month}</code> suffix.</p>
+<p><strong>What the measurement said.</strong> 49.64% clean, 49.95% fragmented, 0.40% merged on 2025; 52.32% clean on 2024. The failure is overwhelmingly fragmentation, and almost never merging.</p>
+<p>It is worth being precise about the cause, because the obvious reading is wrong. It is <em>not</em> that callsigns change in mid-flight. It is that <strong>a sample with no callsign forms a group, and therefore a track, of its own.</strong> Measured while the arm was implemented, 42.4% of <code>legacy</code>’s tracks carry no callsign at all: they are made of samples the receiver decoded without one. The group key turns a hole in the data into a separate flight. That single mechanism is what the rest of this ladder is chasing.</p>
 </section>
-<section id="a2-no_month_suffix-untestable-on-this-sample" class="level3" data-number="5.2">
-<h3 data-number="5.2" class="anchored" data-anchor-id="a2-no_month_suffix-untestable-on-this-sample"><span class="header-section-number">5.2</span> A2 <code>no_month_suffix</code> — untestable on this sample</h3>
-<p>Identical to A0 in every digit, on both periods. That is correct behaviour and not a bug: the arm removes the <code>_{year}_{month}</code> suffix from the identifier, and both samples sit inside a single month, so the suffix is constant and removing it changes nothing. The consequence is that <strong>this study cannot evaluate the arm at all.</strong> The suffix can only fragment a flight airborne at midnight on the first of a month, and neither sample contains one. Reported here as untested rather than as a null result; testing it needs a sample spanning a month boundary, which is two days of cluster time and is recommended as follow-up.</p>
+<section id="a2-no_month_suffix-untestable-on-this-sample" class="level3" data-number="6.2">
+<h3 data-number="6.2" class="anchored" data-anchor-id="a2-no_month_suffix-untestable-on-this-sample"><span class="header-section-number">6.2</span> A2 <code>no_month_suffix</code> — untestable on this sample</h3>
+<p><strong>What it changes.</strong> Removes the <code>_{year}_{month}</code> suffix from the identifier. Grouping and break predicate are <code>legacy</code>’s, untouched.</p>
+<p><strong>What it is trying to fix.</strong> The suffix splits any flight airborne at midnight on the first of a month, by construction and regardless of the data. That is a correctness defect rather than a threshold, which is why no amount of parameter sweeping can reach it.</p>
+<p><strong>What the measurement said.</strong> Identical to A0 in every digit, on both periods. That is correct behaviour and not a bug: both samples sit inside a single month, so the suffix is constant and removing it changes nothing. The consequence is that <strong>this study cannot evaluate the arm at all.</strong> It is reported as untested rather than as a null result. Testing it needs a sample spanning a month boundary — about two days of cluster time — and is recommended as follow-up.</p>
 </section>
-<section id="a3-traffic_style-the-reference-librarys-rule-does-not-transfer" class="level3" data-number="5.3">
-<h3 data-number="5.3" class="anchored" data-anchor-id="a3-traffic_style-the-reference-librarys-rule-does-not-transfer"><span class="header-section-number">5.3</span> A3 <code>traffic_style</code> — the reference library’s rule does not transfer</h3>
-<p>45.89% clean, below legacy, and with the worst merging of any arm at 9.48% — roughly twenty times legacy’s. A single ten-minute gap threshold with a predicate deciding whether a candidate gap is really a break is well suited to the <em>traffic</em> library’s typical input; on this feed it merges. A genuine negative result: the reference implementation’s approach does not transfer unmodified.</p>
+<section id="a3-traffic_style-the-reference-librarys-rule-does-not-transfer" class="level3" data-number="6.3">
+<h3 data-number="6.3" class="anchored" data-anchor-id="a3-traffic_style-the-reference-librarys-rule-does-not-transfer"><span class="header-section-number">6.3</span> A3 <code>traffic_style</code> — the reference library’s rule does not transfer</h3>
+<p><strong>What it changes.</strong> Replaces legacy’s two hard thresholds with the semantics of <code>Flight.split</code> in the <em>traffic</em> library, the widely used open-source reference for this kind of work.</p>
+<p><strong>What it is trying to fix.</strong> Nothing specific to OPDI. The question this arm answers is whether the established reference implementation, applied to this feed, would simply have done better.</p>
+<p><strong>The rule.</strong> Group on <code>(icao24, callsign)</code>. Break when the gap exceeds a single threshold — <em>traffic</em>’s documented default is ten minutes — <em>unless</em> a predicate says the candidate gap is not really a break. The predicate used here is the aviation-sensible inverse of <em>traffic</em>’s own documented example: do not split when the samples on both sides of the gap are above the low-altitude ceiling, because a reception hole in the cruise is a coverage gap, not a landing.</p>
+<p><strong>What the measurement said.</strong> 45.89% clean, below <code>legacy</code>, and the worst merging of any arm at 9.49% — about 24 times legacy’s. A single short gap threshold suits <em>traffic</em>’s typical input; on a 5-second decimated continental feed it runs flights together. A genuine negative result: the reference approach does not transfer unmodified.</p>
 </section>
-<section id="a4-airframe_only-group-on-the-airframe" class="level3" data-number="5.4">
-<h3 data-number="5.4" class="anchored" data-anchor-id="a4-airframe_only-group-on-the-airframe"><span class="header-section-number">5.4</span> A4 <code>airframe_only</code> — group on the airframe</h3>
-<p>88.55% clean, fragmentation down from 49.95% to 6.92%. This is the single largest gain in the study and it comes from deleting one column from the group key. Identity belongs to the airframe; the callsign is something the airframe was broadcasting at the time.</p>
-<p>The cost is merging, up from 0.40% to 4.53%: without callsign in the key, two flights of the same airframe with no sufficient gap between them join into one track.</p>
+<section id="a4-airframe_only-delete-callsign-from-the-group-key" class="level3" data-number="6.4">
+<h3 data-number="6.4" class="anchored" data-anchor-id="a4-airframe_only-delete-callsign-from-the-group-key"><span class="header-section-number">6.4</span> A4 <code>airframe_only</code> — delete callsign from the group key</h3>
+<p><strong>What it changes.</strong> One column. Group on <code>icao24</code> alone; callsign becomes an attribute of a sample rather than part of the track’s identity. The break predicate is <code>legacy</code>’s, untouched.</p>
+<p><strong>What it is trying to fix.</strong> A0’s diagnosis directly: if a blank callsign is what starts a spurious track, then removing callsign from the key stops it. The underlying claim is one of principle — identity belongs to the airframe; the callsign is something the airframe happened to be broadcasting at the time.</p>
+<p><strong>What the measurement said.</strong> 88.56% clean, with fragmentation down from 49.95% to 6.91%. This is the single largest movement anywhere in the study, and it comes from deleting one column.</p>
+<p><strong>But it is not free</strong>, and the cost is exactly the failure legacy did not have: merging rises from 0.40% to 4.53%. Without callsign in the key, two consecutive flights of the same airframe with no sufficient gap between them become one track. Measured during implementation, 3.3% of this arm’s tracks contain more than one genuine callsign.</p>
 </section>
-<section id="a5-ground_anchored-and-a6-airport_anchored" class="level3" data-number="5.5">
-<h3 data-number="5.5" class="anchored" data-anchor-id="a5-ground_anchored-and-a6-airport_anchored"><span class="header-section-number">5.5</span> A5 <code>ground_anchored</code> and A6 <code>airport_anchored</code></h3>
-<p>Both replace or supplement the altitude proxy with something more physical — a ground-contact dwell long enough to be a turnaround, and real airport geometry respectively. Both beat legacy substantially (79.45% and 85.79%) and both are worth less than simply fixing the group key. Their signed boundary error is however the tightest of any arm — <code>ground_anchored</code>’s tenth percentile is -22 s against legacy’s -816 s — which is direct evidence the arm does what it claims: it cuts at the ground event rather than running back into the ramp.</p>
+<section id="a5-ground_anchored-split-at-a-turnaround-using-the-on-ground-flag" class="level3" data-number="6.5">
+<h3 data-number="6.5" class="anchored" data-anchor-id="a5-ground_anchored-split-at-a-turnaround-using-the-on-ground-flag"><span class="header-section-number">6.5</span> A5 <code>ground_anchored</code> — split at a turnaround, using the on-ground flag</h3>
+<p><strong>What it changes.</strong> Groups on <code>icao24</code>, like A4, and <em>adds</em> a break condition to legacy’s gap rules rather than replacing them.</p>
+<p><strong>What it is trying to fix.</strong> Legacy’s “below 5,000 ft” test is a proxy for “the aircraft is on the ground somewhere”, used because barometric altitude was all the rule had. But the OSN schema carries an <code>on_ground</code> flag that step 02 reads nothing of. This arm uses it.</p>
+<p><strong>The rule.</strong> A break is declared at the <em>first airborne sample after</em> a run of consecutive on-ground samples lasting at least the ground-dwell threshold. The dwell requirement is what separates a turnaround from a touch-and-go. Placing the break at the first airborne sample, rather than at the start of the ground run, means the departing leg begins at the rotation instead of inheriting the previous arrival’s taxi-in. Legacy’s two gap rules are kept as a floor, because an aircraft that stops broadcasting entirely still has to be split somehow.</p>
+<p><strong>What the measurement said.</strong> 79.46% clean — well above <code>legacy</code>, well below A4. Its distinguishing result is not the headline but the boundary error: its departure tenth percentile is -22 s against legacy’s -816 s, and the figure in <a href="#sec-metrics">the metrics section</a> shows the whole left tail collapsing. That is direct evidence the arm does what it claims: it cuts at the ground event rather than running back into the ramp. It is the arm to reach for if track <em>edges</em> matter more than track <em>counts</em>.</p>
 </section>
-<section id="a7-vertical_profile-a-negative-result-correctly-attributed" class="level3" data-number="5.6">
-<h3 data-number="5.6" class="anchored" data-anchor-id="a7-vertical_profile-a-negative-result-correctly-attributed"><span class="header-section-number">5.6</span> A7 <code>vertical_profile</code> — a negative result, correctly attributed</h3>
-<p>37.46% clean, last of the eight. The arm splits on a descent that reaches a floor followed by a climb back through it. An earlier implementation split on <em>any</em> upward crossing, which is not the idea, and its poor score was therefore unattributable — it could have been the idea failing or the code not being the idea. Implemented properly, and on height above field rather than sea level, it scores <em>worse</em> still. That makes it a real negative result rather than an unexplained number: every percentile of its signed off-block error is positive, meaning it systematically starts tracks late, having sliced off each departure’s initial climb.</p>
+<section id="a6-airport_anchored-split-only-where-an-aerodrome-actually-is" class="level3" data-number="6.6">
+<h3 data-number="6.6" class="anchored" data-anchor-id="a6-airport_anchored-split-only-where-an-aerodrome-actually-is"><span class="header-section-number">6.6</span> A6 <code>airport_anchored</code> — split only where an aerodrome actually is</h3>
+<p><strong>What it changes.</strong> Groups on <code>icao24</code>, and replaces legacy’s low-altitude gap rule with real airport geometry. It is the one arm that takes only <em>half</em> of legacy as its floor.</p>
+<p><strong>What it is trying to fix.</strong> Two errors that no altitude threshold can reach. A split legacy <em>misses</em>: an aircraft parked at a 6,000 ft aerodrome never satisfies “below 5,000 ft”, so the turnaround is invisible and two flights merge. And a split legacy <em>invents</em>: a long slow low transit in the middle of nowhere satisfies the low-altitude rule and is split, when nothing happened at all.</p>
+<p><strong>The rule.</strong> A sample is <em>stationary at an aerodrome</em> when it is inside a known airport detection zone, below a turnaround height measured <strong>above field elevation</strong> rather than above sea level, and slower than a turnaround speed. A break is then declared two ways, and the arm fires on either: at the sample that ends a reception gap, when the previous sample was stationary at an aerodrome and at least the dwell threshold has passed; or at the first sample that moves again after a continuous stationary run lasting at least the dwell threshold. Where the airport join finds nothing, “near an aerodrome” is false and the arm cannot fire, falling back to its floor. Because the arm’s entire thesis is that legacy’s low-altitude rule is the wrong test, that rule is deliberately <em>not</em> inherited — only the general “a long enough silence is a new track” rule is, which no arm disputes and which guarantees no airframe can end up with a month-long track.</p>
+<p><strong>What the measurement said.</strong> 85.80% clean on 2025 and 89.03% on 2024 — the closest any domain-knowledge arm gets to A4, and still short of it. Real geometry is worth a lot; it is worth less than not fragmenting on blanks.</p>
 </section>
-<section id="a8-recommended-both-fixes-at-once" class="level3" data-number="5.7">
-<h3 data-number="5.7" class="anchored" data-anchor-id="a8-recommended-both-fixes-at-once"><span class="header-section-number">5.7</span> A8 <code>recommended</code> — both fixes at once</h3>
-<p>90.79% clean on 2025 and 91.75% on 2024, the best of the eight on both, with merging at 0.74% — lower than legacy itself.</p>
-<p>It beats both of the arms it draws on rather than landing between them, which is the sign that the two failures really do have different causes. Legacy fragments because null callsigns form their own groups; <code>airframe_only</code> merges because nothing separates two flights of one airframe. So: group on <code>icao24</code>, so a blank or flickering callsign no longer starts a track, and break when the last <em>non-blank</em> callsign differs from the current one, so two genuinely different flights still part.</p>
-<p>The subtlety is in the lookback. The break predicate is evaluated over the whole airframe’s samples and has no notion of the track boundaries it is deciding, so an unbounded search for “the previous real callsign” reaches back past a gap into the previous flight and splits the next one in its own middle. Bounding the lookback to the gap threshold is what makes the arm work; without it the same rule scores 62% rather than 91%.</p>
+<section id="a7-vertical_profile-a-negative-result-correctly-attributed" class="level3" data-number="6.7">
+<h3 data-number="6.7" class="anchored" data-anchor-id="a7-vertical_profile-a-negative-result-correctly-attributed"><span class="header-section-number">6.7</span> A7 <code>vertical_profile</code> — a negative result, correctly attributed</h3>
+<p><strong>What it changes.</strong> Groups on <code>icao24</code>, and adds a break based purely on the altitude trace, with legacy’s gap rules as a floor.</p>
+<p><strong>What it is trying to fix.</strong> The case where the transponder never reports <code>on_ground</code> at all. If a flight is one climb–cruise–descent cycle, then a descent to circuit height followed by a climb back through it is a new sortie, whether or not there was a reception gap and whether or not ground contact was ever broadcast.</p>
+<p><strong>The rule.</strong> Both halves are required. First, <em>the descent</em>: some earlier sample of the group crossed the floor downwards — the previous sample above it, this one at or below. Second, <em>the climb back</em>: this sample is above the floor and the previous one is not. The break is placed at the upward crossing, so the departing leg begins there. The floor is measured <strong>above field elevation</strong>; comparing against sea level made the arm degenerate to bare legacy at any aerodrome above the floor’s own height, since a parked aircraft there already reads above it and no crossing is ever seen.</p>
+<p><strong>What the measurement said.</strong> 37.49% clean, last of the eight on both periods. An earlier implementation split on <em>any</em> upward crossing, which is not the idea, and its poor score was therefore unattributable — it could have been the idea failing or the code not being the idea. Implemented properly, and on height above field, it scores <em>worse</em> still. That is what makes this a real negative result rather than an unexplained number. The mechanism is visible in the boundary error: every percentile of its signed departure offset is positive (tenth percentile +22 s), meaning it systematically starts tracks late, having sliced off each departure’s initial climb.</p>
+</section>
+<section id="sec-a8" class="level3" data-number="6.8">
+<h3 data-number="6.8" class="anchored" data-anchor-id="sec-a8"><span class="header-section-number">6.8</span> A8 <code>recommended</code> — the two fixes, kept separate</h3>
+<p>This is the arm the study recommends and the rule that now ships as <code>segmentation.method = "standard"</code>, so it gets the most space. <strong>Its two changes are independent, they fix different failures, and the arm only works because they are kept separate — so they are set out one at a time, before any number.</strong></p>
+<p><strong>What it changes.</strong> Two things, both relative to <code>legacy</code>: the group key loses its callsign column, and the break predicate gains a callsign test. Legacy’s two gap rules are kept underneath both, unchanged — a long enough silence still starts a new track, at any altitude or a shorter one when low. Nothing about the gap behaviour of published tracks changes; what changes is which samples are allowed to share one, and where a shared group is cut.</p>
+<section id="fix-one-take-callsign-out-of-the-group-key" class="level4" data-number="6.8.1">
+<h4 data-number="6.8.1" class="anchored" data-anchor-id="fix-one-take-callsign-out-of-the-group-key"><span class="header-section-number">6.8.1</span> Fix one: take callsign out of the group key</h4>
+<p><em>The failure it addresses</em> is A0’s: a sample with no callsign forms its own group, so a hole in the data becomes a separate flight. That is where legacy’s fragmentation comes from, and A4 showed that deleting the column removes it.</p>
+<p><em>The change</em> is exactly A4’s: group on <code>icao24</code> alone. A blank or flickering callsign can no longer start a track, because callsign is no longer part of what makes a track a track.</p>
+<p><em>What it costs on its own</em> is A4’s cost: two consecutive flights of one airframe now have nothing to separate them but a gap, and where the aircraft kept broadcasting through the turnaround there is no sufficient gap. They merge.</p>
+</section>
+<section id="fix-two-break-when-the-callsign-genuinely-changes" class="level4" data-number="6.8.2">
+<h4 data-number="6.8.2" class="anchored" data-anchor-id="fix-two-break-when-the-callsign-genuinely-changes"><span class="header-section-number">6.8.2</span> Fix two: break when the callsign genuinely changes</h4>
+<p><em>The failure it addresses</em> is the one fix one creates. Legacy separated those two flights for the wrong reason — callsign was in the key, so any change of it started a new group — but it did separate them.</p>
+<p><em>The change</em> restores that separation as an explicit break rather than as a side effect of the key. Walking an airframe’s samples in time order, carry forward the last <strong>non-blank</strong> callsign seen. Break at a sample when that sample’s callsign is itself non-blank, the carried-forward one is non-blank, and the two differ. Comparing the raw callsign column instead would break at every blank sample and reproduce legacy’s fragmentation exactly; it is carrying the last <em>real</em> value across the blanks that makes the test mean “the callsign changed” rather than “the callsign was missing”. Callsigns are compared trimmed, because ADS-B pads them to eight characters and <code>ABC123</code> is not a different flight from <code>ABC123</code>.</p>
+<p><em>Why the two are genuinely independent:</em> one is about which samples may share a track, the other about where a shared group is cut. The evidence that they are is that the combination beats <strong>both</strong> of the arms it draws on, rather than landing between them — which is what would happen if they were two attempts at the same thing.</p>
+</section>
+<section id="the-subtlety-the-lookback-must-be-bounded" class="level4" data-number="6.8.3">
+<h4 data-number="6.8.3" class="anchored" data-anchor-id="the-subtlety-the-lookback-must-be-bounded"><span class="header-section-number">6.8.3</span> The subtlety: the lookback must be bounded</h4>
+<p>The break predicate is evaluated over the whole airframe’s samples, and it has no notion of the track boundaries it is in the middle of deciding. So “the last non-blank callsign” is, by default, the last one <em>anywhere earlier in the month</em>. That reaches back across a gap break into the previous flight — and the next flight, whose first samples happen to be blank, is then compared against a callsign belonging to a flight that already ended, and is split in its own middle.</p>
+<p>The fix is to bound the lookback: the carried-forward callsign only counts if it is no older than the general gap threshold. That is exactly the right bound rather than an arbitrary one, because a silence longer than the gap threshold <em>is already a break</em> — so there is nothing legitimate to carry across it.</p>
+<p>This is not a detail. Measured during implementation, the unbounded version fragmented 37.75% of flights, where <code>airframe_only</code> — which does no callsign splitting at all — fragments 6.91%, and where only 3.2% of tracks contain a genuine callsign transition to fire on. The mismatch between those two is what exposed the bug: a rule reaching one track in thirty cannot legitimately cost thirty points of fragmentation.</p>
+</section>
+<section id="what-the-measurement-said" class="level4" data-number="6.8.4">
+<h4 data-number="6.8.4" class="anchored" data-anchor-id="what-the-measurement-said"><span class="header-section-number">6.8.4</span> What the measurement said</h4>
+<p>90.80% clean on 2025 and 91.75% on 2024 — the best of the eight on both periods, and +41.15 and +39.43 points above <code>legacy</code>. Fragmentation falls from 49.95% to 8.46%.</p>
+<p>The result that settles it is merging: 0.74%, against <code>airframe_only</code>’s 4.53%. Fix two recovers almost all of the merging fix one introduces — though not quite all of it, and the remainder is still above <code>legacy</code>’s 0.40%. That residual is small, it is real, and it is where the downstream cost measured in <a href="#sec-payoff">the payoff</a> comes from.</p>
 </section>
 </section>
-<section id="sec-sweep" class="level2" data-number="6">
-<h2 data-number="6" class="anchored" data-anchor-id="sec-sweep"><span class="header-section-number">6</span> The shipped algorithm’s tuning headroom</h2>
-<p>A1 is not new code: it is A0 at parameters other than production’s, so the sweep measures the shipped algorithm’s own tuning and nothing else.</p>
-<p>262 cells on one day, spanning 0.94 points end to end.</p>
+</section>
+<section id="sec-sweep" class="level2" data-number="7">
+<h2 data-number="7" class="anchored" data-anchor-id="sec-sweep"><span class="header-section-number">7</span> Was <code>legacy</code> simply mistuned?</h2>
+<p><em>This section exists to close off one explanation of A0’s result, and it is worth reading even though it tunes a rule this page does not recommend. By the end you will know that legacy’s shortfall is structural rather than a matter of badly chosen thresholds.</em></p>
+<p>The ladder says legacy recovers about half the flights it should. There is an obvious and much less interesting explanation for that: its three thresholds were never measured, so perhaps they are simply set wrong, and legacy at better settings would close most of the gap. If that were true, everything the ladder concludes would be an artefact of comparing a tuned rule against an untuned one.</p>
+<p>So it was tested. A <strong>sweep</strong> is a re-run of the same rule at many different parameter settings; a <strong>cell</strong> is one such setting. This one is labelled A1, and it is not new code — it is A0 evaluated at settings other than production’s, so it measures legacy’s own tuning and nothing else.</p>
+<section id="the-three-axes" class="level3" data-number="7.1">
+<h3 data-number="7.1" class="anchored" data-anchor-id="the-three-axes"><span class="header-section-number">7.1</span> The three axes</h3>
+<p><code>legacy</code> has exactly three parameters, and all three were swept:</p>
+<ul>
+<li><strong><code>gap_minutes</code></strong> — a gap longer than this starts a new track, at any altitude. Production: 30.</li>
+<li><strong><code>low_alt_gap_minutes</code></strong> — a shorter gap that also starts a new track, but only when the aircraft is low. Production: 15.</li>
+<li><strong><code>low_alt_ft</code></strong> — the altitude below which the shorter gap applies. Production: 5,000.</li>
+</ul>
+<p>Stage 1 evaluated 262 cells across the three axes on one day. End to end, the entire grid spans 0.95 points of clean matching.</p>
 <div class="cell">
 <div class="cell-output-display">
 <table class="caption-top table table-sm table-striped small">
-<caption>Best cell at each low-altitude ceiling. The optimum is interior.</caption>
+<caption>Stage 1: for each value of each parameter, the best clean-match rate achieved anywhere in the grid at that value. A star marks each axis’s peak. Every peak has lower values on both sides of it.</caption>
+<thead>
+<tr class="header">
+<th style="text-align: left;">axis</th>
+<th style="text-align: right;">value</th>
+<th style="text-align: right;">best clean % at this value</th>
+<th style="text-align: left;"></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">gap_minutes (min)</td>
+<td style="text-align: right;">10</td>
+<td style="text-align: right;">50.794</td>
+<td style="text-align: left;"></td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">gap_minutes (min)</td>
+<td style="text-align: right;">15</td>
+<td style="text-align: right;">51.055</td>
+<td style="text-align: left;"></td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">gap_minutes (min)</td>
+<td style="text-align: right;">20</td>
+<td style="text-align: right;">51.250</td>
+<td style="text-align: left;"></td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">gap_minutes (min)</td>
+<td style="text-align: right;">25</td>
+<td style="text-align: right;">51.394</td>
+<td style="text-align: left;"></td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">gap_minutes (min)</td>
+<td style="text-align: right;">30</td>
+<td style="text-align: right;">51.504</td>
+<td style="text-align: left;"></td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">gap_minutes (min)</td>
+<td style="text-align: right;">40</td>
+<td style="text-align: right;">51.628</td>
+<td style="text-align: left;"></td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">gap_minutes (min)</td>
+<td style="text-align: right;">50</td>
+<td style="text-align: right;">51.662</td>
+<td style="text-align: left;"></td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">gap_minutes (min)</td>
+<td style="text-align: right;">60</td>
+<td style="text-align: right;">51.672</td>
+<td style="text-align: left;">*</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">gap_minutes (min)</td>
+<td style="text-align: right;">90</td>
+<td style="text-align: right;">51.586</td>
+<td style="text-align: left;"></td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">low_alt_gap_minutes (min)</td>
+<td style="text-align: right;">3</td>
+<td style="text-align: right;">51.576</td>
+<td style="text-align: left;"></td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">low_alt_gap_minutes (min)</td>
+<td style="text-align: right;">5</td>
+<td style="text-align: right;">51.600</td>
+<td style="text-align: left;"></td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">low_alt_gap_minutes (min)</td>
+<td style="text-align: right;">10</td>
+<td style="text-align: right;">51.672</td>
+<td style="text-align: left;">*</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">low_alt_gap_minutes (min)</td>
+<td style="text-align: right;">15</td>
+<td style="text-align: right;">51.658</td>
+<td style="text-align: left;"></td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">low_alt_gap_minutes (min)</td>
+<td style="text-align: right;">20</td>
+<td style="text-align: right;">51.617</td>
+<td style="text-align: left;"></td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">low_alt_gap_minutes (min)</td>
+<td style="text-align: right;">30</td>
+<td style="text-align: right;">51.556</td>
+<td style="text-align: left;"></td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">low_alt_ft (ft)</td>
+<td style="text-align: right;">1,000</td>
+<td style="text-align: right;">51.487</td>
+<td style="text-align: left;"></td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">low_alt_ft (ft)</td>
+<td style="text-align: right;">2,500</td>
+<td style="text-align: right;">51.514</td>
+<td style="text-align: left;"></td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">low_alt_ft (ft)</td>
+<td style="text-align: right;">5,000</td>
+<td style="text-align: right;">51.617</td>
+<td style="text-align: left;"></td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">low_alt_ft (ft)</td>
+<td style="text-align: right;">7,500</td>
+<td style="text-align: right;">51.634</td>
+<td style="text-align: left;"></td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">low_alt_ft (ft)</td>
+<td style="text-align: right;">10,000</td>
+<td style="text-align: right;">51.648</td>
+<td style="text-align: left;"></td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">low_alt_ft (ft)</td>
+<td style="text-align: right;">15,000</td>
+<td style="text-align: right;">51.655</td>
+<td style="text-align: left;"></td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">low_alt_ft (ft)</td>
+<td style="text-align: right;">20,000</td>
+<td style="text-align: right;">51.672</td>
+<td style="text-align: left;">*</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">low_alt_ft (ft)</td>
+<td style="text-align: right;">30,000</td>
+<td style="text-align: right;">51.634</td>
+<td style="text-align: left;"></td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<p>Read down each block: every axis rises to a peak and falls again on the far side. That is what an <strong>interior optimum</strong> means, and it is the condition for calling a result an optimum at all. An optimum sitting on the edge of a grid is not an optimum — it is where you stopped looking.</p>
+</section>
+<section id="the-extension-and-why-it-was-necessary" class="level3" data-number="7.2">
+<h3 data-number="7.2" class="anchored" data-anchor-id="the-extension-and-why-it-was-necessary"><span class="header-section-number">7.2</span> The extension, and why it was necessary</h3>
+<p><code>low_alt_ft</code> did not start out interior. The first grid ran it to 10,000 ft, and its best value was the largest tried, with the curve still rising — precisely the edge case above. This pipeline’s own history contains a sweep that stopped early and was read as “higher is always better”, so the grid was extended rather than the result reported.</p>
+<div class="cell">
+<div class="cell-output-display">
+<table class="caption-top table table-sm table-striped small">
+<caption>The low-altitude ceiling before and after the grid was extended. On the original grid the best value was the largest tried; extended, the curve turns over.</caption>
 <thead>
 <tr class="header">
 <th style="text-align: right;">low_alt_ft</th>
+<th style="text-align: left;">grid</th>
 <th style="text-align: right;">best clean %</th>
 </tr>
 </thead>
 <tbody>
 <tr class="odd">
-<td style="text-align: right;">1000</td>
-<td style="text-align: right;">51.50</td>
+<td style="text-align: right;">1,000</td>
+<td style="text-align: left;">original</td>
+<td style="text-align: right;">51.487</td>
 </tr>
 <tr class="even">
-<td style="text-align: right;">2500</td>
-<td style="text-align: right;">51.53</td>
+<td style="text-align: right;">2,500</td>
+<td style="text-align: left;">original</td>
+<td style="text-align: right;">51.514</td>
 </tr>
 <tr class="odd">
-<td style="text-align: right;">5000</td>
-<td style="text-align: right;">51.63</td>
+<td style="text-align: right;">5,000</td>
+<td style="text-align: left;">original</td>
+<td style="text-align: right;">51.617</td>
 </tr>
 <tr class="even">
-<td style="text-align: right;">7500</td>
-<td style="text-align: right;">51.65</td>
+<td style="text-align: right;">7,500</td>
+<td style="text-align: left;">original</td>
+<td style="text-align: right;">51.634</td>
 </tr>
 <tr class="odd">
-<td style="text-align: right;">10000</td>
-<td style="text-align: right;">51.66</td>
+<td style="text-align: right;">10,000</td>
+<td style="text-align: left;">original</td>
+<td style="text-align: right;">51.648</td>
 </tr>
 <tr class="even">
-<td style="text-align: right;">15000</td>
-<td style="text-align: right;">51.67</td>
+<td style="text-align: right;">15,000</td>
+<td style="text-align: left;">extension</td>
+<td style="text-align: right;">51.655</td>
 </tr>
 <tr class="odd">
-<td style="text-align: right;">20000</td>
-<td style="text-align: right;">51.69</td>
+<td style="text-align: right;">20,000</td>
+<td style="text-align: left;">extension</td>
+<td style="text-align: right;">51.672</td>
 </tr>
 <tr class="even">
-<td style="text-align: right;">30000</td>
-<td style="text-align: right;">51.65</td>
+<td style="text-align: right;">30,000</td>
+<td style="text-align: left;">extension</td>
+<td style="text-align: right;">51.634</td>
 </tr>
 </tbody>
 </table>
 </div>
 </div>
-<p>All three axes have an interior optimum, which is the condition for calling a result an optimum at all. That took an extension: the first grid put the low-altitude ceiling’s best value at its largest tried, with the curve still rising. An optimum at a grid edge is not an optimum, it is where the grid stopped, and this pipeline’s own history contains a sweep that stopped early and was read as “higher is always better”. Extended, the ceiling peaks at 20,000 ft and falls again by 30,000 — as it must, since past cruise altitude every sample counts as “low” and the two-threshold rule collapses into one.</p>
-<p>Re-measured on the full three-day samples, the best cell beats production by <strong>+0.34</strong> points on 2025 and <strong>+0.54</strong> on 2024. Both periods choose the same cell out of sample.</p>
-<p>That is the answer to the tuning question, and it is a clean negative: <strong>the shipped segmentation is not mistuned.</strong> It sits a fraction of a point from the best setting available to it, in a grid drawn wider than plausible and extended until every axis turned over. Set against the +41 points the identity key is worth, the entire tuning question is a rounding error.</p>
+<p>Extended, the ceiling peaks at 20,000 ft and falls again by 30,000 — as it must, since past cruise altitude every sample counts as “low”, the two-threshold rule collapses into a single one, and <code>low_alt_gap_minutes</code> simply replaces <code>gap_minutes</code> everywhere.</p>
 </section>
-<section id="sec-payoff" class="level2" data-number="7">
-<h2 data-number="7" class="anchored" data-anchor-id="sec-payoff"><span class="header-section-number">7</span> What a better segmentation buys ADEP/ADES</h2>
-<p>The point of segmenting well is the product built on top of it. Each arm’s assignment is fed to the V7 flight list at its own recommended configuration, with only <code>track_id</code> varying, so any difference in ADEP/ADES accuracy is attributable to the segmentation.</p>
-<p>The control is <code>legacy</code>, which reproduces the frozen algorithm: run through this harness it scores 134,176 against V7’s published 134,168 for the same sample — a difference of 8, or 0.006%. That residual is itself informative and is explained in <a href="#sec-limitations">Limitations</a>.</p>
-<section id="the-ranking-inverts" class="level3" data-number="7.1">
-<h3 data-number="7.1" class="anchored" data-anchor-id="the-ranking-inverts"><span class="header-section-number">7.1</span> The ranking inverts</h3>
+<section id="what-it-is-worth" class="level3" data-number="7.3">
+<h3 data-number="7.3" class="anchored" data-anchor-id="what-it-is-worth"><span class="header-section-number">7.3</span> What it is worth</h3>
+<p>Stage 2 re-measured a shortlist of cells on the full three-day samples, so that the winner is chosen out of sample rather than on the day it was tuned.</p>
 <div class="cell">
 <div class="cell-output-display">
 <table class="caption-top table table-sm table-striped small">
 <colgroup>
-<col style="width: 24%">
-<col style="width: 14%">
-<col style="width: 14%">
-<col style="width: 23%">
-<col style="width: 23%">
+<col style="width: 10%">
+<col style="width: 17%">
+<col style="width: 28%">
+<col style="width: 15%">
+<col style="width: 11%">
+<col style="width: 15%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: right;">period</th>
+<th style="text-align: right;">gap_minutes</th>
+<th style="text-align: right;">low_alt_gap_minutes</th>
+<th style="text-align: right;">low_alt_ft</th>
+<th style="text-align: right;">clean %</th>
+<th style="text-align: left;"></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: right;">2,024</td>
+<td style="text-align: right;">60</td>
+<td style="text-align: right;">15</td>
+<td style="text-align: right;">20,000</td>
+<td style="text-align: right;">52.863</td>
+<td style="text-align: left;"></td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">2,024</td>
+<td style="text-align: right;">60</td>
+<td style="text-align: right;">10</td>
+<td style="text-align: right;">20,000</td>
+<td style="text-align: right;">52.855</td>
+<td style="text-align: left;"></td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">2,024</td>
+<td style="text-align: right;">60</td>
+<td style="text-align: right;">15</td>
+<td style="text-align: right;">5,000</td>
+<td style="text-align: right;">52.804</td>
+<td style="text-align: left;"></td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">2,024</td>
+<td style="text-align: right;">60</td>
+<td style="text-align: right;">10</td>
+<td style="text-align: right;">5,000</td>
+<td style="text-align: right;">52.802</td>
+<td style="text-align: left;"></td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">2,024</td>
+<td style="text-align: right;">50</td>
+<td style="text-align: right;">15</td>
+<td style="text-align: right;">20,000</td>
+<td style="text-align: right;">52.666</td>
+<td style="text-align: left;"></td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">2,024</td>
+<td style="text-align: right;">50</td>
+<td style="text-align: right;">10</td>
+<td style="text-align: right;">20,000</td>
+<td style="text-align: right;">52.658</td>
+<td style="text-align: left;"></td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">2,024</td>
+<td style="text-align: right;">50</td>
+<td style="text-align: right;">15</td>
+<td style="text-align: right;">5,000</td>
+<td style="text-align: right;">52.625</td>
+<td style="text-align: left;"></td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">2,024</td>
+<td style="text-align: right;">50</td>
+<td style="text-align: right;">10</td>
+<td style="text-align: right;">5,000</td>
+<td style="text-align: right;">52.623</td>
+<td style="text-align: left;"></td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">2,024</td>
+<td style="text-align: right;">30</td>
+<td style="text-align: right;">15</td>
+<td style="text-align: right;">20,000</td>
+<td style="text-align: right;">52.333</td>
+<td style="text-align: left;"></td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">2,024</td>
+<td style="text-align: right;">30</td>
+<td style="text-align: right;">10</td>
+<td style="text-align: right;">20,000</td>
+<td style="text-align: right;">52.325</td>
+<td style="text-align: left;"></td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">2,024</td>
+<td style="text-align: right;">30</td>
+<td style="text-align: right;">15</td>
+<td style="text-align: right;">5,000</td>
+<td style="text-align: right;">52.323</td>
+<td style="text-align: left;">production</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">2,024</td>
+<td style="text-align: right;">30</td>
+<td style="text-align: right;">10</td>
+<td style="text-align: right;">5,000</td>
+<td style="text-align: right;">52.321</td>
+<td style="text-align: left;"></td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">2,025</td>
+<td style="text-align: right;">60</td>
+<td style="text-align: right;">15</td>
+<td style="text-align: right;">20,000</td>
+<td style="text-align: right;">49.991</td>
+<td style="text-align: left;"></td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">2,025</td>
+<td style="text-align: right;">60</td>
+<td style="text-align: right;">10</td>
+<td style="text-align: right;">5,000</td>
+<td style="text-align: right;">49.979</td>
+<td style="text-align: left;"></td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">2,025</td>
+<td style="text-align: right;">60</td>
+<td style="text-align: right;">10</td>
+<td style="text-align: right;">20,000</td>
+<td style="text-align: right;">49.977</td>
+<td style="text-align: left;"></td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">2,025</td>
+<td style="text-align: right;">60</td>
+<td style="text-align: right;">15</td>
+<td style="text-align: right;">5,000</td>
+<td style="text-align: right;">49.976</td>
+<td style="text-align: left;"></td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">2,025</td>
+<td style="text-align: right;">50</td>
+<td style="text-align: right;">10</td>
+<td style="text-align: right;">5,000</td>
+<td style="text-align: right;">49.893</td>
+<td style="text-align: left;"></td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">2,025</td>
+<td style="text-align: right;">50</td>
+<td style="text-align: right;">15</td>
+<td style="text-align: right;">5,000</td>
+<td style="text-align: right;">49.889</td>
+<td style="text-align: left;"></td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">2,025</td>
+<td style="text-align: right;">50</td>
+<td style="text-align: right;">15</td>
+<td style="text-align: right;">20,000</td>
+<td style="text-align: right;">49.874</td>
+<td style="text-align: left;"></td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">2,025</td>
+<td style="text-align: right;">50</td>
+<td style="text-align: right;">10</td>
+<td style="text-align: right;">20,000</td>
+<td style="text-align: right;">49.860</td>
+<td style="text-align: left;"></td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">2,025</td>
+<td style="text-align: right;">30</td>
+<td style="text-align: right;">10</td>
+<td style="text-align: right;">5,000</td>
+<td style="text-align: right;">49.649</td>
+<td style="text-align: left;"></td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">2,025</td>
+<td style="text-align: right;">30</td>
+<td style="text-align: right;">15</td>
+<td style="text-align: right;">5,000</td>
+<td style="text-align: right;">49.646</td>
+<td style="text-align: left;">production</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">2,025</td>
+<td style="text-align: right;">30</td>
+<td style="text-align: right;">15</td>
+<td style="text-align: right;">20,000</td>
+<td style="text-align: right;">49.613</td>
+<td style="text-align: left;"></td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">2,025</td>
+<td style="text-align: right;">30</td>
+<td style="text-align: right;">10</td>
+<td style="text-align: right;">20,000</td>
+<td style="text-align: right;">49.598</td>
+<td style="text-align: left;"></td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<p>The best cell beats production by <strong>+0.34</strong> points on 2025 and <strong>+0.54</strong> on 2024, and both periods choose the same cell.</p>
+<p>That is the answer, and it is a clean negative: <strong><code>legacy</code> is not mistuned.</strong> It sits a fraction of a point from the best setting available to it, in a grid drawn wider than plausible and extended until every axis turned over. Set against the +41.15 points the identity key is worth, the entire tuning question is roughly 119 times too small to matter — which is why the rest of this page is about the group key and not about thresholds.</p>
+</section>
+</section>
+<section id="sec-payoff" class="level2" data-number="8">
+<h2 data-number="8" class="anchored" data-anchor-id="sec-payoff"><span class="header-section-number">8</span> What a better segmentation buys ADEP/ADES</h2>
+<p><em>This section measures the thing that actually matters: what a segmentation does to the product OPDI publishes. It also records a defect the study found in the flight list, which has since been fixed, and why the ADEP/ADES ranking does not follow the segmentation ranking even now that it is.</em></p>
+<p>The point of segmenting well is the product built on top of it. Each arm’s assignment is fed to the V7 flight list with <strong>only <code>track_id</code> varying</strong> — same input table, same detection configuration, same reference data — so any difference in the result is attributable to the segmentation and to nothing else.</p>
+<p>Three terms, because the flight list scores differently from the ladder:</p>
+<ul>
+<li><strong>coverage</strong> — the share of ground-truth flights the flight list gives <em>any</em> aerodrome for, in that role;</li>
+<li><strong>accuracy</strong> — of those it does answer, the share it gets right;</li>
+<li><strong>score</strong> — <code>correct − k × wrong</code> at <code>k = 2</code>, so a wrong answer costs twice what a right one earns and a silence costs nothing. <code>ADEP + ADES</code> is the sum over both roles, and it is the single number the tables below rank on.</li>
+</ul>
+<p>The ground truth here is the flight-list studies’ own, keyed on callsign and day, which is why its denominator (95,116 flights on 2025) differs from the ladder’s. The two are measuring different things and are not interchangeable.</p>
+<p>As a control, <code>legacy</code> run through this harness scores 134,176 against the V7 flight-list study’s own published 134,168 for the same sample — a difference of 8, or 0.006%. That residual is itself informative and is explained in <a href="#sec-limitations">Limitations</a>.</p>
+<section id="sec-detection" class="level3" data-number="8.1">
+<h3 data-number="8.1" class="anchored" data-anchor-id="sec-detection"><span class="header-section-number">8.1</span> The flight-list configuration these numbers were produced at</h3>
+<p>Every arm is scored at one fixed ADEP/ADES configuration. Naming it matters, because “the V7 recommended configuration” is a moving target and these numbers belong to one point on it. The table is read from the run’s own recorded parameters rather than typed, so it cannot drift from what was executed.</p>
+<div class="cell">
+<div class="cell-output-display">
+<table class="caption-top table table-sm table-striped small">
+<caption>The ADEP/ADES configuration every arm in this section was scored at, identical across all eight arms and both periods.</caption>
+<colgroup>
+<col style="width: 20%">
+<col style="width: 6%">
+<col style="width: 72%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;">parameter</th>
+<th style="text-align: left;">value</th>
+<th style="text-align: left;">what it does</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;"><code>adep_mode</code></td>
+<td style="text-align: left;">endpoint</td>
+<td style="text-align: left;">Which algorithm names the departure aerodrome.</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"><code>ades_mode</code></td>
+<td style="text-align: left;">trend</td>
+<td style="text-align: left;">Which algorithm names the destination aerodrome.</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;"><code>endpoint_radius_nm</code></td>
+<td style="text-align: left;">30</td>
+<td style="text-align: left;"><code>endpoint</code>: how close the track’s first or last fix must be to an aerodrome.</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"><code>endpoint_height_ft</code></td>
+<td style="text-align: left;">15000</td>
+<td style="text-align: left;"><code>endpoint</code>: how high that fix may be, above field elevation.</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;"><code>endpoint_sched_penalty_nm</code></td>
+<td style="text-align: left;">10</td>
+<td style="text-align: left;">Distance added to an aerodrome without scheduled service, so a military field must be clearly nearest.</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"><code>endpoint_candidate_radius_nm</code></td>
+<td style="text-align: left;">110</td>
+<td style="text-align: left;">How far the cached candidate table reaches. Wider than any detection radius, so the radius stays sweepable.</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;"><code>trend_max_fl</code></td>
+<td style="text-align: left;">60</td>
+<td style="text-align: left;"><code>trend</code>: only samples below this flight level vote.</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"><code>trend_radius_nm</code></td>
+<td style="text-align: left;">30</td>
+<td style="text-align: left;"><code>trend</code>: how close a sample must be to an aerodrome to vote for it.</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;"><code>trend_radius_exact</code></td>
+<td style="text-align: left;">True</td>
+<td style="text-align: left;">Cut that radius on exact great-circle distance rather than on H3 band.</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"><code>trend_rank_by</code></td>
+<td style="text-align: left;">haversine</td>
+<td style="text-align: left;">How <code>trend</code> chooses among candidates: exact distance, not H3 ring count.</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;"><code>trend_vote_margin</code></td>
+<td style="text-align: left;">0</td>
+<td style="text-align: left;">How far one direction must beat the other before the vote counts. Zero is a simple majority.</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"><code>trend_sched_penalty_nm</code></td>
+<td style="text-align: left;">10</td>
+<td style="text-align: left;">The scheduled-service penalty, on <code>trend</code>’s side.</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;"><code>trend_smooth_half_window</code></td>
+<td style="text-align: left;">2</td>
+<td style="text-align: left;">Half-width in samples of the rolling mean over barometric altitude.</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"><code>trend_smooth_before_cut</code></td>
+<td style="text-align: left;">True</td>
+<td style="text-align: left;">Smooth altitude before applying the flight-level cut, not after.</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;"><code>trend_bearing_tiebreak_nm</code></td>
+<td style="text-align: left;">2</td>
+<td style="text-align: left;">Within this distance band, candidates are separated by course alignment rather than distance.</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"><code>trend_ooa</code></td>
+<td style="text-align: left;">False</td>
+<td style="text-align: left;">Whether <code>trend</code> may emit the out-of-area marker. Off: on arrivals it is right barely half the time.</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;"><code>k</code></td>
+<td style="text-align: left;">2</td>
+<td style="text-align: left;">The scoring exchange rate: one wrong answer costs <code>k</code> right ones.</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<p><strong>Cross-checked, not copied.</strong> Every value above was compared field by field against <code>DetectionConfig()</code> in the checkout these runs were made from, and they agree. Compared against the <em>v6.2</em> study’s shipped configuration, one difference is real and is reported rather than smoothed over:</p>
+<blockquote class="blockquote">
+<p>v6.2 gives <code>trend</code>’s altitude cut a <strong>datum</strong>, defaulting to field elevation: the cut becomes <code>trend_max_height_ft</code> above the field rather than <code>trend_max_fl</code> above mean sea level, and <code>trend_max_fl</code> is retained but inert. That change landed on <code>main</code> <strong>after</strong> this study’s base commit and is not present in the checkout these payoff numbers were produced from. The runs above therefore cut on FL60 above sea level.</p>
+</blockquote>
+<p>This does not affect any comparison on this page — every arm is scored at the same configuration, so the datum is held constant across all of them — but it does mean these absolute ADEP/ADES totals are not directly comparable with figures published by v6.2 or later.</p>
+</section>
+<section id="segmentation-quality-and-downstream-score-do-not-line-up" class="level3" data-number="8.2">
+<h3 data-number="8.2" class="anchored" data-anchor-id="segmentation-quality-and-downstream-score-do-not-line-up"><span class="header-section-number">8.2</span> Segmentation quality and downstream score do not line up</h3>
+<div class="cell">
+<div class="cell-output-display">
+<table class="caption-top table table-sm table-striped small">
+<caption>2025. Ranked on ADEP+ADES score. The second column is the same arm’s clean-match rate from the ladder, so the two rankings can be read against each other in one place.</caption>
+<colgroup>
+<col style="width: 17%">
+<col style="width: 17%">
+<col style="width: 10%">
+<col style="width: 10%">
+<col style="width: 11%">
+<col style="width: 11%">
+<col style="width: 11%">
+<col style="width: 11%">
 </colgroup>
 <thead>
 <tr class="header">
 <th style="text-align: left;">arm</th>
+<th style="text-align: right;">clean % (ladder)</th>
 <th style="text-align: right;">ADEP+ADES</th>
 <th style="text-align: right;">vs legacy</th>
-<th style="text-align: right;">ADEP coverage %</th>
-<th style="text-align: right;">ADEP accuracy %</th>
+<th style="text-align: right;">ADEP cov %</th>
+<th style="text-align: right;">ADEP acc %</th>
+<th style="text-align: right;">ADES cov %</th>
+<th style="text-align: right;">ADES acc %</th>
 </tr>
 </thead>
 <tbody>
 <tr class="odd">
 <td style="text-align: left;">legacy</td>
+<td style="text-align: right;">49.64</td>
 <td style="text-align: right;">134,176</td>
 <td style="text-align: right;">0</td>
 <td style="text-align: right;">79.97</td>
 <td style="text-align: right;">98.21</td>
+<td style="text-align: right;">68.30</td>
+<td style="text-align: right;">98.58</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">no_month_suffix</td>
+<td style="text-align: right;">49.64</td>
 <td style="text-align: right;">134,161</td>
 <td style="text-align: right;">-15</td>
 <td style="text-align: right;">79.97</td>
 <td style="text-align: right;">98.21</td>
+<td style="text-align: right;">68.30</td>
+<td style="text-align: right;">98.57</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">recommended</td>
+<td style="text-align: right;">90.80</td>
+<td style="text-align: right;">133,445</td>
+<td style="text-align: right;">-731</td>
+<td style="text-align: right;">80.09</td>
+<td style="text-align: right;">98.24</td>
+<td style="text-align: right;">67.60</td>
+<td style="text-align: right;">98.45</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">airframe_only</td>
+<td style="text-align: right;">88.56</td>
+<td style="text-align: right;">126,310</td>
+<td style="text-align: right;">-7,866</td>
+<td style="text-align: right;">78.29</td>
+<td style="text-align: right;">97.00</td>
+<td style="text-align: right;">66.97</td>
+<td style="text-align: right;">97.30</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">traffic_style</td>
+<td style="text-align: right;">45.89</td>
 <td style="text-align: right;">125,972</td>
 <td style="text-align: right;">-8,204</td>
 <td style="text-align: right;">77.63</td>
 <td style="text-align: right;">96.94</td>
+<td style="text-align: right;">68.85</td>
+<td style="text-align: right;">96.65</td>
 </tr>
 <tr class="even">
-<td style="text-align: left;">ground_anchored</td>
-<td style="text-align: right;">94,444</td>
-<td style="text-align: right;">-39,732</td>
-<td style="text-align: right;">64.81</td>
-<td style="text-align: right;">97.27</td>
-</tr>
-<tr class="odd">
-<td style="text-align: left;">vertical_profile</td>
-<td style="text-align: right;">90,953</td>
-<td style="text-align: right;">-43,223</td>
-<td style="text-align: right;">70.87</td>
-<td style="text-align: right;">97.71</td>
-</tr>
-<tr class="even">
-<td style="text-align: left;">recommended</td>
-<td style="text-align: right;">88,219</td>
-<td style="text-align: right;">-45,957</td>
-<td style="text-align: right;">55.77</td>
-<td style="text-align: right;">96.43</td>
-</tr>
-<tr class="odd">
 <td style="text-align: left;">airport_anchored</td>
-<td style="text-align: right;">85,550</td>
-<td style="text-align: right;">-48,626</td>
-<td style="text-align: right;">55.87</td>
-<td style="text-align: right;">96.53</td>
+<td style="text-align: right;">85.80</td>
+<td style="text-align: right;">124,105</td>
+<td style="text-align: right;">-10,071</td>
+<td style="text-align: right;">78.52</td>
+<td style="text-align: right;">97.15</td>
+<td style="text-align: right;">64.47</td>
+<td style="text-align: right;">97.00</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">ground_anchored</td>
+<td style="text-align: right;">79.46</td>
+<td style="text-align: right;">117,090</td>
+<td style="text-align: right;">-17,086</td>
+<td style="text-align: right;">79.61</td>
+<td style="text-align: right;">98.40</td>
+<td style="text-align: right;">51.10</td>
+<td style="text-align: right;">97.52</td>
 </tr>
 <tr class="even">
-<td style="text-align: left;">airframe_only</td>
-<td style="text-align: right;">83,170</td>
-<td style="text-align: right;">-51,006</td>
-<td style="text-align: right;">53.56</td>
-<td style="text-align: right;">96.28</td>
+<td style="text-align: left;">vertical_profile</td>
+<td style="text-align: right;">37.49</td>
+<td style="text-align: right;">100,472</td>
+<td style="text-align: right;">-33,704</td>
+<td style="text-align: right;">80.25</td>
+<td style="text-align: right;">98.38</td>
+<td style="text-align: right;">31.00</td>
+<td style="text-align: right;">98.14</td>
 </tr>
 </tbody>
 </table>
 </div>
 </div>
-<p>The order is close to exactly reversed. The arm that reproduces individual flights best is <em>last</em>; the shipped algorithm, second-worst at segmentation, is first. Taken at face value this says a better segmentation makes the product worse.</p>
-<p>It is not what it says. <strong>Accuracy barely moves across the whole table while coverage collapses</strong> — the losing arms are not predicting <em>wrongly</em>, they are predicting for far fewer flights. That is the signature of a labelling failure, not a geometric one.</p>
+<p>The two rankings disagree. <code>recommended</code> is first on the ladder and third here; <code>vertical_profile</code> is last on the ladder and has the <strong>highest ADEP score of any arm</strong>. A reader could take that to mean better segmentation makes the product worse. It does not, and the table says why in its last four columns.</p>
+<p><strong>Accuracy barely moves.</strong> Every arm lands within a couple of points on both roles. No arm is naming <em>wrong</em> aerodromes at a materially different rate.</p>
+<p><strong>Coverage moves, and almost all of the movement is on the arrival side.</strong> ADEP coverage spans a narrow band across all eight arms; ADES coverage runs from 31.0% to 68.9%. So the whole ranking is decided by how often the arrival algorithm can answer at all.</p>
+<p>Why the arrival side is so much more sensitive than the departure side is not settled by this study, and the page does not pretend otherwise. What the data does say is suggestive and consistent across both periods: the two arms with the worst arrival coverage by a wide margin — <code>ground_anchored</code> and <code>vertical_profile</code> — are exactly the two whose breaks are placed at <em>low-altitude events</em>, while <code>legacy</code> and <code>recommended</code> place theirs at reception gaps and land close together. The destination algorithm reads its evidence from the low-altitude part of a track, so an arm that cuts there is cutting into the evidence. The correlation is strong and the direction is plausible; isolating the mechanism would need a per-flight diagnosis this study did not run, and it is recorded as a hypothesis rather than a finding.</p>
+<p>The general lesson does not depend on that hypothesis being right: <strong>an arm that is good at recovering flights can still be bad at preserving the evidence a downstream detector needs</strong>, and the two have to be measured separately.</p>
 </section>
-<section id="one-aggregate-explains-it" class="level3" data-number="7.2">
-<h3 data-number="7.2" class="anchored" data-anchor-id="one-aggregate-explains-it"><span class="header-section-number">7.2</span> One aggregate explains it</h3>
-<p>The flight list builds one flight per <code>track_id</code> and labels it <code>F.min("flight_id")</code> — the lexicographically smallest callsign in the track. A blank sorts first.</p>
-<p>While callsign is part of the track’s group key, every track is callsign-homogeneous by construction and that aggregate cannot lose anything: measured on 2025, legacy loses a real callsign on <strong>0 of 235,949 tracks</strong>. Drop callsign from the key and <strong>64% of <code>airframe_only</code>’s tracks carry a real callsign alongside blank ones</strong>, and <code>F.min</code> returns the blank. The flight becomes unidentifiable and never matches its ground-truth counterpart.</p>
-<p>So the coupling is tighter than “one callsign per track”. The flight list requires <strong>blank-callsign samples to sit in tracks of their own</strong> — precisely what the legacy group key does as a side effect, and precisely what any fix to the fragmentation must undo. It is the same property, seen from both ends: legacy’s 50% fragmentation and the downstream coverage collapse are one phenomenon.</p>
+<section id="sec-labelling" class="level3" data-number="8.3">
+<h3 data-number="8.3" class="anchored" data-anchor-id="sec-labelling"><span class="header-section-number">8.3</span> The labelling bug this study found, and why it is now history</h3>
+<p>The measurement above could not be made until a defect in the flight list was fixed, and the defect is worth recording because it explains why an earlier version of this page reported the ranking as inverted, and because anyone meeting an OPDI flight list built before the fix needs to recognise it.</p>
+<p><strong>What it was.</strong> The flight list built one flight per <code>track_id</code> and labelled it with <code>F.min("flight_id")</code> — the lexicographically smallest callsign in the track. A blank sorts first.</p>
+<p><strong>Why it was harmless, until it was not.</strong> While callsign is part of the track’s group key, every track carries exactly one callsign by construction, so that aggregate can never lose anything. It is correct only because of a property <code>legacy</code> supplies <em>by accident</em>: blank-callsign samples sit in tracks of their own. Any fix to legacy’s fragmentation necessarily destroys that property — which is the whole point of the fix. Drop callsign from the key and a track that carries a real callsign alongside blank ones is labelled blank; the flight becomes unidentifiable and matches no ground-truth counterpart.</p>
+<p><strong>What it cost.</strong> Measured against the pipeline as it then stood, adopting the better segmentation <em>lost</em> ADEP/ADES points, and the losing arms lost them by coverage collapse with accuracy essentially unmoved — the signature of a labelling failure rather than a geometric one. So legacy’s fragmentation and the downstream coverage collapse were one phenomenon seen from two ends, and the recommendation was, at that point, conditional: fix the label first, then ship the segmentation. Reversed, the pipeline would have spent the interval between the two changes at substantially reduced ADEP coverage.</p>
+<p><strong>What was actually wrong was larger than the label.</strong> Tracing it found that <code>flight_id</code> is used as a grouping or join key in a dozen places downstream and is never aggregated to one value per track — so the flight list is written on the invariant <em>one <code>flight_id</code> per <code>track_id</code></em>, which <code>legacy</code> guarantees and the new segmentation breaks. A track carrying several callsigns does not merely get labelled wrongly; it <em>fans out into several rows</em> at each of those keys. The same latent fan-out was present in the event extraction of step 04.</p>
+<p><strong>It is fixed.</strong> Every point where the flight list and the event extraction read the track table now resolves <code>flight_id</code> to the track’s dominant non-blank callsign, over the unfiltered frame, before anything groups or joins on it. Runs that stamp a legacy version string skip the resolution, so re-running a released month still reproduces what was released, column for column. The numbers throughout this page are from the fixed pipeline; there is no repaired-versus- unrepaired pairing to interpret any more.</p>
 </section>
-<section id="with-the-labelling-repaired" class="level3" data-number="7.3">
-<h3 data-number="7.3" class="anchored" data-anchor-id="with-the-labelling-repaired"><span class="header-section-number">7.3</span> With the labelling repaired</h3>
-<p>Relabelling each track with its most frequent non-blank callsign, and carrying <code>legacy</code> as a control that must not move:</p>
+<section id="the-convergence-check" class="level3" data-number="8.4">
+<h3 data-number="8.4" class="anchored" data-anchor-id="the-convergence-check"><span class="header-section-number">8.4</span> The convergence check</h3>
+<p>The benchmark kept its own independent repair — relabelling each track with its most frequent non-blank callsign, applied inside the harness — and both jobs are still run. Now that production does the same thing, their <strong>agreement</strong> is the verification that the production fix and the benchmark repair are the same operation. A disagreement would be a finding rather than a measurement.</p>
 <div class="cell">
 <div class="cell-output-display">
 <table class="caption-top table table-sm table-striped small">
+<caption>The two jobs agree where it matters. <code>recommended</code> comes back identical on every recorded field in both periods; before the production fix the two differed by tens of thousands of flights.</caption>
 <colgroup>
-<col style="width: 9%">
-<col style="width: 23%">
-<col style="width: 31%">
-<col style="width: 26%">
-<col style="width: 9%">
+<col style="width: 8%">
+<col style="width: 19%">
+<col style="width: 22%">
+<col style="width: 36%">
+<col style="width: 12%">
 </colgroup>
 <thead>
 <tr class="header">
 <th style="text-align: left;">period</th>
 <th style="text-align: left;">arm</th>
-<th style="text-align: right;">as the pipeline stands</th>
-<th style="text-align: right;">labelling repaired</th>
-<th style="text-align: right;">delta</th>
+<th style="text-align: right;">production fix only</th>
+<th style="text-align: right;">production fix + harness repair</th>
+<th style="text-align: right;">difference</th>
 </tr>
 </thead>
 <tbody>
@@ -570,15 +1540,15 @@ ul.task-list li input[type="checkbox"] {
 <td style="text-align: left;">2025</td>
 <td style="text-align: left;">legacy (control)</td>
 <td style="text-align: right;">134,176</td>
-<td style="text-align: right;">134,176</td>
-<td style="text-align: right;">0</td>
+<td style="text-align: right;">134,164</td>
+<td style="text-align: right;">-12</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">2025</td>
 <td style="text-align: left;">recommended</td>
-<td style="text-align: right;">88,219</td>
 <td style="text-align: right;">133,445</td>
-<td style="text-align: right;">45,226</td>
+<td style="text-align: right;">133,445</td>
+<td style="text-align: right;">0</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">2024</td>
@@ -590,43 +1560,50 @@ ul.task-list li input[type="checkbox"] {
 <tr class="even">
 <td style="text-align: left;">2024</td>
 <td style="text-align: left;">recommended</td>
-<td style="text-align: right;">83,607</td>
 <td style="text-align: right;">128,115</td>
-<td style="text-align: right;">44,508</td>
+<td style="text-align: right;">128,115</td>
+<td style="text-align: right;">0</td>
 </tr>
 </tbody>
 </table>
 </div>
 </div>
-<p>The control returns <strong>exactly +0</strong>, on both periods and across three independent runs. That is what makes the other row attributable to the relabelling rather than to anything else the run touched.</p>
-<p>With the labelling repaired the recommended segmentation scores <strong>133,445</strong> against legacy’s <strong>134,176</strong> on 2025 and <strong>128,115</strong> against <strong>128,932</strong> on 2024 — short by 731 and 817 points, 0.5% and 0.6% — while matching flights around 41 points better. Its ADEP coverage slightly <em>exceeds</em> legacy’s on both periods.</p>
-<p>The residual is real and is not rounded away: with the labelling fixed, what remains is merging, and the recommended arm still merges 0.74% of flights where legacy merges 0.40%.</p>
+<p><code>recommended</code> agrees exactly, on both periods, which is the check passing.</p>
+<p><code>legacy</code> does not, on 2025 only, and by 12 points confined entirely to the arrival side — the same flights answered, a handful labelled with a different aerodrome. That was traced, and it is not the callsign repair: it is a non-deterministic aggregate in shipped ADES detection, which is reported in <a href="#sec-limitations">Limitations</a> because it is a real defect and it is not this study’s to fix.</p>
+</section>
+<section id="where-the-residual-comes-from" class="level3" data-number="8.5">
+<h3 data-number="8.5" class="anchored" data-anchor-id="where-the-residual-comes-from"><span class="header-section-number">8.5</span> Where the residual comes from</h3>
+<p>With the labelling fixed in production, the recommended segmentation scores <strong>133,445</strong> against legacy’s <strong>134,176</strong> on 2025 and <strong>128,115</strong> against <strong>128,932</strong> on 2024 — short by 731 and 817 points, 0.54% and 0.63% — while recovering 41 points more flights on the ladder. Its <strong>ADEP</strong> coverage slightly <em>exceeds</em> legacy’s on both periods: 80.09% against 79.97%.</p>
+<p>The residual is not accuracy and it is not departures. It is arrival coverage, and the only failure mode that grew is the one <a href="#sec-a8">A8</a> said would grow: <code>recommended</code> merges 0.74% of flights where <code>legacy</code> merges 0.40%, and a merged track has one arrival where there should be two, so one of the two flights loses its destination outright. The two statistics are measured against different ground truths — the ladder’s and the flight list’s — so they cannot be reconciled flight for flight, and merging on its own is smaller than the coverage difference it is offered to explain. What can be said without qualification is that merging is the only thing that moved in the wrong direction, and that it moved.</p>
+<p>That is the price of grouping on the airframe. It is stated rather than rounded away, and it is small enough that the 41-point gain in recovered flights buys it many times over.</p>
 </section>
 </section>
-<section id="sec-defaults" class="level2" data-number="8">
-<h2 data-number="8" class="anchored" data-anchor-id="sec-defaults"><span class="header-section-number">8</span> What ships</h2>
-<p><strong>Recommended: the A8 rule — group on <code>icao24</code>, break on a genuine non-blank callsign change with the lookback bounded to the gap threshold, keeping legacy’s gap rules as a floor.</strong></p>
-<p>Conditional on one change to the flight list, and the order matters:</p>
+<section id="sec-defaults" class="level2" data-number="9">
+<h2 data-number="9" class="anchored" data-anchor-id="sec-defaults"><span class="header-section-number">9</span> What shipped</h2>
+<p><em>This section says what was adopted, in what order, and what a consumer of OPDI data has to know about it.</em></p>
+<p><strong>The A8 rule ships, as <code>segmentation.method = "standard"</code>:</strong> group on <code>icao24</code>, break when the last non-blank callsign genuinely changes with the lookback bounded to the gap threshold, and keep legacy’s gap rules as a floor.</p>
+<p>The recommendation was conditional when this study first reported, and the condition was an ordering rather than a hedge. Both steps have now been taken, in this order:</p>
 <ol type="1">
-<li><strong>First</strong>, change <code>flights.py</code>’s flight labelling so it does not choose a callsign with <code>F.min</code>. Most-frequent non-blank is what this study measured; any rule that ignores blanks would do. This is worth doing on its own merits even if the segmentation never changes, because it is a silent trap for any future change to track identity and it fails as a coverage statistic rather than as an error.</li>
-<li><strong>Then</strong> ship the segmentation.</li>
+<li><strong>First, the flight-list labelling was fixed.</strong> <code>flights.py</code> no longer picks a track’s callsign with <code>F.min</code>; every read of the track table resolves <code>flight_id</code> to the track’s dominant non-blank callsign before anything groups or joins on it, and the same fix was applied to step 04’s event extraction. This was worth doing on its own merits even had the segmentation never changed, because it is a silent trap for any future change to track identity and it fails as a <em>coverage</em> statistic rather than as an error — nothing looks broken, there is simply less data.</li>
+<li><strong>Then the segmentation was switched.</strong> Reversed, the pipeline would have spent the interval between the two changes at substantially reduced ADEP coverage.</li>
 </ol>
-<p>Reversed, the pipeline spends the interval between the two changes at 55% ADEP coverage instead of 80%.</p>
-<p>Two consequences of shipping it, both of which are decisions for the release plan rather than for this study:</p>
+<p>Three things a consumer needs to know, all of them consequences of the release rather than open questions:</p>
 <ul>
-<li><strong><code>track_id</code> changes for all data from that release forward</strong>, in shape as well as value: A8 carries no <code>_{year}_{month}</code> suffix, so identifiers become <code>{hash}_{offset}</code>. Any consumer parsing the suffix breaks in a way a pure value change would not.</li>
-<li><strong>Past months will not reproduce.</strong> This study recommends; it does not schedule.</li>
+<li><strong><code>track_id</code> changes for all data produced from this release forward</strong>, in shape as well as value: <code>standard</code> carries no <code>_{year}_{month}</code> suffix, so identifiers become <code>{hash}_{offset}</code>. A consumer joining on <code>track_id</code> across the boundary gets an empty join rather than an error, which reads as missing data; a consumer parsing the suffix breaks outright.</li>
+<li><strong>Past months do not reproduce under the new rule, and are not meant to.</strong> Setting <code>segmentation.method</code> back to <code>"legacy"</code> reproduces the published identifiers, and the version-guarded paths in the flight list and the event extraction reproduce the published labels alongside them.</li>
+<li><strong>Nothing in the published data records which rule produced a row.</strong> <code>osn_tracks</code> carries no version column, so the only way to tell is to know when the row was published. This is a deliberate decision and its cost is written down in <a href="#sec-limitations">Limitations</a>.</li>
 </ul>
 </section>
-<section id="sec-provenance" class="level2" data-number="9">
-<h2 data-number="9" class="anchored" data-anchor-id="sec-provenance"><span class="header-section-number">9</span> Provenance</h2>
+<section id="sec-provenance" class="level2" data-number="10">
+<h2 data-number="10" class="anchored" data-anchor-id="sec-provenance"><span class="header-section-number">10</span> Provenance</h2>
+<p><em>This section says where every number on this page comes from.</em></p>
 <p>Each row is one file this page reads: the job that produced it, the commit it was produced at, and when. Every figure on this page is regenerated by <code>benchmarks/regenerate_track_v1.py</code>, which the page runs before drawing anything, so a row marked <strong>unverified</strong> would mean a file staged outside that chain and traceable to no command.</p>
 <table class="caption-top table">
 <colgroup>
-<col style="width: 40%">
-<col style="width: 24%">
-<col style="width: 11%">
-<col style="width: 24%">
+<col style="width: 37%">
+<col style="width: 28%">
+<col style="width: 10%">
+<col style="width: 22%">
 </colgroup>
 <thead>
 <tr class="header">
@@ -640,94 +1617,149 @@ ul.task-list li input[type="checkbox"] {
 <tr class="odd">
 <td style="text-align: left;">arms_2024.csv</td>
 <td style="text-align: left;">track_methods.py</td>
-<td style="text-align: left;">7020af3</td>
-<td style="text-align: left;">2026-08-24T23:28</td>
+<td style="text-align: left;">6116873</td>
+<td style="text-align: left;">2026-08-26T03:51</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">arms_2025.csv</td>
 <td style="text-align: left;">track_methods.py</td>
-<td style="text-align: left;">7020af3</td>
-<td style="text-align: left;">2026-08-24T23:06</td>
+<td style="text-align: left;">6116873</td>
+<td style="text-align: left;">2026-08-26T03:30</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">boundary_hist_2024.csv</td>
+<td style="text-align: left;">track_diagnostics.py</td>
+<td style="text-align: left;">6116873</td>
+<td style="text-align: left;">2026-08-26T04:12</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">boundary_hist_2025.csv</td>
+<td style="text-align: left;">track_diagnostics.py</td>
+<td style="text-align: left;">6116873</td>
+<td style="text-align: left;">2026-08-26T04:03</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">containment_2024.csv</td>
+<td style="text-align: left;">track_diagnostics.py</td>
+<td style="text-align: left;">6116873</td>
+<td style="text-align: left;">2026-08-26T03:54</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">containment_2025.csv</td>
+<td style="text-align: left;">track_diagnostics.py</td>
+<td style="text-align: left;">6116873</td>
+<td style="text-align: left;">2026-08-26T03:53</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">payoff_2024.csv</td>
 <td style="text-align: left;">track_payoff.py</td>
-<td style="text-align: left;">7020af3</td>
-<td style="text-align: left;">2026-08-25T05:47</td>
+<td style="text-align: left;">6116873</td>
+<td style="text-align: left;">2026-08-26T02:27</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">payoff_2025.csv</td>
 <td style="text-align: left;">track_payoff.py</td>
-<td style="text-align: left;">7020af3</td>
-<td style="text-align: left;">2026-08-25T04:39</td>
+<td style="text-align: left;">6116873</td>
+<td style="text-align: left;">2026-08-26T01:19</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">payoff_fixcallsign_2024.csv</td>
 <td style="text-align: left;">track_payoff.py</td>
-<td style="text-align: left;">7020af3</td>
-<td style="text-align: left;">2026-08-25T06:35</td>
+<td style="text-align: left;">6116873</td>
+<td style="text-align: left;">2026-08-26T03:09</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">payoff_fixcallsign_2025.csv</td>
 <td style="text-align: left;">track_payoff.py</td>
-<td style="text-align: left;">7020af3</td>
-<td style="text-align: left;">2026-08-25T06:07</td>
+<td style="text-align: left;">6116873</td>
+<td style="text-align: left;">2026-08-26T02:48</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">sweep_2024_stage2.csv</td>
 <td style="text-align: left;">track_sweep.py</td>
-<td style="text-align: left;">7020af3</td>
-<td style="text-align: left;">2026-08-25T03:36</td>
+<td style="text-align: left;">6116873</td>
+<td style="text-align: left;">2026-08-26T05:11</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">sweep_2025_stage1.csv</td>
 <td style="text-align: left;">track_sweep.py</td>
-<td style="text-align: left;">7020af3</td>
-<td style="text-align: left;">2026-08-25T02:15</td>
+<td style="text-align: left;">6116873</td>
+<td style="text-align: left;">2026-08-26T08:22</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">sweep_2025_stage1_ext.csv</td>
 <td style="text-align: left;">track_sweep.py</td>
-<td style="text-align: left;">7020af3</td>
-<td style="text-align: left;">2026-08-25T02:38</td>
+<td style="text-align: left;">6116873</td>
+<td style="text-align: left;">2026-08-26T05:34</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">sweep_2025_stage2.csv</td>
 <td style="text-align: left;">track_sweep.py</td>
-<td style="text-align: left;">7020af3</td>
-<td style="text-align: left;">2026-08-25T03:05</td>
+<td style="text-align: left;">6116873</td>
+<td style="text-align: left;">2026-08-26T04:40</td>
 </tr>
 </tbody>
 </table>
-<p>10 files, 10 traced to a command, 0 unverified.</p>
+<p>14 files, 14 traced to a command, 0 unverified.</p>
+<p>Two classes of figure on this page are <strong>not</strong> read from those files, and both are marked as such where they appear.</p>
+<ul>
+<li>A handful of diagnostic measurements made while the arms were implemented — the share of <code>legacy</code> tracks carrying no callsign, the share of <code>airframe_only</code> tracks carrying more than one, and the cost of an unbounded callsign lookback. They are quoted with their source named in the text (“measured while the arm was implemented”, “measured during implementation”) and they are not regenerated by this page.</li>
+<li>The V7 flight-list study’s own published total, used once as an external control, and the ground-truth validation figures quoted in <a href="#sec-sample">The sample</a>. Both belong to other papers and are cited, not recomputed here.</li>
+</ul>
+<p>Everything else — every rate, count, percentile, table cell and plotted bar — is an expression evaluated over the files above at render time. None of it is typed into the prose, which is what stops the text and the tables drifting apart.</p>
+<p>The re-run behind the current numbers is itself worth a note on method. All fourteen files were regenerated after two defects were fixed in the ground-truth loader, including six jobs that were confidently predicted not to move: they had been reasoned about through two of their three declared dependencies, and the third had changed. Every cell of all four sweep files moved, by up to 0.023 pp, relocating no optimum and changing no conclusion — but the numbers on the page are different from the ones that were there. Narrowing a declared dependency to avoid a re-run is exactly how a page ends up publishing figures that nothing can account for.</p>
 </section>
-<section id="sec-limitations" class="level2" data-number="10">
-<h2 data-number="10" class="anchored" data-anchor-id="sec-limitations"><span class="header-section-number">10</span> Limitations</h2>
-<section id="the-baseline-is-not-the-shipped-track_id" class="level3" data-number="10.1">
-<h3 data-number="10.1" class="anchored" data-anchor-id="the-baseline-is-not-the-shipped-track_id"><span class="header-section-number">10.1</span> The baseline is not the shipped <code>track_id</code></h3>
-<p>A0 reproduces the legacy <em>rule</em>, but applied to cleaned tracks it does not reproduce the shipped identifiers exactly: it differs on 909 of 236,899 tracks, 0.38%, and 8 of 134,176 ADEP/ADES points. The cause is exact and worth reporting upward on its own account. Production’s identifiers were computed upstream on raw altitudes, while <code>osn_tracks_clean</code> masks bad altitudes to NULL — and <code>NULL &lt; 5000</code> is NULL, not true, so the low-altitude split silently does not fire where it once did. Measured, <strong>950 of 950 disagreements have a NULL barometric altitude</strong>, against a 21.4% base rate.</p>
-<p>The published <code>osn_tracks_clean</code> therefore carries a <code>track_id</code> that its own columns can no longer reproduce. Nothing is wrong with the published data, but anyone recomputing identifiers from the clean table — the obvious thing to do — gets different tracks and no warning.</p>
-<p>This does not affect the comparisons on this page: every arm reads the same cleaned table and is subject to the same behaviour.</p>
+<section id="sec-limitations" class="level2" data-number="11">
+<h2 data-number="11" class="anchored" data-anchor-id="sec-limitations"><span class="header-section-number">11</span> Limitations</h2>
+<p><em>This section is where the claims this page does <strong>not</strong> make are written down, together with the defects it found and did not fix.</em></p>
+<section id="the-baseline-is-a-re-implementation-not-the-published-track_id" class="level3" data-number="11.1">
+<h3 data-number="11.1" class="anchored" data-anchor-id="the-baseline-is-a-re-implementation-not-the-published-track_id"><span class="header-section-number">11.1</span> The baseline is a re-implementation, not the published <code>track_id</code></h3>
+<p>Two distinct things are meant by “the baseline”, and neither is what production now runs.</p>
+<p>First, and as <a href="#sec-problem">§ what a track is</a> states plainly, this study measures algorithms in a harness rather than the pipeline itself. A0 is a re-implementation of the legacy <em>rule</em> inside the generic segmentation engine. The engine is asserted by test to reproduce the frozen algorithm’s partition under production parameters, which is the contract that makes A0 a fair baseline — but it is a contract on the partition, not a claim to have run the pipeline.</p>
+<p>Second, applied to <em>cleaned</em> tracks, the legacy rule does not reproduce the published identifiers exactly: it differs on 909 of 236,899 tracks, 0.38%, and on 8 of this page’s 134,176 ADEP/ADES points — which is the control residual noted in <a href="#sec-payoff">the payoff</a>. The cause is exact and worth reporting on its own account. Production’s identifiers were computed upstream on raw altitudes, while <code>osn_tracks_clean</code> masks bad altitudes to NULL — and <code>NULL &lt; 5000</code> is NULL, not true, so the low-altitude split silently does not fire where it once did. Measured, <strong>950 of 950 disagreements have a NULL barometric altitude</strong>, against a 21.4% base rate. The published <code>osn_tracks_clean</code> therefore carries a <code>track_id</code> that its own columns can no longer reproduce: nothing is wrong with the published data, but anyone recomputing identifiers from the clean table — the obvious thing to do — gets different tracks and no warning.</p>
+<p>Neither point affects the comparisons on this page, because every arm reads the same cleaned table through the same engine and is subject to both behaviours equally. Version 2 of this study is the one that runs the pipeline end to end.</p>
 </section>
-<section id="ground-truth-covers-network-manager-flights-only" class="level3" data-number="10.2">
-<h3 data-number="10.2" class="anchored" data-anchor-id="ground-truth-covers-network-manager-flights-only"><span class="header-section-number">10.2</span> Ground truth covers Network Manager flights only</h3>
+<section id="published-data-carries-no-marker-of-which-segmentation-produced-it" class="level3" data-number="11.2">
+<h3 data-number="11.2" class="anchored" data-anchor-id="published-data-carries-no-marker-of-which-segmentation-produced-it"><span class="header-section-number">11.2</span> Published data carries no marker of which segmentation produced it</h3>
+<p><code>osn_tracks</code> has no version column, so <strong>no row of published OPDI data says which segmentation rule built its <code>track_id</code></strong>. Distinguishing the two regimes depends entirely on knowing the release date.</p>
+<p>This is a consequence of a deliberate decision not to add such a column, and its cost is concrete rather than abstract. The guards that let a legacy re-run reproduce released labels — in <code>flights.py</code> and in <code>events.py</code> — key on the <em>run’s configuration</em>, not on the data: they ask “is this run stamping a legacy version string?” when the question they need answered is “were the tracks I am reading built with the legacy rule?”. Nothing in the data can tell them. So a legacy-configured run over tracks that were rebuilt with <code>standard</code> will take the legacy branch and publish under a frozen version string, and no check anywhere can catch it. The same blind spot reaches the flight-events ladder, whose lower rungs carry a legacy events version and would silently measure the new segmentation if re-run after the switch.</p>
+</section>
+<section id="ades-values-are-not-reproducible-run-to-run" class="level3" data-number="11.3">
+<h3 data-number="11.3" class="anchored" data-anchor-id="ades-values-are-not-reproducible-run-to-run"><span class="header-section-number">11.3</span> ADES values are not reproducible run to run</h3>
+<p><strong>This is a defect in shipped ADEP/ADES detection, it predates this study, and it is not fixed.</strong> It is recorded here because both this page and the flight-list studies quote ADES percentages to two decimals, and a figure that is not reproducible must say so.</p>
+<p><code>flights.py:_rank_airports</code> ranks candidate aerodromes correctly with <code>row_number()</code>, and then names the winner with <code>first(apt_ident)</code> — an aggregate with no defined order. Adding a join upstream can change the answer. The defect is self-detecting, because the <em>runner-up</em> list is built from the rank rather than from <code>first()</code>, so a wrongly named aerodrome shows up in its own “not most likely” list.</p>
+<p>Measured across repeated runs on identical code and data: roughly 28 of 88,737 named ADES per run, about 0.03%, come from the undefined-order aggregate, and about 20 can flip between two runs. The affected flights are short hops between neighbouring aerodromes. <strong>ADEP is immune</strong> — the departure path filters on the rank instead of aggregating, which is the correct pattern and already exists in the same file. <code>ades_mode</code> defaults to <code>trend</code>, so this is the shipped arrival path.</p>
+<p>It is the explanation for the one disagreement in <a href="#sec-payoff">the convergence check</a>: the control differs by a handful of ADES flights on one period and by none on the other, with coverage identical to six decimals.</p>
+</section>
+<section id="two-ground-truth-intervals-over-twenty-hours-survive-in-the-2024-sample" class="level3" data-number="11.4">
+<h3 data-number="11.4" class="anchored" data-anchor-id="two-ground-truth-intervals-over-twenty-hours-survive-in-the-2024-sample"><span class="header-section-number">11.4</span> Two ground-truth intervals over twenty hours survive in the 2024 sample</h3>
+<p>Ground truth is built from Network Manager’s own <code>AOBT_3</code>/<code>ARVT_3</code> pairing, and two intervals in the 2024 sample exceed twenty hours — the longest being 27.9 h, THY801 LTFM→SKBO. Because samples are attributed to a flight by containment, an over-long interval can absorb samples belonging to a neighbouring leg of the same airframe.</p>
+<p>These are <strong>not</strong> the defect that was fixed. A separate loader defect, since corrected, windowed ground truth on the off-block day rather than on the flight interval and keyed the APDF departure join on the off-block day rather than the take-off day; the second let a nightly service take its take-off time from yesterday’s rotation, producing intervals of up to 26.9 hours. Fixing it removed every such interval from 2025 and all but these two from 2024, and moved the scored flight counts by about a tenth of a percent with every rate moving by no more than 0.038 pp.</p>
+<p>The two survivors are NM’s own pairing and are undiagnosed. They were deliberately not filtered out: a length filter would change the denominator of every metric on this page, which is a larger and less examined intervention than the contamination it removes. The effect is carried, stated, and small.</p>
+</section>
+<section id="the-adepades-configuration-predates-the-v6.2-datum-change" class="level3" data-number="11.5">
+<h3 data-number="11.5" class="anchored" data-anchor-id="the-adepades-configuration-predates-the-v6.2-datum-change"><span class="header-section-number">11.5</span> The ADEP/ADES configuration predates the v6.2 datum change</h3>
+<p>As <a href="#sec-detection">§ the flight-list configuration</a> records, the payoff runs were made from a checkout that does not contain v6.2’s altitude-cut datum, so <code>trend</code> cuts at FL60 above mean sea level rather than at a height above field elevation. The configuration is identical across all eight arms, so every comparison on this page is unaffected; the absolute ADEP/ADES totals are not comparable with figures published by v6.2 or later.</p>
+</section>
+<section id="ground-truth-covers-network-manager-flights-only" class="level3" data-number="11.6">
+<h3 data-number="11.6" class="anchored" data-anchor-id="ground-truth-covers-network-manager-flights-only"><span class="header-section-number">11.6</span> Ground truth covers Network Manager flights only</h3>
 <p>Merges with traffic absent from the NM flight table — military, general aviation, non-ECAC operators — are invisible to the metric, because the merged partner has no ground-truth flight to be merged with. <strong>The merge rates on this page are therefore floors, not estimates.</strong> Fragmentation is unaffected, since it is measured within flights that ground truth does contain.</p>
 </section>
-<section id="one-arm-is-untested-not-null" class="level3" data-number="10.3">
-<h3 data-number="10.3" class="anchored" data-anchor-id="one-arm-is-untested-not-null"><span class="header-section-number">10.3</span> One arm is untested, not null</h3>
+<section id="one-arm-is-untested-not-null" class="level3" data-number="11.7">
+<h3 data-number="11.7" class="anchored" data-anchor-id="one-arm-is-untested-not-null"><span class="header-section-number">11.7</span> One arm is untested, not null</h3>
 <p><code>no_month_suffix</code> is identical to legacy on both samples because both sit inside a single month. It is reported as untested. Evaluating it needs a sample spanning a month boundary.</p>
 </section>
-<section id="two-three-day-samples-in-june" class="level3" data-number="10.4">
-<h3 data-number="10.4" class="anchored" data-anchor-id="two-three-day-samples-in-june"><span class="header-section-number">10.4</span> Two three-day samples in June</h3>
+<section id="two-three-day-samples-in-june" class="level3" data-number="11.8">
+<h3 data-number="11.8" class="anchored" data-anchor-id="two-three-day-samples-in-june"><span class="header-section-number">11.8</span> Two three-day samples in June</h3>
 <p>Both samples are in early June. Nothing here licenses a seasonal claim, and the callsign statistics in particular could plausibly differ in a period with more charter or seasonal traffic.</p>
 </section>
-<section id="the-a1-sweep-varied-three-parameters" class="level3" data-number="10.5">
-<h3 data-number="10.5" class="anchored" data-anchor-id="the-a1-sweep-varied-three-parameters"><span class="header-section-number">10.5</span> The A1 sweep varied three parameters</h3>
+<section id="the-a1-sweep-varied-three-parameters" class="level3" data-number="11.9">
+<h3 data-number="11.9" class="anchored" data-anchor-id="the-a1-sweep-varied-three-parameters"><span class="header-section-number">11.9</span> The A1 sweep varied three parameters</h3>
 <p>The sweep covers the gap threshold, the low-altitude gap threshold and the low-altitude ceiling. It does not vary the ground-dwell or turnaround parameters that the domain arms introduce, so those arms are compared at one setting each and could be better at another. Given the structural gap between the arms is two orders of magnitude larger than anything the sweep found, this is unlikely to change the ordering, but it is not measured.</p>
 </section>
-<section id="the-payoff-holds-the-flight-list-fixed" class="level3" data-number="10.6">
-<h3 data-number="10.6" class="anchored" data-anchor-id="the-payoff-holds-the-flight-list-fixed"><span class="header-section-number">10.6</span> The payoff holds the flight list fixed</h3>
-<p>Each arm is scored at V7’s own recommended flight-list configuration rather than re-tuned per arm. A joint optimum might be better for some arm; finding it would multiply cluster time by the number of arms, and one Spark job runs at a time. The natural follow-up is to re-tune the flight list on the recommended arm alone — one extra grid, not eight — once the labelling is fixed.</p>
+<section id="the-payoff-holds-the-flight-list-fixed" class="level3" data-number="11.10">
+<h3 data-number="11.10" class="anchored" data-anchor-id="the-payoff-holds-the-flight-list-fixed"><span class="header-section-number">11.10</span> The payoff holds the flight list fixed</h3>
+<p>Each arm is scored at one flight-list configuration — the one tabulated in <a href="#sec-detection">§ the flight-list configuration</a> — rather than re-tuned per arm. A joint optimum might be better for some arm; finding it would multiply cluster time by the number of arms, and one Spark job runs at a time. The natural follow-up, now that the labelling is fixed, is to re-tune the flight list on the recommended arm alone: one extra grid, not eight.</p>
 
 
 </section>
