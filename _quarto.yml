@@ -1,7 +1,18 @@
 project:
   type: website
-bibliography: bibliography.bib
-csl: media/ieee-with-url.csl
+  render:
+    - index.qmd
+    - content/
+    - "!archive/"
+    # papers/ is its own Quarto project (papers/_quarto.yml); it is linked from
+    # content/resources.qmd but must not be pulled into the site build.
+    - "!papers/"
+  resources:
+    - assets/
+    - "!assets/bib/"
+    - "!assets/csl/"
+bibliography: assets/bib/bibliography.bib
+csl: assets/csl/ieee-with-url.csl
 
 execute:
   echo: false
@@ -21,7 +32,7 @@ acronyms:
   non_existing: "key"
   style: "long-short"
   fromfile:
-    - media/acronyms.yml
+    - assets/acronyms.yml
 
 
 website:
@@ -30,24 +41,45 @@ website:
   # google-analytics: "G-XXXXXXXXXX"
 
   sidebar:
+    collapse-level: 1
     contents:
       - href: index.qmd
         text: Home
-      - data.qmd
-      - concepts.qmd
-      - methodology.qmd
-      - roadmap.qmd
-      - href: data-preview.qmd
-        text: Data Preview
-      - about.qmd
+      - section: "OPDI Data"
+        contents:
+          - content/data.qmd
+          - content/concepts.qmd
+          - content/methodology.qmd
+          - content/roadmap.qmd
+          - href: content/data-preview.qmd
+            text: Data Preview
+      - href: content/data-challenges.qmd
+        text: PRC Data Challenges
+      - section: "OPDI Sensors"
+        contents:
+          - href: content/sensors.qmd
+            text: Deployment
+          - href: content/sensors-impact.qmd
+            text: Impact
+          - href: content/sensors-expansion.qmd
+            text: Where Next
+          - href: content/sensors-contribute.qmd
+            text: Extend the Network
+          - href: content/sensors-data.qmd
+            text: Access Sensor Data
+      - href: content/resources.qmd
+        text: Resources
+      - href: content/community.qmd
+        text: Community
+      - content/about.qmd
 
   navbar:
   # Note: You need to install: ```quarto install extension mcanouil/quarto-iconify```
   # For the icons to work.
     background: dark
     search: true
-    title: 'Open Performance Data Initiative (OPDI)'
-    logo: "media/EUROCONTROL-logo-standard-rgb.png"
+    title: 'Open Performance Data Initiative'
+    logo: "assets/logos/eurocontrol-standard-rgb.png"
     right:
       - text: "Home"
         href: https://ansperformance.eu/
@@ -188,4 +220,4 @@ format:
           })();
         </script>
         <!-- End Matomo Code -->
-    css: styles.css
+    css: assets/css/styles.css
