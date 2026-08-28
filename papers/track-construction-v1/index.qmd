@@ -211,7 +211,7 @@ by time, and start a new track when the gap to the previous sample exceeds 30
 minutes, or exceeds 15 minutes while the aircraft is below 5,000 ft. The
 resulting identifier carries a month suffix.
 
-Four things can go wrong with such a rule, and they are not symmetric:
+Three things can go wrong with such a rule, and they are not symmetric:
 
 - **Fragmentation** — one real flight becomes several tracks. Everything
   downstream sees several short flights where there was one.
@@ -219,19 +219,35 @@ Four things can go wrong with such a rule, and they are not symmetric:
   flight and the others simply do not exist in the output.
 - **Boundary error** — the track is one flight, but starts or ends in the wrong
   place, so first- and last-seen events and cumulative measurements are wrong.
-- **Identity churn** — the same physical flight gets a different `track_id`
-  depending on when the pipeline ran.
 
-Merging is the more damaging failure, because a merged flight is unrecoverable
-downstream, while a fragmented one is at least present in pieces. The metrics
-below are chosen so that the two cannot be confused, and the arms are compared
-on both rather than on a single blended score.
+Of the three, merging is the most damaging, because a merged flight is
+unrecoverable downstream, while a fragmented one is at least present in pieces
+and a boundary error leaves the flight intact. The metrics below are chosen so
+that merging and fragmentation cannot be confused with each other, and the
+candidate rules are compared on both rather than on a single blended score.
 
-The rule has never been benchmarked. It is also frozen: `_add_track_id` is
-marked *CRITICAL — DO NOT MODIFY*, because changing it breaks `track_id`
-continuity with every dataset OPDI has published. This study therefore
-re-implements it inside a generic engine and measures the re-implementation,
-rather than editing production code.
+The rule has never been benchmarked, and that is why this study exists.
+
+What it is *not* is frozen. Segmentation is a versioned choice: a release states
+which rule built its `track_id` values, and changing that rule changes
+`track_id` for everything produced from that release forward — in value, and in
+shape where the month suffix goes. That is a release decision, to be documented
+and communicated to consumers rather than avoided, and it is a decision that has
+now been taken. As of this release `segmentation.method` defaults to
+`"standard"`, which is the rule this study recommends. `"legacy"` remains
+selectable and reproduces the identifiers of every dataset published up to OPDI
+v0.0.2, so released data stays reproducible.
+
+One consequence for the reader, stated here so nothing later depends on
+inferring it. **This paper measures algorithms, not the pipeline.** Every rule
+below is expressed in a generic segmentation engine and scored in a harness, so
+that eight candidates could be compared without eight production pipeline runs —
+which at this data volume is the difference between a study and a quarter. That
+is a legitimate design and it is also a real limitation: what is measured here
+is a re-implementation of each rule, not the pipeline's own output. Version 2 of
+this study is the paper that runs the pipeline itself, end to end, on the rule
+this one recommends. If you want to know what a rule is worth, you are in the
+right place; if you want to know what the pipeline now produces, read version 2.
 
 ## How a segmentation is scored {#sec-metrics}
 
