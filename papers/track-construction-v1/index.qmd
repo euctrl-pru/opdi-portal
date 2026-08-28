@@ -141,6 +141,11 @@ SWEEP_GAIN_25 <- SWEEP_BEST_25 - SWEEP_PROD_25
 SWEEP_GAIN_24 <- SWEEP_BEST_24 - SWEEP_PROD_24
 # How many times larger the identity fix is than the entire tuning question.
 SWEEP_RATIO   <- GAIN_25 / SWEEP_GAIN_25
+# The largest movement of any arm's clean-match rate between the two periods.
+# Quoted rather than asserted, because "the ordering holds on both samples" is
+# the claim the second period was bought to support.
+ARM_SHIFT <- max(abs(sapply(unique(arms$arm), function(a)
+  A(a, "2025", "clean_match_pct") - A(a, "2024", "clean_match_pct"))))
 
 # The payoff, and the convergence check that now sits beside it.
 PAY_LEGACY_25 <- P(payoff, "legacy", "2025")
@@ -648,23 +653,49 @@ ggplot(b, aes(x = mid / 60, y = n, colour = arm)) +
 
 ## The sample {#sec-sample}
 
-Two three-day samples, `r num(N_GT_25)` and `r num(N_GT_24)` ground-truth
-flights: 5–7 June 2025 and 5–7 June 2024. Two periods, because a single sample
-cannot distinguish a real effect from one the sample happened to favour, and
-every conclusion on this page is required to hold on both.
+*This section says what is being measured against, and over what period.*
 
-Ground truth is the Network Manager flight table, cross-checked against APDF
-where APDF covers the aerodrome. Take-off is inferred as `AOBT_3 + TAXI_TIME_3`
-and landing is taken from `ARVT_3` directly; both were validated against real
-APDF movement times before being relied on, at median error 0 s with an
-interquartile range of 17 s and 25 s respectively.
+Two three-day samples, `r num(N_GT_25)` and `r num(N_GT_24)` scored ground-truth
+flights: 5–7 June 2025 and 5–7 June 2024. Two periods rather than one, because a
+single sample cannot distinguish a real effect from one that sample happened to
+favour — and every conclusion on this page is required to hold on both.
 
-## The ladder {#sec-ladder}
+Ground truth is the Network Manager flight table, which covers all of ECAC,
+cross-checked against APDF where APDF covers the aerodrome. Take-off is inferred
+as `AOBT_3 + TAXI_TIME_3` — off-block plus taxi-out — and landing is taken from
+`ARVT_3` directly, which is already a landing time rather than a gate arrival.
+Both inferences were validated against real APDF movement times before being
+relied on, at median error 0 s with an interquartile range of 17 s and 25 s
+respectively; that is what licenses using NM-inferred intervals for matching.
+Boundary error is nevertheless reported only over the APDF-measured subset,
+which is conservatism rather than necessity.
 
-Eight arms, each a grouping and a break predicate, all scored against the same
-ground truth on the same samples. Every arm reads one shared cleaned track
-table with only `track_id` varying, so a difference between arms cannot be an
-artefact of a different track build.
+## The ladder: eight candidate rules {#sec-ladder}
+
+*This section is the study proper. It defines what a candidate rule is, then
+takes each in turn: what it changes, what it is trying to fix, the rule itself,
+and what it scored. By the end you will know why one of them was recommended and
+why the other seven were not.*
+
+A **ladder** here is a set of candidate segmentation rules run against the same
+ground truth, on the same samples, one change at a time. Each candidate is
+called an **arm**, borrowing the term from a controlled trial, and each arm is
+exactly two things: a **grouping** — which samples are even eligible to share a
+track — and a **break predicate** — a test evaluated at each sample in time
+order, which when true starts a new track.
+
+Every arm reads one shared cleaned track table, and only `track_id` varies
+between them, so a difference between two arms cannot be an artefact of a
+different track build. Arms are numbered A0 to A8; A1 is not an arm but a
+parameter sweep of A0, and has [its own section](#sec-sweep).
+
+Every domain-knowledge arm (A5, A6, A7) keeps a legacy gap rule as a **floor** —
+it can add splits to legacy's, and in one deliberate exception replace one of
+them, but it cannot end up splitting less than a long silence demands. There are
+two reasons, and both matter for reading the numbers. The ladder measures one
+change at a time, so an arm that also silently removed a legacy split would
+report a delta mixing two changes; and an arm whose inputs are missing must not
+degrade into assigning an airframe's whole month to a single track.
 
 ```{r ladder-table}
 #| echo: false
@@ -681,141 +712,400 @@ kable(t, row.names = FALSE, digits = c(0, 2, 2, 2, 0, 4, 2),
       format.args = list(big.mark = ","))
 ```
 
-The ordering is identical on both periods and no arm moves by more than about
-three points between them, so what follows is a property of the algorithms
-rather than of one sample.
+The ordering is identical on both periods, and no arm's clean-match rate moves
+by more than `r sprintf("%.1f", ARM_SHIFT)` points between them, so what follows
+is a property of the algorithms rather than of one sample.
 
-### A0 `legacy` — the shipped rule
+Each arm below is given in the same four parts: what it changes relative to
+`legacy`, what it is trying to fix, the rule itself, and what the measurement
+said.
 
-`r pct(CLEAN_LEGACY_25)` clean, `r pct(FRAG_LEGACY_25)` fragmented,
-`r pct(A("legacy", "2025", "merged_pct"))` merged. The failure is overwhelmingly
-fragmentation, and it is worth being precise about the cause, because the
-obvious reading is wrong. It is not that callsigns change mid-flight. It is that
-**a null callsign forms its own group**: 42% of legacy's tracks are
-blank-callsign tracks, produced by samples the receiver decoded without a
-callsign. The group key turns a gap in the data into a separate flight.
+### A0 `legacy` — the baseline
+
+**What it changes.** Nothing. This is the rule that built every published
+`track_id` up to v0.0.2, and everything else is measured against it.
+
+**The rule.** Group the samples by `(icao24, callsign)` — in production, by a
+SHA-2 hash of the two concatenated. Order each group by time. Break when the
+gap to the previous sample exceeds 30 minutes, or exceeds 15 minutes while
+barometric altitude is below 5,000 ft. The identifier carries a
+`_{year}_{month}` suffix.
+
+**What the measurement said.** `r pct(CLEAN_LEGACY_25)` clean,
+`r pct(FRAG_LEGACY_25)` fragmented, `r pct(MERGE_LEGACY_25)` merged on 2025;
+`r pct(CLEAN_LEGACY_24)` clean on 2024. The failure is overwhelmingly
+fragmentation, and almost never merging.
+
+It is worth being precise about the cause, because the obvious reading is wrong.
+It is *not* that callsigns change in mid-flight. It is that **a sample with no
+callsign forms a group, and therefore a track, of its own.** Measured while the
+arm was implemented, 42.4% of `legacy`'s tracks carry no callsign at all: they
+are made of samples the receiver decoded without one. The group key turns a hole
+in the data into a separate flight. That single mechanism is what the rest of
+this ladder is chasing.
 
 ### A2 `no_month_suffix` — untestable on this sample
 
-Identical to A0 in every digit, on both periods. That is correct behaviour and
-not a bug: the arm removes the `_{year}_{month}` suffix from the identifier, and
-both samples sit inside a single month, so the suffix is constant and removing
-it changes nothing. The consequence is that **this study cannot evaluate the
-arm at all.** The suffix can only fragment a flight airborne at midnight on the
-first of a month, and neither sample contains one. Reported here as untested
-rather than as a null result; testing it needs a sample spanning a month
-boundary, which is two days of cluster time and is recommended as follow-up.
+**What it changes.** Removes the `_{year}_{month}` suffix from the identifier.
+Grouping and break predicate are `legacy`'s, untouched.
+
+**What it is trying to fix.** The suffix splits any flight airborne at midnight
+on the first of a month, by construction and regardless of the data. That is a
+correctness defect rather than a threshold, which is why no amount of parameter
+sweeping can reach it.
+
+**What the measurement said.** Identical to A0 in every digit, on both periods.
+That is correct behaviour and not a bug: both samples sit inside a single month,
+so the suffix is constant and removing it changes nothing. The consequence is
+that **this study cannot evaluate the arm at all.** It is reported as untested
+rather than as a null result. Testing it needs a sample spanning a month
+boundary — about two days of cluster time — and is recommended as follow-up.
 
 ### A3 `traffic_style` — the reference library's rule does not transfer
 
-`r pct(A("traffic_style", "2025", "clean_match_pct"))` clean, below legacy, and
-with the worst merging of any arm at
-`r pct(A("traffic_style", "2025", "merged_pct"))` — roughly twenty times
-legacy's. A single ten-minute gap threshold with a predicate deciding whether a
-candidate gap is really a break is well suited to the *traffic* library's
-typical input; on this feed it merges. A genuine negative result: the reference
-implementation's approach does not transfer unmodified.
+**What it changes.** Replaces legacy's two hard thresholds with the semantics of
+`Flight.split` in the *traffic* library, the widely used open-source reference
+for this kind of work.
 
-### A4 `airframe_only` — group on the airframe
+**What it is trying to fix.** Nothing specific to OPDI. The question this arm
+answers is whether the established reference implementation, applied to this
+feed, would simply have done better.
 
-`r pct(A("airframe_only", "2025", "clean_match_pct"))` clean, fragmentation down
-from `r pct(FRAG_LEGACY_25)` to
+**The rule.** Group on `(icao24, callsign)`. Break when the gap exceeds a single
+threshold — *traffic*'s documented default is ten minutes — *unless* a predicate
+says the candidate gap is not really a break. The predicate used here is the
+aviation-sensible inverse of *traffic*'s own documented example: do not split
+when the samples on both sides of the gap are above the low-altitude ceiling,
+because a reception hole in the cruise is a coverage gap, not a landing.
+
+**What the measurement said.**
+`r pct(A("traffic_style", "2025", "clean_match_pct"))` clean, below `legacy`,
+and the worst merging of any arm at
+`r pct(A("traffic_style", "2025", "merged_pct"))` — about
+`r sprintf("%.0f", A("traffic_style", "2025", "merged_pct") / MERGE_LEGACY_25)`
+times legacy's. A single short gap threshold suits *traffic*'s typical input;
+on a 5-second decimated continental feed it runs flights together. A genuine
+negative result: the reference approach does not transfer unmodified.
+
+### A4 `airframe_only` — delete callsign from the group key
+
+**What it changes.** One column. Group on `icao24` alone; callsign becomes an
+attribute of a sample rather than part of the track's identity. The break
+predicate is `legacy`'s, untouched.
+
+**What it is trying to fix.** A0's diagnosis directly: if a blank callsign is
+what starts a spurious track, then removing callsign from the key stops it. The
+underlying claim is one of principle — identity belongs to the airframe; the
+callsign is something the airframe happened to be broadcasting at the time.
+
+**What the measurement said.**
+`r pct(A("airframe_only", "2025", "clean_match_pct"))` clean, with fragmentation
+down from `r pct(FRAG_LEGACY_25)` to
 `r pct(A("airframe_only", "2025", "fragmented_pct"))`. This is the single
-largest gain in the study and it comes from deleting one column from the group
-key. Identity belongs to the airframe; the callsign is something the airframe
-was broadcasting at the time.
+largest movement anywhere in the study, and it comes from deleting one column.
 
-The cost is merging, up from `r pct(A("legacy", "2025", "merged_pct"))` to
-`r pct(MERGE_AIR_25)`: without callsign in the key, two flights of the same
-airframe with no sufficient gap between them join into one track.
+**But it is not free**, and the cost is exactly the failure legacy did not have:
+merging rises from `r pct(MERGE_LEGACY_25)` to `r pct(MERGE_AIR_25)`. Without
+callsign in the key, two consecutive flights of the same airframe with no
+sufficient gap between them become one track. Measured during implementation,
+3.3% of this arm's tracks contain more than one genuine callsign.
 
-### A5 `ground_anchored` and A6 `airport_anchored`
+### A5 `ground_anchored` — split at a turnaround, using the on-ground flag
 
-Both replace or supplement the altitude proxy with something more physical — a
-ground-contact dwell long enough to be a turnaround, and real airport geometry
-respectively. Both beat legacy substantially
-(`r pct(A("ground_anchored", "2025", "clean_match_pct"))` and
-`r pct(A("airport_anchored", "2025", "clean_match_pct"))`) and both are worth
-less than simply fixing the group key. Their signed boundary error is however
-the tightest of any arm — `ground_anchored`'s tenth percentile is
-`r sprintf("%+d", as.integer(A("ground_anchored", "2025", "off_signed_p10_s")))` s
-against legacy's
-`r sprintf("%+d", as.integer(A("legacy", "2025", "off_signed_p10_s")))` s —
-which is direct evidence the arm does what it claims: it cuts at the ground
-event rather than running back into the ramp.
+**What it changes.** Groups on `icao24`, like A4, and *adds* a break condition
+to legacy's gap rules rather than replacing them.
+
+**What it is trying to fix.** Legacy's "below 5,000 ft" test is a proxy for
+"the aircraft is on the ground somewhere", used because barometric altitude was
+all the rule had. But the OSN schema carries an `on_ground` flag that step 02
+reads nothing of. This arm uses it.
+
+**The rule.** A break is declared at the *first airborne sample after* a run of
+consecutive on-ground samples lasting at least the ground-dwell threshold. The
+dwell requirement is what separates a turnaround from a touch-and-go. Placing
+the break at the first airborne sample, rather than at the start of the ground
+run, means the departing leg begins at the rotation instead of inheriting the
+previous arrival's taxi-in. Legacy's two gap rules are kept as a floor, because
+an aircraft that stops broadcasting entirely still has to be split somehow.
+
+**What the measurement said.**
+`r pct(A("ground_anchored", "2025", "clean_match_pct"))` clean — well above
+`legacy`, well below A4. Its distinguishing result is not the headline but the
+boundary error: its departure tenth percentile is
+`r sec(A("ground_anchored", "2025", "off_signed_p10_s"))` s against legacy's
+`r sec(A("legacy", "2025", "off_signed_p10_s"))` s, and the figure in
+[the metrics section](#sec-metrics) shows the whole left tail collapsing. That
+is direct evidence the arm does what it claims: it cuts at the ground event
+rather than running back into the ramp. It is the arm to reach for if track
+*edges* matter more than track *counts*.
+
+### A6 `airport_anchored` — split only where an aerodrome actually is
+
+**What it changes.** Groups on `icao24`, and replaces legacy's low-altitude gap
+rule with real airport geometry. It is the one arm that takes only *half* of
+legacy as its floor.
+
+**What it is trying to fix.** Two errors that no altitude threshold can reach.
+A split legacy *misses*: an aircraft parked at a 6,000 ft aerodrome never
+satisfies "below 5,000 ft", so the turnaround is invisible and two flights merge.
+And a split legacy *invents*: a long slow low transit in the middle of nowhere
+satisfies the low-altitude rule and is split, when nothing happened at all.
+
+**The rule.** A sample is *stationary at an aerodrome* when it is inside a known
+airport detection zone, below a turnaround height measured **above field
+elevation** rather than above sea level, and slower than a turnaround speed. A
+break is then declared two ways, and the arm fires on either: at the sample that
+ends a reception gap, when the previous sample was stationary at an aerodrome
+and at least the dwell threshold has passed; or at the first sample that moves
+again after a continuous stationary run lasting at least the dwell threshold.
+Where the airport join finds nothing, "near an aerodrome" is false and the arm
+cannot fire, falling back to its floor. Because the arm's entire thesis is that
+legacy's low-altitude rule is the wrong test, that rule is deliberately *not*
+inherited — only the general "a long enough silence is a new track" rule is,
+which no arm disputes and which guarantees no airframe can end up with a
+month-long track.
+
+**What the measurement said.**
+`r pct(A("airport_anchored", "2025", "clean_match_pct"))` clean on 2025 and
+`r pct(A("airport_anchored", "2024", "clean_match_pct"))` on 2024 — the closest
+any domain-knowledge arm gets to A4, and still short of it. Real geometry is
+worth a lot; it is worth less than not fragmenting on blanks.
 
 ### A7 `vertical_profile` — a negative result, correctly attributed
 
+**What it changes.** Groups on `icao24`, and adds a break based purely on the
+altitude trace, with legacy's gap rules as a floor.
+
+**What it is trying to fix.** The case where the transponder never reports
+`on_ground` at all. If a flight is one climb–cruise–descent cycle, then a
+descent to circuit height followed by a climb back through it is a new sortie,
+whether or not there was a reception gap and whether or not ground contact was
+ever broadcast.
+
+**The rule.** Both halves are required. First, *the descent*: some earlier
+sample of the group crossed the floor downwards — the previous sample above it,
+this one at or below. Second, *the climb back*: this sample is above the floor
+and the previous one is not. The break is placed at the upward crossing, so the
+departing leg begins there. The floor is measured **above field elevation**;
+comparing against sea level made the arm degenerate to bare legacy at any
+aerodrome above the floor's own height, since a parked aircraft there already
+reads above it and no crossing is ever seen.
+
+**What the measurement said.**
 `r pct(A("vertical_profile", "2025", "clean_match_pct"))` clean, last of the
-eight. The arm splits on a descent that reaches a floor followed by a climb back
-through it. An earlier implementation split on *any* upward crossing, which is
-not the idea, and its poor score was therefore unattributable — it could have
-been the idea failing or the code not being the idea. Implemented properly, and
-on height above field rather than sea level, it scores *worse* still. That makes
-it a real negative result rather than an unexplained number: every percentile of
-its signed off-block error is positive, meaning it systematically starts tracks
-late, having sliced off each departure's initial climb.
+eight on both periods. An earlier implementation split on *any* upward crossing,
+which is not the idea, and its poor score was therefore unattributable — it
+could have been the idea failing or the code not being the idea. Implemented
+properly, and on height above field, it scores *worse* still. That is what makes
+this a real negative result rather than an unexplained number. The mechanism is
+visible in the boundary error: every percentile of its signed departure offset
+is positive
+(tenth percentile `r sec(A("vertical_profile", "2025", "off_signed_p10_s"))` s),
+meaning it systematically starts tracks late, having sliced off each departure's
+initial climb.
 
-### A8 `recommended` — both fixes at once
+### A8 `recommended` — the two fixes, kept separate {#sec-a8}
 
-`r pct(CLEAN_REC_25)` clean on 2025 and `r pct(CLEAN_REC_24)` on 2024, the best
-of the eight on both, with merging at `r pct(MERGE_REC_25)` — lower than legacy
-itself.
+This is the arm the study recommends and the rule that now ships as
+`segmentation.method = "standard"`, so it gets the most space. **Its two changes
+are independent, they fix different failures, and the arm only works because
+they are kept separate — so they are set out one at a time, before any number.**
 
-It beats both of the arms it draws on rather than landing between them, which is
-the sign that the two failures really do have different causes. Legacy fragments
-because null callsigns form their own groups; `airframe_only` merges because
-nothing separates two flights of one airframe. So: group on `icao24`, so a blank
-or flickering callsign no longer starts a track, and break when the last
-*non-blank* callsign differs from the current one, so two genuinely different
-flights still part.
+**What it changes.** Two things, both relative to `legacy`: the group key loses
+its callsign column, and the break predicate gains a callsign test.
 
-The subtlety is in the lookback. The break predicate is evaluated over the whole
-airframe's samples and has no notion of the track boundaries it is deciding, so
-an unbounded search for "the previous real callsign" reaches back past a gap
-into the previous flight and splits the next one in its own middle. Bounding the
-lookback to the gap threshold is what makes the arm work; without it the same
-rule scores 62% rather than 91%.
+#### Fix one: take callsign out of the group key
 
-## The shipped algorithm's tuning headroom {#sec-sweep}
+*The failure it addresses* is A0's: a sample with no callsign forms its own
+group, so a hole in the data becomes a separate flight. That is where legacy's
+fragmentation comes from, and A4 showed that deleting the column removes it.
 
-A1 is not new code: it is A0 at parameters other than production's, so the sweep
-measures the shipped algorithm's own tuning and nothing else.
+*The change* is exactly A4's: group on `icao24` alone. A blank or flickering
+callsign can no longer start a track, because callsign is no longer part of what
+makes a track a track.
 
-`r num(SWEEP_CELLS)` cells on one day, spanning
-`r sprintf("%.2f", SWEEP_SPREAD1)` points end to end.
+*What it costs on its own* is A4's cost: two consecutive flights of one airframe
+now have nothing to separate them but a gap, and where the aircraft kept
+broadcasting through the turnaround there is no sufficient gap. They merge.
+
+#### Fix two: break when the callsign genuinely changes
+
+*The failure it addresses* is the one fix one creates. Legacy separated those
+two flights for the wrong reason — callsign was in the key, so any change of it
+started a new group — but it did separate them.
+
+*The change* restores that separation as an explicit break rather than as a side
+effect of the key. Walking an airframe's samples in time order, carry forward
+the last **non-blank** callsign seen. Break at a sample when that sample's
+callsign is itself non-blank, the carried-forward one is non-blank, and the two
+differ. Comparing the raw callsign column instead would break at every blank
+sample and reproduce legacy's fragmentation exactly; it is carrying the last
+*real* value across the blanks that makes the test mean "the callsign changed"
+rather than "the callsign was missing". Callsigns are compared trimmed, because
+ADS-B pads them to eight characters and `ABC123  ` is not a different flight
+from `ABC123`.
+
+*Why the two are genuinely independent:* one is about which samples may share a
+track, the other about where a shared group is cut. The evidence that they are
+is that the combination beats **both** of the arms it draws on, rather than
+landing between them — which is what would happen if they were two attempts at
+the same thing.
+
+#### The subtlety: the lookback must be bounded
+
+The break predicate is evaluated over the whole airframe's samples, and it has
+no notion of the track boundaries it is in the middle of deciding. So "the last
+non-blank callsign" is, by default, the last one *anywhere earlier in the
+month*. That reaches back across a gap break into the previous flight — and the
+next flight, whose first samples happen to be blank, is then compared against a
+callsign belonging to a flight that already ended, and is split in its own
+middle.
+
+The fix is to bound the lookback: the carried-forward callsign only counts if it
+is no older than the general gap threshold. That is exactly the right bound
+rather than an arbitrary one, because a silence longer than the gap threshold
+*is already a break* — so there is nothing legitimate to carry across it.
+
+This is not a detail. Measured during implementation, the unbounded version
+fragmented 37.75% of flights against `airframe_only`'s 6.92%, while only 3.2% of
+tracks contain a real-to-real callsign transition at all. The mismatch between
+those two numbers is what exposed the bug: a rule that fires on 3% of tracks
+cannot legitimately cost 31 points of fragmentation.
+
+#### What the measurement said
+
+`r pct(CLEAN_REC_25)` clean on 2025 and `r pct(CLEAN_REC_24)` on 2024 — the best
+of the eight on both periods, and `r pp(GAIN_25)` and `r pp(GAIN_24)` points
+above `legacy`. Fragmentation falls from `r pct(FRAG_LEGACY_25)` to
+`r pct(FRAG_REC_25)`.
+
+The result that settles it is merging: `r pct(MERGE_REC_25)`, against
+`airframe_only`'s `r pct(MERGE_AIR_25)`. Fix two recovers almost all of the
+merging fix one introduces — though not quite all of it, and the remainder is
+still above `legacy`'s `r pct(MERGE_LEGACY_25)`. That residual is small, it is
+real, and it is where the downstream cost measured in [the payoff](#sec-payoff)
+comes from.
+
+## Was `legacy` simply mistuned? {#sec-sweep}
+
+*This section exists to close off one explanation of A0's result, and it is
+worth reading even though it tunes a rule this page does not recommend. By the
+end you will know that legacy's shortfall is structural rather than a matter of
+badly chosen thresholds.*
+
+The ladder says legacy recovers about half the flights it should. There is an
+obvious and much less interesting explanation for that: its three thresholds
+were never measured, so perhaps they are simply set wrong, and legacy at better
+settings would close most of the gap. If that were true, everything the ladder
+concludes would be an artefact of comparing a tuned rule against an untuned one.
+
+So it was tested. A **sweep** is a re-run of the same rule at many different
+parameter settings; a **cell** is one such setting. This one is labelled A1, and
+it is not new code — it is A0 evaluated at settings other than production's, so
+it measures legacy's own tuning and nothing else.
+
+### The three axes
+
+`legacy` has exactly three parameters, and all three were swept:
+
+- **`gap_minutes`** — a gap longer than this starts a new track, at any
+  altitude. Production: 30.
+- **`low_alt_gap_minutes`** — a shorter gap that also starts a new track, but
+  only when the aircraft is low. Production: 15.
+- **`low_alt_ft`** — the altitude below which the shorter gap applies.
+  Production: 5,000.
+
+Stage 1 evaluated `r num(SWEEP_CELLS)` cells across the three axes on one day.
+End to end, the entire grid spans `r sprintf("%.2f", SWEEP_SPREAD1)` points of
+clean matching.
 
 ```{r sweep-axes}
 #| echo: false
-by_axis <- function(col, label) {
+by_axis <- function(col) {
   agg <- aggregate(clean_match_pct ~ get(col), data = sweep1, FUN = max)
-  names(agg) <- c(label, "best clean %")
-  agg
+  names(agg) <- c("value", "best")
+  agg[order(agg$value), ]
 }
-kable(by_axis("low_alt_ft", "low_alt_ft"), row.names = FALSE, digits = 2,
-      caption = "Best cell at each low-altitude ceiling. The optimum is interior.")
+axes <- list(gap_minutes = "gap_minutes (min)",
+             low_alt_gap_minutes = "low_alt_gap_minutes (min)",
+             low_alt_ft = "low_alt_ft (ft)")
+prof <- do.call(rbind, lapply(names(axes), function(a) {
+  d <- by_axis(a)
+  data.frame(Axis = axes[[a]], Value = d$value, Best = d$best,
+             Peak = ifelse(d$best == max(d$best), "*", ""),
+             check.names = FALSE)
+}))
+kable(prof, row.names = FALSE, digits = c(0, 0, 3, 0),
+      col.names = c("axis", "value", "best clean % at this value", ""),
+      format.args = list(big.mark = ","),
+      caption = "Stage 1: for each value of each parameter, the best clean-match rate achieved anywhere in the grid at that value. A star marks each axis's peak. Every peak has lower values on both sides of it.")
 ```
 
-All three axes have an interior optimum, which is the condition for calling a
-result an optimum at all. That took an extension: the first grid put the
-low-altitude ceiling's best value at its largest tried, with the curve still
-rising. An optimum at a grid edge is not an optimum, it is where the grid
-stopped, and this pipeline's own history contains a sweep that stopped early and
-was read as "higher is always better". Extended, the ceiling peaks at 20,000 ft
-and falls again by 30,000 — as it must, since past cruise altitude every sample
-counts as "low" and the two-threshold rule collapses into one.
+Read down each block: every axis rises to a peak and falls again on the far
+side. That is what an **interior optimum** means, and it is the condition for
+calling a result an optimum at all. An optimum sitting on the edge of a grid is
+not an optimum — it is where you stopped looking.
 
-Re-measured on the full three-day samples, the best cell beats production by
-**`r sprintf("%+.2f", SWEEP_BEST_25 - SWEEP_PROD_25)`** points on 2025 and
-**`r sprintf("%+.2f", SWEEP_BEST_24 - SWEEP_PROD_24)`** on 2024. Both periods
-choose the same cell out of sample.
+### The extension, and why it was necessary
 
-That is the answer to the tuning question, and it is a clean negative: **the
-shipped segmentation is not mistuned.** It sits a fraction of a point from the
-best setting available to it, in a grid drawn wider than plausible and extended
-until every axis turned over. Set against the
-`r sprintf("%+.0f", CLEAN_REC_25 - CLEAN_LEGACY_25)` points the identity key is
-worth, the entire tuning question is a rounding error.
+`low_alt_ft` did not start out interior. The first grid ran it to 10,000 ft, and
+its best value was the largest tried, with the curve still rising — precisely
+the edge case above. This pipeline's own history contains a sweep that stopped
+early and was read as "higher is always better", so the grid was extended rather
+than the result reported.
+
+```{r sweep-extension}
+#| echo: false
+base <- D("sweep_2025_stage1.csv")
+ext  <- D("sweep_2025_stage1_ext.csv")
+lo <- function(d) {
+  a <- aggregate(clean_match_pct ~ low_alt_ft, data = d, FUN = max)
+  a[order(a$low_alt_ft), ]
+}
+b <- lo(base); e <- lo(sweep1)
+tab <- data.frame(low_alt_ft = e$low_alt_ft,
+                  grid = ifelse(e$low_alt_ft %in% b$low_alt_ft,
+                                "original", "extension"),
+                  best = e$clean_match_pct, check.names = FALSE)
+kable(tab, row.names = FALSE, digits = c(0, 0, 3),
+      col.names = c("low_alt_ft", "grid", "best clean %"),
+      format.args = list(big.mark = ","),
+      caption = "The low-altitude ceiling before and after the grid was extended. On the original grid the best value was the largest tried; extended, the curve turns over.")
+```
+
+Extended, the ceiling peaks at 20,000 ft and falls again by 30,000 — as it must,
+since past cruise altitude every sample counts as "low", the two-threshold rule
+collapses into a single one, and `low_alt_gap_minutes` simply replaces
+`gap_minutes` everywhere.
+
+### What it is worth
+
+Stage 2 re-measured a shortlist of cells on the full three-day samples, so that
+the winner is chosen out of sample rather than on the day it was tuned.
+
+```{r sweep-stage2}
+#| echo: false
+s2 <- sweep2[, c("period", "gap_minutes", "low_alt_gap_minutes", "low_alt_ft",
+                 "clean_match_pct")]
+s2$production <- ifelse(s2$gap_minutes == 30 & s2$low_alt_gap_minutes == 15 &
+                        s2$low_alt_ft == 5000, "production", "")
+s2 <- s2[order(s2$period, -s2$clean_match_pct), ]
+kable(s2, row.names = FALSE, digits = c(0, 0, 0, 0, 3, 0),
+      col.names = c("period", "gap_minutes", "low_alt_gap_minutes",
+                    "low_alt_ft", "clean %", ""),
+      format.args = list(big.mark = ","))
+```
+
+The best cell beats production by **`r pp(SWEEP_GAIN_25)`** points on 2025 and
+**`r pp(SWEEP_GAIN_24)`** on 2024, and both periods choose the same cell.
+
+That is the answer, and it is a clean negative: **`legacy` is not mistuned.** It
+sits a fraction of a point from the best setting available to it, in a grid
+drawn wider than plausible and extended until every axis turned over. Set
+against the `r pp(GAIN_25)` points the identity key is worth, the entire tuning
+question is roughly `r sprintf("%.0f", SWEEP_RATIO)` times too small to matter —
+which is why the rest of this page is about the group key and not about
+thresholds.
 
 ## What a better segmentation buys ADEP/ADES {#sec-payoff}
 
