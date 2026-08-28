@@ -233,8 +233,9 @@ on 2024 — `r pct(100 * PAY_SHORT_25 / PAY_LEGACY_25)` and
 `r pct(100 * PAY_SHORT_24 / PAY_LEGACY_24)` of the total, where a *point* is the
 flight list's own score for one correctly named aerodrome and a wrong one costs
 two — while recovering `r sprintf("%.0f", GAIN_25)` points more flights. The
-residual is not accuracy, which is unchanged; it is arrival coverage, and it
-traces to the one failure mode the new rule makes slightly worse: merging.
+residual is not accuracy, which is unchanged, and it is not departures, where
+the new rule is slightly ahead. It is arrival coverage, and the one failure mode
+the new rule makes worse is merging.
 
 ## How to read this page
 
@@ -939,7 +940,11 @@ are independent, they fix different failures, and the arm only works because
 they are kept separate — so they are set out one at a time, before any number.**
 
 **What it changes.** Two things, both relative to `legacy`: the group key loses
-its callsign column, and the break predicate gains a callsign test.
+its callsign column, and the break predicate gains a callsign test. Legacy's two
+gap rules are kept underneath both, unchanged — a long enough silence still
+starts a new track, at any altitude or a shorter one when low. Nothing about the
+gap behaviour of published tracks changes; what changes is which samples are
+allowed to share one, and where a shared group is cut.
 
 #### Fix one: take callsign out of the group key
 
@@ -1275,15 +1280,21 @@ coverage spans a narrow band across all eight arms; ADES coverage runs from
 `r sprintf("%.1f", max(100 * p$ades_coverage))`%. So the whole ranking is
 decided by how often the arrival algorithm can answer at all.
 
-That is a mechanism, not a coincidence. `trend` names a destination by voting
-over samples below FL60 within 30 NM of an aerodrome — that is, over the
-descent. `ground_anchored` and `vertical_profile` both place their breaks at low
-altitude near the ground, which is exactly the part of the track those votes
-come from; cutting there leaves the arrival end of a track with too little to
-vote on. `legacy` and `recommended` place their breaks at gaps, and their
-arrival coverage is correspondingly close together. An arm that is good at
-recovering *flights* can still be bad at preserving the *evidence* a downstream
-detector needs.
+Why the arrival side is so much more sensitive than the departure side is not
+settled by this study, and the page does not pretend otherwise. What the data
+does say is suggestive and consistent across both periods: the two arms with the
+worst arrival coverage by a wide margin — `ground_anchored` and
+`vertical_profile` — are exactly the two whose breaks are placed at
+*low-altitude events*, while `legacy` and `recommended` place theirs at
+reception gaps and land close together. The destination algorithm reads its
+evidence from the low-altitude part of a track, so an arm that cuts there is
+cutting into the evidence. The correlation is strong and the direction is
+plausible; isolating the mechanism would need a per-flight diagnosis this study
+did not run, and it is recorded as a hypothesis rather than a finding.
+
+The general lesson does not depend on that hypothesis being right: **an arm that
+is good at recovering flights can still be bad at preserving the evidence a
+downstream detector needs**, and the two have to be measured separately.
 
 ### The labelling bug this study found, and why it is now history {#sec-labelling}
 
@@ -1380,13 +1391,19 @@ coverage slightly *exceeds* legacy's on both periods:
 against `r sprintf("%.2f", 100 * PR(payoff, "legacy", "2025", "adep_coverage"))`%.
 
 The residual is not accuracy and it is not departures. It is arrival coverage,
-and it lands where [A8](#sec-a8) said it would: on merging. `recommended` merges
-`r pct(MERGE_REC_25)` of flights where `legacy` merges `r pct(MERGE_LEGACY_25)`,
-and a merged track has one arrival where there should be two — so one of the two
-flights loses its destination outright. That is the price of grouping on the
-airframe, it is stated rather than rounded away, and it is small enough that the
-`r sprintf("%.0f", GAIN_25)`-point gain in recovered flights buys it many times
-over.
+and the only failure mode that grew is the one [A8](#sec-a8) said would grow:
+`recommended` merges `r pct(MERGE_REC_25)` of flights where `legacy` merges
+`r pct(MERGE_LEGACY_25)`, and a merged track has one arrival where there should
+be two, so one of the two flights loses its destination outright. The two
+statistics are measured against different ground truths — the ladder's and the
+flight list's — so they cannot be reconciled flight for flight, and merging on
+its own is smaller than the coverage difference it is offered to explain. What
+can be said without qualification is that merging is the only thing that moved
+in the wrong direction, and that it moved.
+
+That is the price of grouping on the airframe. It is stated rather than rounded
+away, and it is small enough that the `r sprintf("%.0f", GAIN_25)`-point gain in
+recovered flights buys it many times over.
 
 ## What shipped {#sec-defaults}
 
