@@ -1,6 +1,6 @@
 ---
 title: "Turning ADS-B state vectors into flight tracks"
-subtitle: "Version 1 — what the segmentation is worth, and what stops it being worth it"
+subtitle: "Version 1 — what the segmentation is worth, and what had to change downstream before a better one could ship"
 author: "EUROCONTROL Performance Review Unit"
 date: last-modified
 ---
@@ -76,17 +76,31 @@ sweep1 <- rbind(D("sweep_2025_stage1.csv"), D("sweep_2025_stage1_ext.csv"))
 sweep2 <- rbind(D("sweep_2025_stage2.csv"), D("sweep_2024_stage2.csv"))
 payoff <- rbind(D("payoff_2025.csv"), D("payoff_2024.csv"))
 fixcs  <- rbind(D("payoff_fixcallsign_2025.csv"), D("payoff_fixcallsign_2024.csv"))
+cont   <- rbind(D("containment_2025.csv"), D("containment_2024.csv"))
+
+# The boundary histograms carry no period column -- one file per period *is* the
+# period -- so it is attached on read rather than assumed by anything later.
+readhist <- function(p) {
+  x <- D(paste0("boundary_hist_", p, ".csv"))
+  x$period <- p
+  x
+}
+bhist <- rbind(readhist("2025"), readhist("2024"))
 
 num <- function(x) formatC(x, format = "d", big.mark = ",")
 # The "+" flag does nothing for %s in R, so the sign is prepended explicitly --
 # a signed delta that silently loses its sign reads as a level, not a change.
 sgn <- function(x) paste0(if (x >= 0) "+" else "-", num(abs(x)))
 pct <- function(x) sprintf("%.2f%%", x)
+pp  <- function(x) sprintf("%+.2f", x)
+sec <- function(x) sprintf("%+d", as.integer(x))
 
-# One accessor for every lookup below, so no two tables can disagree about what
+# One accessor per file, so no two tables on this page can disagree about what
 # an arm scored.
-A <- function(a, p, col) arms[arms$arm == a & arms$period == p, col]
-P <- function(df, a, p) {
+A  <- function(a, p, col) arms[arms$arm == a & arms$period == p, col]
+CT <- function(p, col) cont[cont$period == p, col]
+PR <- function(df, a, p, col) df[df$arm == a & df$period == p, col]
+P  <- function(df, a, p) {
   r <- df[df$arm == a & df$period == p, ]
   r$adep_score + r$ades_score
 }
@@ -101,12 +115,17 @@ CLEAN_LEGACY_24 <- A("legacy", "2024", "clean_match_pct")
 CLEAN_REC_24    <- A("recommended", "2024", "clean_match_pct")
 FRAG_LEGACY_25  <- A("legacy", "2025", "fragmented_pct")
 FRAG_REC_25     <- A("recommended", "2025", "fragmented_pct")
+MERGE_LEGACY_25 <- A("legacy", "2025", "merged_pct")
 MERGE_REC_25    <- A("recommended", "2025", "merged_pct")
 MERGE_AIR_25    <- A("airframe_only", "2025", "merged_pct")
+GAIN_25         <- CLEAN_REC_25 - CLEAN_LEGACY_25
+GAIN_24         <- CLEAN_REC_24 - CLEAN_LEGACY_24
 N_GT_25         <- A("legacy", "2025", "n_flights")
 N_GT_24         <- A("legacy", "2024", "n_flights")
+N_APDF_25       <- A("legacy", "2025", "n_apdf_flights")
 
-# The sweep: production against the best cell anywhere in the grid.
+# The sweep: legacy at its production parameters, against the best cell anywhere
+# in the grid.
 PROD <- function(df, p) {
   r <- df[df$period == p & df$gap_minutes == 30 &
           df$low_alt_gap_minutes == 15 & df$low_alt_ft == 5000, ]
@@ -118,10 +137,18 @@ SWEEP_PROD_24 <- PROD(sweep2, "2024")
 SWEEP_BEST_24 <- max(sweep2$clean_match_pct[sweep2$period == "2024"])
 SWEEP_CELLS   <- nrow(sweep1)
 SWEEP_SPREAD1 <- max(sweep1$clean_match_pct) - min(sweep1$clean_match_pct)
+SWEEP_GAIN_25 <- SWEEP_BEST_25 - SWEEP_PROD_25
+SWEEP_GAIN_24 <- SWEEP_BEST_24 - SWEEP_PROD_24
+# How many times larger the identity fix is than the entire tuning question.
+SWEEP_RATIO   <- GAIN_25 / SWEEP_GAIN_25
 
-# The payoff, as the pipeline stands and with the labelling repaired.
+# The payoff, and the convergence check that now sits beside it.
 PAY_LEGACY_25 <- P(payoff, "legacy", "2025")
 PAY_REC_25    <- P(payoff, "recommended", "2025")
+PAY_LEGACY_24 <- P(payoff, "legacy", "2024")
+PAY_REC_24    <- P(payoff, "recommended", "2024")
+PAY_SHORT_25  <- PAY_LEGACY_25 - PAY_REC_25
+PAY_SHORT_24  <- PAY_LEGACY_24 - PAY_REC_24
 FIX_LEGACY_25 <- P(fixcs, "legacy", "2025")
 FIX_REC_25    <- P(fixcs, "recommended", "2025")
 FIX_LEGACY_24 <- P(fixcs, "legacy", "2024")
@@ -130,86 +157,110 @@ FIX_REC_24    <- P(fixcs, "recommended", "2024")
 
 ## Summary {.unnumbered}
 
-Before OPDI can derive a flight list, it has to decide which state vectors
-belong to the same flight. That decision is made once, by a function that has
-not changed since the pipeline was written, and everything downstream inherits
-it. This page asks what that function is worth: how often it recovers a real
-flight, whether its thresholds are mistuned, whether the reference
-implementations or aviation domain knowledge do better, and what a better
-segmentation buys the product OPDI actually publishes.
+**The rule that built every `track_id` OPDI published up to v0.0.2 recovers
+about half the flights it should, the cause is one column in a grouping key
+rather than a mistuned threshold, and a rule that fixes it has now shipped.**
+That is the whole finding. The rest of this page is how it was established, and
+what had to be repaired in the flight list before the better rule could be
+adopted without making the published product worse.
 
-The short version is in four parts.
+Before OPDI can derive a flight list it has to decide which state vectors belong
+to the same flight. That decision — **segmentation** — is made once, and
+everything downstream inherits it: the flight list groups by `track_id`, events
+are extracted per track, measurements accumulate from a track's start. This page
+asks what the decision is worth, in four parts.
 
-**The shipped segmentation recovers about half the flights it should.** On a
-three-day sample of `r num(N_GT_25)` Network Manager flights it matches
-**`r pct(CLEAN_LEGACY_25)`** of them one-to-one; **`r pct(FRAG_LEGACY_25)`** are
-split across more than one track. That is not a tuning problem, and the failure
-is almost entirely fragmentation rather than merging.
+**The old rule recovers about half the flights it should.** On a three-day
+sample of `r num(N_GT_25)` Network Manager flights it matches
+**`r pct(CLEAN_LEGACY_25)`** of them one-to-one, meaning one flight, one track,
+that track holding nothing else; **`r pct(FRAG_LEGACY_25)`** of flights are split
+across more than one track. The failure is almost entirely that splitting, and
+almost never the opposite error of running two flights together.
 
-**Its parameters are not the problem.** A sweep of `r num(SWEEP_CELLS)` cells,
-with every axis extended until the curve turned over inside the grid, spans
-`r sprintf("%.2f", SWEEP_SPREAD1)` points. On the full three-day samples the
-best cell beats production by
-**`r sprintf("%+.2f", SWEEP_BEST_25 - SWEEP_PROD_25)`** points on 2025 and
-**`r sprintf("%+.2f", SWEEP_BEST_24 - SWEEP_PROD_24)`** on 2024. The shipped
-algorithm sits within a fifth of a point of the best setting anyone could pick
-for it.
+**Its parameters are not the problem.** Its three thresholds were swept over
+`r num(SWEEP_CELLS)` combinations, every axis widened until the curve turned over
+inside the grid rather than at its edge. The whole grid spans
+`r sprintf("%.2f", SWEEP_SPREAD1)` points of one-to-one matching, and on the full
+three-day samples the best combination beats the production setting by only
+**`r pp(SWEEP_GAIN_25)`** points on 2025 and **`r pp(SWEEP_GAIN_24)`** on 2024.
+The rule was already at, or a fraction of a point from, the best setting anyone
+could have picked for it.
 
-**The identity key is the problem.** The track's group key is
-`(icao24, callsign)`, and a null callsign therefore starts a track of its own.
-Grouping on the airframe and splitting only when the callsign *really* changes
-takes one-to-one matching to **`r pct(CLEAN_REC_25)`** on 2025 and
-**`r pct(CLEAN_REC_24)`** on 2024 — a gain of
-**`r sprintf("%+.2f", CLEAN_REC_25 - CLEAN_LEGACY_25)`** points, roughly two
-hundred times what the entire parameter sweep is worth.
+**The identity key is the problem.** The old group key is
+`(icao24, callsign)`, so a state vector decoded without a callsign forms a group
+— and therefore a track — of its own. Grouping on the airframe alone, and
+splitting only when the callsign *genuinely* changes, takes one-to-one matching
+to **`r pct(CLEAN_REC_25)`** on 2025 and **`r pct(CLEAN_REC_24)`** on 2024: a
+gain of **`r pp(GAIN_25)`** points, about `r sprintf("%.0f", SWEEP_RATIO)` times
+everything the parameter sweep had to offer. This is the rule that now ships, as
+`segmentation.method = "standard"`.
 
-**But the flight list cannot consume it, and that is the most useful finding
-here.** Adopting the better segmentation *as the pipeline stands* costs
-`r sgn(PAY_REC_25 - PAY_LEGACY_25)` ADEP/ADES points, because `flights.py`
-labels each flight with `F.min("flight_id")` — the lexicographically smallest
-callsign in the track, and a blank sorts first. That is correct only while every
-track is callsign-homogeneous, which is a property the legacy group key supplies
-by accident and which any fix to the fragmentation necessarily destroys. Repair
-the labelling and the same segmentation scores
-**`r num(FIX_REC_25)`** against legacy's **`r num(FIX_LEGACY_25)`** — behind by
-`r num(FIX_LEGACY_25 - FIX_REC_25)` points, **0.5%** — while matching flights
-`r sprintf("%.0f", CLEAN_REC_25 - CLEAN_LEGACY_25)` points better.
+**The flight list could not consume it until one aggregate was fixed, and that
+is the most useful finding here.** `flights.py` labelled each flight with the
+lexicographically smallest callsign in its track, and a blank sorts first. That
+is harmless only while every track carries exactly one callsign — a property the
+old group key supplied by accident, and which any fix to the fragmentation
+necessarily destroys. Measured against the pipeline as it then stood, the better
+segmentation therefore made the published product *worse*: not by predicting
+wrong aerodromes, but by producing flights that could no longer be identified at
+all. That labelling is now fixed in production, and the numbers on this page are
+the fixed ones.
 
-So the recommendation is conditional, and the conditional is the result rather
-than a hedge: **fix one aggregate in the flight list, then ship the
-segmentation.** In that order. Reversed, the pipeline takes a 34% coverage loss
-in the interval between them.
+With it fixed, the better segmentation costs
+**`r num(PAY_SHORT_25)`** ADEP/ADES points on 2025 and **`r num(PAY_SHORT_24)`**
+on 2024 — `r pct(100 * PAY_SHORT_25 / PAY_LEGACY_25)` and
+`r pct(100 * PAY_SHORT_24 / PAY_LEGACY_24)` of the total — while recovering
+`r sprintf("%.0f", GAIN_25)` points more flights. The residual is not accuracy,
+which is unchanged; it is arrival coverage, and it traces to the one failure mode
+the new rule makes slightly worse: merging.
 
-## Reading this page
+## How to read this page
 
-Sections are ordered as the work was done, not as the conclusion would suggest.
-[The problem](#sec-problem) says what a track is and why the question was open.
-[The metrics](#sec-metrics) matter more than usual here, because the obvious
-scoring choice is misleading and the page says why before using something else.
-[The ladder](#sec-ladder) is one section per candidate algorithm, each with what
-it fixed and what it cost. [The sweep](#sec-sweep) prices the shipped algorithm's
-own tuning. [The payoff](#sec-payoff) is where the study turns: it measures the
-downstream effect, gets an answer that contradicts everything above it, and
-tracks that contradiction to a single line. [What ships](#sec-defaults) states
-the recommendation and the order of operations it depends on.
+Sections are ordered as the work was done, not as the conclusion would suggest,
+because two of the results only make sense as answers to questions asked in
+order.
 
-Every number is from a committed CSV regenerated by the entrypoint this page
-runs before drawing anything; [Provenance](#sec-provenance) lists them file by
-file. [Limitations](#sec-limitations) is where the claims this page does *not*
-make are written down.
+[What a track is](#sec-problem) defines the object and says why the question was
+open. [What has already happened to a sample](#sec-pipeline) is a map of the
+pipeline steps that run before any segmentation sees a state vector; skip it if
+you already know them. [How a segmentation is scored](#sec-metrics) matters more
+than usual here, because the obvious scoring choice is misleading and this page
+says why before using something else; it also defines every term the later
+sections use. [The sample](#sec-sample) says what ground truth is and where it
+comes from. [The ladder](#sec-ladder) is one subsection per candidate rule, each
+with what it changes, what it is trying to fix, the rule itself in enough detail
+to reimplement, and what it scored. [The sweep](#sec-sweep) asks whether the old
+rule was merely mistuned, and answers no. [The payoff](#sec-payoff) measures the
+downstream effect on ADEP/ADES and explains why it does not track segmentation
+quality. [What shipped](#sec-defaults) states what was adopted and what
+consumers have to know about it.
 
-## What a track is, and why the question is open {#sec-problem}
+Every number on this page is read from a committed CSV, regenerated by the
+entrypoint the page runs before drawing anything;
+[Provenance](#sec-provenance) lists the files one by one.
+[Limitations](#sec-limitations) is where the claims this page does *not* make
+are written down.
+
+## What a track is, and why the question was open {#sec-problem}
+
+*This section defines the object under study and the three ways a rule for
+building it can fail. By the end of it you will know what the rule under test
+was, and what "better" is going to mean.*
 
 OPDI ingests OpenSky state vectors — position reports, one aircraft at a time,
 with no notion of a flight. A **track** is the pipeline's answer to "which of
 these belong together", and it is the unit everything downstream is built on:
 the flight list groups by `track_id`, events are extracted per track, and
-measurements accumulate from a track's start.
+measurements accumulate from a track's start. The procedure that produces tracks
+is called a **segmentation**, and a **track identifier** (`track_id`) is what it
+stamps on every sample it decides belongs to the same flight.
 
-The shipped rule is short. Group the samples by `(icao24, callsign)`, order them
-by time, and start a new track when the gap to the previous sample exceeds 30
-minutes, or exceeds 15 minutes while the aircraft is below 5,000 ft. The
-resulting identifier carries a month suffix.
+The rule this study set out to evaluate — called **`legacy`** throughout, and
+the rule behind every dataset OPDI published up to v0.0.2 — is short. Group the
+samples by `(icao24, callsign)`, order them by time, and start a new track when
+the gap to the previous sample exceeds 30 minutes, or exceeds 15 minutes while
+the aircraft is below 5,000 ft. The resulting identifier carries a
+`_{year}_{month}` suffix.
 
 Three things can go wrong with such a rule, and they are not symmetric:
 
@@ -249,80 +300,351 @@ this study is the paper that runs the pipeline itself, end to end, on the rule
 this one recommends. If you want to know what a rule is worth, you are in the
 right place; if you want to know what the pipeline now produces, read version 2.
 
+## What has already happened to a sample {#sec-pipeline}
+
+*Side information. This section says what the `/opdi` pipeline has already done
+to a state vector before any segmentation sees it, so that nothing later in this
+page is a surprise. If you know the pipeline steps, skip to
+[the metrics](#sec-metrics).*
+
+Segmentation is step 02 of a chain, and the samples reaching it are not raw
+OpenSky rows. Two earlier decisions in particular shape everything measured on
+this page: the ingestion filter decides which samples exist at all, and the
+decimation rule decides how densely a flight is described.
+
+```{r pipeline-diagram}
+#| echo: false
+#| fig-width: 7
+#| fig-height: 4.2
+#| fig-cap: "The pipeline steps that run before, and after, the decision this page studies. Step 02 is the one under test; everything above it has already happened to a sample by then, and everything below it inherits the result."
+# Drawn with ggplot rather than as a mermaid block, deliberately. A mermaid
+# diagram written as an executable cell renders in HTML but needs a headless
+# browser to rasterise for PDF, and that browser does not start in this
+# environment -- the render then hangs with no error. A mermaid fence emitted
+# from knitr avoids the hang but arrives without the JavaScript that draws it,
+# so it shows as literal text. A plot goes through whatever device Quarto has
+# already selected and is correct in both formats.
+nodes <- data.frame(
+  y = 6:1,
+  label = c(
+    "step 00 — reference tables (airports, aircraft)",
+    "step 01 — ingest OSN state vectors: bbox + thinning",
+    "step 02 — tracks: assign track_id",
+    "step 02a — cleaning: mask bad values to NULL",
+    "step 03 — flight list: ADEP / ADES per track",
+    "step 04 — events and measurements per track"),
+  under_test = c(FALSE, FALSE, TRUE, FALSE, FALSE, FALSE))
+h <- 0.34
+ggplot(nodes) +
+  geom_rect(aes(xmin = 0, xmax = 1, ymin = y - h, ymax = y + h,
+                fill = under_test, colour = under_test, linewidth = under_test)) +
+  geom_text(aes(x = 0.5, y = y, label = label, fontface = ifelse(under_test, 2, 1)),
+            size = 3.1) +
+  geom_segment(data = nodes[nodes$y > 1, ],
+               aes(x = 0.5, xend = 0.5, y = y - h, yend = y - 1 + h),
+               arrow = arrow(length = unit(1.8, "mm"), type = "closed"),
+               colour = "grey40", linewidth = 0.3) +
+  annotate("text", x = 1.04, y = 4, hjust = 0, size = 2.9, colour = "grey25",
+           label = "this study replaces\nthe rule inside step 02") +
+  scale_fill_manual(values = c(`FALSE` = "white", `TRUE` = "grey90")) +
+  scale_colour_manual(values = c(`FALSE` = "grey55", `TRUE` = "grey15")) +
+  scale_linewidth_manual(values = c(`FALSE` = 0.3, `TRUE` = 0.8)) +
+  coord_cartesian(xlim = c(0, 1.5), ylim = c(0.4, 6.6), clip = "off") +
+  theme_void() +
+  theme(legend.position = "none")
+```
+
+```{r pipeline-table}
+#| echo: false
+steps <- data.frame(
+  Step = c("00", "01", "02", "02a", "03", "04"),
+  Does = c(
+    "Builds reference tables: H3 airport detection zones, HexAero airport ground layouts, OurAirports, the OpenSky aircraft database. Read later; never rewritten by a pipeline run.",
+    "Downloads OpenSky state vectors, restricts them to the OPDI bounding box, and thins them to one sample per aircraft per interval.",
+    "Groups samples into tracks and stamps `track_id`. **This is the step under study.** Also attaches the H3 index each later join uses.",
+    "Masks values that cannot be right — duplicates, out-of-range positions, stale broadcasts, derivative spikes, isolated points — to NULL, keeping the row. Writes a second table rather than editing the first.",
+    "One flight per `track_id`: departure and destination aerodrome, and the flight's callsign label.",
+    "Milestones per track — take-off, top-of-climb, level segments, landing — and the measurements attached to them."
+  ),
+  Output = c("reference tables", "`osn_statevectors`", "`osn_tracks`",
+             "`osn_tracks_clean`", "`opdi_flight_list`", "events, measurements"),
+  check.names = FALSE)
+kable(steps, row.names = FALSE, align = "lll",
+      col.names = c("Step", "What it does", "Writes"))
+```
+
+Two parameters of step 01 are worth naming, because every count on this page is
+conditioned on them.
+
+```{r ingestion-params}
+#| echo: false
+ing <- data.frame(
+  Parameter = c("bounding box (min lon, min lat, max lon, max lat)",
+                "thinning interval",
+                "thinning rule"),
+  Value = c("(-25.86653, 26.74617, 49.65699, 70.25976)",
+            "5 s",
+            "`bucket`"),
+  Consequence = c(
+    "A flight is observed only inside this box. A track that begins at its edge may have entered from outside, which is why an out-of-area label exists at all.",
+    "Consecutive samples of one aircraft are at least this far apart, so every gap threshold in this study is measured against a 5 s grid rather than a 1 Hz one.",
+    "One row kept per aircraft per interval bin — the last, so a track's final observation survives exactly. The earlier `modulo` rule kept the row whose epoch second divides the interval, and built every dataset published before it."
+  ),
+  check.names = FALSE)
+kable(ing, row.names = FALSE, align = "lll",
+      col.names = c("Parameter", "Value", "Why it matters here"))
+```
+
+Step 02a matters for a different reason, and it comes back in
+[Limitations](#sec-limitations): it masks bad values to NULL rather than
+deleting rows, and `NULL < 5000` is NULL rather than true. Every arm in this
+study reads the *cleaned* table, so all of them are subject to that behaviour
+equally — but the identifiers in published data were computed before it, which
+is a discrepancy worth knowing about.
+
 ## How a segmentation is scored {#sec-metrics}
 
+*This section defines every measurement used later: the two failure measures,
+the headline statistic, the rule that decides which track belongs to which
+flight, and the sign convention for boundary error. Nothing after this section
+introduces a metric.*
+
 Comparing a segmentation against ground truth is a **clustering comparison**:
-both the algorithm and the truth partition the same state vectors, and the
-question is how far the two partitions agree.
+both the algorithm and the truth partition the same state vectors — the
+algorithm into tracks, the truth into flights — and the question is how far the
+two partitions agree.
 
 ### Homogeneity is merging; completeness is fragmentation
 
-The standard pair of clustering measures maps onto the two failure modes
-exactly, which is why they are used here rather than a bespoke score:
+Two standard clustering measures map onto the two failure modes exactly, which
+is why they are used here rather than a score invented for the occasion:
 
-- **Homogeneity** falls when a track contains samples from more than one flight
-  — it is the merging measure.
-- **Completeness** falls when one flight's samples are spread across more than
-  one track — it is the fragmentation measure.
+- **Homogeneity** asks whether each track contains samples from only one flight.
+  It falls when a track holds more than one flight — so it is the *merging*
+  measure.
+- **Completeness** asks whether each flight's samples all landed in one track.
+  It falls when a flight is spread over several tracks — so it is the
+  *fragmentation* measure.
 
-**V-measure** is their harmonic mean, and it is reported below but never used to
-choose anything. The reason is measured rather than assumed: across the eight
-arms V-measure spans `r sprintf("%.4f", min(arms$v_measure))` to
-`r sprintf("%.4f", max(arms$v_measure))` — a range of
-`r sprintf("%.4f", max(arms$v_measure) - min(arms$v_measure))` — while
-one-to-one matching spans `r sprintf("%.1f", min(arms$clean_match_pct))` to
-`r sprintf("%.1f", max(arms$clean_match_pct))`. Worse than insensitive, it is
-*misleading*: it ranks arms in a different order at the top, which is the only
-place a comparison looks. Both statistics are entropy-weighted over 143 million
-samples, and the overwhelming majority of samples sit in tracks that every arm
-gets right, so V-measure is dominated by agreement that carries no information
-about the arms' differences.
+Both are entropy-based and both run from 0 to 1, with 1 meaning perfect
+agreement with ground truth on that axis alone.
 
-### Why the headline is one-to-one matching
+**V-measure** is their harmonic mean — a single number summarising both. It is
+reported below and used to choose nothing, and the reason is measured rather
+than assumed. Across the eight candidate rules V-measure spans
+`r sprintf("%.4f", min(arms$v_measure))` to
+`r sprintf("%.4f", max(arms$v_measure))`, a range of
+`r sprintf("%.4f", max(arms$v_measure) - min(arms$v_measure))`, while the
+one-to-one matching rate defined next spans
+`r sprintf("%.1f", min(arms$clean_match_pct))` to
+`r sprintf("%.1f", max(arms$clean_match_pct))` points. Worse than insensitive,
+it is *misleading*: it ranks the candidates in a different order at the top,
+which is the only place a comparison ever looks. The cause is that both
+statistics are entropy-weighted over every sample in the period, and the
+overwhelming majority of samples sit in tracks that every candidate gets right —
+so V-measure is dominated by agreement that carries no information about where
+the candidates differ.
 
-The headline statistic is **`clean_match_pct`**: the share of ground-truth
-flights matched by exactly one track, where that track covers no other flight.
-It is deliberately strict and deliberately blunt. Each flight is counted in
-exactly one of three mutually exclusive classes — clean, fragmented or merged —
-and a flight that is both merged and fragmented counts as merged, because
+### The headline: one-to-one matching
+
+The headline statistic on this page is **`clean_match_pct`**, and it answers the
+question a data consumer actually has: *what share of real flights came out as
+exactly one track, holding nothing but that flight?*
+
+Every ground-truth flight is placed in exactly one of three mutually exclusive
+classes, which sum to 100%:
+
+- **clean** — the flight's samples are in one track, and that track carries no
+  other flight;
+- **fragmented** — the flight's samples span several tracks, none of which
+  carries another flight;
+- **merged** — the flight's dominant track also carries at least one other
+  flight.
+
+A flight that is both merged and fragmented counts as **merged**, because
 merging is the worse failure and a flight should not be able to improve its
-classification by also being broken a second way.
+classification by also being broken a second way. The definition is deliberately
+strict: a single stray sample in a second track costs a flight its clean match.
+The tolerant alternative — a dominant track covering some fraction of the flight
+— was rejected because that fraction would be a free parameter chosen after
+seeing the results. `clean_match_pct` is therefore a lower bound, and is
+reported as one.
 
-### Joining to ground truth without the callsign
+### Matching a track to a flight: interval containment {#sec-containment}
 
-Ground truth is joined to tracks on **`icao24` plus interval containment**, and
-never on callsign. This differs from the V6/V7 flight-list studies, which key on
-callsign, and the difference is forced: one of the arms removes callsign from
-the track identity entirely, so a callsign-keyed join would be measuring the
-arm's own identity choice rather than its segmentation. Flights are restricted
-to those whose whole airborne interval lies inside the sampled window, so a
-flight that departs on the last sampled day and lands after it cannot report a
-clipping artefact as a boundary error.
+Every statistic above needs one thing first: a rule saying which ground-truth
+flight a given state vector belongs to. That rule is **interval containment**,
+and it is worth setting out fully, because it is where a comparison of this kind
+is most easily rigged without anyone noticing.
+
+**A ground-truth flight is an airframe and a span of time.** The airframe is
+`icao24` — the same 24-bit address ADS-B broadcasts, which the Network Manager
+flight table carries as `AIRCRAFT_ADDRESS`. The span is the flight's airborne
+interval, from take-off to landing:
+
+- where APDF covers the aerodrome, from APDF's measured movement times, the real
+  ATOT and ALDT;
+- elsewhere, inferred from Network Manager as `AOBT_3 + TAXI_TIME_3` for
+  take-off and `ARVT_3` for landing. Both inferences were validated against real
+  APDF movements before being relied on (see [The sample](#sec-sample)).
+
+Each row carries which of the two it came from, so a statistic that needs
+measured times rather than inferred ones — boundary error does — can restrict
+itself to the APDF-backed subset.
+
+**The join is on `icao24` and time overlap, and never on callsign.** This
+differs from the ADEP/ADES flight-list studies, which key on callsign, and the
+difference is forced rather than stylistic: one of the candidate rules below
+removes callsign from track identity entirely, and another splits on it. Joining
+on callsign would therefore score each candidate against a key it deliberately
+does or does not have, which is prejudging the very thing under comparison.
+
+**Containment, concretely.** A state vector is attributed to the ground-truth
+flight of the same `icao24` whose interval holds its timestamp. A track and a
+flight are then *matched* when at least one of the track's samples is attributed
+to that flight, and the contingency of tracks against flights is what the three
+classes above are counted from. Where two intervals of the same airframe touch,
+the boundary sample goes to the earlier one, so back-to-back legs cannot
+double-count it and inflate the merge rate.
+
+A worked example, one airframe with two rotations in an afternoon:
+
+```{r containment-example}
+#| echo: false
+ex <- data.frame(
+  Flight = c("leg 1", "leg 1", "gap", "leg 2", "leg 2"),
+  Interval = c("12:00–13:30", "12:00–13:30", "—", "14:10–15:40", "14:10–15:40"),
+  Sample = c("12:05", "13:25", "13:50 (on stand)", "14:15", "15:35"),
+  Attributed = c("leg 1", "leg 1", "no flight — outside both intervals",
+                 "leg 2", "leg 2"),
+  check.names = FALSE)
+kable(ex, row.names = FALSE, align = "llll",
+      col.names = c("Ground-truth flight", "Its interval", "A sample",
+                    "Attributed to"))
+```
+
+If one track holds the 12:05 and 15:35 samples, both flights are **merged** into
+it. If leg 1's two samples land in different tracks, leg 1 is **fragmented**.
+The samples on stand at 13:50 belong to no flight and are scored against
+nothing — segmentation is not penalised for what it does with them.
+
+**What the restriction costs.** Ground truth is further restricted to flights
+whose *whole* airborne interval lies inside the sampled window. The reason is
+that a flight observed only for its last twenty minutes has no samples for the
+rest of itself: it would score as truncated however well the segmentation
+performed, and its boundary error would be a fact about where the window fell.
+That argument justifies the restriction but does not price it, so the price was
+measured.
+
+```{r containment-table}
+#| echo: false
+ct <- data.frame(
+  period = PERIODS,
+  overlapping = sapply(PERIODS, function(p) CT(p, "n_gt_flights")),
+  inside      = sapply(PERIODS, function(p) CT(p, "n_wholly_inside")),
+  cs          = sapply(PERIODS, function(p) CT(p, "n_clipped_start")),
+  ce          = sapply(PERIODS, function(p) CT(p, "n_clipped_end")),
+  kept        = sapply(PERIODS, function(p) CT(p, "pct_kept")),
+  frac        = sapply(PERIODS, function(p) CT(p, "median_observed_fraction_clipped")),
+  check.names = FALSE)
+kable(ct, row.names = FALSE, digits = c(0, 0, 0, 0, 0, 2, 3),
+      col.names = c("period", "any airborne time in window", "wholly inside",
+                    "clipped at start", "clipped at end", "kept %",
+                    "median observed fraction of an excluded flight"),
+      format.args = list(big.mark = ","))
+```
+
+So the restriction keeps `r sprintf("%.2f%%", CT("2025", "pct_kept"))` of the
+2025 flights that have any airborne time in the window, and
+`r sprintf("%.2f%%", CT("2024", "pct_kept"))` of the 2024 ones. The exclusion is
+near-symmetric between the two window edges, which is what a window artefact
+should look like and is evidence the rule is not systematically dropping one
+kind of flight — long-haul arrivals, for instance.
+
+The last column answers the obvious objection, that the rule might be discarding
+nearly-complete flights on a technicality. It does not: the median excluded
+flight had only about
+`r sprintf("%.0f%%", 100 * CT("2025", "median_observed_fraction_clipped"))` of
+its airborne time inside the window on 2025, and
+`r sprintf("%.0f%%", 100 * CT("2024", "median_observed_fraction_clipped"))` on
+2024. A typical excluded flight really was about half observed, and could not
+have been scored fairly.
+
+One further gap is worth stating, because it explains a difference between two
+counts on this page. Of the
+`r num(CT("2025", "n_wholly_inside"))` flights wholly inside the 2025 window,
+`r num(N_GT_25)` are scored — the remaining
+`r num(CT("2025", "n_wholly_inside") - N_GT_25)` produced no ADS-B sample at all
+in the feed and so appear in no contingency. They are absent from the
+denominator for the same reason, and no candidate rule is credited or penalised
+for them.
 
 ### Boundary error, reported signed
 
-Boundary error is the distance from a track's true first and last sample to the
-flight's actual take-off and landing times. It is reported **signed**, and that
-is not cosmetic. Absolute error conflates two opposite conditions: a track
-starting *before* take-off is normal — the aircraft is on the ramp broadcasting
-— while a track starting *after* take-off has missed part of its own flight. The
-absolute median for the shipped algorithm is around a hundred seconds, which
-reads as a small tidy number; signed, the median is
-**`r sprintf("%+d", as.integer(A("legacy", "2025", "off_signed_p50_s")))` s** and
-the tenth percentile is
-**`r sprintf("%+d", as.integer(A("legacy", "2025", "off_signed_p10_s")))` s**,
-which says something quite different — the typical track begins just *after*
-wheels-off, while a minority carry a full quarter-hour of taxi-out. The
-distribution is two-sided and an absolute median over it is close to
-meaningless.
+Boundary error is the distance in time from a track's first and last sample to
+the flight's actual take-off and landing. It is reported **signed**, with the
+convention that
+
+> **`off` = track start − take-off, `land` = track end − landing.** A negative
+> value means the track began (or ended) *before* the aircraft did.
+
+That is not cosmetic. An absolute error conflates two opposite conditions: a
+track starting *before* take-off is normal and often desirable — the aircraft is
+on the ramp broadcasting — while a track starting *after* take-off has missed
+part of its own flight. `legacy`'s absolute median is about a hundred seconds,
+which reads as a small tidy number. Signed, its median is
+**`r sec(A("legacy", "2025", "off_signed_p50_s"))` s** and its tenth percentile
+is **`r sec(A("legacy", "2025", "off_signed_p10_s"))` s** — which says something
+quite different: the typical track begins just *after* wheels-off, while a
+minority carry a full quarter-hour of taxi-out. The distribution is two-sided,
+and an absolute median over it is close to meaningless.
 
 The landing side is the opposite and far more uniform: every percentile is
 positive, with a median of
-**`r sprintf("%+d", as.integer(A("legacy", "2025", "land_signed_p50_s")))` s**.
-Tracks essentially always run on through taxi-in. That asymmetry is a coverage
-fact — on-ground ADS-B before departure reaches a minority of flights, while an
-arriving aircraft is still powered and broadcasting to the stand — and not an
-algorithm defect.
+**`r sec(A("legacy", "2025", "land_signed_p50_s"))` s**. Tracks essentially
+always run on through taxi-in. That asymmetry is a coverage fact — on-ground
+ADS-B before departure reaches a minority of flights, while an arriving aircraft
+is still powered and broadcasting to the stand — and not an algorithm defect.
+
+The percentiles below are what the text quotes. They are computed over the
+flights whose ground-truth times are APDF-measured rather than NM-inferred —
+`r num(N_APDF_25)` of the `r num(N_GT_25)` scored flights on 2025 — because a
+boundary error against an inferred time would partly be measuring the inference.
+
+```{r boundary-percentiles}
+#| echo: false
+bp <- arms[arms$period == "2025",
+           c("arm", "off_signed_p10_s", "off_signed_p50_s", "off_signed_p90_s",
+             "land_signed_p10_s", "land_signed_p50_s", "land_signed_p90_s")]
+bp <- bp[order(bp$off_signed_p50_s), ]
+kable(bp, row.names = FALSE, digits = 0,
+      col.names = c("arm", "dep p10", "dep p50", "dep p90",
+                    "arr p10", "arr p50", "arr p90"),
+      caption = "Signed boundary error in seconds, 2025. Negative means the track began or ended before the aircraft did.")
+```
+
+The shape is what the percentiles cannot show.
+
+```{r boundary-figure}
+#| echo: false
+#| fig-width: 8
+#| fig-height: 3.6
+#| fig-cap: "Signed boundary error on the 2025 sample, over the flights whose ground-truth times are APDF-measured. **Negative means the track began, or ended, before the aircraft did.** Departure: `legacy` and `recommended` both show a two-sided distribution — a spike just after wheels-off plus a long left tail of tracks that started on the ramp — while `ground_anchored` concentrates hard at zero, which is the arm cutting at the ground event rather than running back into the ramp. Arrival: all three are one-sided and nearly identical, because tracks essentially always run on through taxi-in. The outermost bin on each side is an overflow bin and carries everything beyond half an hour."
+b <- bhist[bhist$period == "2025", ]
+b$mid  <- (b$bin_lower_s + b$bin_upper_s) / 2
+b$edge <- factor(b$edge, levels = c("off", "land"),
+                 labels = c("departure: track start − take-off",
+                            "arrival: track end − landing"))
+b$arm  <- factor(b$arm, levels = c("legacy", "recommended", "ground_anchored"))
+ggplot(b, aes(x = mid / 60, y = n, colour = arm)) +
+  geom_vline(xintercept = 0, linewidth = 0.3, colour = "grey55") +
+  geom_step(direction = "mid", linewidth = 0.5) +
+  facet_wrap(~edge, ncol = 2) +
+  labs(x = "signed offset (minutes)", y = "flights", colour = NULL) +
+  theme_minimal(base_size = 10) +
+  theme(legend.position = "bottom",
+        panel.grid.minor = element_blank())
+```
 
 ## The sample {#sec-sample}
 
