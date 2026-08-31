@@ -2786,25 +2786,50 @@ Expected: FAIL — `gap_boundary_nulls` does not exist.
 than `gap_minutes` with **no** internal gap above the threshold — the case
 traffic's single rule structurally cannot see.
 
-Then remove V-measure. It is reported nowhere after Task 14, and computing it is
-not free: `vmeasure` collects the whole contingency table to the driver, which
-`run_arm`'s docstring already names as the one failure mode that leaves tables
-on S3. Delete:
+Then remove V-measure.
 
-- `track_score.vmeasure`, and `_entropy` **only if it has no other caller** —
-  check before deleting;
-- the `row.update(vmeasure(matched))` call inside `score_arm`;
+**CORRECTED 2026-08-31 (ruling R46). Do not delete the `vmeasure` function.**
+An earlier draft of this task said to. That was wrong, and would have deleted
+two metrics the paper keeps. `track_score.vmeasure` computes **three** things
+and returns them in one dict: `homogeneity`, `completeness`, and `v_measure`.
+Homogeneity and completeness map onto merging and fragmentation, they are §4.1's
+whole subject, and they stay. Only the harmonic mean goes.
+
+So:
+
+- **Rename** `vmeasure` to `homogeneity_completeness`. A function named
+  `vmeasure` that does not return a V-measure is a worse defect than the one
+  this comment is fixing.
+- Delete the two lines computing `denom` and `v`, and the `"v_measure"` key from
+  both the normal return and the `total == 0` early return.
+- **Keep `_entropy`.** Homogeneity and completeness are entropy-based; it is
+  load-bearing, not V-measure scaffolding.
+- Update `score_arm`'s call site to the new name.
 - `v_measure` from `track_sweep.py`'s progress line (Task 10 Step 5 did this —
-  verify rather than repeat);
-- any `v_measure` key in `track_pipeline_v2.py`'s exported columns.
+  verify rather than repeat).
+- Any `v_measure` key in `track_pipeline_v2.py`'s exported columns.
+
+Also fix the docstring while renaming: it currently opens "Homogeneity,
+completeness and their harmonic mean," which the rename falsifies. Say what the
+two measures are for — one is the merging measure, the other the fragmentation
+measure — since that is the reason they survived and the mean did not.
 
 ```bash
 grep -rn "vmeasure\|v_measure" benchmarks/ src/ tests/
 ```
 
-must return nothing. The committed CSVs keep their `v_measure` column — they are
-historical records and are not edited by hand; Task 13's re-run drops it
-naturally.
+must return nothing, while `homogeneity` and `completeness` must still be
+present and still be reported by `score_arm`. The committed CSVs keep their
+`v_measure` column — they are historical records and are not edited by hand;
+Task 13's re-run drops it naturally.
+
+**One consequence for Task 13.** The Task 11 reviewer noted that `vmeasure`
+sums floats in Python over `contingency(...).collect()` order, which is
+partition-order dependent, so `homogeneity` and `completeness` can differ in
+their last bits between runs of identical code. Task 13 Step 3 demands
+byte-identical airborne columns — **compare those two columns with a tolerance,
+not `==`**, or a re-run will look like a regression it is not. Every other
+airborne column is exact and must be compared exactly.
 
 - [ ] **Step 4: Run the tests**
 
