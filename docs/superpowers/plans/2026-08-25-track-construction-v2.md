@@ -88,6 +88,19 @@ on `origin/main` at `8077c4a`, carrying commit `c380344`). Every path in Tasks
 1-9 written as `.../track-construction-v1` means `.../track-construction-v2`
 from here on. The venv is at `$OPDI/.venv310` and is untracked -- if it is
 missing, pass an interpreter through `OPDI_PYTHON` rather than rebuilding it.
+
+**CORRECTION 2026-08-31: there is no `.venv310` inside any worktree.** The only
+one is at `/home/jupyter/work/opdi-workspace/opdi/.venv310`, in the main
+checkout. Every command in this plan written as `cd $OPDI && .venv310/bin/python`
+was wrong -- that relative path does not resolve -- and has been rewritten to the
+absolute interpreter. This never corrupted a result, because the *code* still
+comes from the worktree two ways over: `pyproject.toml` sets
+`pythonpath = ["src", "tests"]` so pytest prepends the worktree's `src` ahead of
+the venv's editable `.pth` (which points at the main checkout), and each
+benchmark script does its own `sys.path.insert(0, REPO / "src")` with `REPO`
+derived from `__file__`. So the shared interpreter supplies dependencies only.
+Verify with `python -c "import opdi; print(opdi.__file__)"` if a result ever
+looks like it came from the wrong tree.
 | Papers (portal) | `/home/jupyter/work/opdi-workspace/opdi-portal/.claude/worktrees/track-construction-v1-plan` | `$PORTAL` |
 
 ## File Structure
@@ -173,7 +186,7 @@ def test_every_table_step_03_writes_is_redirected():
 
 ```bash
 cd /home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v1
-.venv310/bin/python -m pytest tests/test_track_pipeline_v2.py -v
+/home/jupyter/work/opdi-workspace/opdi/.venv310/bin/python -m pytest tests/test_track_pipeline_v2.py -v
 ```
 
 Expected: FAIL on the first assert.
@@ -199,7 +212,7 @@ TABLES = ("osn_tracks", "osn_tracks_clean", "opdi_flight_list",
 
 ```bash
 cd /home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v1
-.venv310/bin/python -m pytest tests/test_track_pipeline_v2.py -v
+/home/jupyter/work/opdi-workspace/opdi/.venv310/bin/python -m pytest tests/test_track_pipeline_v2.py -v
 ```
 
 Expected: 1 passed.
@@ -408,7 +421,7 @@ def test_resolution_is_a_no_op_on_a_legacy_style_track(spark):
 
 ```bash
 cd /home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v1
-.venv310/bin/python -m pytest tests/test_flights_labelling.py -v
+/home/jupyter/work/opdi-workspace/opdi/.venv310/bin/python -m pytest tests/test_flights_labelling.py -v
 ```
 
 Expected: `ImportError: cannot import name 'dominant_flight_id'`.
@@ -568,8 +581,8 @@ FLIGHT_LIST_VERSION = "v5.0.0"
 
 ```bash
 cd /home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v1
-.venv310/bin/python -m pytest tests/test_flights_labelling.py -v
-.venv310/bin/python -m pytest tests/ -q
+/home/jupyter/work/opdi-workspace/opdi/.venv310/bin/python -m pytest tests/test_flights_labelling.py -v
+/home/jupyter/work/opdi-workspace/opdi/.venv310/bin/python -m pytest tests/ -q
 ```
 
 Expected: 10 passed, then the whole suite green (260+ as of 2026-08-23).
@@ -685,7 +698,7 @@ def test_a_track_with_two_callsigns_yields_one_group_per_zone(spark):
 
 ```bash
 cd /home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v1
-.venv310/bin/python -m pytest tests/test_events_labelling.py -v
+/home/jupyter/work/opdi-workspace/opdi/.venv310/bin/python -m pytest tests/test_events_labelling.py -v
 ```
 
 Expected: FAIL with two groups, one of them labelled `""`.
@@ -727,8 +740,8 @@ Order: rename, `fillna`, guarded resolve, **then** `dropna`.
 
 ```bash
 cd /home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v1
-.venv310/bin/python -m pytest tests/test_events_labelling.py -v
-.venv310/bin/python -m pytest tests/ -q
+/home/jupyter/work/opdi-workspace/opdi/.venv310/bin/python -m pytest tests/test_events_labelling.py -v
+/home/jupyter/work/opdi-workspace/opdi/.venv310/bin/python -m pytest tests/ -q
 ```
 
 The suite stood at **277 passed** after Task 2. Report the new count. If an
@@ -805,7 +818,7 @@ shipping nothing.
 ```bash
 cd /home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v1
 grep -n "recent" -B 4 -A 6 src/opdi/pipeline/segmentation/methods.py | sed -n '1,40p'
-.venv310/bin/python -m pytest tests/test_tracks_method.py -v
+/home/jupyter/work/opdi-workspace/opdi/.venv310/bin/python -m pytest tests/test_tracks_method.py -v
 ```
 
 Expected: the `recent = (... ) / 60.0 < p.gap_minutes` guard is present in
@@ -857,7 +870,7 @@ def test_standard_resolves_to_the_recommended_rule():
 
 ```bash
 cd /home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v1
-.venv310/bin/python -m pytest tests/test_segmentation_default.py -v
+/home/jupyter/work/opdi-workspace/opdi/.venv310/bin/python -m pytest tests/test_segmentation_default.py -v
 ```
 
 Expected: the first two fail (default is still `"legacy"`); the last two pass
@@ -905,8 +918,8 @@ In `$OPDI/src/opdi/config.py`, on `SegmentationConfig`:
 
 ```bash
 cd /home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v1
-.venv310/bin/python -m pytest tests/test_segmentation_default.py tests/test_tracks_method.py -v
-.venv310/bin/python -m pytest tests/ -q
+/home/jupyter/work/opdi-workspace/opdi/.venv310/bin/python -m pytest tests/test_segmentation_default.py tests/test_tracks_method.py -v
+/home/jupyter/work/opdi-workspace/opdi/.venv310/bin/python -m pytest tests/ -q
 ```
 
 Expected: all pass. **Any test that asserted `method == "legacy"` as the default
@@ -1076,7 +1089,7 @@ period, with `code_paths` including `benchmarks/track_diagnostics.py`.
 
 ```bash
 cd /home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v1
-.venv310/bin/python -u benchmarks/regenerate_track_v1.py --only containment_2025 containment_2024 boundary_hist_2025 boundary_hist_2024
+/home/jupyter/work/opdi-workspace/opdi/.venv310/bin/python -u benchmarks/regenerate_track_v1.py --only containment_2025 containment_2024 boundary_hist_2025 boundary_hist_2024
 ```
 
 - [ ] **Step 5: Report the containment number before writing prose about it**
@@ -1188,7 +1201,7 @@ def test_a_flight_genuinely_outside_the_window_is_still_dropped(spark):
 
 ```bash
 cd /home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v1
-.venv310/bin/python -m pytest tests/test_track_truth_window.py -v
+/home/jupyter/work/opdi-workspace/opdi/.venv310/bin/python -m pytest tests/test_track_truth_window.py -v
 ```
 
 - [ ] **Step 3: Fix the pre-filter, and say so where the design is documented**
@@ -1209,7 +1222,7 @@ without a third pass.
 - [ ] **Step 5: Full suite**
 
 ```bash
-.venv310/bin/python -m pytest tests/ -q
+/home/jupyter/work/opdi-workspace/opdi/.venv310/bin/python -m pytest tests/ -q
 ```
 
 It stood at **312 passed**. Report the new count. **Do not run any regeneration
@@ -1285,7 +1298,7 @@ rewritten accordingly in Task 6.
 
 ```bash
 cd /home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v1
-.venv310/bin/python benchmarks/regenerate_track_v1.py --check
+/home/jupyter/work/opdi-workspace/opdi/.venv310/bin/python benchmarks/regenerate_track_v1.py --check
 ```
 
 Expected: the `payoff_*` jobs are stale; the `arms_*` and `sweep_*` jobs are
@@ -1299,7 +1312,7 @@ One at a time. ~2h total.
 
 ```bash
 cd /home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v1
-.venv310/bin/python -u benchmarks/regenerate_track_v1.py
+/home/jupyter/work/opdi-workspace/opdi/.venv310/bin/python -u benchmarks/regenerate_track_v1.py
 ```
 
 - [ ] **Step 2b: Report the measured `match_rates` delta (ruling R32)**
@@ -1589,7 +1602,11 @@ airborne twice, which is the behaviour we want.
 
 **Preconditions, all three checked before starting:**
 
-1. `kubectl -n eurocontrol get pods | grep -c Running` is 0.
+1. `kubectl -n eurocontrol get pods --no-headers | grep -iv jupyterlab | wc -l`
+   is 0. **Not `grep -c Running`** — the `jupyterlab-*` pod that hosts this
+   session is always Running, so that form never returns 0 and would block
+   the task forever. Spark pods carry a `spark-role` label;
+   `kubectl -n eurocontrol get pods -l spark-role` is the precise check.
 2. S3 headroom ≥ 12 GB (an arm peaks ~6.8 GB; the runner refuses below 8).
 3. Tasks 1–3 **and 10–12** are committed — the runs fingerprint that code.
    Starting before Task 12 lands means re-running everything a second time.
@@ -1654,7 +1671,7 @@ counts; merging two tracks halves tracks-per-airframe.
 ```bash
 cd /home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v1
 OPDI_PAPER_DIR=/home/jupyter/work/opdi-workspace/opdi-portal/.claude/worktrees/track-construction-v1-plan/papers/track-construction-v2 \
-  .venv310/bin/python benchmarks/regenerate_track_v2.py --check
+  /home/jupyter/work/opdi-workspace/opdi/.venv310/bin/python benchmarks/regenerate_track_v2.py --check
 ```
 
 Expected: non-zero, all outputs missing, **no Spark session and no S3 call**.
@@ -1666,16 +1683,16 @@ Expected: non-zero, all outputs missing, **no Spark session and no S3 call**.
 ```bash
 cd /home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v1
 export OPDI_PAPER_DIR=/home/jupyter/work/opdi-workspace/opdi-portal/.claude/worktrees/track-construction-v1-plan/papers/track-construction-v2
-.venv310/bin/python -u benchmarks/regenerate_track_v2.py --only pipeline_2025
-.venv310/bin/python -u benchmarks/regenerate_track_v2.py --only pipeline_2024
-.venv310/bin/python -u benchmarks/regenerate_track_v2.py --only continuity_2025 continuity_2024
+/home/jupyter/work/opdi-workspace/opdi/.venv310/bin/python -u benchmarks/regenerate_track_v2.py --only pipeline_2025
+/home/jupyter/work/opdi-workspace/opdi/.venv310/bin/python -u benchmarks/regenerate_track_v2.py --only pipeline_2024
+/home/jupyter/work/opdi-workspace/opdi/.venv310/bin/python -u benchmarks/regenerate_track_v2.py --only continuity_2025 continuity_2024
 ```
 
 - [ ] **Step 6: Verify, and sanity-check the numbers**
 
 ```bash
-.venv310/bin/python benchmarks/regenerate_track_v2.py --check
-.venv310/bin/python /home/jupyter/.claude/jobs/e2181584/tmp/v2_progress.py
+/home/jupyter/work/opdi-workspace/opdi/.venv310/bin/python benchmarks/regenerate_track_v2.py --check
+/home/jupyter/work/opdi-workspace/opdi/.venv310/bin/python /home/jupyter/.claude/jobs/e2181584/tmp/v2_progress.py
 ```
 
 `--check` exits 0; nothing remains under `research/tcv2/`. Then confirm:
@@ -2129,7 +2146,7 @@ def test_config_and_params_still_agree_field_for_field():
 
 ```bash
 cd /home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v2
-.venv310/bin/python -m pytest tests/test_segmentation_lookback.py -v
+/home/jupyter/work/opdi-workspace/opdi/.venv310/bin/python -m pytest tests/test_segmentation_lookback.py -v
 ```
 
 Expected: FAIL — `cannot import name 'lookback_minutes'`.
@@ -2191,8 +2208,8 @@ two uses are now distinct, which is the whole point.
 
 ```bash
 cd /home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v2
-.venv310/bin/python -m pytest tests/test_segmentation_lookback.py -v
-.venv310/bin/python -m pytest tests/ -q
+/home/jupyter/work/opdi-workspace/opdi/.venv310/bin/python -m pytest tests/test_segmentation_lookback.py -v
+/home/jupyter/work/opdi-workspace/opdi/.venv310/bin/python -m pytest tests/ -q
 ```
 
 Both pass. The suite stood at **439** after `c380344`; report the new count. A
@@ -2288,7 +2305,7 @@ def test_cell_key_reads_a_three_axis_row_as_the_unset_cell():
 ```
 
 ```bash
-.venv310/bin/python -m pytest tests/test_segmentation_lookback.py -v
+/home/jupyter/work/opdi-workspace/opdi/.venv310/bin/python -m pytest tests/test_segmentation_lookback.py -v
 ```
 
 - [ ] **Step 7: Commit**
@@ -2460,7 +2477,7 @@ def test_taxi_sample_matches_gate_but_not_airborne(spark):
 
 ```bash
 cd /home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v2
-.venv310/bin/python -m pytest tests/test_track_gate_interval.py -v
+/home/jupyter/work/opdi-workspace/opdi/.venv310/bin/python -m pytest tests/test_track_gate_interval.py -v
 ```
 
 Expected: FAIL — `attach_gate_interval` and `gate_buffers` do not exist, and
@@ -2587,8 +2604,8 @@ their own closure, which builds `matched_gate` from the same `assign` and `gt`.
 
 ```bash
 cd /home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v2
-.venv310/bin/python -m pytest tests/test_track_gate_interval.py -v
-.venv310/bin/python -m pytest tests/ -q
+/home/jupyter/work/opdi-workspace/opdi/.venv310/bin/python -m pytest tests/test_track_gate_interval.py -v
+/home/jupyter/work/opdi-workspace/opdi/.venv310/bin/python -m pytest tests/ -q
 ```
 
 Both pass. Report the count.
@@ -2771,7 +2788,7 @@ def test_counts_turnarounds_with_no_gap_at_all(spark):
 
 ```bash
 cd /home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v2
-.venv310/bin/python -m pytest tests/test_track_diagnostics_gaps.py -v
+/home/jupyter/work/opdi-workspace/opdi/.venv310/bin/python -m pytest tests/test_track_diagnostics_gaps.py -v
 ```
 
 Expected: FAIL — `gap_boundary_nulls` does not exist.
@@ -2835,8 +2852,8 @@ airborne column is exact and must be compared exactly.
 
 ```bash
 cd /home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v2
-.venv310/bin/python -m pytest tests/test_track_diagnostics_gaps.py -v
-.venv310/bin/python -m pytest tests/ -q
+/home/jupyter/work/opdi-workspace/opdi/.venv310/bin/python -m pytest tests/test_track_diagnostics_gaps.py -v
+/home/jupyter/work/opdi-workspace/opdi/.venv310/bin/python -m pytest tests/ -q
 ```
 
 Any existing test asserting on `v_measure` is **deleted, not weakened** — the
@@ -2880,7 +2897,11 @@ one, at 8h20m.
 
 **Preconditions, all three checked before starting:**
 
-1. `kubectl -n eurocontrol get pods | grep -c Running` is 0.
+1. `kubectl -n eurocontrol get pods --no-headers | grep -iv jupyterlab | wc -l`
+   is 0. **Not `grep -c Running`** — the `jupyterlab-*` pod that hosts this
+   session is always Running, so that form never returns 0 and would block
+   the task forever. Spark pods carry a `spark-role` label;
+   `kubectl -n eurocontrol get pods -l spark-role` is the precise check.
 2. S3 headroom ≥ 12 GB. **The quota is 200 GB**, not the 100 GB the scratch
    script assumed before Task 10 Step 0.
 3. Tasks 10, 11 and 12 are committed.
@@ -2890,7 +2911,7 @@ one, at 8h20m.
 ```bash
 cd /home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v2
 export OPDI_PAPER_DIR=/home/jupyter/work/opdi-workspace/opdi-portal/.claude/worktrees/track-construction-v1-plan/papers/track-construction-v1
-.venv310/bin/python benchmarks/regenerate_track_v1.py --check
+/home/jupyter/work/opdi-workspace/opdi/.venv310/bin/python benchmarks/regenerate_track_v1.py --check
 ```
 
 Write the list into the report *before* running anything. Expect all fourteen,
@@ -2929,18 +2950,18 @@ cd /home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v
 D=/home/jupyter/work/opdi-workspace/opdi-portal/.claude/worktrees/track-construction-v1-plan/papers/track-construction-v1/data
 
 # stage 1 -- the three legacy axes, at `recommended`, on 2025. 235 cells.
-.venv310/bin/python -u benchmarks/track_sweep.py --method recommended \
+/home/jupyter/work/opdi-workspace/opdi/.venv310/bin/python -u benchmarks/track_sweep.py --method recommended \
   --period 2025 --results-dir $D --resume
 
 # stage 2 -- the lookback axis alone, at stage 1's optimum. Substitute the
 # winning triple; do not guess it.
-.venv310/bin/python -u benchmarks/track_sweep.py --method recommended \
+/home/jupyter/work/opdi-workspace/opdi/.venv310/bin/python -u benchmarks/track_sweep.py --method recommended \
   --period 2025 --results-dir $D \
   --grid-gap <G*> --grid-low-alt-gap <LG*> --grid-low-alt-ft <LFT*> \
   --grid-lookback 0 5 10 15 30 60 120
 
 # stage 3 -- confirm the winner on 2024.
-.venv310/bin/python -u benchmarks/track_sweep.py --method recommended \
+/home/jupyter/work/opdi-workspace/opdi/.venv310/bin/python -u benchmarks/track_sweep.py --method recommended \
   --period 2024 --results-dir $D \
   --grid-gap <G*> --grid-low-alt-gap <LG*> --grid-low-alt-ft <LFT*> \
   --grid-lookback <LB*>
@@ -2956,7 +2977,7 @@ optimum at the edge is not an optimum; it is a grid that stopped too early.
 - [ ] **Step 5: Verify and commit**
 
 ```bash
-.venv310/bin/python benchmarks/regenerate_track_v1.py --check   # exits 0
+/home/jupyter/work/opdi-workspace/opdi/.venv310/bin/python benchmarks/regenerate_track_v1.py --check   # exits 0
 ```
 
 Nothing remains under `research/`. Commit the data in the portal worktree scoped
@@ -3123,7 +3144,7 @@ grep -n "sec-provenance" papers/track-construction-v1/index.qmd
 cd /home/jupyter/work/opdi-workspace/opdi-portal/.claude/worktrees/track-construction-v1-plan/papers/track-construction-v1
 OPDI_REPO_DIR=/home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v2 \
 OPDI_PAPER_DIR=$PWD \
-OPDI_PYTHON=/home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v2/.venv310/bin/python \
+OPDI_PYTHON=/home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v2/home/jupyter/work/opdi-workspace/opdi/.venv310/bin/python \
   quarto render index.qmd --to html
 ```
 
