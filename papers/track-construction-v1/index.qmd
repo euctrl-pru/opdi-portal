@@ -460,23 +460,15 @@ is why they are used here rather than a score invented for the occasion:
   *fragmentation* measure.
 
 Both are entropy-based and both run from 0 to 1, with 1 meaning perfect
-agreement with ground truth on that axis alone.
-
-**V-measure** is their harmonic mean — a single number summarising both. It is
-reported below and used to choose nothing, and the reason is measured rather
-than assumed. Across the eight candidate rules V-measure spans
-`r sprintf("%.4f", min(arms$v_measure))` to
-`r sprintf("%.4f", max(arms$v_measure))`, a range of
-`r sprintf("%.4f", max(arms$v_measure) - min(arms$v_measure))`, while the
-one-to-one matching rate defined next spans
+agreement with ground truth on that axis alone. Both are also entropy-weighted
+over every sample in the period, and the overwhelming majority of samples sit in
+tracks that every candidate gets right: across the eight rules they span
+`r sprintf("%.4f", min(arms$homogeneity))`–`r sprintf("%.4f", max(arms$homogeneity))`
+and `r sprintf("%.4f", min(arms$completeness))`–`r sprintf("%.4f", max(arms$completeness))`
+respectively, where the one-to-one matching rate defined next spans
 `r sprintf("%.1f", min(arms$clean_match_pct))` to
-`r sprintf("%.1f", max(arms$clean_match_pct))` points. Worse than insensitive,
-it is *misleading*: it ranks the candidates in a different order at the top,
-which is the only place a comparison ever looks. The cause is that both
-statistics are entropy-weighted over every sample in the period, and the
-overwhelming majority of samples sit in tracks that every candidate gets right —
-so V-measure is dominated by agreement that carries no information about where
-the candidates differ.
+`r sprintf("%.1f", max(arms$clean_match_pct))` points. They name the two failure
+modes; they do not rank the candidates. That is what the next statistic is for.
 
 ### The headline: one-to-one matching
 
@@ -728,15 +720,15 @@ degrade into assigning an airframe's whole month to a single track.
 ```{r ladder-table}
 #| echo: false
 t <- arms[arms$period == "2025", c("arm", "clean_match_pct", "fragmented_pct",
-                                   "merged_pct", "n_tracks", "v_measure")]
+                                   "merged_pct", "n_tracks")]
 t <- t[order(-t$clean_match_pct), ]
 t24 <- arms[arms$period == "2024", c("arm", "clean_match_pct")]
 names(t24)[2] <- "clean_2024"
 t <- merge(t, t24, by = "arm", sort = FALSE)
 t <- t[order(-t$clean_match_pct), ]
-kable(t, row.names = FALSE, digits = c(0, 2, 2, 2, 0, 4, 2),
+kable(t, row.names = FALSE, digits = c(0, 2, 2, 2, 0, 2),
       col.names = c("arm", "clean %", "fragmented %", "merged %",
-                    "tracks", "V-measure", "clean % (2024)"),
+                    "tracks", "clean % (2024)"),
       format.args = list(big.mark = ","))
 ```
 
