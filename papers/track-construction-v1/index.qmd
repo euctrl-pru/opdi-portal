@@ -124,6 +124,26 @@ N_GT_25         <- A("legacy", "2025", "n_flights")
 N_GT_24         <- A("legacy", "2024", "n_flights")
 N_APDF_25       <- A("legacy", "2025", "n_apdf_flights")
 
+# The same three arms scored against the gate-to-gate interval rather than the
+# airborne one. Held beside the airborne values so the headline cannot quote one
+# pair and the table the other.
+GATE_LEGACY_25  <- A("legacy", "2025", "gate_clean_match_pct")
+GATE_REC_25     <- A("recommended", "2025", "gate_clean_match_pct")
+GATE_LEGACY_24  <- A("legacy", "2024", "gate_clean_match_pct")
+GATE_REC_24     <- A("recommended", "2024", "gate_clean_match_pct")
+GATE_GAIN_25    <- GATE_REC_25 - GATE_LEGACY_25
+GATE_GAIN_24    <- GATE_REC_24 - GATE_LEGACY_24
+N_GATE_25       <- A("legacy", "2025", "gate_n_flights")
+# What the wider interval adds to an arm, signed. Negative is the usual case:
+# the gate interval can only add samples, and added samples can only fragment.
+GATE_DROP <- function(a, p) A(a, p, "gate_clean_match_pct") - A(a, p, "clean_match_pct")
+# Which arms carry callsign in the group key. Written once, read by the table
+# that reports what the gate interval detects.
+GROUPKEY <- c(legacy = "icao24 + callsign", no_month_suffix = "icao24 + callsign",
+              traffic_style = "icao24 + callsign", airframe_only = "icao24",
+              recommended = "icao24", ground_anchored = "icao24",
+              airport_anchored = "icao24", vertical_profile = "icao24")
+
 # The sweep: legacy at its production parameters, against the best cell anywhere
 # in the grid.
 PROD <- function(df, p) {
@@ -196,7 +216,9 @@ sample of `r num(N_GT_25)` Network Manager flights it matches
 **`r pct(CLEAN_LEGACY_25)`** of them one-to-one, meaning one flight, one track,
 that track holding nothing else; **`r pct(FRAG_LEGACY_25)`** of flights are split
 across more than one track. The failure is almost entirely that splitting, and
-almost never the opposite error of running two flights together.
+almost never the opposite error of running two flights together. Count the
+turnaround as part of the flight, which is what a consumer of taxi phases needs,
+and the rate falls to **`r pct(GATE_LEGACY_25)`**.
 
 **Its parameters are not the problem.** Its three thresholds were swept over
 `r num(SWEEP_CELLS)` combinations, every axis widened until the curve turned over
@@ -212,8 +234,8 @@ could have picked for it.
 — and therefore a track — of its own. Grouping on the airframe alone, and
 splitting only when the callsign *genuinely* changes, takes one-to-one matching
 to **`r pct(CLEAN_REC_25)`** on 2025 and **`r pct(CLEAN_REC_24)`** on 2024: a
-gain of **`r pp(GAIN_25)`** points, about `r sprintf("%.0f", SWEEP_RATIO)` times
-everything the parameter sweep had to offer. This is the rule that now ships, as
+gain of **`r pp(GAIN_25)`** points, and **`r pp(GATE_GAIN_25)`** once the
+turnaround is scored as part of the flight. This is the rule that now ships, as
 `segmentation.method = "standard"`.
 
 **The flight list could not consume it until one aggregate was fixed, and that
@@ -504,8 +526,9 @@ is most easily rigged without anyone noticing.
 
 **A ground-truth flight is an airframe and a span of time.** The airframe is
 `icao24` — the same 24-bit address ADS-B broadcasts, which the Network Manager
-flight table carries as `AIRCRAFT_ADDRESS`. The span is the flight's airborne
-interval, from take-off to landing:
+flight table carries as `AIRCRAFT_ADDRESS`. Two spans are defined, and every arm
+is scored against both. The first is the flight's airborne interval, from
+take-off to landing:
 
 - where APDF covers the aerodrome, from APDF's measured movement times, the real
   ATOT and ALDT;
@@ -551,7 +574,8 @@ kable(ex, row.names = FALSE, align = "llll",
 If one track holds the 12:05 and 15:35 samples, both flights are **merged** into
 it. If leg 1's two samples land in different tracks, leg 1 is **fragmented**.
 The samples on stand at 13:50 belong to no flight and are scored against
-nothing — segmentation is not penalised for what it does with them.
+nothing. That is the airborne metric's blind spot, and the second interval,
+[below](#sec-gate), is what measures it.
 
 **What the restriction costs.** Ground truth is further restricted to flights
 whose *whole* airborne interval lies inside the sampled window. The reason is
@@ -604,6 +628,53 @@ in the feed and so appear in no contingency. They are absent from the
 denominator for the same reason, and no candidate rule is credited or penalised
 for them.
 
+### The second interval: gate to gate {#sec-gate}
+
+Containment as defined above matches on the airborne interval, so a sample taken
+on stand or on a taxiway is attributed to no flight and leaves every metric
+exactly where it found it.
+
+That is a defensible line and it hides the failure a data consumer meets first.
+An OPDI track is supposed to carry the turnaround: first- and last-seen events
+fire on it, the taxi phases are extracted from it, and every cumulative
+measurement starts at the track's first sample. A rule that shatters a flight
+into three tracks between the gate and the runway threshold scores a clean
+airborne match and hands over a broken product. So each arm is now scored twice
+over the same partition — once against the airborne interval, once against the
+flight's **gate-to-gate interval**, off-block to in-block.
+
+**Where the block times come from.** `aobt` prefers APDF's measured off-block
+time and falls back to Network Manager's `AOBT_3`, so it exists for
+substantially every flight. `aibt` has no fallback and cannot have one: `ARVT_3`
+is a landing time rather than a gate arrival, so the arrival side is APDF-only
+and about 62% of scored flights carry a measured in-block time (measured in the
+ground-truth loader, on both samples). Where a block time is missing, the
+interval is extended past the airborne endpoint by the median measured taxi on
+that side, over the flights of that period that did measure one. Taking the
+modelled half's duration from the measured half is the honest version of a
+buffer; ten minutes because it sounds like a taxi is not.
+
+**The gate interval is clamped to contain the airborne one.** APDF is
+operational data and carries rows whose block time falls the wrong side of its
+own movement time. Unclamped, such a row gives a gate interval *narrower* than
+the airborne one, and the wider metric would then drop samples the narrower one
+kept. Clamped, the two differ only by the samples the gate interval adds — which
+is what makes the difference between the two rates readable as one quantity.
+
+One qualification is exposed rather than filtered away. The sample window bounds
+the airborne interval by construction and cannot bound the gate interval, which
+is attached after that filter: a flight can be wholly in-window airborne and
+still push back before the window opens. About a third of a percent of flights
+are in that position, and ground truth carries the condition per flight as
+`gate_in_window`. Their taxi samples are clipped by the day filter, in the
+flattering direction — fewer samples is fewer chances to fragment. Filtering on
+the column would change which flights the gate metric covers without saying so,
+so it is carried and not applied.
+
+The two metrics score `r num(N_GATE_25)` and `r num(N_GT_25)` flights on 2025,
+one flight apart. Nothing that follows is the wider interval scoring a different
+population.
+
 ### Boundary error, reported signed
 
 Boundary error is the distance in time from a track's first and last sample to
@@ -613,10 +684,12 @@ convention that
 > **`off` = track start − take-off, `land` = track end − landing.** A negative
 > value means the track began (or ended) *before* the aircraft did.
 
-That is not cosmetic. An absolute error conflates two opposite conditions: a
-track starting *before* take-off is normal and often desirable — the aircraft is
-on the ramp broadcasting — while a track starting *after* take-off has missed
-part of its own flight. `legacy`'s absolute median is about a hundred seconds,
+That is not cosmetic. An absolute error conflates two opposite conditions. A
+track that starts *before* take-off has picked up the taxi-out, and that
+overhang is wanted rather than tolerated: those samples are the flight's own,
+[the gate interval](#sec-gate) scores them, and the taxi phases OPDI publishes
+are extracted from them. A track that starts *after* take-off has missed part of
+its own flight. `legacy`'s absolute median is about a hundred seconds,
 which reads as a small tidy number. Signed, its median is
 **`r sec(A("legacy", "2025", "off_signed_p50_s"))` s** and its tenth percentile
 is **`r sec(A("legacy", "2025", "off_signed_p10_s"))` s** — which says something
@@ -719,22 +792,62 @@ degrade into assigning an airframe's whole month to a single track.
 
 ```{r ladder-table}
 #| echo: false
-t <- arms[arms$period == "2025", c("arm", "clean_match_pct", "fragmented_pct",
+t <- arms[arms$period == "2025", c("arm", "clean_match_pct",
+                                   "gate_clean_match_pct", "fragmented_pct",
                                    "merged_pct", "n_tracks")]
-t <- t[order(-t$clean_match_pct), ]
+t$gate_delta <- t$gate_clean_match_pct - t$clean_match_pct
 t24 <- arms[arms$period == "2024", c("arm", "clean_match_pct")]
 names(t24)[2] <- "clean_2024"
 t <- merge(t, t24, by = "arm", sort = FALSE)
-t <- t[order(-t$clean_match_pct), ]
-kable(t, row.names = FALSE, digits = c(0, 2, 2, 2, 0, 2),
-      col.names = c("arm", "clean %", "fragmented %", "merged %",
-                    "tracks", "clean % (2024)"),
+t <- t[order(-t$clean_match_pct),
+       c("arm", "clean_match_pct", "gate_clean_match_pct", "gate_delta",
+         "fragmented_pct", "merged_pct", "n_tracks", "clean_2024")]
+kable(t, row.names = FALSE, digits = c(0, 2, 2, 2, 2, 2, 0, 2),
+      col.names = c("arm", "clean %", "gate clean %", "gate − air",
+                    "fragmented %", "merged %", "tracks", "clean % (2024)"),
       format.args = list(big.mark = ","))
 ```
 
 The ordering is identical on both periods, and no arm's clean-match rate moves
 by more than `r sprintf("%.1f", ARM_SHIFT)` points between them, so what follows
 is a property of the algorithms rather than of one sample.
+
+The gate columns are the [second interval](#sec-gate), and they widen the result
+rather than repeat it. `recommended` beats `legacy` by
+**`r pp(GAIN_25)`** points airborne and **`r pp(GATE_GAIN_25)`** gate to gate on
+2025, and by **`r pp(GAIN_24)`** and **`r pp(GATE_GAIN_24)`** on 2024. Scoring
+only the airborne leg understated what the shipped change is worth by about
+`r sprintf("%.0f", GATE_GAIN_25 - GAIN_25)` points.
+
+What the wider interval detects is a property of the group key, not of the break
+predicate:
+
+```{r gate-by-groupkey}
+#| echo: false
+gk <- data.frame(
+  arm = names(GROUPKEY),
+  key = as.character(GROUPKEY),
+  d25 = sapply(names(GROUPKEY), function(a) GATE_DROP(a, "2025")),
+  d24 = sapply(names(GROUPKEY), function(a) GATE_DROP(a, "2024")),
+  check.names = FALSE)
+gk <- gk[order(gk$d25), ]
+kable(gk, row.names = FALSE, digits = c(0, 0, 2, 2),
+      col.names = c("arm", "group key", "gate − air (2025)",
+                    "gate − air (2024)"),
+      caption = "What each arm loses when the turnaround is scored as part of the flight.")
+```
+
+Every arm carrying callsign in its group key loses between fourteen and eighteen
+points. A callsign goes blank, or flips to the next rotation's value, while the
+aircraft is parked — so a key containing it splits the taxi phases into separate
+tracks, in exactly the place the airborne metric cannot see. `ground_anchored`
+loses as much for a different reason: it cuts through the turnaround by
+construction. The arms that group on the airframe alone lose under a point,
+because nothing they do fires at the stand. `airport_anchored` is the one arm whose drop moves
+between periods, `r pp(GATE_DROP("airport_anchored", "2025"))` against
+`r pp(GATE_DROP("airport_anchored", "2024"))`: it groups on the airframe, but its
+stationary-at-an-aerodrome break can fire during the dwell the gate interval
+scores, and how often it does depends on which aerodromes the sample contains.
 
 Each arm below is given in the same four parts: what it changes relative to
 `legacy`, what it is trying to fix, the rule itself, and what the measurement
@@ -856,8 +969,15 @@ boundary error: its departure tenth percentile is
 `r sec(A("legacy", "2025", "off_signed_p10_s"))` s, and the figure in
 [the metrics section](#sec-metrics) shows the whole left tail collapsing. That
 is direct evidence the arm does what it claims: it cuts at the ground event
-rather than running back into the ramp. It is the arm to reach for if track
-*edges* matter more than track *counts*.
+rather than running back into the ramp.
+
+Scored [gate to gate](#sec-gate) that same behaviour is its worst result:
+`r pct(A("ground_anchored", "2025", "gate_clean_match_pct"))`, a drop of
+`r pp(GATE_DROP("ground_anchored", "2025"))` points, the largest of any arm on
+that sample.
+Cutting at the ground event means cutting through the turnaround, so the taxi-in
+and the taxi-out of one flight land in different tracks. The arm is a precise
+instrument for locating rotation and a poor one for delivering a flight.
 
 ### A6 `airport_anchored` — split only where an aerodrome actually is
 
@@ -923,6 +1043,18 @@ is positive
 (tenth percentile `r sec(A("vertical_profile", "2025", "off_signed_p10_s"))` s),
 meaning it systematically starts tracks late, having sliced off each departure's
 initial climb.
+
+Scored [gate to gate](#sec-gate) it loses only
+`r pp(GATE_DROP("vertical_profile", "2025"))` points on 2025 and
+`r pp(GATE_DROP("vertical_profile", "2024"))` on 2024, among the smallest drops
+of any arm. An earlier draft of this study predicted the reverse — that an arm
+this poor airborne would be worse again once the turnaround counted — and the
+measurement refuses it. A7 groups on `icao24`, so no blank callsign at the stand
+can split its ground samples, and its own break fires at a vertical crossing,
+which happens in the air. It is already last of the eight before any taxi sample
+is scored, and the taxi adds almost nothing to that. A7 is a bad rule for a
+reason the gate interval does not measure, which is worth knowing about the gate
+interval as well as about A7.
 
 ### A8 `recommended` — the two fixes, kept separate {#sec-a8}
 
