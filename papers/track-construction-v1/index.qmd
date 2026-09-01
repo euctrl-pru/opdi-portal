@@ -487,13 +487,13 @@ classes, which sum to 100%:
   flight.
 
 A flight that is both merged and fragmented counts as **merged**, because
-merging is the worse failure and a flight should not be able to improve its
-classification by also being broken a second way. The definition is deliberately
-strict: a single stray sample in a second track costs a flight its clean match.
-The tolerant alternative — a dominant track covering some fraction of the flight
-— was rejected because that fraction would be a free parameter chosen after
-seeing the results. `clean_match_pct` is therefore a lower bound, and is
+merging is the worse failure. A single stray sample in a second track costs a
+flight its clean match,[^tolerant] so `clean_match_pct` is a lower bound and is
 reported as one.
+
+[^tolerant]: The tolerant alternative — a dominant track covering some fraction
+of the flight — was rejected because that fraction is a free parameter chosen
+after seeing the results.
 
 ### Matching a track to a flight: interval containment {#sec-containment}
 
