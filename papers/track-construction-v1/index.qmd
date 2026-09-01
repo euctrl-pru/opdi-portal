@@ -201,17 +201,19 @@ GAP40_24 <- max(s3$clean_match_pct[s3$gap_minutes == 40])
 ARM_SHIFT <- max(abs(sapply(unique(arms$arm), function(a)
   A(a, "2025", "clean_match_pct") - A(a, "2024", "clean_match_pct"))))
 
-# The payoff, and the convergence check that now sits beside it.
-PAY_LEGACY_25 <- P(payoff, "legacy", "2025")
-PAY_REC_25    <- P(payoff, "recommended", "2025")
-PAY_LEGACY_24 <- P(payoff, "legacy", "2024")
-PAY_REC_24    <- P(payoff, "recommended", "2024")
+# The headline payoff is the two-arm run: `legacy` against `recommended`, both
+# carrying production's callsign fix and the harness's own repair, which is the
+# configuration production now matches. The eight-arm run is kept separately,
+# for the ranking table and as the convergence check's other side, and is never
+# the headline.
+PAY_LEGACY_25 <- P(fixcs, "legacy", "2025")
+PAY_REC_25    <- P(fixcs, "recommended", "2025")
+PAY_LEGACY_24 <- P(fixcs, "legacy", "2024")
+PAY_REC_24    <- P(fixcs, "recommended", "2024")
 PAY_SHORT_25  <- PAY_LEGACY_25 - PAY_REC_25
 PAY_SHORT_24  <- PAY_LEGACY_24 - PAY_REC_24
-FIX_LEGACY_25 <- P(fixcs, "legacy", "2025")
-FIX_REC_25    <- P(fixcs, "recommended", "2025")
-FIX_LEGACY_24 <- P(fixcs, "legacy", "2024")
-FIX_REC_24    <- P(fixcs, "recommended", "2024")
+PROD_LEGACY_25 <- P(payoff, "legacy", "2025")
+PROD_REC_25    <- P(payoff, "recommended", "2025")
 
 # The one figure on this page that comes from another paper rather than from a
 # CSV here: the V7 flight-list study's own published ADEP+ADES total for the same
@@ -1377,10 +1379,10 @@ day, which is why its denominator (`r num(payoff$n_ground_truth[1])` flights on
 2025) differs from the ladder's. The two are measuring different things and are
 not interchangeable.
 
-As a control, `legacy` run through this harness scores `r num(PAY_LEGACY_25)`
+As a control, `legacy` run through this harness scores `r num(PROD_LEGACY_25)`
 against the V7 flight-list study's own published `r num(V7_PUBLISHED)` for the
-same sample — a difference of `r num(abs(PAY_LEGACY_25 - V7_PUBLISHED))`, or
-`r sprintf("%.3f%%", 100 * abs(PAY_LEGACY_25 - V7_PUBLISHED) / V7_PUBLISHED)`.
+same sample — a difference of `r num(abs(PROD_LEGACY_25 - V7_PUBLISHED))`, or
+`r sprintf("%.3f%%", 100 * abs(PROD_LEGACY_25 - V7_PUBLISHED) / V7_PUBLISHED)`.
 That residual is itself informative and is explained in
 [Limitations](#sec-limitations).
 
@@ -1444,18 +1446,39 @@ is real and is reported rather than smoothed over:
 > present in the checkout these payoff numbers were produced from. The runs
 > above therefore cut on FL60 above sea level.
 
-This does not affect any comparison on this page — every arm is scored at the
-same configuration, so the datum is held constant across all of them — but it
-does mean these absolute ADEP/ADES totals are not directly comparable with
-figures published by v6.2 or later.
+This does not affect any comparison on this page: every arm is scored at the same
+configuration, so the datum is held constant across all of them. It does mean
+these absolute ADEP/ADES totals are not comparable with figures published by v6.2
+or later, and it is the reason the payoff figures on this page are **not
+regenerated at this revision**. The V7 ladder that produced them cannot currently
+be re-run — its last rung no longer matches the shipped `DetectionConfig()` — so
+the choice is between quoting a measurement made at a configuration that has
+since moved and quoting one made at a configuration that answers a different
+question. The first is quoted, and labelled. [Limitations](#sec-limitations)
+carries it as a standing caveat rather than a footnote here.
+
+**Everything else on this page did move at this revision, and not because of any
+segmentation change.** Ground truth improved underneath it: the APDF join now
+keys on the Samad flight identifier and the arrival-time correction is applied,
+which took the APDF-measured subset from about 22,000 flights to
+`r num(N_APDF_25)` on 2025. Every rate computed against it shifted slightly — the
+`recommended` − `legacy` gap by under 0.6 points, changing no ordering and no
+conclusion. The payoff figures alone are frozen at the older ground truth as well
+as at the older datum, which is what "retained historical" means where it appears
+below.
 
 ### Segmentation quality and downstream score do not line up
+
+This subsection is the one place all eight arms still appear. It reads the
+eight-arm CSVs already in `data/`, recomputes nothing, and is retained because it
+is the evidence for not optimising `clean_match_pct` directly — a historical
+measurement kept for what it rules out, not re-run.
 
 ```{r payoff-table}
 #| echo: false
 p <- payoff[payoff$period == "2025", ]
 p$total <- p$adep_score + p$ades_score
-p$vs_legacy <- p$total - PAY_LEGACY_25
+p$vs_legacy <- p$total - PROD_LEGACY_25
 p$clean <- sapply(p$arm, function(a) A(a, "2025", "clean_match_pct"))
 p <- p[order(-p$total), ]
 out <- data.frame(
@@ -1579,7 +1602,7 @@ kable(rows, row.names = FALSE, digits = 0,
 `recommended` agrees exactly, on both periods, which is the check passing.
 
 `legacy` does not, on 2025 only, and by
-`r num(abs(FIX_LEGACY_25 - PAY_LEGACY_25))` points confined entirely to the
+`r num(abs(PAY_LEGACY_25 - PROD_LEGACY_25))` points confined entirely to the
 arrival side — the same flights answered, a handful labelled with a different
 aerodrome. That was traced, and it is not the callsign repair: it is a
 non-deterministic aggregate in shipped ADES detection, which is reported in
@@ -1596,8 +1619,8 @@ With the labelling fixed in production, the recommended segmentation scores
 `r pct(100 * PAY_SHORT_24 / PAY_LEGACY_24)` — while recovering
 `r sprintf("%.0f", GAIN_25)` points more flights on the ladder. Its **ADEP**
 coverage slightly *exceeds* legacy's on both periods:
-`r sprintf("%.2f", 100 * PR(payoff, "recommended", "2025", "adep_coverage"))`%
-against `r sprintf("%.2f", 100 * PR(payoff, "legacy", "2025", "adep_coverage"))`%.
+`r sprintf("%.2f", 100 * PR(fixcs, "recommended", "2025", "adep_coverage"))`%
+against `r sprintf("%.2f", 100 * PR(fixcs, "legacy", "2025", "adep_coverage"))`%.
 
 The residual is not accuracy and it is not departures. It is arrival coverage,
 and the only failure mode that grew is the one [A8](#sec-a8) said would grow:
@@ -1743,8 +1766,8 @@ pipeline.
 
 Second, applied to *cleaned* tracks, the legacy rule does not reproduce the
 published identifiers exactly: it differs on 909 of 236,899 tracks, 0.38%, and
-on `r num(abs(PAY_LEGACY_25 - V7_PUBLISHED))` of this page's
-`r num(PAY_LEGACY_25)` ADEP/ADES points — which is the control residual noted in
+on `r num(abs(PROD_LEGACY_25 - V7_PUBLISHED))` of this page's
+`r num(PROD_LEGACY_25)` ADEP/ADES points — which is the control residual noted in
 [the payoff](#sec-payoff). The cause is exact and worth reporting on its own
 account. Production's identifiers were computed upstream on raw altitudes, while
 `osn_tracks_clean` masks bad altitudes to NULL — and `NULL < 5000` is NULL, not
@@ -1828,12 +1851,22 @@ the contamination it removes. The effect is carried, stated, and small.
 
 ### The ADEP/ADES configuration predates the v6.2 datum change
 
-As [§ the flight-list configuration](#sec-detection) records, the payoff runs
-were made from a checkout that does not contain v6.2's altitude-cut datum, so
-`trend` cuts at FL60 above mean sea level rather than at a height above field
-elevation. The configuration is identical across all eight arms, so every
-comparison on this page is unaffected; the absolute ADEP/ADES totals are not
-comparable with figures published by v6.2 or later.
+As [§ the flight-list configuration](#sec-detection) records, the payoff runs were
+made from a checkout that does not contain v6.2's altitude-cut datum, so `trend`
+cuts at FL60 above mean sea level rather than at a height above field elevation.
+The configuration is identical across all eight arms, so every comparison in
+[the payoff](#sec-payoff) is unaffected; the absolute totals are not comparable
+with figures published by v6.2 or later.
+
+They are also not regenerated, and will not be until the V7 ladder can run
+again — its last rung no longer matches the shipped `DetectionConfig()`. So the
+payoff chapter alone quotes a measurement made against the older ground truth and
+the older datum, while every other number on this page comes from the current
+one. That is a real inconsistency inside one paper. It is carried rather than
+hidden because the alternative is a re-run at a configuration that answers a
+different question, and because the quantity the chapter reports — the difference
+between two arms at one fixed configuration — is the quantity least disturbed by
+holding that configuration still.
 
 ### Ground truth covers Network Manager flights only
 
