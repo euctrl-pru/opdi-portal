@@ -185,7 +185,7 @@ def test_every_table_step_03_writes_is_redirected():
 - [ ] **Step 2: Run it to confirm it fails**
 
 ```bash
-cd /home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v1
+cd /home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v2
 /home/jupyter/work/opdi-workspace/opdi/.venv310/bin/python -m pytest tests/test_track_pipeline_v2.py -v
 ```
 
@@ -211,7 +211,7 @@ TABLES = ("osn_tracks", "osn_tracks_clean", "opdi_flight_list",
 - [ ] **Step 4: Run the test to confirm it passes**
 
 ```bash
-cd /home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v1
+cd /home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v2
 /home/jupyter/work/opdi-workspace/opdi/.venv310/bin/python -m pytest tests/test_track_pipeline_v2.py -v
 ```
 
@@ -220,7 +220,7 @@ Expected: 1 passed.
 - [ ] **Step 5: Commit**
 
 ```bash
-cd /home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v1
+cd /home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v2
 uvx ruff check benchmarks/track_pipeline_v2.py tests/test_track_pipeline_v2.py
 git add benchmarks/track_pipeline_v2.py tests/test_track_pipeline_v2.py
 git commit -m "fix(bench): redirect the candidates table step 03 also writes
@@ -269,7 +269,7 @@ callsign itself, so the result does not depend on partitioning.
 - [ ] **Step 1: Read the current aggregate before changing it**
 
 ```bash
-cd /home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v1
+cd /home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v2
 sed -n '415,455p' src/opdi/pipeline/flights.py
 ```
 
@@ -420,7 +420,7 @@ def test_resolution_is_a_no_op_on_a_legacy_style_track(spark):
 - [ ] **Step 3: Run them to confirm they fail**
 
 ```bash
-cd /home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v1
+cd /home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v2
 /home/jupyter/work/opdi-workspace/opdi/.venv310/bin/python -m pytest tests/test_flights_labelling.py -v
 ```
 
@@ -580,7 +580,7 @@ FLIGHT_LIST_VERSION = "v5.0.0"
 - [ ] **Step 6: Run the tests and the full suite**
 
 ```bash
-cd /home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v1
+cd /home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v2
 /home/jupyter/work/opdi-workspace/opdi/.venv310/bin/python -m pytest tests/test_flights_labelling.py -v
 /home/jupyter/work/opdi-workspace/opdi/.venv310/bin/python -m pytest tests/ -q
 ```
@@ -590,7 +590,7 @@ Expected: 10 passed, then the whole suite green (260+ as of 2026-08-23).
 - [ ] **Step 7: Commit**
 
 ```bash
-cd /home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v1
+cd /home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v2
 uvx ruff check src/opdi/pipeline/flights.py tests/test_flights_labelling.py
 git add src/opdi/pipeline/flights.py tests/test_flights_labelling.py
 git commit -m "fix(flights): label a flight with the callsign it actually flew
@@ -649,7 +649,7 @@ is OPDI's actual deliverable.
 - [ ] **Step 1: Locate the helper Task 2 wrote**
 
 ```bash
-cd /home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v1
+cd /home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v2
 grep -rn "def resolve_flight_id" src/opdi/
 ```
 
@@ -697,7 +697,7 @@ def test_a_track_with_two_callsigns_yields_one_group_per_zone(spark):
 - [ ] **Step 3: Run it to confirm it fails**
 
 ```bash
-cd /home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v1
+cd /home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v2
 /home/jupyter/work/opdi-workspace/opdi/.venv310/bin/python -m pytest tests/test_events_labelling.py -v
 ```
 
@@ -739,7 +739,7 @@ Order: rename, `fillna`, guarded resolve, **then** `dropna`.
 - [ ] **Step 5: Verify, including the whole suite**
 
 ```bash
-cd /home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v1
+cd /home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v2
 /home/jupyter/work/opdi-workspace/opdi/.venv310/bin/python -m pytest tests/test_events_labelling.py -v
 /home/jupyter/work/opdi-workspace/opdi/.venv310/bin/python -m pytest tests/ -q
 ```
@@ -763,7 +763,7 @@ comment). Confirm nothing else groups or joins on it, and say so in the report.
 - [ ] **Step 7: Commit**
 
 ```bash
-cd /home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v1
+cd /home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v2
 uvx ruff check src/opdi/pipeline/events.py tests/test_events_labelling.py
 git add src/opdi/pipeline/events.py tests/test_events_labelling.py
 git commit -m "fix(events): one event per zone crossing, not one per callsign
@@ -816,7 +816,7 @@ shipping nothing.
 - [ ] **Step 1: Verify the bounded lookback is in place**
 
 ```bash
-cd /home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v1
+cd /home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v2
 grep -n "recent" -B 4 -A 6 src/opdi/pipeline/segmentation/methods.py | sed -n '1,40p'
 /home/jupyter/work/opdi-workspace/opdi/.venv310/bin/python -m pytest tests/test_tracks_method.py -v
 ```
@@ -869,7 +869,7 @@ def test_standard_resolves_to_the_recommended_rule():
 - [ ] **Step 3: Run them to confirm they fail**
 
 ```bash
-cd /home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v1
+cd /home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v2
 /home/jupyter/work/opdi-workspace/opdi/.venv310/bin/python -m pytest tests/test_segmentation_default.py -v
 ```
 
@@ -917,7 +917,7 @@ In `$OPDI/src/opdi/config.py`, on `SegmentationConfig`:
 - [ ] **Step 5: Run the tests and the full suite**
 
 ```bash
-cd /home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v1
+cd /home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v2
 /home/jupyter/work/opdi-workspace/opdi/.venv310/bin/python -m pytest tests/test_segmentation_default.py tests/test_tracks_method.py -v
 /home/jupyter/work/opdi-workspace/opdi/.venv310/bin/python -m pytest tests/ -q
 ```
@@ -929,7 +929,7 @@ test is a lost guarantee.
 - [ ] **Step 6: Commit**
 
 ```bash
-cd /home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v1
+cd /home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v2
 uvx ruff check src/opdi/config.py tests/test_segmentation_default.py
 git add src/opdi/config.py tests/test_segmentation_default.py
 git commit -m "feat(tracks): ship the recommended segmentation as the default
@@ -1088,7 +1088,7 @@ period, with `code_paths` including `benchmarks/track_diagnostics.py`.
 - [ ] **Step 4: Run them**
 
 ```bash
-cd /home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v1
+cd /home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v2
 /home/jupyter/work/opdi-workspace/opdi/.venv310/bin/python -u benchmarks/regenerate_track_v1.py --only containment_2025 containment_2024 boundary_hist_2025 boundary_hist_2024
 ```
 
@@ -1102,7 +1102,7 @@ is a decision they wanted to make, not one to absorb into a paragraph.
 - [ ] **Step 6: Commit**
 
 ```bash
-cd /home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v1
+cd /home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v2
 uvx ruff check benchmarks/track_diagnostics.py benchmarks/regenerate_track_v1.py
 git add benchmarks/track_diagnostics.py benchmarks/regenerate_track_v1.py
 git commit -m "feat(bench): measure what the containment rule excludes, and the boundary distribution"
@@ -1200,7 +1200,7 @@ def test_a_flight_genuinely_outside_the_window_is_still_dropped(spark):
 - [ ] **Step 2: Run the tests to confirm they fail**
 
 ```bash
-cd /home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v1
+cd /home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v2
 /home/jupyter/work/opdi-workspace/opdi/.venv310/bin/python -m pytest tests/test_track_truth_window.py -v
 ```
 
@@ -1232,7 +1232,7 @@ invalidated by any later text edit anyway.
 - [ ] **Step 6: Commit**
 
 ```bash
-cd /home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v1
+cd /home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v2
 uvx ruff check benchmarks/track_truth.py benchmarks/regenerate_track_v1.py tests/test_track_truth_window.py
 git add benchmarks/track_truth.py benchmarks/regenerate_track_v1.py tests/test_track_truth_window.py
 git commit -m "fix(bench): window ground truth on the flight, not on its off-block day
@@ -1297,7 +1297,7 @@ rewritten accordingly in Task 6.
 - [ ] **Step 1: Confirm what is stale, and that it is only what should be**
 
 ```bash
-cd /home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v1
+cd /home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v2
 /home/jupyter/work/opdi-workspace/opdi/.venv310/bin/python benchmarks/regenerate_track_v1.py --check
 ```
 
@@ -1311,7 +1311,7 @@ anything.
 One at a time. ~2h total.
 
 ```bash
-cd /home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v1
+cd /home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v2
 /home/jupyter/work/opdi-workspace/opdi/.venv310/bin/python -u benchmarks/regenerate_track_v1.py
 ```
 
@@ -1669,7 +1669,7 @@ counts; merging two tracks halves tracks-per-airframe.
 - [ ] **Step 4: Verify `--check` needs no cluster**
 
 ```bash
-cd /home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v1
+cd /home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v2
 OPDI_PAPER_DIR=/home/jupyter/work/opdi-workspace/opdi-portal/.claude/worktrees/track-construction-v1-plan/papers/track-construction-v2 \
   /home/jupyter/work/opdi-workspace/opdi/.venv310/bin/python benchmarks/regenerate_track_v2.py --check
 ```
@@ -1681,7 +1681,7 @@ Expected: non-zero, all outputs missing, **no Spark session and no S3 call**.
 ~23 min ingest per period plus ~40 min per arm; about 4h total.
 
 ```bash
-cd /home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v1
+cd /home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v2
 export OPDI_PAPER_DIR=/home/jupyter/work/opdi-workspace/opdi-portal/.claude/worktrees/track-construction-v1-plan/papers/track-construction-v2
 /home/jupyter/work/opdi-workspace/opdi/.venv310/bin/python -u benchmarks/regenerate_track_v2.py --only pipeline_2025
 /home/jupyter/work/opdi-workspace/opdi/.venv310/bin/python -u benchmarks/regenerate_track_v2.py --only pipeline_2024
@@ -1717,7 +1717,7 @@ export OPDI_PAPER_DIR=/home/jupyter/work/opdi-workspace/opdi-portal/.claude/work
 - [ ] **Step 7: Commit**
 
 ```bash
-cd /home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v1
+cd /home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v2
 uvx ruff check benchmarks/
 git add benchmarks/
 git commit -m "feat(bench): the track-construction V2 study, end to end"
@@ -1931,7 +1931,7 @@ Three edits, not one.
 - [ ] **Step 5: Commit locally, do not push**
 
 ```bash
-cd /home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v1
+cd /home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v2
 git add benchmarks/DATASETS.md && git commit -m "docs: record the tcv2 research prefix"
 
 cd /home/jupyter/work/opdi-workspace/opdi-portal/.claude/worktrees/track-construction-v1-plan
@@ -3053,11 +3053,38 @@ Report `gate_clean_match_pct` beside `clean_match_pct` in the arms table. Where
 the two disagree, that gap **is** the taxi-attachment quality — the new result
 this comment buys.
 
-In §6.7, rewrite the A7 verdict. The current text reads its positive departure
-offsets as a boundary artefact. Under the gate interval it is not an artefact:
-slicing off the initial climb also slices off the taxi-out and the stand, which
-is the part of the track the user wants kept. Say that A7 fails the gate metric
-by more than it fails the airborne one, and give both.
+In §6.7, rewrite the A7 verdict — **but not the way an earlier draft of this
+plan predicted.** That draft said A7 would "fail the gate metric by more than it
+fails the airborne one". Measured, it does not: A7 loses 0.89 points (2025) and
+0.74 (2024), among the smallest drops of any arm. The prediction was wrong and
+the measurement replaces it.
+
+The reason is worth stating, because it sharpens what the gate metric actually
+detects. A7 groups on `icao24`, so nothing about a blank callsign at the stand
+splits its ground samples; its failure is slicing at vertical crossings, which
+happen in the air. It is already bad airborne (37.6%) and the ground barely adds
+to it. A7 is a bad rule for a reason the gate interval does not measure.
+
+What the gate interval *does* detect, and this is the new result:
+
+| group key | arms | gate drop |
+|---|---|---|
+| includes callsign | `legacy`, `no_month_suffix`, `traffic_style` | −14 to −18 pts |
+| splits on ground state | `ground_anchored` | −18 pts |
+| airframe alone | `airframe_only`, `recommended` | under −1 pt |
+
+Callsign goes blank or flips to the next rotation's value while the aircraft is
+at the stand, so any rule carrying callsign in its group key shatters the taxi
+phases into separate tracks. `ground_anchored` cuts through the taxi by
+construction. The two rules that group on the airframe alone hold the turnaround
+together.
+
+State the headline plainly: the `recommended` − `legacy` gap is **+40.65 points
+airborne and +55.87 gate-to-gate** (2025; +38.96 and +56.00 for 2024). Measuring
+only the airborne leg understated the shipped change's benefit by about sixteen
+points. The denominators are one flight apart (89,625 against 89,626), so the
+comparison is clean and the paper should say so rather than leaving a reader to
+wonder whether the wider interval simply scored more flights.
 
 Then sweep the paper for the airborne assumption. `boundary_error`'s sign
 convention already documents that OPDI tracks legitimately overhang ground
