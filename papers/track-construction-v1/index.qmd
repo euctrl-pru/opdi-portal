@@ -203,6 +203,10 @@ SHIP_24 <- s3$clean_match_pct[s3$gap_minutes == SHIP_GAP &
 BEST_24  <- max(s3$clean_match_pct)
 GAP30_24 <- max(s3$clean_match_pct[s3$gap_minutes == 30])
 GAP40_24 <- max(s3$clean_match_pct[s3$gap_minutes == 40])
+# The best cell on each period, as rows, so the parameter table in
+# sec-defaults reads each axis off the winner rather than restating it.
+BEST_CELL_25 <- s1[1, ]
+BEST_CELL_24 <- s3[which.max(s3$clean_match_pct), ]
 # The largest movement of any arm's clean-match rate between the two periods.
 # Quoted rather than asserted, because "the ordering holds on both samples" is
 # the claim the second period was bought to support.
@@ -1641,6 +1645,40 @@ recovered flights buys it many times over.
 **The A8 rule ships, as `segmentation.method = "standard"`:** group on `icao24`,
 break when the last non-blank callsign genuinely changes with the lookback
 bounded to the gap threshold, and keep legacy's gap rules as a floor.
+
+At these four values, beside what [the sweep](#sec-sweep) preferred on each
+period:
+
+```{r shipped-params}
+#| echo: false
+lbl <- function(x) if (is.na(x)) "None — follows `gap_minutes`" else num(x)
+sp <- data.frame(
+  parameter = c("`gap_minutes`", "`low_alt_gap_minutes`", "`low_alt_ft`",
+                "`callsign_lookback_minutes`"),
+  shipped = c(num(SHIP_GAP), num(SHIP_LOWGAP), num(SHIP_LOWFT),
+              lbl(SHIP_LOOKBACK)),
+  best25 = c(num(BEST_CELL_25$gap_minutes), num(BEST_CELL_25$low_alt_gap_minutes),
+             num(BEST_CELL_25$low_alt_ft), num(LB_PEAK_SHIP)),
+  best24 = c(num(BEST_CELL_24$gap_minutes), num(BEST_CELL_24$low_alt_gap_minutes),
+             num(BEST_CELL_24$low_alt_ft), "not swept"),
+  check.names = FALSE)
+kable(sp, row.names = FALSE, align = "llll",
+      col.names = c("parameter", "shipped", "best on 2025", "best on 2024"),
+      caption = "The shipped values against the cell each period's grid preferred. The lookback column is read at the shipped cell of the other three axes.")
+```
+
+**What the differences cost, measured.** Moving all three gap parameters to
+2025's preferred cell is worth `r sprintf("%.2f", SWEEP_GAIN_25)` points on 2025;
+decoupling the lookback from `gap_minutes` and setting it to
+`r num(LB_PEAK_SHIP)` minutes is worth a further
+`r sprintf("%.3f", LB_GAIN_SHIP)`. On 2024 the shipped values of `gap_minutes`
+and `low_alt_gap_minutes` are the preferred ones outright, and the ceiling costs
+`r sprintf("%.2f", BEST_CELL_24$clean_match_pct - SHIP_24)` points.
+
+Nothing was re-shipped, for one reason: 2025's preferred `gap_minutes` is beaten
+by the shipped value on 2024 by
+`r sprintf("%.2f", GAP30_24 - GAP40_24)` points, so adopting the 2025 optimum
+would trade a fifth of a point on one sample for half a point on the other.
 
 The recommendation was conditional when this study first reported, and the
 condition was an ordering rather than a hedge. Both steps have now been taken,
