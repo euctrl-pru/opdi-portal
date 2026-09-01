@@ -77,6 +77,7 @@ sweep1 <- rbind(D("sweep_recommended_2025_stage1.csv"),
 payoff <- rbind(D("payoff_2025.csv"), D("payoff_2024.csv"))
 fixcs  <- rbind(D("payoff_fixcallsign_2025.csv"), D("payoff_fixcallsign_2024.csv"))
 cont   <- rbind(D("containment_2025.csv"), D("containment_2024.csv"))
+tfill  <- rbind(D("traffic_fill_2025.csv"), D("traffic_fill_2024.csv"))
 
 # The boundary histograms carry no period column -- one file per period *is* the
 # period -- so it is attached on read rather than assumed by anything later.
@@ -99,6 +100,13 @@ sec <- function(x) sprintf("%+d", as.integer(x))
 # an arm scored.
 A  <- function(a, p, col) arms[arms$arm == a & arms$period == p, col]
 CT <- function(p, col) cont[cont$period == p, col]
+TF <- function(p, col) tfill[tfill$period == p, col]
+# Of the pre-gap samples that are not already NULL, what share are exact repeats
+# of their predecessor. Both rates are over every pre-gap sample and the two
+# classes are disjoint, so this is the conditional share and not a ratio of
+# unrelated denominators.
+TF_REPEAT_OF_LIVE <- function(p) 100 * TF(p, "pregap_repeat_pct") /
+                                 (100 - TF(p, "pregap_null_pct"))
 PR <- function(df, a, p, col) df[df$arm == a & df$period == p, col]
 P  <- function(df, a, p) {
   r <- df[df$arm == a & df$period == p, ]
@@ -930,7 +938,7 @@ that **this study cannot evaluate the arm at all.** It is reported as untested
 rather than as a null result. Testing it needs a sample spanning a month
 boundary — about two days of cluster time — and is recommended as follow-up.
 
-### A3 `traffic_style` — the reference library's rule does not transfer
+### A3 `traffic_style` — the reference library's rule, outside its own preprocessing
 
 **What it changes.** Replaces legacy's two hard thresholds with the semantics of
 `Flight.split` in the *traffic* library, the widely used open-source reference
@@ -952,9 +960,73 @@ because a reception hole in the cruise is a coverage gap, not a landing.
 and the worst merging of any arm at
 `r pct(A("traffic_style", "2025", "merged_pct"))` — about
 `r sprintf("%.0f", A("traffic_style", "2025", "merged_pct") / MERGE_LEGACY_25)`
-times legacy's. A single short gap threshold suits *traffic*'s typical input;
-on a 5-second decimated continental feed it runs flights together. A genuine
-negative result: the reference approach does not transfer unmodified.
+times legacy's. Two things are behind that, and only the second is the reason it
+lost.
+
+#### The predicate reads a column OPDI has taken away
+
+`Flight.split` fills nothing: it cuts on gaps and hands back the pieces. It is
+one method of a class whose neighbours do fill, though — `Flight.filter` defaults
+to `bfill().ffill()` and `Flight.resample` to interpolation — and a *traffic*
+pipeline conventionally runs one of them first. The predicate is written for a
+frame with no holes in it.
+
+OPDI hands it a frame that is almost all hole in the one place the predicate
+looks. The test asks whether the samples either side of a candidate gap are above
+the low-altitude ceiling, and `NULL > 10000` evaluates to NULL rather than to
+false, so a boundary with a masked altitude on either side is one the arm cannot
+decide.
+
+```{r traffic-fill}
+#| echo: false
+tf <- data.frame(
+  period = PERIODS,
+  gaps   = sapply(PERIODS, function(p) TF(p, "n_gaps")),
+  clean  = sapply(PERIODS, function(p) TF(p, "null_pct")),
+  raw    = sapply(PERIODS, function(p) TF(p, "raw_null_pct")),
+  nogap  = sapply(PERIODS, function(p) TF(p, "n_no_gap_turnarounds")),
+  check.names = FALSE)
+kable(tf, row.names = FALSE, digits = c(0, 0, 2, 2, 0),
+      col.names = c("period", "candidate gaps",
+                    "undecidable, cleaned %", "undecidable, raw %",
+                    "turnarounds with no gap at all"),
+      format.args = list(big.mark = ","))
+```
+
+On the cleaned table the arm reads, `r sprintf("%.2f%%", TF("2025", "null_pct"))`
+of candidate gaps on 2025 and `r sprintf("%.2f%%", TF("2024", "null_pct"))` on
+2024 are undecidable. On the raw table the same count is
+`r sprintf("%.2f%%", TF("2025", "raw_null_pct"))` and
+`r sprintf("%.2f%%", TF("2024", "raw_null_pct"))` — a third rather than
+everything. **The missingness is not in the feed; OPDI's cleaning makes it**, and
+one rule in particular. `mask_stale_broadcasts` masks an altitude that exactly
+repeats the previous sample's, because ADS-B sends position and velocity in
+separate message types and an unchanged consecutive value is a repeat rather than
+a measurement. A coverage fade loses fresh altitude before it loses messages
+altogether, so the last sample before a silence is precisely the sample most
+likely to be a repeat: on 2025,
+`r sprintf("%.2f%%", TF("2025", "pregap_null_pct"))` of pre-gap samples are
+already NULL in the raw feed and
+`r sprintf("%.1f%%", TF_REPEAT_OF_LIVE("2025"))` of the rest repeat their
+predecessor, against `r sprintf("%.2f%%", TF("2025", "other_null_pct"))` and
+`r sprintf("%.2f%%", TF("2025", "other_repeat_pct"))` away from a boundary. The
+masking is correct and the predicate is correct. They cannot be used together.
+
+#### That is not why the arm lost
+
+A3's failure is merging, and merging is under-splitting. Filling the altitude
+column could only let the predicate *decline* to split; nothing it does can
+manufacture a split that was not offered. And the splits A3 needs were never
+offered: `r num(TF("2025", "n_no_gap_turnarounds"))` turnarounds on 2025 and
+`r num(TF("2024", "n_no_gap_turnarounds"))` on 2024 produce no candidate gap at
+all, because the aircraft broadcast straight through the stand. No fill reaches
+them. Legacy's second rule — the shorter threshold below 5,000 ft — is what
+catches them, and a single gap threshold has no equivalent.
+
+So the conclusion is narrower than "the reference approach does not transfer",
+and neither half of it is a defect in the reference. The rule is used outside the
+preprocessing it assumes, and even inside that preprocessing one threshold cannot
+see a turnaround that never went quiet.
 
 ### A4 `airframe_only` — delete callsign from the group key
 
