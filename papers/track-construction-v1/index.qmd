@@ -72,8 +72,8 @@ library(ggplot2)
 D <- function(f) read.csv(file.path("data", f), stringsAsFactors = FALSE)
 
 arms   <- rbind(D("arms_2025.csv"), D("arms_2024.csv"))
-sweep1 <- rbind(D("sweep_2025_stage1.csv"), D("sweep_2025_stage1_ext.csv"))
-sweep2 <- rbind(D("sweep_2025_stage2.csv"), D("sweep_2024_stage2.csv"))
+sweep1 <- rbind(D("sweep_recommended_2025_stage1.csv"),
+                D("sweep_recommended_2025_stage1_ext.csv"))
 payoff <- rbind(D("payoff_2025.csv"), D("payoff_2024.csv"))
 fixcs  <- rbind(D("payoff_fixcallsign_2025.csv"), D("payoff_fixcallsign_2024.csv"))
 cont   <- rbind(D("containment_2025.csv"), D("containment_2024.csv"))
@@ -144,23 +144,57 @@ GROUPKEY <- c(legacy = "icao24 + callsign", no_month_suffix = "icao24 + callsign
               recommended = "icao24", ground_anchored = "icao24",
               airport_anchored = "icao24", vertical_profile = "icao24")
 
-# The sweep: legacy at its production parameters, against the best cell anywhere
-# in the grid.
-PROD <- function(df, p) {
-  r <- df[df$period == p & df$gap_minutes == 30 &
-          df$low_alt_gap_minutes == 15 & df$low_alt_ft == 5000, ]
-  r$clean_match_pct[1]
+# The sweep of the rule that ships. The shipped cell is named once, from the
+# config values quoted in the ladder, and every rank and delta below is located
+# by matching on it -- so a change of default moves the whole section rather
+# than leaving one stale sentence behind.
+SHIP_GAP    <- 30
+SHIP_LOWGAP <- 15
+SHIP_LOWFT  <- 5000
+SHIP_LOOKBACK <- NA   # None: the lookback follows gap_minutes
+
+# The full three-axis grid, one day. `sweep1` is stage 1 plus its extension.
+SWEEP_CELLS   <- nrow(D("sweep_recommended_2025_stage1.csv"))
+SWEEP_MIN1    <- min(sweep1$clean_match_pct)
+SWEEP_MAX1    <- max(sweep1$clean_match_pct)
+SWEEP_SPREAD1 <- SWEEP_MAX1 - SWEEP_MIN1
+s1 <- D("sweep_recommended_2025_stage1.csv")
+s1 <- s1[order(-s1$clean_match_pct), ]
+SHIP_ROW      <- which(s1$gap_minutes == SHIP_GAP &
+                       s1$low_alt_gap_minutes == SHIP_LOWGAP &
+                       s1$low_alt_ft == SHIP_LOWFT)[1]
+SHIP_RANK     <- SHIP_ROW
+SHIP_CLEAN_25 <- s1$clean_match_pct[SHIP_ROW]
+SWEEP_GAIN_25 <- max(s1$clean_match_pct) - SHIP_CLEAN_25
+
+# The lookback axis, swept at two cells: the cell 2025's grid preferred, and the
+# cell that ships. `LB_GAIN_*` is what decoupling the lookback from gap_minutes
+# would buy -- the number that decides whether the parameter ships as None.
+LB <- function(f) {
+  d <- D(f)
+  d[order(-d$clean_match_pct), ]
 }
-SWEEP_PROD_25 <- PROD(sweep2, "2025")
-SWEEP_BEST_25 <- max(sweep2$clean_match_pct[sweep2$period == "2025"])
-SWEEP_PROD_24 <- PROD(sweep2, "2024")
-SWEEP_BEST_24 <- max(sweep2$clean_match_pct[sweep2$period == "2024"])
-SWEEP_CELLS   <- nrow(sweep1)
-SWEEP_SPREAD1 <- max(sweep1$clean_match_pct) - min(sweep1$clean_match_pct)
-SWEEP_GAIN_25 <- SWEEP_BEST_25 - SWEEP_PROD_25
-SWEEP_GAIN_24 <- SWEEP_BEST_24 - SWEEP_PROD_24
-# How many times larger the identity fix is than the entire tuning question.
-SWEEP_RATIO   <- GAIN_25 / SWEEP_GAIN_25
+lb_t <- LB("sweep_recommended_2025_stage2.csv")
+lb_s <- LB("sweep_recommended_2025_stage2b_shipped.csv")
+LB_GAP_TUNED  <- lb_t$gap_minutes[1]
+LB_GAP_SHIP   <- lb_s$gap_minutes[1]
+LB_PEAK_TUNED <- lb_t$callsign_lookback_minutes[1]
+LB_PEAK_SHIP  <- lb_s$callsign_lookback_minutes[1]
+# The coupled setting is the row whose lookback equals the cell's gap_minutes.
+LB_COUPLED <- function(d) d$clean_match_pct[d$callsign_lookback_minutes ==
+                                            d$gap_minutes[1]][1]
+LB_GAIN_TUNED <- lb_t$clean_match_pct[1] - LB_COUPLED(lb_t)
+LB_GAIN_SHIP  <- lb_s$clean_match_pct[1] - LB_COUPLED(lb_s)
+
+# 2024, where the gap ordering reverses. GAP30/GAP40 are the best cell at each
+# gap value, which is what "the ordering reverses" has to be measured on.
+s3      <- D("sweep_recommended_2024_stage3.csv")
+SHIP_24 <- s3$clean_match_pct[s3$gap_minutes == SHIP_GAP &
+                              s3$low_alt_gap_minutes == SHIP_LOWGAP &
+                              s3$low_alt_ft == SHIP_LOWFT][1]
+BEST_24  <- max(s3$clean_match_pct)
+GAP30_24 <- max(s3$clean_match_pct[s3$gap_minutes == 30])
+GAP40_24 <- max(s3$clean_match_pct[s3$gap_minutes == 40])
 # The largest movement of any arm's clean-match rate between the two periods.
 # Quoted rather than asserted, because "the ordering holds on both samples" is
 # the claim the second period was bought to support.
@@ -193,7 +227,7 @@ axis_peak <- function(col) {
 }
 LOALT_PEAK <- axis_peak("low_alt_ft")
 LOALT_MAX  <- max(sweep1$low_alt_ft)
-LOALT_BASE_MAX <- max(D("sweep_2025_stage1.csv")$low_alt_ft)
+LOALT_BASE_MAX <- max(D("sweep_recommended_2025_stage1.csv")$low_alt_ft)
 ```
 
 ## Summary {.unnumbered}
@@ -220,15 +254,6 @@ almost never the opposite error of running two flights together. Count the
 turnaround as part of the flight, which is what a consumer of taxi phases needs,
 and the rate falls to **`r pct(GATE_LEGACY_25)`**.
 
-**Its parameters are not the problem.** Its three thresholds were swept over
-`r num(SWEEP_CELLS)` combinations, every axis widened until the curve turned over
-inside the grid rather than at its edge. The whole grid spans
-`r sprintf("%.2f", SWEEP_SPREAD1)` points of one-to-one matching, and on the full
-three-day samples the best combination beats the production setting by only
-**`r pp(SWEEP_GAIN_25)`** points on 2025 and **`r pp(SWEEP_GAIN_24)`** on 2024.
-The rule was already at, or a fraction of a point from, the best setting anyone
-could have picked for it.
-
 **The identity key is the problem.** The old group key is
 `(icao24, callsign)`, so a state vector decoded without a callsign forms a group
 — and therefore a track — of its own. Grouping on the airframe alone, and
@@ -237,6 +262,14 @@ to **`r pct(CLEAN_REC_25)`** on 2025 and **`r pct(CLEAN_REC_24)`** on 2024: a
 gain of **`r pp(GAIN_25)`** points, and **`r pp(GATE_GAIN_25)`** once the
 turnaround is scored as part of the flight. This is the rule that now ships, as
 `segmentation.method = "standard"`.
+
+**Its thresholds are the smaller question, and they were swept anyway.** The
+shipped rule's three gap parameters were run over `r num(SWEEP_CELLS)`
+combinations, every axis widened until the curve turned over inside the grid
+rather than at its edge. The settings that ship rank `r num(SHIP_RANK)` and sit
+`r sprintf("%.2f", SWEEP_GAIN_25)` points from the best cell anywhere on 2025 —
+and on 2024 the ordering of the one axis 2025 wanted to change reverses, so
+nothing was re-shipped.
 
 **The flight list could not consume it until one aggregate was fixed, and that
 is the most useful finding here.** `flights.py` labelled each flight with the
@@ -274,8 +307,8 @@ says why before using something else; it also defines every term the later
 sections use. [The sample](#sec-sample) says what ground truth is and where it
 comes from. [The ladder](#sec-ladder) is one subsection per candidate rule, each
 with what it changes, what it is trying to fix, the rule itself in enough detail
-to reimplement, and what it scored. [The sweep](#sec-sweep) asks whether the old
-rule was merely mistuned, and answers no. [The payoff](#sec-payoff) measures the
+to reimplement, and what it scored. [The sweep](#sec-sweep) tunes the rule that
+shipped and says what its four parameters are worth. [The payoff](#sec-payoff) measures the
 downstream effect on ADEP/ADES and explains why it does not track segmentation
 quality. [What shipped](#sec-defaults) states what was adopted and what
 consumers have to know about it.
@@ -779,8 +812,9 @@ order, which when true starts a new track.
 
 Every arm reads one shared cleaned track table, and only `track_id` varies
 between them, so a difference between two arms cannot be an artefact of a
-different track build. Arms are numbered A0 to A8; A1 is not an arm but a
-parameter sweep of A0, and has [its own section](#sec-sweep).
+different track build. Arms are numbered A0 to A8. A1 was never an arm: it was a
+parameter sweep, and [it now sweeps the rule that ships](#sec-sweep) rather than
+the one that does not.
 
 Every domain-knowledge arm (A5, A6, A7) keeps a legacy gap rule as a **floor** —
 it can add splits to legacy's, and in one deliberate exception replace one of
@@ -1144,38 +1178,40 @@ still above `legacy`'s `r pct(MERGE_LEGACY_25)`. That residual is small, it is
 real, and it is where the downstream cost measured in [the payoff](#sec-payoff)
 comes from.
 
-## Was `legacy` simply mistuned? {#sec-sweep}
+## Tuning what actually ships {#sec-sweep}
 
-*This section exists to close off one explanation of A0's result, and it is
-worth reading even though it tunes a rule this page does not recommend. By the
-end you will know that legacy's shortfall is structural rather than a matter of
-badly chosen thresholds.*
+*This section sweeps the parameters of the rule that shipped, on both periods,
+and reports what the sweep preferred. By the end you will know how much of the
+result is the rule and how much is its settings, and why nothing was re-shipped.*
 
-The ladder says legacy recovers about half the flights it should. There is an
-obvious and much less interesting explanation for that: its three thresholds
-were never measured, so perhaps they are simply set wrong, and legacy at better
-settings would close most of the gap. If that were true, everything the ladder
-concludes would be an artefact of comparing a tuned rule against an untuned one.
-
-So it was tested. A **sweep** is a re-run of the same rule at many different
-parameter settings; a **cell** is one such setting. This one is labelled A1, and
-it is not new code — it is A0 evaluated at settings other than production's, so
-it measures legacy's own tuning and nothing else.
-
-### The three axes
-
-`legacy` has exactly three parameters, and all three were swept:
+A **sweep** is a re-run of one rule at many parameter settings; a **cell** is one
+such setting. Earlier drafts of this study swept `legacy`, which answered a
+question about a rule nobody now runs. This sweep is of `recommended`, at the
+same four parameters production exposes:
 
 - **`gap_minutes`** — a gap longer than this starts a new track, at any
-  altitude. Production: 30.
+  altitude.
 - **`low_alt_gap_minutes`** — a shorter gap that also starts a new track, but
-  only when the aircraft is low. Production: 15.
+  only when the aircraft is low.
 - **`low_alt_ft`** — the altitude below which the shorter gap applies.
-  Production: 5,000.
+- **`callsign_lookback_minutes`** — how far back the carried-forward non-blank
+  callsign may reach before it stops counting. This axis exists only on
+  `recommended`, and only since it was made settable; before that it was pinned
+  to `gap_minutes` in the code.
 
-Stage 1 evaluated `r num(SWEEP_CELLS)` cells across the three axes on one day.
-End to end, the entire grid spans `r sprintf("%.2f", SWEEP_SPREAD1)` points of
-clean matching.
+### The grid, and where each axis peaks
+
+Stage 1 evaluated `r num(SWEEP_CELLS)` cells across the first three axes on one
+day, with the lookback left following `gap_minutes`. Locating an optimum and
+quoting it are different claims, so the location is done on one day and the
+quoting on three.
+
+End to end the grid spans `r sprintf("%.2f", SWEEP_SPREAD1)` points of clean
+matching, from `r sprintf("%.2f", SWEEP_MIN1)`% to
+`r sprintf("%.2f", SWEEP_MAX1)`%. The parameters are not decorative: a rule
+handed the worst corner of its own grid gives up
+`r sprintf("%.0f%%", 100 * SWEEP_SPREAD1 / GAIN_25)` of what the identity fix
+bought.
 
 ```{r sweep-axes}
 #| echo: false
@@ -1196,7 +1232,7 @@ prof <- do.call(rbind, lapply(names(axes), function(a) {
 kable(prof, row.names = FALSE, digits = c(0, 0, 3, 0),
       col.names = c("axis", "value", "best clean % at this value", ""),
       format.args = list(big.mark = ","),
-      caption = "Stage 1: for each value of each parameter, the best clean-match rate achieved anywhere in the grid at that value. A star marks each axis's peak. Every peak has lower values on both sides of it.")
+      caption = "For each value of each parameter, the best clean-match rate achieved anywhere in the grid at that value. A star marks each axis's peak.")
 ```
 
 Read down each block: every axis rises to a peak and falls again on the far
@@ -1207,15 +1243,14 @@ not an optimum — it is where you stopped looking.
 ### The extension, and why it was necessary
 
 `low_alt_ft` did not start out interior. The first grid ran it to
-`r num(LOALT_BASE_MAX)` ft, and its best value was the largest tried, with the
-curve still rising — precisely the edge case above. This pipeline's own history
-contains a sweep that stopped early and was read as "higher is always better",
-so the grid was extended rather than the result reported.
+`r num(LOALT_BASE_MAX)` ft, and its best value was the largest tried with the
+curve still rising, which is the edge case above. This pipeline's own history
+contains a sweep that stopped early and was read as "higher is always better", so
+the grid was extended rather than the result reported.
 
 ```{r sweep-extension}
 #| echo: false
-base <- D("sweep_2025_stage1.csv")
-ext  <- D("sweep_2025_stage1_ext.csv")
+base <- D("sweep_recommended_2025_stage1.csv")
 lo <- function(d) {
   a <- aggregate(clean_match_pct ~ low_alt_ft, data = d, FUN = max)
   a[order(a$low_alt_ft), ]
@@ -1231,39 +1266,89 @@ kable(tab, row.names = FALSE, digits = c(0, 0, 3),
       caption = "The low-altitude ceiling before and after the grid was extended. On the original grid the best value was the largest tried; extended, the curve turns over.")
 ```
 
-Extended, the ceiling peaks at `r num(LOALT_PEAK)` ft and falls again by
+Extended, the ceiling peaks at `r num(LOALT_PEAK)` ft and falls away to
 `r num(LOALT_MAX)` — as it must, since past cruise altitude every sample counts
-as "low", the two-threshold rule collapses into a single one, and
+as "low", the two-threshold rule collapses into one, and
 `low_alt_gap_minutes` simply replaces `gap_minutes` everywhere.
 
-### What it is worth
+### The lookback axis
 
-Stage 2 re-measured a shortlist of cells on the full three-day samples, so that
-the winner is chosen out of sample rather than on the day it was tuned.
+`callsign_lookback_minutes` is the axis unique to `recommended`, and until
+recently it was not an axis at all: the implementation reached back exactly
+`gap_minutes` because [that bound is the defensible one](#sec-a8) — a silence
+longer than the gap threshold is already a break, so there is nothing legitimate
+to carry across it. The argument is sound and it was never measured. Making the
+parameter settable turns it into a question with an answer.
 
-```{r sweep-stage2}
+It was swept twice, at two different cells, because a lookback that is best at
+one gap threshold need not be best at another.
+
+```{r sweep-lookback}
 #| echo: false
-s2 <- sweep2[, c("period", "gap_minutes", "low_alt_gap_minutes", "low_alt_ft",
-                 "clean_match_pct")]
-s2$production <- ifelse(s2$gap_minutes == 30 & s2$low_alt_gap_minutes == 15 &
-                        s2$low_alt_ft == 5000, "production", "")
-s2 <- s2[order(s2$period, -s2$clean_match_pct), ]
-kable(s2, row.names = FALSE, digits = c(0, 0, 0, 0, 3, 0),
-      col.names = c("period", "gap_minutes", "low_alt_gap_minutes",
-                    "low_alt_ft", "clean %", ""),
-      format.args = list(big.mark = ","))
+lb <- rbind(
+  transform(D("sweep_recommended_2025_stage2.csv"), cell = "gap 40 / low 20 / 10,000 ft"),
+  transform(D("sweep_recommended_2025_stage2b_shipped.csv"), cell = "gap 30 / low 15 / 5,000 ft (shipped)"))
+lb <- lb[order(lb$cell, lb$callsign_lookback_minutes),
+         c("cell", "callsign_lookback_minutes", "clean_match_pct")]
+kable(lb, row.names = FALSE, digits = c(0, 0, 3),
+      col.names = c("cell", "callsign_lookback_minutes", "clean %"),
+      caption = "The lookback axis at two cells of the three-parameter grid, on the full 2025 sample.")
 ```
 
-The best cell beats production by **`r pp(SWEEP_GAIN_25)`** points on 2025 and
-**`r pp(SWEEP_GAIN_24)`** on 2024, and both periods choose the same cell.
+Both curves peak at, or one step above, their own `gap_minutes`:
+`r num(LB_PEAK_TUNED)` minutes at the tuned cell's gap of
+`r num(LB_GAP_TUNED)`, and `r num(LB_PEAK_SHIP)` minutes at the shipped cell's
+gap of `r num(LB_GAP_SHIP)`. Decoupling the two buys
+`r sprintf("%.3f", LB_GAIN_SHIP)` points at the shipped cell and
+`r sprintf("%.3f", LB_GAIN_TUNED)` at the tuned one. So the coupling that was in
+the code by accident was very nearly the right choice, and
+`callsign_lookback_minutes` ships as `None`, meaning *follow `gap_minutes`*. The
+argument for the bound now has a number beside it.
 
-That is the answer, and it is a clean negative: **`legacy` is not mistuned.** It
-sits a fraction of a point from the best setting available to it, in a grid
-drawn wider than plausible and extended until every axis turned over. Set
-against the `r pp(GAIN_25)` points the identity key is worth, the entire tuning
-question is roughly `r sprintf("%.0f", SWEEP_RATIO)` times too small to matter —
-which is why the rest of this page is about the group key and not about
-thresholds.
+### What the sweep is worth against what shipped
+
+Stage 2 and the 2024 confirmation re-measured the interesting cells on the full
+three-day samples, so a winner is chosen out of the day it was tuned on.
+
+The shipped setting — gap `r num(SHIP_GAP)`, low-altitude gap
+`r num(SHIP_LOWGAP)`, ceiling `r num(SHIP_LOWFT)` ft — ranks
+`r num(SHIP_RANK)` of `r num(SWEEP_CELLS)` on the 2025 grid, and the best cell
+anywhere in it beats the shipped one by
+**`r sprintf("%.2f", SWEEP_GAIN_25)`** points. **The sweep does not beat the
+defaults by enough to move them.** That is the result, and a sweep confirming a
+setting is as much a measurement as a sweep overturning one.
+
+Then 2024, which is why nothing was re-shipped.
+
+```{r sweep-2024}
+#| echo: false
+s3 <- D("sweep_recommended_2024_stage3.csv")
+s3$shipped <- ifelse(s3$gap_minutes == SHIP_GAP &
+                     s3$low_alt_gap_minutes == SHIP_LOWGAP &
+                     s3$low_alt_ft == SHIP_LOWFT, "shipped", "")
+s3 <- s3[order(-s3$clean_match_pct),
+         c("gap_minutes", "low_alt_gap_minutes", "low_alt_ft",
+           "clean_match_pct", "shipped")]
+kable(s3, row.names = FALSE, digits = c(0, 0, 0, 3, 0),
+      col.names = c("gap_minutes", "low_alt_gap_minutes", "low_alt_ft",
+                    "clean %", ""),
+      format.args = list(big.mark = ","),
+      caption = "2024, the eight cells spanning the choice 2025 wanted to change. Every cell at gap 30 beats every cell at gap 40 — the reverse of 2025's ordering.")
+```
+
+On 2024 the `gap_minutes` ordering **reverses**: every cell at 30 minutes beats
+every cell at 40, and the shipped cell scores
+`r sprintf("%.2f", SHIP_24)`% against `r sprintf("%.2f", BEST_24)`% for the best
+of the eight — `r sprintf("%.2f", BEST_24 - SHIP_24)` points, on the same
+`low_alt_gap_minutes` and a different ceiling. Retuning to 2025's preferred gap
+would have cost 2024 about `r sprintf("%.2f", GAP30_24 - GAP40_24)` points.
+
+That is the closing argument. The gain 2025 offers is
+`r sprintf("%.2f", SWEEP_GAIN_25)` points and does not survive the second
+sample, where the same change costs `r sprintf("%.2f", GAP30_24 - GAP40_24)`.
+The shipped setting is within a fifth of a point on the period that prefers
+something else, and preferred outright on the period that does not.
+
 
 ## What a better segmentation buys ADEP/ADES {#sec-payoff}
 
@@ -1770,14 +1855,15 @@ Both samples are in early June. Nothing here licenses a seasonal claim, and the
 callsign statistics in particular could plausibly differ in a period with more
 charter or seasonal traffic.
 
-### The A1 sweep varied three parameters
+### The sweep covers one arm's parameters, not every arm's
 
-The sweep covers the gap threshold, the low-altitude gap threshold and the
-low-altitude ceiling. It does not vary the ground-dwell or turnaround
-parameters that the domain arms introduce, so those arms are compared at one
-setting each and could be better at another. Given the structural gap between
-the arms is two orders of magnitude larger than anything the sweep found, this
-is unlikely to change the ordering, but it is not measured.
+[The sweep](#sec-sweep) varies the four parameters of `recommended`. It does not
+vary the ground-dwell or turnaround parameters that the domain arms introduce, so
+those arms are each compared at one setting and could be better at another. Nor
+does it sweep `legacy`: an earlier version of this study did, and found it within
+a fraction of a point of its own best cell, but those runs are not in this
+revision and the claim is not made here. What the ladder measures is each rule at
+one setting; what the sweep measures is how much one rule's setting is worth.
 
 ### The payoff holds the flight list fixed
 
