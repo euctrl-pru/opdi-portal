@@ -19,6 +19,28 @@ flight events versions 1–2 pre-date the change.
 
 :::: {.publication-card}
 ::: {.publication-info}
+**[Flight events from ADS-B — version 4](flight-events-v4/index.qmd)**
+&nbsp;·&nbsp; [PDF](flight-events-v4/flight-events-v4.pdf)
+
+Supersedes version 3. Replaces `ATOT`/`ALDT` — shown in v3 to be the extreme
+sample of a detection window, not a measured instant — with nine A-CDM
+milestones (line-up, take-off-roll, airborne, landing, touchdown,
+runway-vacated, go-around and two runway-crossing types) derived from one
+explicitly classified runway traversal, with the three instants among them
+interpolated to the geometry that defines them rather than sampled near it.
+Moves the vertical profile to EUROCONTROL PRU's published methodology, and
+closes two silent unit defects where the airport-layout gate and the
+level-segment floors were compared against uncorrected pressure altitude.
+
+**Pending its benchmark campaign.** The page renders against
+`benchmarks/regenerate_events_v4.py`; where a figure is not yet staged the
+table says so in place rather than being omitted, and the provenance chapter
+lists what is present.
+:::
+::::
+
+:::: {.publication-card}
+::: {.publication-info}
 **[Flight events from ADS-B — version 3](flight-events-v3/index.qmd)**
 &nbsp;·&nbsp; [PDF](flight-events-v3/flight-events-v3.pdf)
 
@@ -69,6 +91,30 @@ Superseded. Kept as the record of what was published first.
 
 :::: {.publication-card}
 ::: {.publication-info}
+**[Turning ADS-B state vectors into flight tracks — version 1](track-construction-v1/index.qmd)**
+&nbsp;·&nbsp; [PDF](track-construction-v1/track-construction-v1.pdf)
+
+The segmentation question underneath every other paper on this page: which
+state vectors belong to the same flight, decided once and inherited by
+everything downstream — the flight list groups by `track_id`, events are
+extracted per track, measurements accumulate from a track's start. Finds that
+the rule behind every `track_id` OPDI has published to date recovers only
+about half of flights one-to-one, and that a full sweep of its three
+thresholds barely moves that number — the cause is the grouping key,
+`(icao24, callsign)`, which starts a new track whenever a callsign is decoded
+blank. Grouping on the airframe alone and splitting only on a genuine
+callsign change closes most of the gap, and is worth an order of magnitude
+more than the parameter sweep found. Documents a labelling bug in
+`flights.py` that the switch exposed — a blank callsign sorted first, which
+was harmless only while every track carried exactly one — and that had to be
+fixed before the better segmentation could ship without making the published
+flight list worse. Reports the residual arrival-coverage cost as a hypothesis
+rather than a settled finding.
+:::
+::::
+
+:::: {.publication-card}
+::: {.publication-info}
 **[Departure and destination aerodromes in the OPDI flight list — version 7](adep-ades-detection-v7/index.qmd)**
 &nbsp;·&nbsp; [PDF](adep-ades-detection-v7/adep-ades-detection-v7.pdf)
 
@@ -100,6 +146,24 @@ arrivals turn out to want different algorithms.
 
 Written as a working record rather than for an outside reader; version 7 is the
 one to send to someone who will *use* the flight list.
+:::
+::::
+
+:::: {.publication-card}
+::: {.publication-info}
+**[Detecting departure and destination aerodromes from ADS-B — version 6.2](adep-ades-detection-v6.2/index.qmd)**
+&nbsp;·&nbsp; [PDF](adep-ades-detection-v6.2/adep-ades-detection-v6.2.pdf)
+
+Combines the version 6 and 6.1 reports and adds one change: `trend`'s
+altitude cut now measures height above the aerodrome's own field elevation
+rather than sea level, matching every other altitude test in the pipeline —
+`endpoint`'s, step 04's ground phase. The aggregate effect is close to
+nothing by construction, since most arrivals sit at aerodromes below 500 ft
+where the two datums are identical either way, but the gain lands exactly
+where elevation predicts it should. Restates the standing conclusion:
+departures want `endpoint`, arrivals want `trend`, and choosing among
+candidates by exact great-circle distance rather than H3 ring count is worth
+more than any threshold on the page.
 :::
 ::::
 

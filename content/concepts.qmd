@@ -130,18 +130,31 @@ as to cover both the airborne and the ground phases of flights. To this extent
 we summarize a flight down to some of its fundamental flight events as in the
 following list (from departure to arrival):
 
-(@) Off-block (**T04**)
+(@) Off-block (**T04**) — published, as `off-block`
 (@) End of push back (**T05**)
-(@) Enter runway for take-off (**T06**)
-(@) Lift-off (**T08**), a.k.a. take-off
+(@) Enter runway for take-off (**T06**) — published, as `line-up`
+(@) Start of take-off roll (**T07**) — published, as `take-off-roll`
+(@) Lift-off (**T08**), a.k.a. take-off — published, as `airborne`
 (@) 40-nautical-miles intersection (sort of **T11**)
 (@) Top-of-climb (**T12**)
 (@) Top-of-descent (**T13**)
 (@) 40-nautical-miles intersection (sort of **T14**)
-(@) Touch-down (**T17**)
-(@) Runway vacated (**T19**)
+(@) Over runway threshold (**T16**) — published, as `landing`
+(@) Touch-down (**T17**) — published, as `touchdown`
+(@) Runway vacated (**T19**) — published, as `runway-vacated`
 (@) Enter parking spot (**T20**)
-(@) On-block (**T21**)
+(@) On-block (**T21**) — published, as `on-block`
+
+The items marked "published" above ship under `events_v0.2.0`, the A-CDM
+runway family described in [Flight events from ADS-B — version
+4](../papers/flight-events-v4/index.html). Two more members of that same family
+have no ICAO T-number at all, because they answer a question the T00–T25
+ladder never asks — a runway *crossing* rather than a runway *operation* —
+and one covers an outcome the ladder has no room for:
+
+(@) Go-around — published, as `go-around`
+(@) Runway crossing, entry — published, as `runway-crossing-entry`
+(@) Runway crossing, vacated — published, as `runway-crossing-vacated`
 
 
 Other interesting flight events are:
