@@ -335,6 +335,45 @@ they moved with the field elevation of the aerodrome underneath them.
 | `AOBT`/`AIBT` renamed `off-block`/`on-block`; one detector, A-CDM vocabulary | [Off-block and on-block] |
 | Scoring is **per aerodrome**, with a suppression floor and a truth-resolution column | [Annex A — Accuracy by aerodrome] |
 
+## The ladder
+
+Every comparison in this document is read off a **ladder**: eight
+configurations, applied cumulatively, run over the same trajectories against
+the same reference data. Rung names appear throughout the chapters below, so
+they are listed once here.
+
+| Rung | What it adds |
+|---|---|
+| `V00_v3_shipped` | The baseline: V3's shipped configuration (`events_v0.1.0`), reconstructed field by field. A plan check asserts it differs from what ships in exactly the eight fields the ladder moves — no more, so the baseline really is v0.1.0, and no fewer, so no behaviour ships without a rung measuring it. |
+| `V01_runway_tiebreak` | Cross-track distance before bearing error when picking a runway. Carries **no configuration change** — a bug fix behind a flag is a bug you have promised to keep — so it shows no delta here, and its effect is read off the runway-identity table instead. |
+| `V02_layout_agl` | The airport-layout gate measured above field elevation rather than against the 1013.25 datum. |
+| `V03_pru_level` | The level-segment arm switched from ICAO's anchored band to PRU's rolling window. |
+| `V04_level_geometry` | The level classification bound to the flight's aerodrome geometry, in two ways at once: the 3,000 ft and 1,800 ft floors measured above the field, **and** PRU's 200 NM analysis radius actually applied. |
+| `V05_pru_tops` | The PRU tops published — **and** the level-off classification re-anchored onto them. |
+| `V06_runway_milestones` | The nine A-CDM runway milestones, which also gates off `ATOT`/`ALDT`/`entry-runway`/`exit-runway`. |
+| `V07_shipped` | The version string. A plan check asserts this rung equals `EventConfig()` field for field, so the ladder's verdict is about the configuration that actually ships. |
+
+Two rungs carry more than one field, and both say so above rather than letting
+the name imply otherwise.
+
+**V04 is two fields and one idea.** The floors bind the classification to the
+aerodrome's *elevation* and the radius binds it to the aerodrome's *distance*;
+splitting them would give two deltas that are not separately interpretable,
+because a segment the radius excludes is one the floor never got to judge. The
+radius needs a flag of its own because it cannot otherwise be switched off: the
+distances arrive from a join that half the step needs anyway, so a detector
+applying the bound "whenever the distances are present" applies it always —
+including at a baseline meant to reproduce a version that declared the radius
+and read it nowhere.
+
+**V05 is two things and is not attributable to one.** Publishing the PRU tops
+and re-anchoring the level-off classification onto them are separate decisions
+that arrive in one rung, so its delta is the sum of a new event family and a
+changed classification, and no part of it can be assigned to either alone. They
+are bundled because the anchor has no meaning until the tops exist. A reader
+wanting the two apart would need a rung that emits the tops without consuming
+them, which this ladder does not have.
+
 ## What the evidence says
 
 ```{r tbl-headline}
@@ -391,9 +430,9 @@ point of comparison.
 **Almost every threshold is named in `EventConfig`** (`src/opdi/config.py`).
 That is what makes the parameter tables below a description of the code rather
 than a description of someone's memory of it, and it is what would make a sweep
-possible. Four exceptions remain — the dead bands and the roll's gap bound in
-the runway family — and each is labelled *module constant* in the table it
-appears in, and listed again in [Limitations].
+possible. Five exceptions remain — the three dead bands, the roll's gap bound
+and the arrival lead, all in the runway family — and each is labelled *module
+constant* in the table it appears in, and listed again in [Limitations].
 
 **One engine produces every interpolated instant.** Flight-level crossings,
 ring crossings, `airborne`, `touchdown` and `landing` all pass through the same
@@ -587,7 +626,8 @@ Each traversal is then classified by three measurements over its own samples:
   runway's bearing, folded to [0°, 90°] so a reciprocal landing counts as
   aligned;
 - **speed** — the maximum groundspeed reached;
-- **height** — the height above field elevation at entry and at exit.
+- **height** — the height at entry and at exit above the field elevation of
+  **the traversal's own aerodrome**.
 
 giving one of three classes:
 
@@ -601,6 +641,33 @@ or **NULL, which means abstain**. The gap between 30° and 45° is deliberate:
 naming the wrong milestone corrupts a movement count, while naming none is an
 explicit null a consumer can see. A traversal that falls in the band produces
 no events at all.
+
+**Which field the heights are measured against.** Every height in this family
+is measured against the elevation of the aerodrome whose runway the traversal
+is on. That sounds like a detail and is not. A flight has two aerodromes and
+the pipeline attaches both elevations, so there is a cheaper reading available:
+take the *smaller* of the two field-relative heights. That reading is correct
+where it is used — deciding whether a sample is close enough to the ground to
+be matched against an airport layout, or to be called GND by the phase
+classifier — because a track is on the ground at only one of its two
+aerodromes, cruise sits far above both, and the wrong end can only ever make
+the height larger. Permissive is the safe direction for a membership test.
+
+It is the wrong direction for a *threshold*. Ibiza's field is 24 ft and
+Zurich's is 1,416 ft; measured against the higher of the two, a departure from
+Ibiza has a height around −1,400 ft for its entire roll and climb-out, never
+reaches 15 ft, and is classified as neither a departure nor an arrival nor a
+crossing. The detector abstains, and `line-up`, `take-off-roll` and `airborne`
+are absent for the whole flight with nothing in the output to say why.
+Symmetrically an arrival at the lower of a flight's two aerodromes loses
+`landing`, `touchdown` and `runway-vacated`, and a go-around there is
+suppressed as a landing. Where the permissive height *does* clear the
+threshold, it clears it late by the elevation difference — a systematic bias
+in one direction, at exactly the aerodrome pairs where it is largest. So the
+runway family measures against the traversal's own aerodrome, the go-around
+against the destination's (it is arrival-anchored by definition), and only the
+layout gate and the phase classifier keep the permissive reading, which is what
+they want.
 
 **Why one object rather than nine detectors.** Line-up, take-off roll and
 airborne are not independent questions; they are three readings of one
@@ -812,12 +879,33 @@ kept. An aircraft rolling past the threshold on the ground — backtracking, or
 vacating via a turn-off beyond it — has already landed, and stamping a second
 `landing` there would double the arrival count.
 
+**T16 needs a sample the traversal does not contain.** A sign change needs a
+point on each side of it, and the negative side is *short of the threshold* —
+which is outside the runway polygon, because the threshold is the polygon's
+near edge. So the samples belonging to an arrival traversal, which are by
+definition the samples inside the polygon, contain no negative along-track
+distance at all and the crossing can never be confirmed from them. For arrival
+traversals only, the sample window is therefore extended **backwards by
+`ARRIVAL_LEAD_SECONDS` (60 s)** before the traversal's entry, admitting the
+final-approach samples the crossing interpolates from. Nothing else reads the
+extended window: the entry and exit instants, the reported positions and every
+other milestone in this family stay bounded by the polygon, because those are
+statements about occupancy and the lead is not.
+
+Sixty seconds is about 2.3 NM at approach speed — comfortably more than any
+displaced threshold or the gap between the polygon edge and the last approach
+sample, and far short of a previous traversal the same aircraft could have made
+at the same aerodrome. It is a property of the geometry rather than a tuning
+choice, which is why it is a module constant; the caveat in [Limitations] about
+module constants applies to it too.
+
 **Parameters.**
 
 | Parameter | Value | Source | Governs |
 |---|---|---|---|
 | `runway_airborne_height_ft` | 15 ft | ours | floor below which a threshold crossing is ground movement, not a landing |
 | `THRESHOLD_PLANE_HYSTERESIS_NM` | 0.05 NM | ours (module constant) | dead band on confirmation; ~304 ft, about 1.3 s at approach speed |
+| `ARRIVAL_LEAD_SECONDS` | 60 s | ours (module constant) | how far before the traversal's entry the arrival sample window reaches, so the pre-threshold sample exists |
 | plus the traversal parameters | — | — | see [Line-up] |
 
 The dead band's width does not decide the reported instant, which is worth
@@ -853,7 +941,11 @@ centreline, which is true of a stabilised approach and less true of a circling
 one. And it inherits the runway-direction pick from [Line-up], whose known
 failure mode is described in [Cross-cutting findings]: on a runway near bearing
 360 the median track can resolve to the reciprocal, and the landing is then
-measured from the wrong end of the strip.
+measured from the wrong end of the strip. Finally, an approach whose last
+reception before the threshold is more than 60 s old falls outside
+`ARRIVAL_LEAD_SECONDS` and yields no T16 — the aircraft still gets its
+`touchdown` and `runway-vacated`, so this shows as a `landing` count below the
+`touchdown` count rather than as a lost arrival.
 
 # Touchdown
 
@@ -1336,14 +1428,21 @@ measures both against the field.
 | `level_min_altitude_descent_ft` | 1,800 ft AGL | PRU / ICAO | where descent analysis stops |
 | `level_floors_above_field` | on | ours | whether those two are AGL or above the 1013.25 hPa datum |
 | `level_analysis_radius_nm` | 200 NM | PRU | radius around the aerodrome analysed |
+| `level_radius_enforced` | on | ours | whether that radius binds at all; off reproduces v0.1.0, which declared it and read it nowhere |
 | `level_exclusion_box_pct` | 90% | PRU / ICAO | lower edge of the cruise exclusion |
 | `level_exclusion_box_seconds` | 300 s | PRU / ICAO | duration above which a high segment is cruise |
 
 **None of the published values must be tuned.** They are PRU's and ICAO's, and
 tuning them forfeits the only claim this family can make — conformance to a
 published methodology — in exchange for a number nothing can validate.
-`level_method`, `level_floors_above_field` and `level_anchor` are ours and are
-choices about which published methodology to follow, not about its constants.
+`level_method`, `level_floors_above_field`, `level_radius_enforced` and
+`level_anchor` are ours and are choices about which published methodology to
+follow, not about its constants. `level_radius_enforced` is the odd one: it is
+not a choice anybody should make differently, but the radius binds a segment
+whose aerodrome the flight list could not name *out* of the analysis, so
+turning it on and off is the only way to say whether a change in the count came
+from the geometry or from the flight list's coverage — and it is the only way
+to reproduce v0.1.0, which declared the radius and never read it.
 
 ```{r tbl-levels-inv}
 #| echo: false
@@ -1885,11 +1984,11 @@ conformance to a published methodology, tested on synthetic geometry. For the
 others there is none, and their counts are reported while their timing is
 unvalidated and stated as such.
 
-**Four tuning parameters are module constants, not config fields** —
-`ROLL_MAX_GAP_SECONDS`, `AIRBORNE_HYSTERESIS_FT`, `THRESHOLD_PLANE_HYSTERESIS_NM`
-and `GOAROUND_HYSTERESIS_FT`. They are documented where they sit, but they are
-not sweepable without editing code, which contradicts the convention every
-other threshold in this document follows.
+**Five tuning parameters are module constants, not config fields** —
+`ROLL_MAX_GAP_SECONDS`, `AIRBORNE_HYSTERESIS_FT`, `THRESHOLD_PLANE_HYSTERESIS_NM`,
+`GOAROUND_HYSTERESIS_FT` and `ARRIVAL_LEAD_SECONDS`. They are documented where
+they sit, but they are not sweepable without editing code, which contradicts
+the convention every other threshold in this document follows.
 
 **Known defects carried, not fixed**: the circular median described in
 [Cross-cutting findings]; the `when`-chain ordering sensitivity in the legacy
