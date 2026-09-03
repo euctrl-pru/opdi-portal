@@ -1,0 +1,328 @@
+{
+  "bridge_2024.json": {
+    "argv": [
+      "--period",
+      "2024"
+    ],
+    "bytes": 102,
+    "code_fingerprint": "e02d4da443ade1bc",
+    "code_paths": [
+      "benchmarks/events_gt.py",
+      "benchmarks/events_gt.py",
+      "benchmarks/osn_sample.py"
+    ],
+    "git_dirty": false,
+    "git_sha": "ea1239c",
+    "input_tables": {
+      "s3a://eurocontrol/opdi/research/reference": {
+        "bytes": 536176358,
+        "newest": "2026-08-13T10:38:29.218000+00:00",
+        "objects": 6
+      }
+    },
+    "inputs": {},
+    "notes": "the bridge match rate. Runs first and alone because it is the ceiling on every coverage figure downstream: a milestone that cannot be reached is indistinguishable from one that was missed unless this number is known.",
+    "produced_utc": "2026-08-14T19:46:42+00:00",
+    "script": "benchmarks/events_gt.py",
+    "sha256_16": "9a23d08fde1af8dc"
+  },
+  "bridge_2025.json": {
+    "argv": [
+      "--period",
+      "2025"
+    ],
+    "bytes": 102,
+    "code_fingerprint": "e02d4da443ade1bc",
+    "code_paths": [
+      "benchmarks/events_gt.py",
+      "benchmarks/events_gt.py",
+      "benchmarks/osn_sample.py"
+    ],
+    "git_dirty": false,
+    "git_sha": "ea1239c",
+    "input_tables": {
+      "s3a://eurocontrol/opdi/research/reference": {
+        "bytes": 536176358,
+        "newest": "2026-08-13T10:38:29.218000+00:00",
+        "objects": 6
+      }
+    },
+    "inputs": {},
+    "notes": "the bridge match rate. Runs first and alone because it is the ceiling on every coverage figure downstream: a milestone that cannot be reached is indistinguishable from one that was missed unless this number is known.",
+    "produced_utc": "2026-08-14T19:45:05+00:00",
+    "script": "benchmarks/events_gt.py",
+    "sha256_16": "85376d395376f3e3"
+  },
+  "floor_2025.csv": {
+    "argv": [
+      "--period",
+      "2025",
+      "--executors",
+      "6"
+    ],
+    "bytes": 113,
+    "code_fingerprint": "35b200f7d1905194",
+    "code_paths": [
+      "benchmarks/event_bench.py",
+      "benchmarks/events_compare.py",
+      "benchmarks/events_compare.py",
+      "benchmarks/events_gt.py",
+      "benchmarks/events_score.py",
+      "benchmarks/osn_sample.py"
+    ],
+    "git_dirty": true,
+    "git_sha": "8f77872",
+    "input_tables": {
+      "s3a://eurocontrol/opdi/research/reference": {
+        "bytes": 536176358,
+        "newest": "2026-08-13T10:38:29.218000+00:00",
+        "objects": 6
+      }
+    },
+    "inputs": {},
+    "notes": "ring crossings against C40/C100_CROSS_TIME and position, runway identity against AP_C_RWY, and the spread between two EUROCONTROL derivations of the same crossing -- the yardstick the ring result has to be read against. Reads event tables the ladder already wrote; re-runs no detector. 2024 is absent because it emits none of these families.",
+    "produced_utc": "2026-08-15T11:42:08+00:00",
+    "script": "benchmarks/events_compare.py",
+    "sha256_16": "231e5fbd576ba139"
+  },
+  "inventory_2024.csv": {
+    "argv": [
+      "--period",
+      "2024",
+      "--out-name",
+      "ladder_2024.csv",
+      "--executors",
+      "10"
+    ],
+    "bytes": 7291,
+    "code_fingerprint": "d0a21d665f3495a8",
+    "code_paths": [
+      "benchmarks/event_bench.py",
+      "benchmarks/event_bench.py",
+      "benchmarks/events_gt.py",
+      "benchmarks/events_score.py",
+      "benchmarks/osn_sample.py",
+      "src/opdi/config.py",
+      "src/opdi/pipeline/crossings.py",
+      "src/opdi/pipeline/events.py",
+      "src/opdi/pipeline/ground.py",
+      "src/opdi/pipeline/level_segments.py",
+      "src/opdi/pipeline/runways.py"
+    ],
+    "git_dirty": false,
+    "git_sha": "f510d7b",
+    "input_tables": {
+      "s3a://eurocontrol/opdi/osn_tracks_clean": {
+        "bytes": 9860803651,
+        "newest": "2026-08-12T16:37:31.442000+00:00",
+        "objects": 202
+      },
+      "s3a://eurocontrol/opdi/research/reference": {
+        "bytes": 536176358,
+        "newest": "2026-08-13T10:38:29.218000+00:00",
+        "objects": 6
+      }
+    },
+    "inputs": {},
+    "notes": "the cumulative ladder from events_v0.0.2 to the shipped configuration, one rung per change, scored on this period -- plus the extraction inventory, which is the only place the families APDF cannot score are visible at all.",
+    "produced_utc": "2026-08-15T02:33:06+00:00",
+    "script": "benchmarks/event_bench.py",
+    "sha256_16": "4c0a16b49f5107d9"
+  },
+  "inventory_2025.csv": {
+    "argv": [
+      "--period",
+      "2025",
+      "--out-name",
+      "ladder_2025.csv",
+      "--executors",
+      "10"
+    ],
+    "bytes": 13974,
+    "code_fingerprint": "73ba442eaab5f725",
+    "code_paths": [
+      "benchmarks/event_bench.py",
+      "benchmarks/event_bench.py",
+      "benchmarks/events_gt.py",
+      "benchmarks/events_score.py",
+      "benchmarks/osn_sample.py",
+      "src/opdi/config.py",
+      "src/opdi/pipeline/crossings.py",
+      "src/opdi/pipeline/events.py",
+      "src/opdi/pipeline/ground.py",
+      "src/opdi/pipeline/level_segments.py",
+      "src/opdi/pipeline/runways.py"
+    ],
+    "git_dirty": false,
+    "git_sha": "0e90f94",
+    "input_tables": {
+      "s3a://eurocontrol/opdi/osn_tracks_clean": {
+        "bytes": 9860803651,
+        "newest": "2026-08-12T16:37:31.442000+00:00",
+        "objects": 202
+      },
+      "s3a://eurocontrol/opdi/research/reference": {
+        "bytes": 536176358,
+        "newest": "2026-08-13T10:38:29.218000+00:00",
+        "objects": 6
+      }
+    },
+    "inputs": {},
+    "notes": "the cumulative ladder from events_v0.0.2 to the shipped configuration, one rung per change, scored on this period -- plus the extraction inventory, which is the only place the families APDF cannot score are visible at all.",
+    "produced_utc": "2026-08-15T00:16:34+00:00",
+    "script": "benchmarks/event_bench.py",
+    "sha256_16": "8095285f897d3b88"
+  },
+  "ladder_2024.csv": {
+    "argv": [
+      "--period",
+      "2024",
+      "--out-name",
+      "ladder_2024.csv",
+      "--executors",
+      "10"
+    ],
+    "bytes": 9363,
+    "code_fingerprint": "d0a21d665f3495a8",
+    "code_paths": [
+      "benchmarks/event_bench.py",
+      "benchmarks/event_bench.py",
+      "benchmarks/events_gt.py",
+      "benchmarks/events_score.py",
+      "benchmarks/osn_sample.py",
+      "src/opdi/config.py",
+      "src/opdi/pipeline/crossings.py",
+      "src/opdi/pipeline/events.py",
+      "src/opdi/pipeline/ground.py",
+      "src/opdi/pipeline/level_segments.py",
+      "src/opdi/pipeline/runways.py"
+    ],
+    "git_dirty": false,
+    "git_sha": "f510d7b",
+    "input_tables": {
+      "s3a://eurocontrol/opdi/osn_tracks_clean": {
+        "bytes": 9860803651,
+        "newest": "2026-08-12T16:37:31.442000+00:00",
+        "objects": 202
+      },
+      "s3a://eurocontrol/opdi/research/reference": {
+        "bytes": 536176358,
+        "newest": "2026-08-13T10:38:29.218000+00:00",
+        "objects": 6
+      }
+    },
+    "inputs": {},
+    "notes": "the cumulative ladder from events_v0.0.2 to the shipped configuration, one rung per change, scored on this period -- plus the extraction inventory, which is the only place the families APDF cannot score are visible at all.",
+    "produced_utc": "2026-08-15T02:33:05+00:00",
+    "script": "benchmarks/event_bench.py",
+    "sha256_16": "4da8f47ca21564d1"
+  },
+  "ladder_2025.csv": {
+    "argv": [
+      "--period",
+      "2025",
+      "--out-name",
+      "ladder_2025.csv",
+      "--executors",
+      "10"
+    ],
+    "bytes": 13837,
+    "code_fingerprint": "73ba442eaab5f725",
+    "code_paths": [
+      "benchmarks/event_bench.py",
+      "benchmarks/event_bench.py",
+      "benchmarks/events_gt.py",
+      "benchmarks/events_score.py",
+      "benchmarks/osn_sample.py",
+      "src/opdi/config.py",
+      "src/opdi/pipeline/crossings.py",
+      "src/opdi/pipeline/events.py",
+      "src/opdi/pipeline/ground.py",
+      "src/opdi/pipeline/level_segments.py",
+      "src/opdi/pipeline/runways.py"
+    ],
+    "git_dirty": false,
+    "git_sha": "0e90f94",
+    "input_tables": {
+      "s3a://eurocontrol/opdi/osn_tracks_clean": {
+        "bytes": 9860803651,
+        "newest": "2026-08-12T16:37:31.442000+00:00",
+        "objects": 202
+      },
+      "s3a://eurocontrol/opdi/research/reference": {
+        "bytes": 536176358,
+        "newest": "2026-08-13T10:38:29.218000+00:00",
+        "objects": 6
+      }
+    },
+    "inputs": {},
+    "notes": "the cumulative ladder from events_v0.0.2 to the shipped configuration, one rung per change, scored on this period -- plus the extraction inventory, which is the only place the families APDF cannot score are visible at all.",
+    "produced_utc": "2026-08-15T00:16:34+00:00",
+    "script": "benchmarks/event_bench.py",
+    "sha256_16": "b21c76d5f48481b1"
+  },
+  "rings_2025.csv": {
+    "argv": [
+      "--period",
+      "2025",
+      "--executors",
+      "6"
+    ],
+    "bytes": 676,
+    "code_fingerprint": "35b200f7d1905194",
+    "code_paths": [
+      "benchmarks/event_bench.py",
+      "benchmarks/events_compare.py",
+      "benchmarks/events_compare.py",
+      "benchmarks/events_gt.py",
+      "benchmarks/events_score.py",
+      "benchmarks/osn_sample.py"
+    ],
+    "git_dirty": true,
+    "git_sha": "8f77872",
+    "input_tables": {
+      "s3a://eurocontrol/opdi/research/reference": {
+        "bytes": 536176358,
+        "newest": "2026-08-13T10:38:29.218000+00:00",
+        "objects": 6
+      }
+    },
+    "inputs": {},
+    "notes": "ring crossings against C40/C100_CROSS_TIME and position, runway identity against AP_C_RWY, and the spread between two EUROCONTROL derivations of the same crossing -- the yardstick the ring result has to be read against. Reads event tables the ladder already wrote; re-runs no detector. 2024 is absent because it emits none of these families.",
+    "produced_utc": "2026-08-15T11:42:07+00:00",
+    "script": "benchmarks/events_compare.py",
+    "sha256_16": "4a30d7b7ad6fc2fe"
+  },
+  "runway_2025.csv": {
+    "argv": [
+      "--period",
+      "2025",
+      "--executors",
+      "6"
+    ],
+    "bytes": 257,
+    "code_fingerprint": "35b200f7d1905194",
+    "code_paths": [
+      "benchmarks/event_bench.py",
+      "benchmarks/events_compare.py",
+      "benchmarks/events_compare.py",
+      "benchmarks/events_gt.py",
+      "benchmarks/events_score.py",
+      "benchmarks/osn_sample.py"
+    ],
+    "git_dirty": true,
+    "git_sha": "8f77872",
+    "input_tables": {
+      "s3a://eurocontrol/opdi/research/reference": {
+        "bytes": 536176358,
+        "newest": "2026-08-13T10:38:29.218000+00:00",
+        "objects": 6
+      }
+    },
+    "inputs": {},
+    "notes": "ring crossings against C40/C100_CROSS_TIME and position, runway identity against AP_C_RWY, and the spread between two EUROCONTROL derivations of the same crossing -- the yardstick the ring result has to be read against. Reads event tables the ladder already wrote; re-runs no detector. 2024 is absent because it emits none of these families.",
+    "produced_utc": "2026-08-15T11:42:08+00:00",
+    "script": "benchmarks/events_compare.py",
+    "sha256_16": "2c52fce09a9df37d"
+  }
+}

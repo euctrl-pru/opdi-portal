@@ -2,30 +2,309 @@
 title: "OPDI Papers"
 ---
 
-Methodology studies behind the [Open Performance Data Initiative](https://www.eurocontrol.int/opdi), covering how OPDI turns raw ADS-B state vectors into flight tracks.
+Methodology studies behind the [Open Performance Data Initiative](https://www.eurocontrol.int/opdi).
+
+Each paper benchmarks an OPDI algorithm against EUROCONTROL reference data and
+reports what the comparison actually showed, including where a proposed method
+failed.
+
+Older papers render from a committed CSV cache — no credentials, no database, no
+cluster. **The current papers render by running their analysis**: every figure
+is produced by a job that declares the source files it depends on, so a figure
+and the code that made it cannot drift apart. That costs cluster access to
+re-render a stale page, which is the intended trade. ADEP/ADES versions 1–6 and
+flight events versions 1–2 pre-date the change.
 
 ## Papers
 
+:::: {.publication-card}
+::: {.publication-info}
+**[Flight events from ADS-B — version 4](flight-events-v4/index.qmd)**
+&nbsp;·&nbsp; [PDF](flight-events-v4/flight-events-v4.pdf)
+
+Supersedes version 3. Replaces `ATOT`/`ALDT` — shown in v3 to be the extreme
+sample of a detection window, not a measured instant — with nine A-CDM
+milestones (line-up, take-off-roll, airborne, landing, touchdown,
+runway-vacated, go-around and two runway-crossing types) derived from one
+explicitly classified runway traversal, with the three instants among them
+interpolated to the geometry that defines them rather than sampled near it.
+Moves the vertical profile to EUROCONTROL PRU's published methodology, and
+closes two silent unit defects where the airport-layout gate and the
+level-segment floors were compared against uncorrected pressure altitude.
+
+**Pending its benchmark campaign.** The page renders against
+`benchmarks/regenerate_events_v4.py`; where a figure is not yet staged the
+table says so in place rather than being omitted, and the provenance chapter
+lists what is present.
+:::
+::::
+
+:::: {.publication-card}
+::: {.publication-info}
+**[Flight events from ADS-B — version 3](flight-events-v3/index.qmd)**
+&nbsp;·&nbsp; [PDF](flight-events-v3/flight-events-v3.pdf)
+
+The one to read. Audits the four detectors behind OPDI's published flight
+events, which had never been tested or compared against reference data, finds
+nine defects — one of which means no take-off or landing has ever been emitted
+for any aerodrome above roughly 200 ft — and adds the milestone families the
+ICAO GANP indicators require, taking the reachable KPI count to nine fully and
+three partially computable.
+
+Version 3 is organised as **one chapter per event**. Each says what the event
+is, how it is detected, which parameters govern it, how it changed from the
+published algorithm, and whether any external source agrees with it — or why
+none can. It closes three comparisons that had been coded and never run: ring
+crossings against EUROCONTROL's own, runway identity against `AP_C_RWY`, and
+the inter-source floor that says what "close" can mean. **The ring crossings
+land inside that floor** — the detector agrees with the reference about as
+closely as the reference agrees with itself.
+
+A closing chapter designs a parameter sweep — what to optimise, against what
+objective, at what cost, and which values must not be touched — without running
+one.
+
+States plainly what it has *not* measured, and reports two of its own fixes
+that the data contradicted.
+:::
+::::
+
+:::: {.publication-card}
+::: {.publication-info}
+**[Flight events from ADS-B — version 2](flight-events-v2/index.qmd)**
+&nbsp;·&nbsp; [PDF](flight-events-v2/flight-events-v2.pdf)
+
+Superseded by version 3, which carries the same data and reorganises it into
+per-event chapters. Version 2 is arranged by detector family, which some
+readers may still prefer.
+:::
+::::
+
+:::: {.publication-card}
+::: {.publication-info}
+**[Flight events from ADS-B — version 1](flight-events-v1/index.qmd)**
+&nbsp;·&nbsp; [PDF](flight-events-v1/flight-events-v1.pdf)
+
+Superseded. Kept as the record of what was published first.
+:::
+::::
+
+:::: {.publication-card}
+::: {.publication-info}
+**[Turning ADS-B state vectors into flight tracks — version 2](track-construction-v2/index.qmd)**
+&nbsp;·&nbsp; [PDF](track-construction-v2/track-construction-v2.pdf)
+
+The release note for the segmentation version 1 recommended, and the answer to
+the question version 1 could not ask of itself. Version 1 scored candidate
+rules in a harness reading a track table someone else had built; this runs
+three of them through the real pipeline — ingestion, track building, cleaning
+and the flight list — and reports what the shipped code does. The finding
+holds: the recommended rule beats the published one by about 40 points of
+one-to-one matching in the harness and about 40 in the pipeline, so the result
+was not an artefact of the harness. Separates the two changes that produced it,
+finding the airframe-only grouping worth most of the gain and the
+callsign-change break worth the last two points and most of the merging.
+
+Also the operational warning. **No `track_id` survives this release.** The
+published rule suffixes `_{year}_{month}` and the new one an offset, over
+different grouping keys, so not one identifier carries across — by
+construction, not by measurement — and the track count falls by about a third.
+Anything joining on `track_id` across the boundary gets nothing.
+:::
+::::
+
+:::: {.publication-card}
+::: {.publication-info}
 **[Turning ADS-B state vectors into flight tracks — version 1](track-construction-v1/index.qmd)**
-&nbsp;·&nbsp; [PDF](track-construction-v1/index.pdf)
+&nbsp;·&nbsp; [PDF](track-construction-v1/track-construction-v1.pdf)
 
-The eight-rule benchmark that selected the shipped segmentation. Scores eight
-candidate rules for grouping state vectors into tracks against three days of
-Network Manager ground truth, finds that the rule behind every `track_id`
-OPDI has published to date recovers only 50.15% of flights one-to-one on
-2025, and that grouping on the airframe alone instead of `(icao24,
-callsign)` raises that to 90.80%. That rule now ships as
-`segmentation.method = "standard"`.
+The segmentation question underneath every other paper on this page: which
+state vectors belong to the same flight, decided once and inherited by
+everything downstream — the flight list groups by `track_id`, events are
+extracted per track, measurements accumulate from a track's start. Finds that
+the rule behind every `track_id` OPDI has published to date recovers only
+about half of flights one-to-one, and that a full sweep of its three
+thresholds barely moves that number — the cause is the grouping key,
+`(icao24, callsign)`, which starts a new track whenever a callsign is decoded
+blank. Grouping on the airframe alone and splitting only on a genuine
+callsign change closes most of the gap, and is worth an order of magnitude
+more than the parameter sweep found. Documents a labelling bug in
+`flights.py` that the switch exposed — a blank callsign sorted first, which
+was harmless only while every track carried exactly one — and that had to be
+fixed before the better segmentation could ship without making the published
+flight list worse.
 
-**[A new rule builds OPDI's flight tracks — version 2](track-construction-v2/index.qmd)**
-&nbsp;·&nbsp; [PDF](track-construction-v2/index.pdf)
+Scores every rule over two intervals: the airborne leg, and gate to gate. The
+second is what the first cannot see — a rule carrying callsign in its grouping
+key loses fourteen to eighteen points once the stand and the taxiways count,
+because a callsign goes blank or rotates while the aircraft is parked, and the
+airborne interval never looks there. Eleven minutes of the median flight sit
+outside it. Chapter 7 sweeps the shipped rule's own thresholds rather than the
+retired one's, and finds the shipped values within 0.18 points of the best cell
+of 235 — while the best cell on one sample is beaten by the shipped values on
+the other, which is why nothing was retuned.
+:::
+::::
 
-The release note: the real pipeline reproduces V1's harness result. Runs
-`legacy`, `airframe_only` and `standard` through the full production chain —
-steps 01 through 03, not a harness over an already-cleaned table — on two
-independent days a year apart, and finds the pipeline's gain for `standard`
-over `legacy` agrees with V1's harness figure to within 1.08 points on all
-four comparisons (airborne and gate-to-gate, 2025 and 2024). States what
-changes for a consumer: `track_id` stops carrying a `_{year}_{month}`
-suffix, no `track_id` published before the release date joins against data
-built after it, and nothing in `osn_tracks` marks which rule produced a row.
+:::: {.publication-card}
+::: {.publication-info}
+**[Departure and destination aerodromes in the OPDI flight list — version 7](adep-ades-detection-v7/index.qmd)**
+&nbsp;·&nbsp; [PDF](adep-ades-detection-v7/adep-ades-detection-v7.pdf)
+
+**The one to read if you use the data.** Written for people consuming the `ADEP`
+and `ADES` columns rather than for the people building them: what they mean, how
+the pipeline derives them from raw ADS-B, how often they are right, and what a
+downstream analysis should do about the failure modes.
+
+Documents the pipeline end to end for the first time, and measures every change
+on two independent periods — which is what showed that three values version 6
+shipped were not supported, and got them changed. Departures and arrivals use
+different algorithms; candidates are chosen by exact distance rather than a
+hexagon index; and a departure's null now separates "outside the observed area"
+from "could not tell".
+:::
+::::
+
+:::: {.publication-card}
+::: {.publication-info}
+**[Detecting departure and destination aerodromes from ADS-B — version 6](adep-ades-detection-v6/index.qmd)**
+&nbsp;·&nbsp; [PDF](adep-ades-detection-v6/adep-ades-detection-v6.pdf)
+
+The consolidated study. Re-measures every sweep against the pipeline as it now
+stands — no number is carried over from earlier versions — and settles what
+production should run. Finds that the algorithm already in service was never
+tuned: its flight-level gate was fixed at FL40 and never swept, and moving it is
+worth thousands of correctly named flights per three-day sample. Departures and
+arrivals turn out to want different algorithms.
+
+Written as a working record rather than for an outside reader; version 7 is the
+one to send to someone who will *use* the flight list.
+:::
+::::
+
+:::: {.publication-card}
+::: {.publication-info}
+**[Detecting departure and destination aerodromes from ADS-B — version 6.2](adep-ades-detection-v6.2/index.qmd)**
+&nbsp;·&nbsp; [PDF](adep-ades-detection-v6.2/adep-ades-detection-v6.2.pdf)
+
+Combines the version 6 and 6.1 reports and adds one change: `trend`'s
+altitude cut now measures height above the aerodrome's own field elevation
+rather than sea level, matching every other altitude test in the pipeline —
+`endpoint`'s, step 04's ground phase. The aggregate effect is close to
+nothing by construction, since most arrivals sit at aerodromes below 500 ft
+where the two datums are identical either way, but the gain lands exactly
+where elevation predicts it should. Restates the standing conclusion:
+departures want `endpoint`, arrivals want `trend`, and choosing among
+candidates by exact great-circle distance rather than H3 ring count is worth
+more than any threshold on the page.
+:::
+::::
+
+:::: {.publication-card}
+::: {.publication-info}
+**[Reply to the review of version 6](adep-ades-detection-v6/reply.qmd)**
+&nbsp;·&nbsp; [PDF](adep-ades-detection-v6/reply.pdf)
+
+Answers a review of version 6 point by point, in the reviewer's order, with the
+numbers computed from the same committed data the review was about. Confirms
+three things the review suspected and one it did not: the flight-level curve
+does turn rather than rising indefinitely, the arrival tuning does hold on a
+second period once the two are ranked together, `trend` genuinely could not say
+"out of area" — and trajectory cleaning, step 02a of the pipeline, had been
+writing a table that nothing read.
+
+Deliberately pinned to the figures that were reviewed. Where an answer changed
+once the measurements came in — out-of-area was built and then left off — the
+page says so rather than being quietly revised.
+:::
+::::
+
+:::: {.publication-card}
+::: {.publication-info}
+**[Detecting departure and destination aerodromes from ADS-B — version 5](adep-ades-detection-v5/index.qmd)**
+&nbsp;·&nbsp; [PDF](adep-ades-detection-v5/adep-ades-detection-v5.pdf)
+
+Takes the arrival deficit apart. Finds it is silence rather than error, that
+most of that silence is the abstention refusing candidates it is right to
+refuse, and that a bearing test — does the trajectory point at the aerodrome? —
+is the first signal to beat it. Establishes why: a position difference survives
+the archive's carried-forward staleness, and a rate does not, which is why
+vertical rate, closing rate and the approach cone all failed.
+:::
+::::
+
+:::: {.publication-card}
+::: {.publication-info}
+**[Thinning state vectors, and what the archive actually contains](statevector-decimation/index.qmd)**
+&nbsp;·&nbsp; [PDF](statevector-decimation/statevector-decimation.pdf)
+
+Tests whether OPDI's 5 s decimation rule — a fixed-phase `event_time % 5`
+filter — loses data where reception is intermittent. It does not: the OpenSky
+archive is a complete 1 Hz grid, and a correct bin-based sampler recovers 0.22%
+more rows. The experiment instead finds that the grid is padded with
+carried-forward positions, and that the staleness is wildly asymmetric — a
+departure's first fix is fresh, while an arrival's last fix carries a position
+measured a median of 190 seconds earlier.
+:::
+::::
+
+:::: {.publication-card}
+::: {.publication-info}
+**[Detecting departure and destination aerodromes from ADS-B — version 4.5](adep-ades-detection-v4/index.qmd)**
+&nbsp;·&nbsp; [PDF](adep-ades-detection-v4/adep-ades-detection-v4.pdf)
+
+Moves detection into the OPDI pipeline itself: H3 cells as the index, exact
+great-circle distance as the comparison, three modes behind one parameter.
+Finds that the detection radius barely matters for coverage while the height
+threshold decides almost everything — but that read on accuracy the two axes
+pull the other way, so a coverage-only view overstates the case for a high
+threshold. The production baseline improves enough under the new candidate
+stage to overturn version 3's conclusion. Breaks results down by class of
+aerodrome, which shows the method answering small aerodromes and heliports
+confidently and wrongly every time. Explains the preprocessing pipeline, each
+mode, and every metric from first principles.
+:::
+::::
+
+:::: {.publication-card}
+::: {.publication-info}
+**[Detecting departure and destination aerodromes from ADS-B — version 3](adep-ades-detection-v3/index.qmd)**
+&nbsp;·&nbsp; [PDF](adep-ades-detection-v3/adep-ades-detection-v3.pdf)
+
+Finds that six of the seven most frequent departure errors were a scheduled
+civil airport losing to an adjacent military airfield, and removes that class
+entirely with a scheduled-service preference. Fixes an out-of-area rule that was
+pre-empting valid aerodrome matches, reports out-of-area recall and precision
+separately for the first time, and carries a production patch proposal for
+`flights.py`.
+:::
+::::
+
+:::: {.publication-card}
+::: {.publication-info}
+**[Detecting departure and destination aerodromes from ADS-B — version 2](adep-ades-detection-v2/index.qmd)**
+&nbsp;·&nbsp; [PDF](adep-ades-detection-v2/adep-ades-detection-v2.pdf)
+
+Corrects two accounting errors in version 1. A large share of flights have an
+origin or destination outside the ingested area, and scoring those as detection
+failures understated every method; and the aircraft filter was an allowlist
+that discarded 47.74% of the fleet to exclude the 8.64% that are rotorcraft.
+Adds trajectory extrapolation (which fails), the cleaning ablation, the
+aerodrome-set sweep, an error breakdown, and a measurement of `track_id`
+quality.
+:::
+::::
+
+:::: {.publication-card}
+::: {.publication-info}
+**[Detecting departure and destination aerodromes from ADS-B — version 1](adep-ades-detection/index.qmd)**
+&nbsp;·&nbsp; [PDF](adep-ades-detection/adep-ades-detection.pdf)
+
+A comparison of seven ADEP/ADES methodologies against APDF ground truth over
+two three-day samples a year apart. Finds that the production algorithm's
+altitude-trend logic contributes no accuracy over a nearest-aerodrome rule on
+the same flights, and that replacing it with explicit endpoint abstention
+improves departure detection by 8–10 points of coverage — while the same
+change fails to replicate for arrivals, and is not claimed.
+:::
+::::

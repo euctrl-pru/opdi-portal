@@ -1,15 +1,14 @@
 /.quarto/
 **/*.quarto_ipynb
+.ipynb_checkpoints/
 
-# HTML build output: rendered on demand, not checked in. Only the .qmd
-# source and the .pdf (a thing people email and print) are committed -- the
-# convention track-construction-v2/index.pdf already established before this
-# project file existed.
-/index.html
-/search.json
-/site_libs/
-track-construction-v1/index.html
-track-construction-v1/index_files/
-track-construction-v2/index.html
-track-construction-v2/index_files/
-_site/
+# The freeze cache is deliberately NOT committed. Quarto's convention is to
+# commit it so a site can be rebuilt without the computational environment,
+# but execution here only reads committed CSVs -- cheap and credential-free.
+# Committing the cache would let a stale figure outlive a change to the data
+# it is supposed to be drawn from.
+/_freeze/
+
+# Rendered output goes to ../_site/papers (see _quarto.yml), which the portal
+# tracks and deploys. Nothing should land here.
+/_site/
