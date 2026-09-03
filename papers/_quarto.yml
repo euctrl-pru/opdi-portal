@@ -1,0 +1,61 @@
+project:
+  type: website
+  # This is a self-contained Quarto project, not part of the portal site build
+  # -- nothing in ../_quarto.yml references papers/, and this file does not
+  # write into the portal's own _site.
+  #
+  # output-dir: "." -- not the website-project default of "_site" -- so each
+  # paper's HTML and PDF land beside its own index.qmd, exactly where they
+  # already lived from being rendered standalone before this project file
+  # existed. Pointing output-dir at a shared _site instead once deleted the
+  # committed track-construction-v2/index.pdf on the first render: Quarto's
+  # project clean step removes any prior output it no longer expects to
+  # produce at the old in-place path the moment output moves elsewhere.
+  render:
+    - index.qmd
+    - track-construction-v1/index.qmd
+    - track-construction-v2/index.qmd
+  output-dir: "."
+
+website:
+  title: "OPDI Papers"
+  navbar:
+    left:
+      - href: index.qmd
+        text: Papers
+      - href: https://www.eurocontrol.int/opdi
+        text: OPDI
+
+format:
+  html:
+    theme: cosmo
+    toc: true
+    toc-depth: 3
+    number-sections: true
+    code-fold: true
+    df-print: kable
+  # A paper is also a thing people email and print, so it renders to PDF too.
+  # Code is echoed in neither format -- see `execute` below -- so code-fold has
+  # no PDF equivalent to lose.
+  pdf:
+    # xelatex, not Quarto's default lualatex: on this Debian texlive the
+    # luaotfload font cache cannot be built (no luaotfload-tool binary), so
+    # lualatex cannot load the Latin Modern OpenType faces. xelatex resolves
+    # them through fontconfig and needs no cache.
+    pdf-engine: xelatex
+    documentclass: scrartcl
+    papersize: a4
+    geometry:
+      - margin=25mm
+    toc: true
+    toc-depth: 3
+    number-sections: true
+    colorlinks: true
+    # Not "H": pinning the figure exactly where it appears in the source left
+    # half a page blank ahead of it. "!ht" keeps it near its discussion while
+    # letting LaTeX close the gap.
+    fig-pos: "!ht"
+
+execute:
+  echo: false
+  warning: false
