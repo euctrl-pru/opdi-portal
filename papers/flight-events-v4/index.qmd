@@ -1,0 +1,2141 @@
+---
+title: "Flight events from ADS-B"
+subtitle: "Version 4 — A-CDM milestones at twenty aerodromes"
+author: "EUROCONTROL Performance Review Unit — Open Performance Data Initiative"
+date: last-modified
+abstract: |
+  Version 3 tested OPDI's published flight events against reference data for
+  the first time and found that the two runway milestones it added, `ATOT` and
+  `ALDT`, were the extreme samples of a detection window rather than measured
+  instants. Version 4 replaces them. Nine A-CDM milestones — line-up,
+  take-off roll, airborne, landing, touchdown, runway vacated, go-around and
+  the two runway-crossing types — are now derived from one explicitly
+  classified *runway traversal*, and the three that are instants are
+  interpolated to the geometry that defines them rather than sampled near it.
+  The vertical profile moves to EUROCONTROL PRU's published methodology: a
+  200 NM analysis radius, tops that relocate across a cruise-length level, and
+  a rolling-window definition of level flight. Two silent unit defects are
+  closed — the airport-layout gate and the level-segment floors were compared
+  against uncorrected pressure altitude, so both moved with field elevation.
+  Scoring is per aerodrome, over the twenty best-covered aerodromes in the
+  network on three days of June 2026, with a column saying whether each
+  aerodrome's reference times are second- or minute-resolution.
+
+  Each milestone has its own chapter: what it is, how it is detected, its
+  parameters, what the reference data says, and what is known to be wrong with
+  it. Retired milestones are not re-documented; each has one line in the
+  breaking-changes chapter pointing at its successor.
+
+  **This document may render before its measurement campaign has run.** Every
+  figure is produced by `benchmarks/regenerate_events_v4.py`; where an output
+  is not yet staged the table says so in place rather than being omitted, and
+  the provenance chapter lists what is present. A draft with visible holes is honest; a
+  draft with numbers of unknown origin is not.
+format:
+  html:
+    toc: true
+    toc-depth: 2
+  pdf:
+    documentclass: scrreprt
+    toc: true
+    toc-depth: 2
+---
+
+```{r regenerate}
+#| include: false
+#| cache: false
+
+# Rendering this page runs the analysis behind it.
+#
+# `regenerate_events_v4.py` is the executable definition of the study: every
+# CSV read below is produced by exactly one job it declares, with exactly the
+# arguments it declares. It re-runs a job when the *code that job depends on*
+# has changed since the output was written -- not when the file is old, which
+# says nothing. So a render with everything current is a fast no-op, and a
+# render after editing `runway_ops.py` recomputes the ladder before the first
+# table is drawn.
+#
+# Running a stale job needs cluster credentials, because the numbers come from
+# Spark over S3 against EUROCONTROL APDF reference data and there is no way to
+# recompute them without the data they are computed from. OPDI_RENDER=check
+# fails fast on staleness instead; OPDI_RENDER=allow-stale renders a draft from
+# whatever is staged, and the provenance chapter then shows what is unverified.
+
+# The pipeline repo is a sibling of the portal. That resolution is wrong inside
+# a git worktree, where the paper sits under .claude/worktrees/<name>/papers and
+# the sibling walk lands somewhere that does not exist -- so the regeneration
+# step would be skipped silently and the page would render whatever is staged.
+# OPDI_REPO_DIR overrides it; the default is unchanged for a normal checkout.
+REPO   <- Sys.getenv("OPDI_REPO_DIR",
+                     normalizePath(file.path(getwd(), "..", "..", "..", "opdi"),
+                                   mustWork = FALSE))
+PYTHON <- Sys.getenv("OPDI_PYTHON", file.path(REPO, ".venv310", "bin", "python"))
+MODE   <- Sys.getenv("OPDI_RENDER", "run")
+
+regen <- file.path(REPO, "benchmarks", "regenerate_events_v4.py")
+
+# What the render did about regeneration, reported in [Provenance] rather than
+# left to the reader to infer from the absence of a message.
+REGEN_NOTE <- NULL
+
+# A missing entrypoint must not read as "nothing to regenerate". Skipping it
+# silently is how a page ends up publishing numbers no command can account for.
+# Under `run` and `check` that is fatal. Under `allow-stale` -- which means
+# "render a draft from whatever is staged" -- it is recorded and shown instead,
+# because the entrypoint lives on the pipeline branch that carries the V4
+# detectors and a portal checkout may legitimately not have it yet.
+if (!file.exists(regen) && MODE != "skip") {
+  msg <- paste0("regenerate_events_v4.py not found under REPO=", REPO,
+                " -- set OPDI_REPO_DIR, or OPDI_RENDER=skip to render without it.")
+  if (MODE %in% c("run", "check")) stop(msg)
+  REGEN_NOTE <- paste("The regeneration entrypoint was not reachable from this",
+                      "checkout, so nothing below was recomputed:", msg)
+}
+
+# `regenerate_events_v4.py` takes --check but has no --allow-stale flag: its
+# stages report staleness and exit non-zero. So allow-stale does not invoke it
+# at all rather than passing a flag argparse would reject, which would fail the
+# render for a reason that has nothing to do with the data.
+if (file.exists(regen) && MODE %in% c("run", "check")) {
+  flags  <- if (MODE == "check") "--check" else character(0)
+  status <- system2(PYTHON, c(shQuote(regen), flags), stdout = "", stderr = "")
+  if (!identical(status, 0L)) {
+    stop("regenerate_events_v4.py exited ", status,
+         " -- the figures below would not match the code that is checked out. ",
+         "Set OPDI_RENDER=allow-stale to render anyway.")
+  }
+} else if (file.exists(regen) && MODE == "allow-stale") {
+  REGEN_NOTE <- paste("Rendered with OPDI_RENDER=allow-stale: the regeneration",
+                      "chain was not run, so every figure below is whatever was",
+                      "last staged under data/.")
+}
+```
+
+```{r setup}
+#| include: false
+
+# Read-only. Every figure and table on this page comes from a committed CSV
+# under data/. Nothing here reads S3, a database or a Spark cluster.
+#
+# Every accessor below returns NA or NULL for an output that is not staged, and
+# every formatter renders NA as an em dash. That is deliberate: this paper is
+# written before its measurement campaign has run, and a chunk that errors on a
+# missing file would make the draft unrenderable, while one that silently
+# printed nothing would make a missing number look like an absent finding.
+
+rd <- function(name) {
+  path <- file.path("data", name)
+  if (!file.exists(path)) return(NULL)
+  if (grepl("[.]json$", name)) jsonlite::fromJSON(path) else read.csv(path, stringsAsFactors = FALSE)
+}
+
+lad      <- rd("ladder_2026.csv")
+inv      <- rd("inventory_2026.csv")
+pera     <- rd("per_airport_2026.csv")
+rwy      <- rd("runway_2026.csv")
+res      <- rd("resolution_2026.csv")
+br       <- rd("bridge_2026.json")
+manifest <- rd("_manifest.json")
+
+SHIPPED <- "V07_shipped"
+BASE    <- "V00_v3_shipped"
+
+#: Ranks 1-20 of the tier-A coverage ranking over the same three days as the
+#: study period. This is the order Annex A's tables are sorted in, and it comes
+#: from `benchmarks/events_gt.py:STUDY_AIRPORTS`, not from any file here.
+RANKING <- c("EBBR", "LSZH", "EICK", "EFHK", "LEIB", "EDDS", "LFLL", "LHBP",
+             "LFPO", "LPFR", "ESSA", "ENVA", "LOWW", "LKPR", "EDDP", "LPPT",
+             "EGGD", "EGNT", "EGCC", "UGKO")
+
+has <- function(df, cols) !is.null(df) && is.data.frame(df) && all(cols %in% names(df))
+
+num <- function(x) {
+  if (is.null(x) || length(x) == 0) return(NA_real_)
+  suppressWarnings(as.numeric(x[1]))
+}
+
+fm <- function(x) {
+  x <- suppressWarnings(as.numeric(x))
+  if (length(x) == 0 || is.na(x[1])) "—" else format(as.integer(x[1]), big.mark = ",")
+}
+pct    <- function(x, d = 2) if (is.na(num(x))) "—" else sprintf(paste0("%.", d, "f%%"), num(x))
+sec    <- function(x, d = 0) if (is.na(num(x))) "—" else sprintf(paste0("%+.", d, "f s"), num(x))
+absec  <- function(x, d = 0) if (is.na(num(x))) "—" else sprintf(paste0("%.", d, "f s"), num(x))
+
+# A table that cannot be drawn says why, in place. `what` names the thing, so a
+# reader scanning the document can tell a missing measurement from a
+# measurement that came out empty.
+pending <- function(what = "This table") {
+  cat(sprintf(paste0("*%s is not yet computed: the V4 benchmark chain has not been ",
+                     "run against this checkout. See [Provenance].*\n\n"), what))
+}
+
+# --- inventory -------------------------------------------------------------
+n_ev <- function(type, rung = SHIPPED) {
+  if (!has(inv, c("type", "rung", "n_events"))) return(NA_integer_)
+  v <- inv$n_events[inv$type == type & inv$rung == rung]
+  if (length(v) == 0) NA_integer_ else as.integer(v[1])
+}
+cnt <- function(type, rung = SHIPPED) fm(n_ev(type, rung))
+
+# --- ladder ----------------------------------------------------------------
+# One row per (rung, det_type, milestone). `det_type` is the detector's own
+# event type; `milestone` is the APDF quantity it was scored against.
+sc <- function(det_type, field, rung = SHIPPED) {
+  if (!has(lad, c("rung", "det_type", field))) return(NA_real_)
+  num(lad[[field]][lad$rung == rung & lad$det_type == det_type])
+}
+
+# `det_rungs` is a **named** vector, detector -> the rung that detector lives
+# on. It has to be per detector rather than one rung for the table: a retired
+# type and its successor never coexist on the same rung, because the flag that
+# emits one gates off the other. Reading both at `SHIPPED` would silently draw
+# the successor alone while the prose promised a head-to-head, which is exactly
+# the comparison this paper is about. The rung is shown in its own column so
+# the cross-rung nature of the comparison is visible rather than implied.
+score_table <- function(det_rungs, what = "This comparison") {
+  need <- c("rung", "det_type", "n_truth", "coverage_pct", "bias_s", "mad_s",
+            "p90_abs_s", "within_60s_pct")
+  if (!has(lad, need)) return(invisible(pending(what)))
+  types <- names(det_rungs)
+  rows <- lapply(types, function(t)
+    lad[lad$det_type == t & lad$rung == det_rungs[[t]], , drop = FALSE])
+  if (all(vapply(rows, nrow, 0L) == 0L)) return(invisible(pending(what)))
+  cat("| Detector | Rung | n truth | Coverage | Bias | MAD | p90 | within 60 s |\n")
+  cat("|---|---|---:|---:|---:|---:|---:|---:|\n")
+  for (i in seq_along(types)) {
+    r <- rows[[i]]
+    if (nrow(r) == 0) next
+    cat(sprintf("| `%s` | %s | %s | %s | %s | %s | %s | %s |\n", types[i],
+                r$rung[1], fm(r$n_truth[1]), pct(r$coverage_pct[1]),
+                sec(r$bias_s[1]), absec(r$mad_s[1]), absec(r$p90_abs_s[1]),
+                pct(r$within_60s_pct[1])))
+  }
+  cat("\n")
+  invisible(NULL)
+}
+
+# The ladder as a rung-by-rung progression for one detector: what each V4
+# behaviour did to a single milestone.
+rung_table <- function(det_type, what = "The rung progression") {
+  need <- c("rung", "det_type", "coverage_pct", "bias_s", "mad_s", "p90_abs_s")
+  if (!has(lad, need)) return(invisible(pending(what)))
+  d <- lad[lad$det_type == det_type, , drop = FALSE]
+  if (nrow(d) == 0) return(invisible(pending(what)))
+  d <- d[order(d$rung), , drop = FALSE]
+  cat("| Rung | Coverage | Bias | MAD | p90 |\n|---|---:|---:|---:|---:|\n")
+  for (i in seq_len(nrow(d)))
+    cat(sprintf("| %s | %s | %s | %s | %s |\n", d$rung[i], pct(d$coverage_pct[i]),
+                sec(d$bias_s[i]), absec(d$mad_s[i]), absec(d$p90_abs_s[i])))
+  cat("\n")
+  invisible(NULL)
+}
+
+# --- per-aerodrome ---------------------------------------------------------
+MIN_DETECTED <- 20   # benchmarks/events_score.py:MIN_DETECTED
+
+# `second` or `minute` for one aerodrome, from the measured sub-minute share.
+# resolution_2026.csv is grouped by (gt_airport, milestone, gt_subminute) -- one
+# row per aerodrome and milestone for each side of the split, and no pooled
+# network row -- so this reads the aerodrome's own measurement. The guard is on
+# the file being staged at all, which it is not until the chain runs.
+truth_resolution <- function(apt, milestone) {
+  if (!has(res, c("gt_airport", "gt_subminute", "n_truth"))) return("—")
+  d <- res[res$gt_airport == apt, , drop = FALSE]
+  if ("milestone" %in% names(res)) d <- d[d$milestone == milestone, , drop = FALSE]
+  if (nrow(d) == 0) return("—")
+  sub <- suppressWarnings(as.logical(d$gt_subminute))
+  tot <- sum(as.numeric(d$n_truth), na.rm = TRUE)
+  if (!is.finite(tot) || tot == 0) return("—")
+  share <- sum(as.numeric(d$n_truth[which(sub)]), na.rm = TRUE) / tot
+  if (share >= 0.5) "second" else "minute"
+}
+
+airport_table <- function(milestone, what = "This annex table") {
+  need <- c("gt_airport", "milestone", "n_truth", "n_detected", "coverage_pct",
+            "bias_s", "mad_s", "p90_abs_s", "within_60s_pct")
+  if (!has(pera, need)) return(invisible(pending(what)))
+  d <- pera[pera$milestone == milestone, , drop = FALSE]
+  if (nrow(d) == 0) return(invisible(pending(what)))
+  order_key <- match(d$gt_airport, RANKING)
+  order_key[is.na(order_key)] <- length(RANKING) + 1L
+  d <- d[order(order_key, d$gt_airport), , drop = FALSE]
+
+  cat("| Aerodrome | n truth | Coverage | Bias | MAD | p90 | within 60 s | Truth resolution |\n")
+  cat("|---|---:|---:|---:|---:|---:|---:|---|\n")
+  suppressed <- character(0)
+  for (i in seq_len(nrow(d))) {
+    ok <- if ("reportable" %in% names(d)) isTRUE(as.logical(d$reportable[i])) else TRUE
+    if (ok) {
+      cells <- c(pct(d$coverage_pct[i]), sec(d$bias_s[i]), absec(d$mad_s[i]),
+                 absec(d$p90_abs_s[i]), pct(d$within_60s_pct[i]))
+    } else {
+      cells <- rep("—", 5)
+      suppressed <- c(suppressed, sprintf("%s (%s detected)", d$gt_airport[i],
+                                          fm(d$n_detected[i])))
+    }
+    cat(sprintf("| %s | %s | %s | %s | %s | %s | %s | %s |\n", d$gt_airport[i],
+                fm(d$n_truth[i]), cells[1], cells[2], cells[3], cells[4], cells[5],
+                truth_resolution(d$gt_airport[i], milestone)))
+  }
+  cat("\n")
+  if (length(suppressed))
+    cat(sprintf(paste0("Dashes are suppressed cells, not missing detections: fewer than ",
+                       "%d detections, below the floor at which a percentile means ",
+                       "anything. Detections behind each dash — %s.\n\n"),
+                MIN_DETECTED, paste(suppressed, collapse = "; ")))
+  invisible(NULL)
+}
+
+# --- runway identity -------------------------------------------------------
+runway_table <- function(what = "The runway-identity comparison") {
+  need <- c("milestone", "n_truth", "n_named", "named_pct", "n_exact",
+            "exact_pct_of_named")
+  if (!has(rwy, need)) return(invisible(pending(what)))
+  d <- rwy
+  if ("rung" %in% names(d)) d <- d[d$rung == SHIPPED | is.na(d$rung), , drop = FALSE]
+  if (nrow(d) == 0) return(invisible(pending(what)))
+  lab <- if ("det_type" %in% names(d)) d$det_type else d$milestone
+  cat("| Detector | Milestone | Named | Exactly right | Share of named |\n")
+  cat("|---|---|---:|---:|---:|\n")
+  for (i in seq_len(nrow(d)))
+    cat(sprintf("| `%s` | %s | %s (%s) | %s | **%s** |\n", lab[i], d$milestone[i],
+                fm(d$n_named[i]), pct(d$named_pct[i]), fm(d$n_exact[i]),
+                pct(d$exact_pct_of_named[i])))
+  cat("\n")
+  invisible(NULL)
+}
+```
+
+# The study in a page
+
+OPDI turns OpenSky ADS-B state vectors into a published table of flight events:
+milestones with a 4D fix, a type, a source and an algorithm version. Version 3
+scored them against EUROCONTROL APDF for the first time and reached two
+conclusions that shaped this version. The runway milestones it introduced,
+`ATOT` and `ALDT`, were **the extreme sample of a detection window** rather
+than a measured instant, and paid for it with a bias always in the same
+direction. And the runway they named was wrong about a third of the time on
+arrivals, because parallel runways were separated by a constant of the airport
+rather than by anything about the flight.
+
+Version 4 is the answer to both, plus a third thing V3 could not see: several
+thresholds were being compared against **uncorrected pressure altitude**, so
+they moved with the field elevation of the aerodrome underneath them.
+
+## What changed
+
+| Change | Where |
+|---|---|
+| Nine A-CDM milestones derived from one classified **runway traversal**, replacing `ATOT`/`ALDT` | [Line-up] … [Runway crossings] |
+| `airborne`, `touchdown` and `landing` are **interpolated instants**, not window extremes | [Airborne], [Touchdown], [Landing] |
+| Parallel runways separated by **cross-track distance to each centreline** | [Touchdown] |
+| The vertical profile follows **PRU's published methodology** — 200 NM radius, relocating tops, rolling-window level flight | [Top of climb and top of descent], [Level segments] |
+| The airport-layout gate and the level-segment floors are measured **above field elevation** | [Airport surface events], [Level segments] |
+| `AOBT`/`AIBT` renamed `off-block`/`on-block`; one detector, A-CDM vocabulary | [Off-block and on-block] |
+| Scoring is **per aerodrome**, with a suppression floor and a truth-resolution column | [Annex A — Accuracy by aerodrome] |
+
+## The ladder
+
+Every comparison in this document is read off a **ladder**: eight
+configurations, applied cumulatively, run over the same trajectories against
+the same reference data. Rung names appear throughout the chapters below, so
+they are listed once here.
+
+| Rung | What it adds |
+|---|---|
+| `V00_v3_shipped` | The baseline: V3's shipped configuration (`events_v0.1.0`), reconstructed field by field. A plan check asserts it differs from what ships in exactly the eight fields the ladder moves — no more, so the baseline really is v0.1.0, and no fewer, so no behaviour ships without a rung measuring it. |
+| `V01_runway_tiebreak` | Cross-track distance before bearing error when picking a runway. Carries **no configuration change** — a bug fix behind a flag is a bug you have promised to keep — so it shows no delta here, and its effect is read off the runway-identity table instead. |
+| `V02_layout_agl` | The airport-layout gate measured above field elevation rather than against the 1013.25 datum. |
+| `V03_pru_level` | The level-segment arm switched from ICAO's anchored band to PRU's rolling window. |
+| `V04_level_geometry` | The level classification bound to the flight's aerodrome geometry, in two ways at once: the 3,000 ft and 1,800 ft floors measured above the field, **and** PRU's 200 NM analysis radius actually applied. |
+| `V05_pru_tops` | The PRU tops published — **and** the level-off classification re-anchored onto them. |
+| `V06_runway_milestones` | The nine A-CDM runway milestones, which also gates off `ATOT`/`ALDT`/`entry-runway`/`exit-runway`. |
+| `V07_shipped` | The version string. A plan check asserts this rung equals `EventConfig()` field for field, so the ladder's verdict is about the configuration that actually ships. |
+
+Two rungs carry more than one field, and both say so above rather than letting
+the name imply otherwise.
+
+**V04 is two fields and one idea.** The floors bind the classification to the
+aerodrome's *elevation* and the radius binds it to the aerodrome's *distance*;
+splitting them would give two deltas that are not separately interpretable,
+because a segment the radius excludes is one the floor never got to judge. The
+radius needs a flag of its own because it cannot otherwise be switched off: the
+distances arrive from a join that half the step needs anyway, so a detector
+applying the bound "whenever the distances are present" applies it always —
+including at a baseline meant to reproduce a version that declared the radius
+and read it nowhere.
+
+**V05 is two things and is not attributable to one.** Publishing the PRU tops
+and re-anchoring the level-off classification onto them are separate decisions
+that arrive in one rung, so its delta is the sum of a new event family and a
+changed classification, and no part of it can be assigned to either alone. They
+are bundled because the anchor has no meaning until the tops exist. A reader
+wanting the two apart would need a rung that emits the tops without consuming
+them, which this ladder does not have.
+
+## What the evidence says
+
+```{r tbl-headline}
+#| echo: false
+#| results: asis
+if (has(lad, c("rung", "det_type", "coverage_pct"))) {
+  cat("| Milestone | Coverage | Bias | MAD | p90 |\n|---|---:|---:|---:|---:|\n")
+  for (t in c("airborne", "touchdown", "off-block", "on-block")) {
+    if (is.na(sc(t, "coverage_pct"))) next
+    cat(sprintf("| `%s` | %s | %s | %s | %s |\n", t, pct(sc(t, "coverage_pct")),
+                sec(sc(t, "bias_s")), absec(sc(t, "mad_s")), absec(sc(t, "p90_abs_s"))))
+  }
+  cat("\n")
+} else {
+  pending("The headline comparison")
+}
+```
+
+Three properties of this study bound every number in it, and they are stated
+here rather than in a footnote.
+
+**The twenty aerodromes are the best-covered twenty**, so every figure is an
+upper bound on network performance rather than a typical case — see
+[The study set: twenty aerodromes].
+
+**Most reference times are rounded to the minute.** A bias under a minute at
+such an aerodrome cannot be distinguished from APDF's own quantisation, which
+is why Annex A carries a resolution column and why comparing two aerodromes
+without it invites the wrong conclusion.
+
+**The reference join has a ceiling.** Coverage is a share of reachable
+movements, and the reachable share is itself under 100% — see
+[Ground truth, and its ceiling].
+
+# How to read a milestone chapter
+
+Every milestone chapter has the same five parts, so it can be skimmed or read
+in full:
+
+**What it is** — in operational terms, with its A-CDM/ICAO milestone number
+where it has one. **How it is detected** — the question the algorithm answers,
+then the mechanism. **Parameters** — each with its value, unit and *source*:
+ICAO's published value, PRU's, `traffic`'s, OpenAP's, or ours. **Compared with
+reference data** — the APDF scores, or why none is possible. **Limitations** —
+what is known to be wrong.
+
+Three conventions apply throughout.
+
+**Storage is SI; thresholds are aviation.** Altitudes are metres and vertical
+rates metres per second on disk, because the OSN schema mirrors OpenSky's own.
+Every threshold in this document is named in aviation units and scaled at the
+point of comparison.
+
+**Almost every threshold is named in `EventConfig`** (`src/opdi/config.py`).
+That is what makes the parameter tables below a description of the code rather
+than a description of someone's memory of it, and it is what would make a sweep
+possible. Five exceptions remain — the three dead bands, the roll's gap bound
+and the arrival lead, all in the runway family — and each is labelled *module
+constant* in the table it appears in, and listed again in [Limitations].
+
+**One engine produces every interpolated instant.** Flight-level crossings,
+ring crossings, `airborne`, `touchdown` and `landing` all pass through the same
+Schmitt-trigger-and-interpolation code. It is defined once, in
+[Flight-level crossings], and the four chapters that use it before that point
+say so and link there. A reader working front to back may want to read that
+chapter's first two paragraphs early.
+
+`EventConfig.legacy()` still reproduces the published `events_v0.0.2` exactly,
+and the V4 ladder's baseline rung reproduces what V3 shipped (`events_v0.1.0`),
+so every comparison below is a measurement of two configurations on the same
+trajectories rather than a recollection.
+
+# Ground truth, and its ceiling
+
+Reference data is EUROCONTROL APDF. It is in movement form — there is no
+literal take-off-time column, and `SRC_PHASE` decides what a row carries — and
+it has **no aircraft address**, so it cannot be joined to ADS-B directly.
+
+The route runs through the flight table on `ID` — in PRISME `IM_SAMAD_ID`, the
+"SAM ID". `eurocontrol::apdf_tidy()` renames it to `ID` on the APDF side and
+`eurocontrol::flights_tidy()` returns it under the same name on the flight
+side, so the join is an exact key match rather than a fuzzy match on callsign
+and registration. It is null on 2.83% of APDF rows on the June 2025 extract;
+the measured share for this period appears below, and that, together with the
+reach rate, caps every coverage figure in this document.
+
+```{r tbl-bridge}
+#| echo: false
+#| results: asis
+if (!is.null(br) && !is.null(br$movements)) {
+  cat("| Scope | APDF movements | Reaching `icao24` | Share |\n|---|---:|---:|---:|\n")
+  scope <- if (!is.null(br$scope)) br$scope else "study set"
+  cat(sprintf("| %s | %s | %s | **%s** |\n", scope, fm(br$movements),
+              fm(br$reached_icao24), pct(br$reach_pct)))
+  if (!is.null(br$network) && !is.null(br$network$movements))
+    cat(sprintf("| network | %s | %s | **%s** |\n", fm(br$network$movements),
+                fm(br$network$reached_icao24), pct(br$network$reach_pct)))
+  cat("\n")
+  if (!is.null(br$null_apdf_id))
+    cat(sprintf("`ID` is null on %s of APDF rows over this period.\n\n",
+                pct(100 * num(br$null_apdf_id) / max(num(br$movements), 1))))
+} else {
+  pending("The reference-join ceiling")
+}
+```
+
+Three traps in this join fail silently, and all three are closed in the loader
+rather than left to callers.
+
+**The reference carries the commercial flight number; ADS-B carries the ATC
+callsign.** They disagree on roughly a fifth of rows — `LH416` against
+`DLH416` — and joining on the wrong one discards that fifth while looking
+exactly like a detection failure.
+
+**Timestamps are tagged `Europe/Paris` despite being named `_UTC`.** The
+instants are correct, so converting is right and stripping the zone is a
+two-hour error. Spark's session timezone is asserted rather than assumed,
+because the distributed builder does not set it.
+
+**ADS-B callsigns are space-padded to eight characters.** An untrimmed join
+matches nothing and reports every method at 0.00% rather than erroring.
+
+## Resolution differs by milestone, and by aerodrome
+
+Most reporting aerodromes round movement and block times to the whole minute:
+on the V3 sample, 64% of `MVT_TIME_UTC` and 77% of `BLOCK_TIME_UTC` values
+landed exactly on a minute, while ring crossings are second-resolution
+throughout. **A perfect detector would still show tens of seconds of apparent
+spread against a minute-rounded truth**, and the spread it shows is then a
+property of the reference, not of the algorithm.
+
+This is measured per aerodrome rather than assumed, from the share of reference
+times with a non-zero seconds field, and carried into Annex A as a column. It
+is the difference between reading LSZH's bias as an algorithmic result and
+reading EGCC's as one.
+
+```{r tbl-resolution}
+#| echo: false
+#| results: asis
+# The staged file is per (gt_airport, milestone, gt_subminute) -- about 160
+# rows. Printing it raw here would be a wall of aerodrome-invisible numbers
+# ahead of the chapter that introduces the aerodromes, so it is collapsed over
+# gt_airport for the milestone-level split and the per-aerodrome detail is left
+# to Annex A, which is where a reader can act on it.
+#
+# Bias, MAD and p90 are medians and percentiles, which do not pool exactly. The
+# n-weighted mean of the per-aerodrome values is an approximation and is
+# labelled as one in the column heads; the exact per-aerodrome numbers are in
+# the annex.
+if (has(res, c("gt_airport", "milestone", "gt_subminute", "n_truth", "mad_s"))) {
+  wm <- function(v, w) {
+    v <- suppressWarnings(as.numeric(v)); w <- suppressWarnings(as.numeric(w))
+    k <- is.finite(v) & is.finite(w) & w > 0
+    if (!any(k)) NA_real_ else sum(v[k] * w[k]) / sum(w[k])
+  }
+  cat("| Milestone | Truth resolution | Aerodromes | n truth | Bias~w~ | MAD~w~ | p90~w~ |\n")
+  cat("|---|---|---:|---:|---:|---:|---:|\n")
+  for (m in sort(unique(res$milestone))) for (sub in c(TRUE, FALSE)) {
+    d <- res[res$milestone == m &
+             (suppressWarnings(as.logical(res$gt_subminute)) %in% sub), , drop = FALSE]
+    if (nrow(d) == 0) next
+    cat(sprintf("| `%s` | %s | %d | %s | %s | %s | %s |\n", m,
+                if (sub) "second" else "minute",
+                length(unique(d$gt_airport)), fm(sum(as.numeric(d$n_truth), na.rm = TRUE)),
+                sec(wm(d$bias_s, d$n_truth)), absec(wm(d$mad_s, d$n_truth)),
+                absec(wm(d$p90_abs_s, d$n_truth))))
+  }
+  cat("\nSubscript *w* marks an n-weighted mean of the per-aerodrome medians, ")
+  cat("which is an approximation: medians do not pool. The exact per-aerodrome ")
+  cat("values are in [Annex A — Accuracy by aerodrome].\n\n")
+} else {
+  pending("The truth-resolution split")
+}
+```
+
+# The study set: twenty aerodromes
+
+The period is **5, 6 and 7 June 2026**, scored against `apdf_202606`. The study
+set is the top twenty of the tier-A ADS-B coverage ranking computed over
+**those same three days**:
+
+> EBBR, LSZH, EICK, EFHK, LEIB, EDDS, LFLL, LHBP, LFPO, LPFR, ESSA, ENVA,
+> LOWW, LKPR, EDDP, LPPT, EGGD, EGNT, EGCC, UGKO — in rank order, which is the
+> order Annex A uses.
+
+**These are the aerodromes where reception is best, so every figure in this
+document is an upper bound rather than a typical case.** That is a deliberate
+design choice and it has a cost worth naming: a detector limited by reception
+rather than by its algorithm — the block milestones, most obviously — will look
+better here than it will anywhere else, and a reader extrapolating a
+network-wide coverage figure from these tables will overshoot. The correct
+reading is "this is what the algorithm can do where the data is good", and the
+distance between that and the network figure is a reception question, not an
+algorithm question.
+
+Selecting the study set on a ranking computed over the very days being scored
+is the second half of the same caveat. It is not circular — the ranking is
+built from reception statistics, not from milestone accuracy — but it does mean
+the twenty are chosen for the sample rather than for the year.
+
+## Why 2026 and not V3's period
+
+V3 used June 2025. V4 could not, and the reason is one aerodrome.
+
+**UGKO (Kutaisi) has 868 movements in `apdf_202606` and zero in
+`apdf_202506`.** It sits at rank 20 of the coverage ranking, so dropping it
+would have meant either a nineteen-aerodrome study or promoting rank 21 and
+having the study set no longer be "the top twenty". Neither is wrong, but both
+would have to be explained; moving the period costs nothing else, because
+nothing in V4 depends on V3's month.
+
+The consequence is that **V4's numbers are not directly comparable with V3's**
+figure for figure: a different month, a different traffic sample, and a track
+table rebuilt under the A8 segmentation default. Where this document compares
+against V3 it does so through the ladder's own baseline rung, which runs V3's
+configuration on V4's tracks, rather than by quoting V3's published table.
+
+## The three-day sample against a month of reference data
+
+The reference extract covers a month; the detection sample covers three days.
+The scorer restricts the truth to the benchmark days before scoring, because
+scoring three days of tracks against a month of movements divides every
+coverage figure by roughly ten and looks like a catastrophic detector rather
+than a mismatched denominator. This is stated because it is the kind of error
+that produces a plausible-looking table.
+
+# Line-up
+
+**What it is.** A-CDM **T06**: the moment the aircraft enters the runway to
+depart. Published as `line-up`.
+
+**How it is detected.** The question this family answers first is not "when did
+the aircraft line up" but **"what was this aircraft doing on this runway"** —
+and until that is answered, none of the nine milestones can be placed.
+
+## The runway traversal
+
+Nine milestones come out of one object, described here once and referred to by
+every runway chapter that follows.
+
+A **traversal** is a maximal run of consecutive state vectors whose H3
+resolution-12 cell falls inside a runway polygon of an aerodrome the flight
+list names for that flight. A gap longer than `airport_trace_gap_seconds`
+starts a new one, so an aircraft that sits on the runway across a coverage hole
+becomes two traversals rather than one implausible ten-minute occupancy.
+
+Each traversal is then classified by three measurements over its own samples:
+
+- **alignment** — the angle between the traversal's median ground track and the
+  runway's bearing, folded to [0°, 90°] so a reciprocal landing counts as
+  aligned;
+- **speed** — the maximum groundspeed reached;
+- **height** — the height at entry and at exit above the field elevation of
+  **the traversal's own aerodrome**.
+
+giving one of three classes:
+
+| Class | Conditions |
+|---|---|
+| `departure` | aligned within 30°, faster than 50 kt, enters below 15 ft AGL and leaves at or above it |
+| `arrival` | aligned within 30°, faster than 50 kt, enters at or above 15 ft AGL and leaves below it |
+| `crossing` | at least 45° off the bearing, never above 40 kt, over in 120 s or less, below 15 ft AGL at both ends |
+
+or **NULL, which means abstain**. The gap between 30° and 45° is deliberate:
+naming the wrong milestone corrupts a movement count, while naming none is an
+explicit null a consumer can see. A traversal that falls in the band produces
+no events at all.
+
+**Which field the heights are measured against.** Every height in this family
+is measured against the elevation of the aerodrome whose runway the traversal
+is on. That sounds like a detail and is not. A flight has two aerodromes and
+the pipeline attaches both elevations, so there is a cheaper reading available:
+take the *smaller* of the two field-relative heights. That reading is correct
+where it is used — deciding whether a sample is close enough to the ground to
+be matched against an airport layout, or to be called GND by the phase
+classifier — because a track is on the ground at only one of its two
+aerodromes, cruise sits far above both, and the wrong end can only ever make
+the height larger. Permissive is the safe direction for a membership test.
+
+It is the wrong direction for a *threshold*. Ibiza's field is 24 ft and
+Zurich's is 1,416 ft; measured against the higher of the two, a departure from
+Ibiza has a height around −1,400 ft for its entire roll and climb-out, never
+reaches 15 ft, and is classified as neither a departure nor an arrival nor a
+crossing. The detector abstains, and `line-up`, `take-off-roll` and `airborne`
+are absent for the whole flight with nothing in the output to say why.
+Symmetrically an arrival at the lower of a flight's two aerodromes loses
+`landing`, `touchdown` and `runway-vacated`, and a go-around there is
+suppressed as a landing. Where the permissive height *does* clear the
+threshold, it clears it late by the elevation difference — a systematic bias
+in one direction, at exactly the aerodrome pairs where it is largest. So the
+runway family measures against the traversal's own aerodrome, the go-around
+against the destination's (it is arrival-anchored by definition), and only the
+layout gate and the phase classifier keep the permissive reading, which is what
+they want.
+
+**Why one object rather than nine detectors.** Line-up, take-off roll and
+airborne are not independent questions; they are three readings of one
+departure. Deriving them from a shared, explicitly classified traversal means
+they cannot disagree about which runway, which aerodrome, or even whether the
+movement was a departure. The classification travels with every event in
+`info` — `traversal_class`, `align_deg`, `max_gs_kt`, `rwy_ident`, `apt_icao`
+— so the decision is auditable from the published row rather than
+reconstructible only from the code.
+
+**Which runway.** A traversal is matched against both directions of every
+runway at the aerodrome and one is chosen: nearest **cross-track distance** to
+the extended centreline first, then smallest *unfolded* bearing error, then the
+designator. The cross-track term is what separates parallel runways; the
+bearing term is what separates the two ends of one strip, because both ends
+share a centreline and both score identically on alignment. Cross-track
+distances are rounded to 0.001 NM — about two metres — before the comparison,
+so that the two ends of one strip tie exactly rather than being separated by
+floating-point noise, while parallel runways hundreds of metres apart stay
+separable.
+
+## Back to line-up
+
+`line-up` is the **entry sample** of a `departure` traversal: the first state
+vector inside the runway polygon. It is a sampled instant, not an interpolated
+one, and it is honest about that — the geometric event it names is the aircraft
+crossing the runway edge, which is a polygon boundary the H3 rasterisation only
+resolves to about 25 m.
+
+Attributes are taken at the entry *time* through an explicit ordering, never
+with `first`/`last` inside a `groupBy`, which take partition order.
+
+**Parameters.**
+
+| Parameter | Value | Source | Governs |
+|---|---|---|---|
+| `airport_trace_gap_seconds` | 300 s | published | when a traversal is considered ended |
+| `runway_align_max_deg` | 30° | ours | alignment tolerance for departure/arrival |
+| `runway_cross_min_deg` | 45° | ours | minimum angle for a crossing; the gap to 30° is the abstention band |
+| `runway_roll_speed_kt` | 50 kt | ours | rolling rather than taxiing |
+| `runway_taxi_speed_kt` | 40 kt | ours | ceiling for a taxiing crossing |
+| `runway_crossing_max_seconds` | 120 s | ours | longest traversal still readable as a crossing |
+| `runway_airborne_height_ft` | 15 ft | ours | the height that separates on-deck from airborne |
+| H3 resolution | 12 | `H3Config` | matching granularity |
+
+```{r tbl-lineup-inv}
+#| echo: false
+#| results: asis
+if (!is.na(n_ev("line-up"))) {
+  cat(sprintf("`line-up` events on the sample: **%s**.\n\n", cnt("line-up")))
+} else {
+  pending("The line-up event count")
+}
+```
+
+**Compared with reference data. None is possible.** APDF records a runway
+designator (`AP_C_RWY`) but **no entry or exit time for any surface feature**,
+so there is nothing to score a line-up instant against. What can be checked is
+the runway *identity*, and that is done through the milestones APDF does time —
+see [Touchdown].
+
+**Limitations.** Requires the aerodrome's OSM layout to exist, which is built
+for large and medium aerodromes only, and requires surface reception at the
+runway edge, which is the sparsest reception in the whole trajectory. A
+traversal in the 30°–45° abstention band produces no line-up. The instant is a
+sampled one, so it carries up to one sample interval of error by construction.
+
+# Take-off roll
+
+**What it is.** A-CDM **T07**: the start of the take-off run. Published as
+`take-off-roll`.
+
+**How it is detected.** The question is *when did the aircraft stop taxiing and
+start going*, and the difficulty is that a single fast sample is not an answer:
+a high-speed turn-off, or one noisy groundspeed value, produces one.
+
+So the detector looks for a **run** of samples inside the departure traversal
+whose groundspeed reaches `runway_roll_speed_kt`, and confirms the run by
+requiring it to be held for at least `runway_roll_min_seconds`. **The
+confirmation and the timestamp are deliberately different rows**: the hold is
+what makes the run credible, but the roll started at the run's *first* fast
+sample, not at the sample that finished proving it. Stamping the confirming
+sample would put every T07 one hold-length late, always in the same direction —
+which is the exact defect this version indicts `ATOT` for, and a module cannot
+claim that improvement and then reintroduce it.
+
+The hold is wall-clock, so it needs a continuity bound: a traversal may legally
+span a gap of up to 300 s, and without a bound two fast samples either side of
+a four-minute reception hole would satisfy a 5 s hold and stamp a roll nobody
+observed. A gap longer than `ROLL_MAX_GAP_SECONDS` therefore breaks the run.
+
+**Parameters.**
+
+| Parameter | Value | Source | Governs |
+|---|---|---|---|
+| `runway_roll_speed_kt` | 50 kt | ours | rolling rather than taxiing; between taxi (~20 kt) and rotation (~140 kt) |
+| `runway_roll_min_seconds` | 5 s | ours | how long the speed must be held before the run is credible |
+| `ROLL_MAX_GAP_SECONDS` | 30 s | ours (module constant) | longest gap a roll may span — six times the nominal 5 s cadence |
+
+`ROLL_MAX_GAP_SECONDS` is a module constant rather than an `EventConfig` field,
+which is an inconsistency with the rest of this document and is recorded as one
+in [Limitations]. It is a tuning parameter and belongs in the config surface.
+
+```{r tbl-roll-inv}
+#| echo: false
+#| results: asis
+if (!is.na(n_ev("take-off-roll"))) {
+  cat(sprintf("`take-off-roll` events on the sample: **%s**.\n\n", cnt("take-off-roll")))
+} else {
+  pending("The take-off-roll event count")
+}
+```
+
+**Compared with reference data. None is possible.** APDF has no start-of-roll
+time. The nearest quantity it holds is ATOT, which is the *end* of the roll and
+is scored in [Airborne].
+
+**Limitations.** Depends on groundspeed being present and plausible on the
+runway, which is where surface reception is worst. A departure that is first
+received already above 50 kt has its roll stamped at the first sample received,
+not at the real start, and nothing in the output distinguishes the two. The
+5 s hold is a floor, not a model of acceleration.
+
+# Airborne
+
+**What it is.** A-CDM **T08**: wheels off the ground. Published as `airborne`.
+This is the milestone `ATOT` was trying to be, and its replacement.
+
+**How it is detected.** The question is *when did the height above the field
+pass fifteen feet*, and the answer must not be "at the first sample that was
+above it" — that is the whole defect being fixed here.
+
+The height above field elevation is run through the same threshold-crossing
+engine as the flight-level and ring crossings, described in
+[Flight-level crossings]: a Schmitt trigger with a five-foot dead band decides
+*whether* the crossing happened, and the instant is then obtained by **linear
+interpolation between the two samples that straddle 15 ft**. That is a
+different pair of rows from the pair that confirmed it.
+
+The contrast with `ATOT` is the point of the whole family. `ATOT` was the
+*earliest surviving sample* of a detection window bounded by distance, height,
+speed and vertical rate. An extreme of a window is displaced by construction,
+and V3 measured that displacement at +19 s median on departures. A bias always
+in the same direction is not noise a larger sample averages away.
+
+**Parameters.**
+
+| Parameter | Value | Source | Governs |
+|---|---|---|---|
+| `runway_airborne_height_ft` | 15 ft | ours | the height taken as wheels-off |
+| `AIRBORNE_HYSTERESIS_FT` | 5 ft | ours (module constant) | dead band, so a rotation that settles briefly does not emit a second `airborne` |
+| plus the traversal parameters | — | — | see [Line-up] |
+
+Fifteen feet rather than zero because barometric altitude at the field is noisy
+at the foot level and a zero crossing would chatter. It is a stated proxy for
+wheels-off, not a claim to have measured the wheels.
+
+**Compared with reference data.** Scored against APDF's ATOT.
+
+```{r tbl-airborne}
+#| echo: false
+#| results: asis
+score_table(c(ATOT = BASE, airborne = SHIPPED), what = "The airborne comparison")
+```
+
+**The table above is deliberately cross-rung**, and the rung column says so.
+`ATOT` and `airborne` never coexist: `emit_runway_milestones` emits the second
+and gates off the first, so a single-rung table would draw the successor alone
+and the head-to-head this chapter promises would quietly not be there. `ATOT`
+is therefore read at `V00_v3_shipped`, the rung that reproduces what V3
+shipped, and `airborne` at `V07_shipped`. Same trajectories, same reference,
+two definitions of the same instant.
+
+```{r tbl-airborne-rungs}
+#| echo: false
+#| results: asis
+rung_table("airborne", what = "The airborne rung progression")
+```
+
+**Limitations.** Fifteen feet AGL is a proxy, and its residual bias is reported
+rather than assumed away. The interpolation is linear between two samples up to
+one interval apart, so a rotation inside a 5 s gap is interpolated across a
+manoeuvre that is not linear. Requires a departure traversal, so it inherits
+every limitation of [Line-up]: OSM layout coverage, surface reception, and the
+abstention band.
+
+# Landing
+
+**What it is.** A-CDM **T16**: the aircraft crosses the landing threshold. This
+is the milestone the type string `landing` now carries, and **it is not what
+`landing` meant under `events_v0.0.2` or `events_v0.1.0`** — see
+[Breaking changes for consumers], which leads with exactly this.
+
+**How it is detected.** The question is *when did the aircraft pass over the
+threshold*, which is a geometric question about position, not about height or
+speed.
+
+Along-track distance from the threshold is computed as
+
+$$d = \text{haversine}(\text{thr}, P)\cdot\cos\bigl(\text{bearing}(\text{thr}, P) - \text{rwy bearing}\bigr)$$
+
+which is negative short of the threshold and positive beyond it. The crossing
+is therefore a **sign change**, and it interpolates linearly in exactly the way
+the height crossings do — through the same engine, with a 0.05 NM dead band on
+confirmation and the instant taken from the sample pair that straddles zero.
+
+One gate is applied: only crossings **above** `runway_airborne_height_ft` are
+kept. An aircraft rolling past the threshold on the ground — backtracking, or
+vacating via a turn-off beyond it — has already landed, and stamping a second
+`landing` there would double the arrival count.
+
+**T16 needs a sample the traversal does not contain.** A sign change needs a
+point on each side of it, and the negative side is *short of the threshold* —
+which is outside the runway polygon, because the threshold is the polygon's
+near edge. So the samples belonging to an arrival traversal, which are by
+definition the samples inside the polygon, contain no negative along-track
+distance at all and the crossing can never be confirmed from them. For arrival
+traversals only, the sample window is therefore extended **backwards by
+`ARRIVAL_LEAD_SECONDS` (60 s)** before the traversal's entry, admitting the
+final-approach samples the crossing interpolates from. Nothing else reads the
+extended window: the entry and exit instants, the reported positions and every
+other milestone in this family stay bounded by the polygon, because those are
+statements about occupancy and the lead is not.
+
+Sixty seconds is about 2.3 NM at approach speed — comfortably more than any
+displaced threshold or the gap between the polygon edge and the last approach
+sample, and far short of a previous traversal the same aircraft could have made
+at the same aerodrome. It is a property of the geometry rather than a tuning
+choice, which is why it is a module constant; the caveat in [Limitations] about
+module constants applies to it too.
+
+**Parameters.**
+
+| Parameter | Value | Source | Governs |
+|---|---|---|---|
+| `runway_airborne_height_ft` | 15 ft | ours | floor below which a threshold crossing is ground movement, not a landing |
+| `THRESHOLD_PLANE_HYSTERESIS_NM` | 0.05 NM | ours (module constant) | dead band on confirmation; ~304 ft, about 1.3 s at approach speed |
+| `ARRIVAL_LEAD_SECONDS` | 60 s | ours (module constant) | how far before the traversal's entry the arrival sample window reaches, so the pre-threshold sample exists |
+| plus the traversal parameters | — | — | see [Line-up] |
+
+The dead band's width does not decide the reported instant, which is worth
+stating because it is easy to assume otherwise: the band gates *confirmation*,
+and the instant is interpolated to the bare plane, earlier than the confirming
+sample and unaffected by how wide the band is.
+
+```{r tbl-landing-inv}
+#| echo: false
+#| results: asis
+if (!is.na(n_ev("landing"))) {
+  cat(sprintf("`landing` (T16) events on the sample: **%s**.\n\n", cnt("landing")))
+} else {
+  pending("The landing event count")
+}
+```
+
+**Compared with reference data. None is possible for the instant.** APDF's
+`MVT_TIME_UTC` for an arrival is ALDT — the touchdown — not the threshold
+crossing, and the two differ by the flare and the distance from threshold to
+touchdown point. Scoring T16 against ALDT would measure that offset and call it
+an error, so the shipped configuration deliberately **does not** map `landing`
+onto ALDT; [Touchdown] carries that comparison instead. The benchmark enforces
+this by construction rather than trusting it: the type-to-milestone map is
+narrowed per rung, so `landing` is simply absent from it on any rung with the
+A-CDM family switched on, and a plan check refuses a map that widens.
+
+**Limitations.** The threshold position comes from OurAirports, so a runway
+whose thresholds are recorded imprecisely displaces every T16 on it by the same
+amount — a per-runway bias with nothing in the output to show it. The
+along-track projection assumes the aircraft is approaching roughly along the
+centreline, which is true of a stabilised approach and less true of a circling
+one. And it inherits the runway-direction pick from [Line-up], whose known
+failure mode is described in [Cross-cutting findings]: on a runway near bearing
+360 the median track can resolve to the reciprocal, and the landing is then
+measured from the wrong end of the strip. Finally, an approach whose last
+reception before the threshold is more than 60 s old falls outside
+`ARRIVAL_LEAD_SECONDS` and yields no T16 — the aircraft still gets its
+`touchdown` and `runway-vacated`, so this shows as a `landing` count below the
+`touchdown` count rather than as a lost arrival.
+
+# Touchdown
+
+**What it is.** A-CDM **T17**: the wheels meet the runway. Published as
+`touchdown`, and it is the replacement for `ALDT`.
+
+**How it is detected.** The mirror of [Airborne]: the same height-above-field
+signal through the same crossing engine, in the **downward** direction. The
+instant is the interpolated crossing of `runway_airborne_height_ft`, taken from
+the pair of samples that straddle it.
+
+`ALDT` was the *latest surviving sample* of the arrival detection window — the
+same window-extreme construction as `ATOT`, with the vertical-rate gate
+inverted.
+
+**Parameters.** Identical to [Airborne]; the traversal's class decides the
+direction of the crossing.
+
+**Compared with reference data.** Scored against APDF's ALDT. As in
+[Airborne], the table is cross-rung by necessity: `ALDT` is read at
+`V00_v3_shipped` and `touchdown` at `V07_shipped`, because the flag that emits
+one gates off the other.
+
+```{r tbl-touchdown}
+#| echo: false
+#| results: asis
+score_table(c(ALDT = BASE, touchdown = SHIPPED), what = "The touchdown comparison")
+```
+
+```{r tbl-touchdown-rungs}
+#| echo: false
+#| results: asis
+rung_table("touchdown", what = "The touchdown rung progression")
+```
+
+## Runway identity
+
+This is where the runway the traversal named is checked, against `AP_C_RWY`.
+V3 measured a third of named landing runways wrong, and traced it to the
+tie-break: parallel runways were separated by **the distance from each
+threshold to the aerodrome reference point**, which is a constant of the
+airport, identical for every flight, and therefore picked the same runway of a
+parallel pair every time. V4 separates them by the aircraft's own cross-track
+distance to each extended centreline.
+
+```{r tbl-runway}
+#| echo: false
+#| results: asis
+runway_table()
+```
+
+The fix is **not behind a configuration flag**, which is why the V4 ladder's
+`V01_runway_tiebreak` rung carries no configuration change and shows no delta:
+a bug fix behind a flag is a bug you have promised to keep. Its effect is read
+off the runway-identity table against V3's published equivalent, not off a
+rung, and the ladder exempts that rung by name so a *different* accidental
+no-op still fails the plan check.
+
+Designators are compared case-insensitively with whitespace stripped and are
+not otherwise fuzzed, because `07R` and `07L` are different runways and a
+lenient match would hide exactly the error worth finding.
+
+**Limitations.** Fifteen feet AGL is a proxy for the wheels, as in [Airborne].
+Requires an arrival traversal. And the identity comparison is only as good as
+`AP_C_RWY`, which is itself a reported field.
+
+# Runway vacated
+
+**What it is.** A-CDM **T19**: the aircraft leaves the runway. Published as
+`runway-vacated`.
+
+**How it is detected.** The **exit sample** of an `arrival` traversal — the
+last state vector whose H3 cell is inside the runway polygon. Sampled, not
+interpolated, for the same reason as [Line-up]: the geometric event is a
+polygon boundary crossing, and the polygon is rasterised.
+
+Attributes are taken at the exit *time*, through an explicit ordering.
+
+**Parameters.** The traversal parameters, see [Line-up]. No parameter is
+specific to this milestone.
+
+```{r tbl-vacated-inv}
+#| echo: false
+#| results: asis
+if (!is.na(n_ev("runway-vacated"))) {
+  cat(sprintf("`runway-vacated` events on the sample: **%s**.\n\n", cnt("runway-vacated")))
+} else {
+  pending("The runway-vacated event count")
+}
+```
+
+**Compared with reference data. None is possible.** APDF has no runway-vacated
+time; the next arrival milestone it records is AIBT, on the stand.
+
+**Limitations.** Runway occupancy time — T17 to T19 — is the derived quantity
+most consumers will want from this pair, and it is bounded below by the
+rasterisation: a turn-off inside a single 5 s sample is not resolved. A
+traversal that ends because reception ended, rather than because the aircraft
+vacated, produces a `runway-vacated` at the wrong instant with nothing marking
+it.
+
+# Go-around
+
+**What it is.** An approach abandoned and flown away from. It has **no A-CDM
+milestone number**, and is absent from the numbering rather than assigned an
+invented one.
+
+**How it is detected.** The question is *did the aircraft descend towards this
+runway, not land, and climb away* — and the important design decision is that
+**it does not use a runway traversal at all**. An approach abandoned at 400 ft
+never overflies the strip, so a detector hung off a runway polygon would miss
+precisely the go-arounds that matter.
+
+Instead the height above field elevation is run through the crossing engine at
+two heights: a **trigger** at 500 ft, which the aircraft must descend below,
+and a **recovery** at 1,500 ft, which it must regain. Each recovery is paired
+with the most recent descent below the trigger, and only the first recovery of
+an excursion is kept, so one excursion is one event. The samples inside that
+window are then gated three ways:
+
+- the lowest point of the excursion stayed **above** `runway_airborne_height_ft`
+  — if it did not, the aircraft touched down, however briefly, and the climb
+  away is a departure, not an abandoned approach;
+- the maximum rate of climb reached `goaround_min_roc_ftmin` — a climb away,
+  not a descent that merely stopped descending;
+- the low point was within `goaround_radius_nm` of the arrival aerodrome — the
+  excursion happened on final, not somewhere else entirely.
+
+The event is stamped at the low point, and its `info` carries `low_height_ft`,
+`recovery_roc_ft_min` and `excursion_seconds` so a consumer can see the shape
+of the excursion behind the label.
+
+Defining "no touchdown in between" as *the excursion never reached 15 ft AGL*
+rather than as *no `touchdown` event falls inside the window* is deliberate:
+15 ft is the same threshold that **defines** [Touchdown], so the two cannot
+disagree, and the go-around detector keeps its independence from the traversal
+machinery.
+
+**Parameters.**
+
+| Parameter | Value | Source | Governs |
+|---|---|---|---|
+| `goaround_trigger_height_ft` | 500 ft | ours | how low the approach must get to count as one |
+| `goaround_recovery_height_ft` | 1,500 ft | ours | how high the climb-away must reach |
+| `goaround_min_roc_ftmin` | 500 ft/min | ours | separates a climb away from a stopped descent |
+| `goaround_radius_nm` | 10 NM | ours | how close to the aerodrome the excursion must happen |
+| `GOAROUND_HYSTERESIS_FT` | 50 ft | ours (module constant) | dead band on both heights, so a level-off at 500 ft does not toggle repeatedly |
+| `runway_airborne_height_ft` | 15 ft | ours | the touchdown suppression |
+
+```{r tbl-goaround-inv}
+#| echo: false
+#| results: asis
+if (!is.na(n_ev("go-around"))) {
+  cat(sprintf("`go-around` events on the sample: **%s**.\n\n", cnt("go-around")))
+} else {
+  pending("The go-around event count")
+}
+```
+
+**Compared with reference data. None is possible.** APDF records one movement
+per flight; a go-around leaves no row of its own, and there is no
+EUROCONTROL-side count of abandoned approaches for OPDI to score against. The
+only external check available is a plausibility one — the rate, against the
+published rates of roughly one to three per thousand approaches — and a rate
+that lands in that band is consistent with the detector being right, not
+evidence that it is.
+
+**Limitations.** Unvalidated. The four thresholds are ours, chosen to describe
+the manoeuvre rather than fitted to anything. A missed approach flown as a
+published procedure that levels at 3,000 ft is caught; a low-energy go-around
+that never descends below 500 ft is not. The detector needs the arrival
+aerodrome from the flight list for its radius gate, so a flight with no ADES
+produces none. And the low point is chosen by a minimum that can tie between
+two samples at the same height, which makes the timestamp non-deterministic by
+one sample interval on a flat minimum.
+
+# Runway crossings
+
+**What it is.** An aircraft taxiing across a runway rather than using it.
+Published as `runway-crossing-entry` and `runway-crossing-vacated`. **No A-CDM
+number**, and deliberately so: a crossing is not a movement.
+
+**How it is detected.** The `crossing` class of the traversal classification in
+[Line-up] — at least 45° off the runway bearing, never above 40 kt, over within
+120 s, and below 15 ft AGL at both ends. The two events are the traversal's
+entry and exit samples.
+
+**They exist to be separable from movements**, which is what
+`entry-runway`/`exit-runway` were not. The published pair fired for a departure,
+an arrival and a taxi crossing alike, so any consumer counting runway
+occupancies was counting three different things under one name. Splitting them
+means a crossing gets its two instants and nothing else, and can never be added
+to a movement count by accident.
+
+**Parameters.**
+
+| Parameter | Value | Source | Governs |
+|---|---|---|---|
+| `runway_cross_min_deg` | 45° | ours | minimum angle off the bearing |
+| `runway_taxi_speed_kt` | 40 kt | ours | speed ceiling |
+| `runway_crossing_max_seconds` | 120 s | ours | duration ceiling; a hold on the runway is not a crossing |
+| `runway_airborne_height_ft` | 15 ft | ours | both ends must be on the deck |
+
+```{r tbl-crossing-inv}
+#| echo: false
+#| results: asis
+if (!is.na(n_ev("runway-crossing-entry"))) {
+  cat(sprintf("`runway-crossing-entry` **%s**, `runway-crossing-vacated` **%s**.\n\n",
+              cnt("runway-crossing-entry"), cnt("runway-crossing-vacated")))
+} else {
+  pending("The runway-crossing event counts")
+}
+```
+
+**Compared with reference data. None is possible.** No source available to OPDI
+records taxi crossings of a runway.
+
+**Limitations.** The runway *direction* named on a crossing is weakly
+determined and a consumer should not read it. Cross-track distance identifies
+the strip correctly, but for a perpendicular traversal the bearing error is
+near 90° for both ends, so the choice between them falls through to the
+designator — i.e. to the alphabet. It is right about the strip and arbitrary
+about the direction, which is defensible for a manoeuvre that has no direction,
+but counting crossings per runway *direction* would be reading noise.
+
+# Off-block and on-block
+
+**What it is.** A-CDM **T04** (off-block) and **T21** (on-block) — the inputs
+to ICAO's KPI02 and KPI13. Published as `off-block` and `on-block`.
+
+**These are the events V3 published as `AOBT` and `AIBT`.** One detector, two
+names: the A-CDM vocabulary flag renames them, and nothing about the detection
+changed. The rename is listed in [Breaking changes for consumers].
+
+**How it is detected.** The question is *when did the aircraft start moving*,
+and the trap is that a groundspeed field jitters: at 5 s sampling, a stationary
+aircraft produces occasional non-zero speeds.
+
+So movement is defined as **sustained**: groundspeed above
+`ground_speed_threshold_kt` held for at least `ground_move_min_seconds`. The
+start of the first such run is the off-block candidate and the end of the last
+is the on-block candidate. This is `traffic`'s `StartMoving` signal, ported to
+column expressions.
+
+Both are then **anchored on the parking-position events** from
+[Airport surface events]: a candidate is only emitted for a track actually seen
+leaving or entering a stand. Without that anchor, a track first received
+mid-taxi would report its first movement as an off-block — a different event,
+and one that reads as an implausibly short taxi rather than as a miss.
+
+`traffic`'s own parking-position path is deliberately not used: it resolves
+stands through a live OpenStreetMap Overpass query whose cache does not survive
+serialisation to an executor.
+
+**Parameters.**
+
+| Parameter | Value | Source | Governs |
+|---|---|---|---|
+| `ground_speed_threshold_kt` | 2 kt | `traffic` | what counts as moving |
+| `ground_move_min_seconds` | 30 s | `traffic` | how long movement must persist |
+
+**Compared with reference data.** Scored against APDF's AOBT and AIBT.
+
+```{r tbl-blocks}
+#| echo: false
+#| results: asis
+score_table(c(AOBT = BASE, AIBT = BASE, "off-block" = SHIPPED, "on-block" = SHIPPED),
+            what = "The block-time comparison")
+```
+
+The table is cross-rung for the same reason as [Airborne]: `AOBT`/`AIBT` and
+`off-block`/`on-block` are one detector under two names, and the vocabulary
+flag that publishes the second set gates off the first. `AOBT`/`AIBT` are read
+at `V00_v3_shipped` and their renamed successors at `V07_shipped`, so the four
+rows should agree to within the rung's other changes — a disagreement between
+them would mean something *other* than the rename moved the block times, which
+is worth seeing.
+
+V3's finding on the network sample was that **coverage here is a reception
+limit, not an algorithm limit**: an aircraft on a stand is often not received at
+all, and the bias is structural rather than random, because sustained movement
+becomes detectable only once reception begins, which is typically well after
+the aircraft has left. The V4 study set is the twenty best-covered aerodromes,
+so if that reading is right, coverage here should rise substantially while the
+bias persists — the two move for different reasons. That is a falsifiable
+prediction of this study, and the `V07_shipped` rows of the table above are
+where it is settled.
+
+**Limitations.** Reception-bound at the stand, by construction. The off-block
+bias was large enough on V3's sample that these milestones were not usable for
+KPI02 or KPI13 as they stand, and nothing in V4 changes the detector. Pushback
+(T05) was not built for the same reason: it needs strictly more coverage than
+this.
+
+# Top of climb and top of descent
+
+**What it is.** The end of the climb and the start of the descent. Two
+algorithms are published side by side, under four type names:
+
+| Type | Algorithm | `info.method` |
+|---|---|---|
+| `top-of-climb` / `top-of-descent` | the fuzzy phase classifier | `phase` |
+| `top-of-climb-cco` / `top-of-descent-cdo` | EUROCONTROL PRU's vertical-efficiency methodology | `pru` |
+
+**Both are published because neither can be shown better.** No reference data
+records a top of climb — APDF holds movement and block times, ring crossings, a
+runway and a stand, and nothing about the cruise phase. Publishing one and
+suppressing the other would be a preference presented as a finding. Every top
+now names the algorithm that produced it, so a consumer can choose.
+
+## How the phase tops are detected
+
+Directly from the phase labels: the earliest and latest sample classified
+cruise. The cruise rule is `min(alt_hi, roc_zero, spd_hi)` with OpenAP's
+membership functions — altitude Gaussian at 35,000 ft (σ 20,000), vertical rate
+Gaussian at 0 ft/min (σ 100), speed Gaussian at **600 kt (σ 100)**.
+
+Those are OpenAP's published values, not chosen here, and they carry a known
+consequence: a turboprop cruising at 250 kt scores `exp(−6.125) ≈ 0.002`, so
+the cruise rule never wins and **turboprop and general-aviation traffic get no
+phase top of climb or descent at all**. It is inherited rather than an OPDI
+defect, and left in place deliberately: deviating from a reference constant
+should follow a measurement, not precede one.
+
+## How the PRU tops are detected
+
+The question PRU asks is different, and the difference is not a tuning choice.
+Its methodology is published at
+<https://ansperformance.eu/methodology/cd-vertical-flight-efficiency-pi/>; the
+quantities below are transcribed from it and from the PRC technical note.
+
+**The analysis is bounded by a 200 NM radius** around the flight's own
+aerodromes. `D200` is the first crossing of that radius outbound, `A200` the
+last inbound. A step climb 250 NM out is cruise-altitude optimisation, not a
+top of climb, and the radius exists precisely to exclude it.
+
+**ToC-D200** is the first 4D point of highest altitude between take-off and
+D200 inclusive; **ToD-A200** is the last 4D point at which the aircraft leaves
+the highest altitude between A200 and touchdown. First and last respectively,
+not either end of a plateau — a climb is interrupted from below and a descent
+from above.
+
+**Then the top moves.** From the ToC-D200 altitude down to **90%** of it is the
+*exclusion box*. A level segment inside that box lasting over **5 minutes** is
+cruise rather than a level-off: it is dropped from the level-off family, and
+the top relocates — **ToC-CCO** to the start of the first such segment,
+**ToD-CDO** to the end of the last. With no such segment, ToC-CCO is the
+ToC-D200 top, and `info` records `toc_relocated` so the two cases are
+distinguishable in the published data.
+
+A track that never reaches the 200 NM radius keeps its whole trajectory in the
+analysis window — the fallback is the last sample outbound and the first
+inbound. A short sector is a sector PRU still has tops for, and abstaining
+would drop every flight under about 400 NM, which is most of them.
+
+**Parameters.**
+
+| Parameter | Value | Source | Governs |
+|---|---|---|---|
+| `level_analysis_radius_nm` | 200 NM | PRU | the ring bounding the analysis |
+| `level_exclusion_box_pct` | 90% | PRU | lower edge of the exclusion box |
+| `level_exclusion_box_seconds` | 300 s | PRU | duration above which a segment in the box is cruise |
+| `emit_pru_tops` | on | ours | whether the PRU pair is emitted alongside the phase pair |
+| `level_anchor` | `pru` | ours | which pair anchors the level-off classification |
+| `phase_cruise_speed_kt` | 600 kt | OpenAP | centre of the phase cruise-speed membership |
+| `phase_cruise_speed_sigma_kt` | 100 kt | OpenAP | its width |
+
+```{r tbl-tops-inv}
+#| echo: false
+#| results: asis
+if (!is.na(n_ev("top-of-climb")) || !is.na(n_ev("top-of-climb-cco"))) {
+  cat("| Type | Events |\n|---|---:|\n")
+  for (t in c("top-of-climb", "top-of-descent", "top-of-climb-cco", "top-of-descent-cdo"))
+    cat(sprintf("| `%s` | %s |\n", t, cnt(t)))
+  cat("\n")
+} else {
+  pending("The top-of-climb and top-of-descent counts")
+}
+```
+
+The count difference between the two families is itself informative: the PRU
+tops do not require a cruise phase to be recognised, so they exist for the
+turboprop traffic the phase tops silently omit.
+
+**Compared with reference data. None is possible**, for either algorithm, for
+the reason given above. The claim the PRU pair makes is **conformance to a
+published methodology**, tested on synthetic trajectories whose geometry is
+known by construction: a climb to 30,000 ft with a 360 s hold at 27,500 ft
+(91.7% of the top, inside the box, longer than 300 s) must relocate the top; a
+240 s hold at the same altitude must not; a 600 s hold at 20,000 ft (67%, below
+the box) must not, and must be reported as a level-off instead. Those three
+cases are the whole rule and each is a test.
+
+**Limitations.** The phase pair inherits the cruise-speed bias described above.
+The PRU pair depends on the flight list naming both aerodromes: without a
+position for the aerodrome there is no distance, and a NULL distance fails the
+radius test rather than passing it — a segment that cannot be placed relative
+to an aerodrome is outside the methodology, not inside it by default. Neither
+pair is validated against data, because there is nothing to validate against.
+
+# Level segments
+
+**What it is.** Level flight during climb and descent — the inputs to ICAO's
+KPI17 and KPI19 — published as `level-off-climb-start` / `-end` and
+`level-off-descent-start` / `-end`.
+
+Separately, and **not interchangeably**, OPDI continues to publish
+`level-start` and `level-end` from the fuzzy phase classifier. Those ask
+whether a sample *looks like* level flight; the level-off family asks a
+geometric question about altitudes. Both are published, under different names,
+and a consumer computing a vertical-efficiency indicator wants the latter.
+
+## How it is detected
+
+Two arms are implemented and one is selected by `level_method`. The shipped
+default is PRU's.
+
+**The PRU arm (`pru`, shipped).** The question is *did the aircraft stay
+level*, answered as a property of the altitudes themselves rather than as a
+test on the reported vertical rate — which matters because `vert_rate` is a
+broadcast field with its own noise and its own staleness. A trajectory part is
+level when it stays inside a rolling window whose dimensions satisfy
+**Y/X = 300 ft/min**: at the default 10 s window, a 50 ft box. The trajectory
+is linearly interpolated onto that grid, because a discrete track has no sample
+at every instant the window requires. A segment is counted from **20 s** long.
+
+The window height is *derived*, not stored: `level_window_height_ft` is
+`level_vertical_speed_limit_ftmin × level_window_seconds / 60`. Storing both
+dimensions would let them drift, and a window whose ratio is not 300 ft/min is
+not the PRU window under a different parameterisation — it is a different
+definition of level flight wearing the same name.
+
+**The ICAO arm (`icao`, retained).** The algorithm shipped in `events_v0.1.0`,
+kept reachable and unchanged. ICAO specifies it completely:
+
+> a data point starts a level segment when the altitude difference with the
+> next data point is ≤ the level band limit and the vertical speed towards it
+> is ≤ the vertical speed limit. The segment ends when the altitude differs
+> from the segment's starting altitude by more than the level band limit, or
+> the vertical speed between two consecutive points exceeds the limit.
+
+The anchoring is what a plain window function cannot express: a segment's end
+is defined against *its own start*, a running value that resets. It is
+implemented as a sessionisation — mark where flatness begins, forward-fill the
+anchor within the group — with each group truncated at its first failure, so a
+trajectory that leaves the band and drifts back is not stitched across the
+excursion.
+
+**Classification, common to both arms.** Segments are split into KPI17 and
+KPI19 by whether they fall before the top of climb or after the top of descent
+— the **PRU** tops by default, see [Top of climb and top of descent] — with
+three exclusions: the climb floor, the descent floor, and the exclusion box
+that also relocates the tops.
+
+## The floors were being compared against the wrong datum
+
+This is the second silent unit defect V4 closes, and it is the same class as
+the one in [Airport surface events].
+
+The climb floor is **3,000 ft AGL** (the end of the ICAO noise-abatement
+departure procedure) and the descent floor **1,800 ft AGL** (typical ILS
+interception). The shipped v0.1.0 code compared both against **uncorrected
+pressure altitude**. At Zurich, field elevation 1,416 ft, the descent floor
+therefore sat 1,416 ft too low; at Ibiza, field elevation 24 ft, it was
+effectively right. The result was a per-aerodrome bias in what counted as a
+level-off, with nothing in the output to show it. `level_floors_above_field`
+measures both against the field.
+
+**Parameters.**
+
+| Parameter | Value | Source | Governs |
+|---|---|---|---|
+| `level_method` | `pru` | ours | which arm runs |
+| `level_window_seconds` | 10 s | PRU | temporal size of the rolling window |
+| `level_vertical_speed_limit_ftmin` | 300 ft/min | PRU / ICAO | the Y/X ratio, and the ICAO arm's rate limit |
+| `level_window_height_ft` | 50 ft | derived | the window's height at a 10 s window |
+| `level_band_limit_ft` | 200 ft | ICAO | the ICAO arm's altitude band |
+| `level_min_duration_seconds` | 20 s | PRU / ICAO | shortest reportable segment |
+| `level_min_altitude_climb_ft` | 3,000 ft AGL | PRU / ICAO | where climb analysis starts |
+| `level_min_altitude_descent_ft` | 1,800 ft AGL | PRU / ICAO | where descent analysis stops |
+| `level_floors_above_field` | on | ours | whether those two are AGL or above the 1013.25 hPa datum |
+| `level_analysis_radius_nm` | 200 NM | PRU | radius around the aerodrome analysed |
+| `level_radius_enforced` | on | ours | whether that radius binds at all; off reproduces v0.1.0, which declared it and read it nowhere |
+| `level_exclusion_box_pct` | 90% | PRU / ICAO | lower edge of the cruise exclusion |
+| `level_exclusion_box_seconds` | 300 s | PRU / ICAO | duration above which a high segment is cruise |
+
+**None of the published values must be tuned.** They are PRU's and ICAO's, and
+tuning them forfeits the only claim this family can make — conformance to a
+published methodology — in exchange for a number nothing can validate.
+`level_method`, `level_floors_above_field`, `level_radius_enforced` and
+`level_anchor` are ours and are choices about which published methodology to
+follow, not about its constants. `level_radius_enforced` is the odd one: it is
+not a choice anybody should make differently, but the radius binds a segment
+whose aerodrome the flight list could not name *out* of the analysis, so
+turning it on and off is the only way to say whether a change in the count came
+from the geometry or from the flight list's coverage — and it is the only way
+to reproduce v0.1.0, which declared the radius and never read it.
+
+```{r tbl-levels-inv}
+#| echo: false
+#| results: asis
+if (!is.na(n_ev("level-off-climb-start")) || !is.na(n_ev("level-start"))) {
+  cat("| Type | Events |\n|---|---:|\n")
+  for (t in c("level-off-climb-start", "level-off-climb-end",
+              "level-off-descent-start", "level-off-descent-end",
+              "level-start", "level-end"))
+    cat(sprintf("| `%s` | %s |\n", t, cnt(t)))
+  cat("\n")
+} else {
+  pending("The level-segment counts")
+}
+```
+
+```{r tbl-levels-arms}
+#| echo: false
+#| results: asis
+if (has(inv, c("type", "rung", "n_events"))) {
+  a <- n_ev("level-off-climb-start", "V02_layout_agl")   # ICAO arm still selected
+  b <- n_ev("level-off-climb-start", "V03_pru_level")    # PRU arm selected
+  if (!is.na(a) && !is.na(b)) {
+    cat(sprintf(paste0("Switching the arm from ICAO's anchored band to PRU's rolling ",
+                       "window changes the climb level-off count from **%s** to **%s** ",
+                       "on the same trajectories.\n\n"), fm(a), fm(b)))
+  } else {
+    pending("The level-arm comparison")
+  }
+} else {
+  pending("The level-arm comparison")
+}
+```
+
+**Compared with reference data. None is possible, and this is the family where
+that matters most.** No source available to OPDI holds level-segment truth. The
+claim is conformance, tested on synthetic trajectories: a climb at 280 ft/min
+is level under the PRU window and one at 320 ft/min is not, because at a 10 s
+sample the first rises 46.7 ft inside a 50 ft window and the second rises
+53.3 ft. That is checkable; "accurate" is not.
+
+**Limitations.** Unvalidated against data, by necessity. Two arms exist and
+neither can be shown better than the other, so the choice of default is an
+argument, not a measurement. The PRU arm's interpolation grid is built as a
+single array per partition and is capped, so a track whose segmentation failed
+and which spans a month loses the tail of its analysis — bounded and in the
+cheap direction, but real. And the arms mean slightly different things by
+`level_ft`, which a consumer comparing across `level_method` values would need
+to know.
+
+# Flight-level crossings
+
+*Types:* `xing-fl50`, `xing-fl70`, `xing-fl100`, `xing-fl245`.
+
+**What it is.** Every crossing of each monitored flight level, with the instant
+interpolated to the level itself.
+
+**How it is detected.** The question is *when did the aircraft pass through
+this level*, and the reason it needs an algorithm rather than a comparison is
+noise.
+
+A trajectory that sits near a threshold does not cross it once. Sampled at five
+seconds, an aircraft holding FL99.8 with fifty feet of barometric noise
+produces a crossing of FL100 every few samples, all of them spurious. The
+remedy is a **Schmitt trigger**: instead of one threshold there are two, a dead
+band either side of it. The signal is *above* only once it exceeds the upper
+edge and *below* only once it falls under the lower edge; between the two it is
+undefined and keeps whatever it last was. A crossing is published when that
+remembered side flips, so noise inside the band cannot produce one and a
+genuine crossing still does. The band here is `crossing_hysteresis_ft` = 300 ft.
+
+The trigger decides *whether* a crossing happened. It does not decide *when*:
+the sample that confirms it is already past the threshold. The instant is
+obtained separately, by linear interpolation between the two samples that
+straddle the bare threshold — a different pair of rows from the one that
+confirmed it.
+
+**This is the engine four other families use.** [Airborne] and [Touchdown] run
+it over height above field elevation, [Landing] over along-track distance from
+the threshold, [Go-around] over height at two levels, and [Ring crossings] over
+distance to an aerodrome. Each supplies its own quantity, its own thresholds
+and its own dead band; the mechanism is identical, which is why validating it
+in one place validates it in all of them.
+
+Two further properties, both fixes to the published detector. Thresholds are
+evaluated as **parallel columns over one window** rather than by exploding the
+trajectory once per threshold, so N levels cost one shuffle rather than N — and
+that also removes a latent fault, because the published detector's first-match
+`when` chain reported only one level when a single 5 s interval spanned two.
+And an aircraft cruising *at* a level never leaves the dead band, so its side
+never resolves and **no event is emitted**, which is the property that makes
+reporting every crossing usable at all.
+
+**Parameters.**
+
+| Parameter | Value | Source | Governs |
+|---|---|---|---|
+| `crossing_levels_fl` | 50, 70, 100, 245 | published vocabulary | which levels are monitored |
+| `crossing_hysteresis_ft` | 300 ft | ours | chatter suppression vs missed crossings |
+| `crossing_all_occurrences` | on | ours | every crossing rather than first and last |
+| `crossing_interpolate` | on | ours | interpolate to the level rather than report a sample |
+
+Each event carries `crossing_seq` (1-based, in time order), `direction`, and
+`bracket_s` — the spacing of the two interpolated-between samples, so a
+consumer can tell an instant measured across 5 seconds from one inferred across
+four minutes.
+
+```{r tbl-xing-inv}
+#| echo: false
+#| results: asis
+if (!is.na(n_ev("xing-fl100"))) {
+  cat("| Type | Events |\n|---|---:|\n")
+  for (t in c("xing-fl50", "xing-fl70", "xing-fl100", "xing-fl245"))
+    cat(sprintf("| `%s` | %s |\n", t, cnt(t)))
+  cat("\n")
+} else {
+  pending("The flight-level crossing counts")
+}
+```
+
+**Compared with reference data. None is possible** — APDF holds no
+flight-level crossings. The detector's *mechanism* is nonetheless validated
+where the same code is applied to rings, which APDF does record: see
+[Ring crossings].
+
+**Limitations.** A flight that climbs and levels off **exactly at** a threshold
+never clears the far edge and registers no crossing there. That case is
+described by the level-segment and top-of-climb events instead, but it is a
+real semantic change from the published `first-xing-fl*` / `last-xing-fl*`
+family, which is retired — see [Breaking changes for consumers].
+
+# Ring crossings
+
+*Types:* `xing-40nm`, `xing-100nm`.
+
+**What it is.** Crossings of the 40 NM and 100 NM cylinders around the flight's
+**own** origin and destination — ICAO's ASMA cylinder for KPI08 and the
+reference area for KPI05.
+
+**How it is detected.** The Schmitt trigger and interpolation engine of
+[Flight-level crossings], with distance to an aerodrome as the quantity and a
+1 NM dead band.
+
+The rings come from the flight list's ADEP and ADES rather than from the H3
+aerodrome zone table: that is what the indicators mean, and what APDF records —
+one crossing per movement, not one per aerodrome overflown. It is also far
+cheaper, multiplying each sample by at most two rather than by every aerodrome
+within 110 NM.
+
+Bearing is computed **from** the interpolated crossing position rather than
+interpolated alongside it. A bearing is circular: averaging 359 and 1 gives
+180, wrong by half a turn on any crossing near due north.
+
+**Parameters.**
+
+| Parameter | Value | Source | Governs |
+|---|---|---|---|
+| `ring_radii_nm` | 40, 100 NM | ICAO | which cylinders |
+| `ring_hysteresis_nm` | 1 NM | ours | chatter suppression for a track flying tangentially |
+| `crossing_interpolate` | on | ours | shared with the level crossings |
+
+`info` carries `crossing_seq`, `direction` (inbound/outbound), `apt_icao`,
+`bearing` and `flight_level`, matching `C40_CROSS_{TIME,LAT,LON,FL}` and
+`C40_BEARING` column for column, so the comparison is direct rather than a
+translation.
+
+**Compared with reference data.** This is the one family where the reference is
+second-resolution, so it is the one place a seconds-level claim is defensible.
+On V3's sample the detector's spread sat **inside the disagreement between two
+independent EUROCONTROL derivations of the same crossing** — median error under
+half a second, median position error about 0.2 NM. That result is not re-run
+here: V4 stages the ladder, the per-aerodrome table and the runway table, and
+the ring comparison is computed but not staged for this paper.
+
+```{r tbl-rings}
+#| echo: false
+#| results: asis
+score_table(c("xing-40nm" = SHIPPED, "xing-100nm" = SHIPPED),
+            what = "The ring comparison")
+```
+
+**Limitations.** A ring crossing is not detected for an aerodrome merely
+overflown — correct for these indicators, but not a general-purpose airspace
+crossing. And the family depends entirely on the flight list naming the
+aerodrome, so ADEP/ADES detection error propagates directly into it.
+
+# Airport surface events
+
+*Types:* `entry-` / `exit-` for `taxiway`, `apron`, `parking_position`,
+`threshold`, `hangar`, `deicing_pad`.
+
+**What it is.** Traversals of the aerodrome's surface features, from
+OpenStreetMap aeroway geometry.
+
+**`entry-runway` and `exit-runway` are no longer part of this family.** They
+were the one feature where a traversal's *purpose* mattered, and they are
+replaced by the classified runway family — [Line-up] through
+[Runway crossings]. See [Breaking changes for consumers].
+
+**How it is detected.** Low-altitude samples are matched against OSM aeroway
+geometry pre-rasterised to H3 resolution 12 in `hexaero_airport_layouts`. A
+sample joins a feature when its `h3_res_12` cell matches *and* the feature's
+aerodrome is one the flight list names for that flight. Consecutive matches on
+the same feature form a traversal; a gap over 300 s starts a new one. Each
+traversal yields an entry and an exit event.
+
+## The gate was measured against the wrong datum
+
+The published gate is **FL20 against the 1013.25 hPa datum**. `baro_altitude_c`
+is uncorrected pressure altitude, so on a low-pressure day, or at any aerodrome
+high enough, the gate moves relative to the ground it is supposed to sit just
+above. It is the same defect class as the phase family's ground ceiling, and
+the same one the level floors carry in [Level segments]: a threshold whose
+*intent* is "near the ground" compared against a datum that is not the ground.
+
+`airport_gate_above_field` measures the gate as **2,000 ft above field
+elevation**, which is FL20's intent expressed against the field. The gate runs
+before the column projection narrows the frame, because the height calculation
+needs the raw altitude and the two elevation columns, none of which survive the
+select.
+
+**Parameters.**
+
+| Parameter | Value | Source | Governs |
+|---|---|---|---|
+| `airport_gate_above_field` | on | ours | whether the gate is AGL or against the 1013.25 datum |
+| `airport_max_height_agl_ft` | 2,000 ft | ours | the gate's value when it is AGL |
+| `airport_max_fl` | FL20 | published | the gate's value when it is not |
+| `airport_trace_gap_seconds` | 300 s | published | when a traversal is considered ended |
+| `airport_events_ordered` | on | ours | attributes taken at the entry/exit *times* |
+| H3 resolution | 12 | `H3Config` | matching granularity |
+
+`airport_events_ordered` is a correctness fix, not a tuning knob: the published
+detector used `first`/`last` inside a `groupBy`, which take **partition order,
+not time order**, so a reported entry position was not guaranteed to be the
+position at the reported entry time.
+
+```{r tbl-surface-inv}
+#| echo: false
+#| results: asis
+feats <- c("taxiway", "apron", "parking_position", "threshold", "hangar", "deicing_pad")
+if (any(!is.na(sapply(paste0("entry-", feats), n_ev)))) {
+  cat("| Feature | Entries | Exits |\n|---|---:|---:|\n")
+  for (f in feats)
+    cat(sprintf("| `%s` | %s | %s |\n", f, cnt(paste0("entry-", f)), cnt(paste0("exit-", f))))
+  cat("\n")
+} else {
+  pending("The surface-event counts")
+}
+```
+
+**Compared with reference data. None is possible for any of them.** APDF
+records a runway designator (`AP_C_RWY`) and a stand (`AP_C_STND`), but **no
+entry or exit times for any surface feature**. A runway *identity* can be
+checked indirectly through [Touchdown]; no aeroway event's *timing* can be
+checked at all.
+
+**Limitations.** Cannot fire for an aerodrome the flight list did not name.
+Depends on OSM coverage, which is built only for large and medium aerodromes in
+the ingestion area. A traversal completed inside a single 5 s sample is dropped,
+because its duration is zero. Threshold polygons are the smallest features in
+the set and therefore the most sensitive to cleaning removing surface samples —
+V3 measured the largest relative fall of any event type there, and it was
+trajectory cleaning, not a detector change. `deicing_pad` is in the vocabulary
+but was not observed on V3's sample, because de-icing pads are tagged in OSM
+for few of the aerodromes covered and the sample is June.
+
+# First seen and last seen
+
+*Types:* `first_seen`, `last_seen`.
+
+**What it is.** The first and last sample of each track.
+
+**How it is detected.** Row number ascending and descending over the track,
+ordered by time. Emitted for every track without condition, so the count is
+also the track count.
+
+**Parameters.** None.
+
+```{r tbl-seen-inv}
+#| echo: false
+#| results: asis
+if (!is.na(n_ev("first_seen"))) {
+  cat(sprintf("`first_seen` **%s**, `last_seen` **%s** — which is also the number of tracks in the sample.\n\n",
+              cnt("first_seen"), cnt("last_seen")))
+} else {
+  pending("The first-seen and last-seen counts")
+}
+```
+
+**Compared with reference data. None is possible, and not for want of a
+source.** These are properties of *reception coverage*, not of the flight.
+There is nothing they could be right or wrong against — an aircraft is first
+seen when a receiver first hears it, which no reference dataset records because
+it is not a property of the operation.
+
+**Limitations.** May carry a null position where the first sample has none.
+Their value to a consumer is as a **coverage diagnostic**: the gap between
+`first_seen` and [Off-block and on-block], or between `last_seen` and
+[Runway vacated], is the part of the movement ADS-B did not see, and in this
+study set it is smaller than it is anywhere else in the network.
+
+# Measurements
+
+Two values attached to every event rather than being events themselves.
+
+**`Distance flown (NM)`** is the cumulative great-circle distance from the
+start of the track, summed sample to sample with an Earth radius of 6,371 km
+and converted at 1.852 km per nautical mile. **`Time Passed (s)`** is elapsed
+time from the track's first sample.
+
+Both are **interpolated to the crossing instant** for every family that
+produces an interpolated instant — the crossings, the rings, `airborne`,
+`touchdown` and `landing`. This is not a refinement: a measurement attached to
+an interpolated event but read from a neighbouring row would disagree with its
+own event, and the disagreement would be invisible in the published table.
+
+**Compared with reference data.** APDF carries `C40_TRANSIT_DIST_KM` — the
+achieved distance inside the ring — which makes a distance comparison possible
+for the ring families. **It has not been run**, in V3 or here; it remains the
+most tractable unmeasured quantity in this programme.
+
+**Limitations.** Cumulative from the *track's* start, not from the flight's, so
+a flight whose track begins mid-climb has a distance measure that is not the
+distance flown. Track identity changed shape with the A8 segmentation default,
+so these measures are not comparable across that boundary either.
+
+# Cross-cutting findings
+
+Six results are about the programme rather than about any one milestone.
+
+## A published take-off can be shadowed by a level-start
+
+The legacy phase family emits its events from a single `when` chain, and the
+`take-off` arm sits **after** the level-segment arms in it. A sample the fuzzy
+classifier labels `LVL` therefore publishes a `level-start` and the take-off at
+that same sample is never reached.
+
+This is pre-existing behaviour, unchanged by V4, and it is narrow — it needs
+the rotation sample to be classified level rather than climb, which happens
+when the vertical rate is still small and the smoothing window has not yet
+tipped. It surfaced while building a test fixture, not from the scored metrics,
+which is the point worth recording: **an ordering sensitivity inside a `when`
+chain produces a missing event, and a missing event looks exactly like a
+detector that did not fire.** It is one more reason the A-CDM family derives its
+milestones from an explicitly classified object rather than from the order of
+arms in a chain.
+
+## A circular quantity is being averaged linearly, and it fails silently
+
+The runway direction is chosen using the traversal's **median ground track**,
+computed as `percentile_approx(heading, 0.5)`. Heading is circular and the
+median is not: a runway near bearing 360 whose samples straddle 359° and 001°
+yields a median near 180° — the exact reciprocal.
+
+The alignment fold to [0°, 90°] hides this from the *classification*, because a
+reciprocal still counts as aligned, so the traversal is still called an arrival
+and `touchdown` still fires. But [Landing] is measured as a sign change of
+along-track distance **from the chosen threshold**, and measured from the wrong
+end of the strip that sign change never occurs inside the traversal. The
+failure mode is therefore **a silently missing `landing` on runways numbered
+near 36/18**, with a `touchdown` present on the same traversal to make the gap
+look like a detector quirk rather than a defect.
+
+It is inherited from the shipped `detect_runway_movements` rather than
+introduced here, and fixing it means a circular median — a deliberate deviation
+from the reference implementation, which is why it was not done inside this
+change. The check that would settle it is a cut of the runway-identity table by
+designator, and it is the first thing to run when the chain completes.
+
+## Two vocabularies wrote the runway designator under two keys
+
+`ATOT`/`ALDT` recorded the runway in `info` under `runway`; the A-CDM family
+records it under `rwy_ident`. Both readers in the benchmark parsed only
+`runway`, so **every v0.2.0 designator would have read as NULL —
+indistinguishable from "the detector named no runway"**, and the runway-identity
+result would have collapsed to zero with a plausible-looking explanation
+available.
+
+It was found by wiring the comparison, not by a test, and both readers now
+coalesce the two keys. It is recorded here because it is the characteristic
+failure of a version bump: not a wrong number, but a right number read from a
+key that moved.
+
+## Abstention is an output, not a gap
+
+Three places in the V4 detectors decline to answer rather than guessing: the
+30°–45° traversal band, the runway pick when no runway is within tolerance, and
+a NULL distance failing the 200 NM radius test rather than passing it.
+
+Each costs coverage and each is deliberate. **Naming the wrong milestone
+corrupts a movement count; naming none is an explicit null a consumer can
+see.** Every coverage figure in this document is therefore lower than it could
+be made by a detector willing to guess, and that trade is the reason the
+figures can be read at all.
+
+## The suppression floor, and why the twenty are not comparable
+
+The twenty study aerodromes differ in size by a factor of about twenty over the
+three-day sample. A percentile computed on a handful of detections is noise
+wearing a number's clothes, so Annex A suppresses any cell with fewer than
+`r MIN_DETECTED` detections — **marked, not dropped**, because an aerodrome
+removed from a table is indistinguishable from one that was never in the study.
+
+## Two negative results from V3 still stand
+
+Neither was re-tested here and neither has been reverted.
+
+**Requiring complete fuzzy evidence made detection worse, on both V3 periods.**
+Spark's `least`/`greatest` skip nulls, so a rule missing an input became a
+minimum over fewer terms and could out-compete a complete rule. Requiring every
+input is obviously more correct, and it removed most phase-based landings,
+because ADS-B carries a null velocity often enough that insisting on complete
+evidence discards most ground samples. It matters less than it looks now that
+the runway-anchored family replaces that path entirely.
+
+**The 60-second smoothing window was contradicted by the second period.** It is
+what OpenAP does and what the original port dropped, so it has the strongest
+prior justification of any change in the programme; it was near-neutral on one
+sample and cost 86% of landing coverage on the other. One confound is stated
+with it: the second period's tracks predate the altitude repair, so input
+preparation differed as well as the month. The actionable half is that a fix
+behaving this differently on noisier input should not be adopted on the
+strength of its rationale alone.
+
+# Breaking changes for consumers
+
+The new version string is `events_v0.2.0`. `EventConfig.legacy()` still
+reproduces `events_v0.0.2` exactly, and the benchmark's baseline rung
+reproduces `events_v0.1.0`, so **any past month remains reproducible** under
+the configuration that produced it.
+
+## `landing` has changed meaning, and kept its name
+
+This is the one change that can corrupt an existing consumer silently, so it
+leads.
+
+| | Under `events_v0.0.2` / `v0.1.0` | Under `events_v0.2.0` |
+|---|---|---|
+| Question | did the fuzzy phase go descent → ground | when did the aircraft cross the landing threshold |
+| ICAO | — | **T16** |
+| Instant | a sampled state vector | interpolated to the threshold plane |
+| Scored against | APDF ALDT | **nothing** — ALDT is [Touchdown]'s |
+
+A consumer reading `landing` as touchdown will now be reading the threshold
+crossing, which is earlier by the flare and the distance from threshold to
+touchdown point. **Two things distinguish them in the published data**: the
+`version` column, and `info.milestone`, which is `T16` under the new meaning and
+absent under the old. Consumers wanting touchdown must move to `touchdown`.
+
+## Types no longer emitted under `events_v0.2.0`
+
+Each is superseded, not deleted: it remains reachable under the configuration
+that published it, and each line points at the chapter that documents its
+successor.
+
+| Retired type | Replaced by | Why |
+|---|---|---|
+| `take-off` | [Airborne] (T08) | phase transition → interpolated 15 ft AGL crossing on a classified departure |
+| `ATOT` | [Airborne] (T08) | window extreme → interpolated instant |
+| `ALDT` | [Touchdown] (T17) | window extreme → interpolated instant |
+| `AOBT` | [Off-block and on-block] (T04) | renamed to `off-block`; same detector |
+| `AIBT` | [Off-block and on-block] (T21) | renamed to `on-block`; same detector |
+| `entry-runway` | [Line-up], [Runway crossings] | one type conflated departures, arrivals and taxi crossings |
+| `exit-runway` | [Runway vacated], [Runway crossings] | same |
+
+Already retired at `events_v0.1.0` and still not emitted:
+`first-xing-fl{50,70,100,245}` and `last-xing-fl{50,70,100,245}`, replaced by
+the crossing sequence number in [Flight-level crossings] — the first crossing
+is `crossing_seq == 1`, the last is the maximum.
+
+## Other changes worth a row-count alarm
+
+**`info` keys moved.** The runway designator is `rwy_ident` in the A-CDM
+family, where it was `runway` for `ATOT`/`ALDT`. A consumer parsing `info`
+should coalesce the two rather than switching on version.
+
+**The event table changes size in both directions.** Nine new runway types and
+the PRU tops add events; the retirements and the level-arm change remove them.
+Volume is not a proxy for information here, and any consumer with a row-count
+alarm on the event table should expect it to fire.
+
+```{r tbl-growth}
+#| echo: false
+#| results: asis
+if (has(inv, c("rung", "n_events"))) {
+  a <- sum(as.numeric(inv$n_events[inv$rung == BASE]), na.rm = TRUE)
+  b <- sum(as.numeric(inv$n_events[inv$rung == SHIPPED]), na.rm = TRUE)
+  if (is.finite(a) && is.finite(b) && a > 0)
+    cat(sprintf(paste0("On the three-day 2026 sample: **%s events under the V3 ",
+                       "configuration, %s under V4** — a factor of %.2f.\n\n"),
+                fm(a), fm(b), b / a))
+} else {
+  pending("The event-volume comparison")
+}
+```
+
+**Every top of climb and descent now names its algorithm** in `info.method`
+(`phase` or `pru`), and four type names exist where two did. A consumer
+selecting `type = 'top-of-climb'` gets the fuzzy pair only, unchanged; one
+wanting PRU's must ask for `top-of-climb-cco`.
+
+**Event identifiers are derived from the event's own identity** — track, type,
+time and version — rather than from a partition counter, so a re-run produces
+the same identifiers. This makes a re-run idempotent in *content*; it does not
+make the write idempotent, and re-processing safety still rests on the
+per-month progress logs.
+
+**Track identity changed shape independently of this version.** The A8
+segmentation default removed the `_{year}_{month}` suffix from `track_id`, so
+any consumer parsing that suffix breaks, and past months do not reproduce. That
+is a track-construction change, documented in its own paper, and it is
+mentioned here only because it lands in the same release window.
+
+# Limitations
+
+The ones that bound how this document should be read, collected.
+
+**The study set is the best-covered twenty aerodromes**, chosen on a ranking
+computed over the same three days that are scored. Every figure is an upper
+bound, and a detector limited by reception looks better here than anywhere else
+in the network.
+
+**Most reference times are minute-rounded.** A bias under a minute at such an
+aerodrome cannot be distinguished from APDF's own quantisation. Annex A carries
+the resolution per aerodrome for exactly this reason.
+
+**The reference join has a ceiling** — `ID` was null on 2.83% of APDF rows on
+the June 2025 extract, the share for this period is measured in
+[Ground truth, and its ceiling], and the reach rate to `icao24` caps every
+coverage figure above that.
+
+**Ten milestone families have no external truth at all**: (1) the tops of
+climb and descent, (2) both level-segment arms, (3) the flight-level crossings,
+(4) every airport surface event, (5) `line-up`, (6) `take-off-roll`, (7)
+`landing` as an instant — ALDT belongs to `touchdown` — (8) `runway-vacated`,
+(9) the runway crossings and (10) `go-around`. For the level family and the PRU tops the substitute is
+conformance to a published methodology, tested on synthetic geometry. For the
+others there is none, and their counts are reported while their timing is
+unvalidated and stated as such.
+
+**Five tuning parameters are module constants, not config fields** —
+`ROLL_MAX_GAP_SECONDS`, `AIRBORNE_HYSTERESIS_FT`, `THRESHOLD_PLANE_HYSTERESIS_NM`,
+`GOAROUND_HYSTERESIS_FT` and `ARRIVAL_LEAD_SECONDS`. They are documented where
+they sit, but they are not sweepable without editing code, which contradicts
+the convention every other threshold in this document follows.
+
+**Known defects carried, not fixed**: the circular median described in
+[Cross-cutting findings]; the `when`-chain ordering sensitivity in the legacy
+phase family; the PRU arm's interpolation-grid cap, which truncates the tail of
+a pathologically long track; and the non-deterministic go-around low point on a
+flat minimum.
+
+**No parameter sweep has been run.** Every threshold is named in `EventConfig`,
+which is what makes one possible, and V3's chapter on designing one — an
+objective that trades coverage against error, tolerances taken from the
+inter-source floor rather than chosen, fit on one period and validated on the
+other — still describes the work that has not been done.
+
+# Provenance
+
+```{r regen-note}
+#| echo: false
+#| results: asis
+if (!is.null(REGEN_NOTE)) cat(sprintf("**%s**\n\n", REGEN_NOTE))
+```
+
+Every figure on this page is produced by `benchmarks/regenerate_events_v4.py`,
+which re-runs a job only when the source files that job depends on have changed
+since the output was written. **An output with no manifest entry below is
+reported in the text as not yet computed rather than shown as fact.**
+
+```{r tbl-provenance}
+#| echo: false
+#| results: asis
+if (!is.null(manifest) && length(manifest) > 0) {
+  cat("| Output | Script | Git SHA | Produced |\n|---|---|---|---|\n")
+  for (name in sort(names(manifest))) {
+    e <- manifest[[name]]
+    if (is.null(e$script)) next
+    dirty <- if (isTRUE(e$git_dirty)) " (dirty)" else ""
+    cat(sprintf("| `%s` | `%s` | `%s`%s | %s |\n", name, e$script, e$git_sha,
+                dirty, substr(e$produced_utc, 1, 10)))
+  }
+  cat("\n")
+} else {
+  cat(paste0("**No manifest is staged.** No figure in this document has been ",
+             "computed against the checked-out code. Every table above that ",
+             "depends on data says so in place, and this page is a draft of the ",
+             "structure and the method, not of the results.\n\n"))
+}
+```
+
+```{r tbl-staged}
+#| echo: false
+#| results: asis
+files <- c("ladder_2026.csv", "per_airport_2026.csv", "runway_2026.csv",
+           "resolution_2026.csv", "inventory_2026.csv", "bridge_2026.json")
+cat("| Expected output | Staged |\n|---|---|\n")
+for (f in files)
+  cat(sprintf("| `%s` | %s |\n", f, if (file.exists(file.path("data", f))) "yes" else "**no**"))
+cat("\n")
+```
+
+Four caveats belong with the provenance rather than with any figure.
+
+**The staleness check is not credential-free.** `provenance.inputs_changed`
+reports "not stale" when it cannot reach S3 to look, so a check run without
+credentials is not evidence of currency. The stage that builds the 2026 flight
+list reports `cannot check (no credentials)` — i.e. stale — rather than
+passing, which is the correct direction, but the job-level check does not have
+that property.
+
+**The reference-join ceiling and the scored population are different scopes.**
+The ceiling is computed over the movements the bridge could reach; the scores
+are computed over the study set on three days. Reading the first as the
+denominator of the second overstates coverage.
+
+**The reference extract is a month; the sample is three days.** The scorer
+restricts truth to the benchmark days before scoring. This is stated twice in
+this document because getting it wrong produces a plausible table.
+
+**V3's staged outputs now read stale against this code.** V4's changes touch
+`event_bench.py`, which is in V3's dependency set, so V3's fingerprints moved
+even though its committed CSVs did not. V3's numbers are traceable to the
+version that published them and were not re-run.
+
+# Annex A — Accuracy by aerodrome {.unnumbered}
+
+One table per milestone, one row per aerodrome, in coverage-ranking order —
+EBBR first, UGKO twentieth. The columns are the same throughout:
+
+- **n truth** — reference movements for that aerodrome and milestone, over the
+  three sample days, after the bridge.
+- **Coverage** — the share of those with a detection aligned to them.
+- **Bias** — median signed error, detection minus reference. Positive is late.
+- **MAD** — median absolute error.
+- **p90** — 90th percentile of absolute error.
+- **within 60 s** — share of *truth* rows detected within a minute.
+- **Truth resolution** — `second` where most of that aerodrome's reference
+  times carry a non-zero seconds field, `minute` otherwise.
+
+**Read the last column first.** At a `minute` aerodrome a bias under 30 s is
+inside the reference's own quantisation and means nothing; at a `second`
+aerodrome it is a measurement. Comparing an aerodrome of one kind against one
+of the other without that column is the specific mistake this annex exists to
+prevent.
+
+Dashes are **suppressed cells, not missing detections**: fewer than
+`r MIN_DETECTED` detections, below the floor at which a percentile carries
+information. The detections behind each dash are listed under the table, so a
+suppressed row can still be told apart from an absent one.
+
+## A.1 ATOT — against `airborne` {.unnumbered}
+
+```{r annex-atot}
+#| echo: false
+#| results: asis
+airport_table("ATOT", what = "The per-aerodrome ATOT table")
+```
+
+## A.2 ALDT — against `touchdown` {.unnumbered}
+
+```{r annex-aldt}
+#| echo: false
+#| results: asis
+airport_table("ALDT", what = "The per-aerodrome ALDT table")
+```
+
+## A.3 AOBT — against `off-block` {.unnumbered}
+
+```{r annex-aobt}
+#| echo: false
+#| results: asis
+airport_table("AOBT", what = "The per-aerodrome AOBT table")
+```
+
+## A.4 AIBT — against `on-block` {.unnumbered}
+
+```{r annex-aibt}
+#| echo: false
+#| results: asis
+airport_table("AIBT", what = "The per-aerodrome AIBT table")
+```
+
+```{r annex-missing}
+#| echo: false
+#| results: asis
+if (has(pera, "milestone")) {
+  extra <- setdiff(unique(pera$milestone), c("ATOT", "ALDT", "AOBT", "AIBT"))
+  for (m in extra) {
+    cat(sprintf("\n## A.%d %s {.unnumbered}\n\n", 4 + match(m, extra), m))
+    airport_table(m, what = sprintf("The per-aerodrome %s table", m))
+  }
+}
+```
