@@ -1,21 +1,21 @@
 project:
   type: website
-  # This is a self-contained Quarto project, not part of the portal site build
-  # -- nothing in ../_quarto.yml references papers/, and this file does not
-  # write into the portal's own _site.
-  #
-  # output-dir: "." -- not the website-project default of "_site" -- so each
-  # paper's HTML and PDF land beside its own index.qmd, exactly where they
-  # already lived from being rendered standalone before this project file
-  # existed. Pointing output-dir at a shared _site instead once deleted the
-  # committed track-construction-v2/index.pdf on the first render: Quarto's
-  # project clean step removes any prior output it no longer expects to
-  # produce at the old in-place path the moment output moves elsewhere.
-  render:
-    - index.qmd
-    - track-construction-v1/index.qmd
-    - track-construction-v2/index.qmd
-  output-dir: "."
+  # Output lands inside the portal's own _site, which this repo tracks and
+  # deploys. Papers are a separate Quarto *project* -- so a draft that fails to
+  # render can never break the site build -- but they are not a separate
+  # *site*, and content/resources.qmd links straight into them.
+  # Build inside the project, then publish. Pointing output-dir straight at
+  # ../_site/papers works but makes Quarto warn that it "did not expect the
+  # path configuration", and it refuses to clean directories outside the
+  # project -- so stale files accumulate. Building locally and copying in the
+  # post-render step keeps Quarto on its supported path.
+  output-dir: _site
+
+  # Publishes the built site into the portal's _site/papers, and keeps a copy
+  # of each PDF beside its source so the deliverable is findable in the repo
+  # and cannot drift from the .qmd it came from.
+  post-render:
+    - bash _save-pdf.sh
 
 website:
   title: "OPDI Papers"
@@ -59,3 +59,7 @@ format:
 execute:
   echo: false
   warning: false
+  # Every figure reads a committed CSV cache. Rendering must never need S3
+  # credentials, a Spark cluster or a database -- refresh the cache with
+  #   python benchmarks/export_results.py     (in the opdi repo)
+  freeze: auto

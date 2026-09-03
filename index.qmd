@@ -1,85 +1,201 @@
 ---
-title: Open Performance Data Initiative (OPDI)
+title: Open Performance Data Initiative
 filters:
   - acronyms
 ---
 
 ```{r setup}
+#| include: false
 library(bslib)
 library(bsicons)
 source("R/portal_config.R")
+source("R/sensor_coverage.R")
 cfg <- portal_cfg
 labs <- portal_labels
+
+# Sensor counts come from the PocketBase register (cached), so the homepage
+# and the Sensors page always agree. Falls back to portal_config.R.
+sensor_st <- sensor_stats()
+sensor_val <- function(field) {
+  if (is.null(sensor_st)) cfg$sensors[[field]] else sensor_st[[field]]
+}
 ```
 
+Much of the data behind aviation performance analysis is difficult to obtain,
+which makes results hard to reproduce and to build on. The **\acr{OPDI}**, an
+initiative of the \acr{PRC} in collaboration with the
+[\acr{OSN}](https://opensky-network.org/), takes a different route: it builds a
+picture of European air traffic from crowd-sourced \acr{ADS-B} signals, and
+publishes the data, the methods and the tools **openly and free to use**.
 
+It works on three fronts:
+
+- **Open data.** A public dataset of flights, events and measurements, with
+  every step of the derivation documented.
+- **Open methods.** The PRC Data Challenges invite researchers worldwide to
+  develop and validate new analytical approaches in the open.
+- **Open coverage.** Aviation can only be measured if it is observed, so we
+  place \acr{ADS-B} receivers where crowd-sourced coverage is thin.
+
+The initiative is the work of a **community** of individuals — researchers,
+engineers and analysts — from institutions, universities, air navigation service providers
+and the wider open-data world. Everything they build — papers, datasets, source
+code — is **published openly** as **resources** anyone can use.
+
+## The initiative at a glance
+
+::: {.pillar-card .pillar-data}
+
+### {{< iconify fa6-solid database >}} OPDI Data
+
+Open flight performance data — flight lists, events, and measurements derived from \acr{ADS-B} data.
 
 ::: {layout-ncol=2}
-```{r value_period}
+```{r}
+bslib::value_box(
+  title = "Flights",
+  value = cfg$counts$flights,
+  showcase = bs_icon("airplane"),
+  theme = value_box_theme(bg = "#003399")
+)
+```
+
+```{r}
 bslib::value_box(
   title = "Period",
   value = labs$short_month_range(cfg$coverage$start, cfg$coverage$end),
   showcase = bs_icon("calendar-range"),
-  theme = "primary"
-)
-```
-
-```{r value_flights}
-bslib::value_box(
-  title = "Flights",
-  value = cfg$counts$flights, 
-  showcase = bs_icon("airplane"),
-  theme = "primary"
+  theme = value_box_theme(bg = "#003399")
 )
 ```
 :::
+
+::: {.callout-note appearance="simple" style="border-left-color: #003399;"}
+**Latest release (`r cfg$version`):** `r labs$month_range(cfg$coverage$start, cfg$coverage$end)`, refreshed `r cfg$refresh_label`. See [Methodology](content/methodology.qmd) for details.
+:::
+
+[Explore the data &rarr;](content/data.qmd){.btn .btn-sm style="background-color:#003399;color:white;border:none;"}
+
+:::
+
+::: {.pillar-card .pillar-challenges}
+
+### {{< iconify fa6-solid trophy >}} PRC Data Challenges
+
+Engaging data scientists worldwide to develop transparent, reproducible methods for aviation performance analysis.
 
 ::: {layout-ncol=2}
-```{r value_events}
+```{r}
 bslib::value_box(
-  title = "Events",
-  value = cfg$counts$events,
-  showcase = bs_icon("calendar4-event"),
-  theme = "primary"
+  title = "Editions",
+  value = cfg$challenges$editions,
+  showcase = bs_icon("trophy"),
+  theme = value_box_theme(bg = "#00857c")
 )
 ```
 
-```{r value_measurements}
+```{r}
 bslib::value_box(
-  title = "Measurements",
-  value = cfg$counts$measurements,
-  showcase = bs_icon("pencil-square"),
-  theme = "primary"
+  title = "Teams",
+  value = cfg$challenges$total_teams,
+  showcase = bs_icon("people"),
+  theme = value_box_theme(bg = "#00857c")
 )
 ```
 :::
 
-::: {.callout-tip}
-## Second version available
+[View challenges &rarr;](content/data-challenges.qmd){.btn .btn-sm style="background-color:#00857c;color:white;border:none;"}
 
-The second iteration of the OPDI flight list, flight events and measurements is now available! Now extended to up until `r format(cfg$coverage$end, "%B %Y")` (incl.). See the description in [Methodology](/methodology.html) and download the data under [Data](/data.html).
-
-In addition, get a preview of the data under [Data Preview](/data-preview.html).
 :::
 
-::: {.callout-note appearance="simple"}
-**Coverage:** `r labs$month_range(cfg$coverage$start, cfg$coverage$end)` (`r cfg$version` datasets, refreshed `r cfg$refresh_label`).
+::: {.pillar-card .pillar-sensors}
+
+### {{< iconify fa6-solid satellite-dish >}} OPDI Sensors
+
+Extending the [OpenSky Network (OSN)](https://opensky-network.org/) crowd-sourced receiver network to improve ground-based and low-altitude \acr{ADS-B} coverage around airports, especially where existing coverage is limited.
+
+::: {layout-ncol=2}
+```{r}
+bslib::value_box(
+  title = "Sensors",
+  value = sensor_val("total_sensors"),
+  showcase = bs_icon("broadcast"),
+  theme = value_box_theme(bg = "#c35a00")
+)
+```
+
+```{r}
+bslib::value_box(
+  title = "Airports",
+  value = sensor_val("total_airports"),
+  showcase = bs_icon("geo-alt"),
+  theme = value_box_theme(bg = "#c35a00")
+)
+```
 :::
 
-## Data
+[Learn more &rarr;](content/sensors.qmd){.btn .btn-sm style="background-color:#c35a00;color:white;border:none;"}
+[Extend the network &rarr;](content/sensors-contribute.qmd){.btn .btn-sm .btn-outline-secondary}
+[Access sensor data &rarr;](content/sensors-data.qmd){.btn .btn-sm .btn-outline-secondary}
 
-The flight data made available is published under the **[Open Performance Data Initiative (OPDI)](https://www.opdi.aero/)** as sponsored by
-the **[Performance Review Commission](https://ansperformance.eu/about/prc/)** and in collaboration with the **[OpenSky Network (OSN)](https://opensky-network.org/)**. 
+:::
 
-Download the data [here](/data.html).
+::: {.pillar-card .pillar-community}
 
-## Concepts
+### {{< iconify fa6-solid handshake >}} OPDI Community
 
-To learn more about the concepts used within the OPDI data tables, see [Concepts](/concepts.html).
+Working with research institutions, air navigation service providers, and open-data enthusiasts to advance open aviation performance data.
 
-## Methodology
-The description of the algorithms used to identify flights, flight events and compute the measurements are described under [Methodology](/methodology.html).
+::: {layout-ncol=3}
+```{r}
+bslib::value_box(
+  title = "Members",
+  value = cfg$community$members,
+  showcase = bs_icon("building"),
+  theme = value_box_theme(bg = "#6a3d9a")
+)
+```
 
-## About
+```{r}
+bslib::value_box(
+  title = "Countries",
+  value = cfg$community$countries,
+  showcase = bs_icon("globe2"),
+  theme = value_box_theme(bg = "#6a3d9a")
+)
+```
+:::
 
-To learn more about the initiative, see [About](/about.html).
+[Meet the community &rarr;](content/community.qmd){.btn .btn-sm style="background-color:#6a3d9a;color:white;border:none;"}
+
+:::
+
+::: {.pillar-card .pillar-resources}
+
+### {{< iconify fa6-solid book-open >}} Resources
+
+Peer-reviewed papers, open datasets, and the open-source software behind the \acr{OPDI}.
+
+::: {layout-ncol=2}
+```{r}
+bslib::value_box(
+  title = "Publications",
+  value = cfg$resources$publications,
+  showcase = bs_icon("journal-text"),
+  theme = value_box_theme(bg = "#37536b")
+)
+```
+
+```{r}
+bslib::value_box(
+  title = "Software Projects",
+  value = cfg$resources$software,
+  showcase = bs_icon("code-slash"),
+  theme = value_box_theme(bg = "#37536b")
+)
+```
+:::
+
+[Browse resources &rarr;](content/resources.qmd){.btn .btn-sm style="background-color:#37536b;color:white;border:none;"}
+
+:::

@@ -1,0 +1,1990 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.10.18">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="author" content="EUROCONTROL Performance Review Unit — Open Performance Data Initiative">
+<meta name="dcterms.date" content="2026-08-15">
+
+<title>Flight events from ADS-B: fixing what OPDI publishes, and reaching the GANP KPIs – OPDI Papers</title>
+<style>
+/* Default styles provided by pandoc.
+** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+*/
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: 1.5em;}
+div.column{flex: auto;}
+@media screen {
+div.columns{gap: min(4vw, 1.5em);}
+div.column{overflow-x: auto;}
+}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+</style>
+
+
+<script src="../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../site_libs/quarto-nav/headroom.min.js"></script>
+<script src="../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../">
+<script src="../site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="../site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="../site_libs/quarto-html/popper.min.js"></script>
+<script src="../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../site_libs/quarto-html/quarto-syntax-highlighting-64a204ab8560d761af7679ceaba22944.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../site_libs/bootstrap/bootstrap-3fc44999f41da3927fa35e4e05887fd4.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "navbar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "end",
+  "type": "overlay",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+
+
+</head>
+
+<body class="nav-fixed quarto-light">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+    <nav class="navbar navbar-expand-lg " data-bs-theme="dark">
+      <div class="navbar-container container-fluid">
+      <div class="navbar-brand-container mx-auto">
+    <a class="navbar-brand" href="../index.html">
+    <span class="navbar-title">OPDI Papers</span>
+    </a>
+  </div>
+            <div id="quarto-search" class="" title="Search"></div>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" role="menu" aria-expanded="false" aria-label="Toggle navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+  <span class="navbar-toggler-icon"></span>
+</button>
+          <div class="collapse navbar-collapse" id="navbarCollapse">
+            <ul class="navbar-nav navbar-nav-scroll me-auto">
+  <li class="nav-item">
+    <a class="nav-link" href="../index.html"> 
+<span class="menu-text">Papers</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="https://www.eurocontrol.int/opdi"> 
+<span class="menu-text">OPDI</span></a>
+  </li>  
+</ul>
+          </div> <!-- /navcollapse -->
+            <div class="quarto-navbar-tools">
+</div>
+      </div> <!-- /container-fluid -->
+    </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
+<!-- sidebar -->
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#what-changed-in-version-2" id="toc-what-changed-in-version-2" class="nav-link active" data-scroll-target="#what-changed-in-version-2"><span class="header-section-number">1</span> What changed in version 2</a></li>
+  <li><a href="#what-this-study-is" id="toc-what-this-study-is" class="nav-link" data-scroll-target="#what-this-study-is"><span class="header-section-number">2</span> What this study is</a></li>
+  <li><a href="#what-was-wrong" id="toc-what-was-wrong" class="nav-link" data-scroll-target="#what-was-wrong"><span class="header-section-number">3</span> What was wrong</a></li>
+  <li><a href="#what-was-built" id="toc-what-was-built" class="nav-link" data-scroll-target="#what-was-built"><span class="header-section-number">4</span> What was built</a></li>
+  <li><a href="#which-kpis-this-reaches" id="toc-which-kpis-this-reaches" class="nav-link" data-scroll-target="#which-kpis-this-reaches"><span class="header-section-number">5</span> Which KPIs this reaches</a></li>
+  <li><a href="#ground-truth-and-its-ceiling" id="toc-ground-truth-and-its-ceiling" class="nav-link" data-scroll-target="#ground-truth-and-its-ceiling"><span class="header-section-number">6</span> Ground truth, and its ceiling</a></li>
+  <li><a href="#how-each-event-is-extracted" id="toc-how-each-event-is-extracted" class="nav-link" data-scroll-target="#how-each-event-is-extracted"><span class="header-section-number">7</span> How each event is extracted</a>
+  <ul class="collapse">
+  <li><a href="#flight-phase-classification" id="toc-flight-phase-classification" class="nav-link" data-scroll-target="#flight-phase-classification"><span class="header-section-number">7.1</span> 1. Flight phase classification</a></li>
+  <li><a href="#take-off-and-landing" id="toc-take-off-and-landing" class="nav-link" data-scroll-target="#take-off-and-landing"><span class="header-section-number">7.2</span> 2. <code>take-off</code> and <code>landing</code></a></li>
+  <li><a href="#top-of-climb-and-top-of-descent" id="toc-top-of-climb-and-top-of-descent" class="nav-link" data-scroll-target="#top-of-climb-and-top-of-descent"><span class="header-section-number">7.3</span> 3. <code>top-of-climb</code> and <code>top-of-descent</code></a></li>
+  <li><a href="#level-start-and-level-end-phase-derived" id="toc-level-start-and-level-end-phase-derived" class="nav-link" data-scroll-target="#level-start-and-level-end-phase-derived"><span class="header-section-number">7.4</span> 4. <code>level-start</code> and <code>level-end</code> (phase-derived)</a></li>
+  <li><a href="#first-xing-fl-and-last-xing-fl-the-published-crossings" id="toc-first-xing-fl-and-last-xing-fl-the-published-crossings" class="nav-link" data-scroll-target="#first-xing-fl-and-last-xing-fl-the-published-crossings"><span class="header-section-number">7.5</span> 5. <code>first-xing-fl*</code> and <code>last-xing-fl*</code> — the published crossings</a></li>
+  <li><a href="#xing-fl50-xing-fl70-xing-fl100-xing-fl245" id="toc-xing-fl50-xing-fl70-xing-fl100-xing-fl245" class="nav-link" data-scroll-target="#xing-fl50-xing-fl70-xing-fl100-xing-fl245"><span class="header-section-number">7.6</span> 6. <code>xing-fl50</code>, <code>xing-fl70</code>, <code>xing-fl100</code>, <code>xing-fl245</code></a></li>
+  <li><a href="#xing-40nm-and-xing-100nm-the-asma-rings" id="toc-xing-40nm-and-xing-100nm-the-asma-rings" class="nav-link" data-scroll-target="#xing-40nm-and-xing-100nm-the-asma-rings"><span class="header-section-number">7.7</span> 7. <code>xing-40nm</code> and <code>xing-100nm</code> — the ASMA rings</a></li>
+  <li><a href="#entry--and-exit--airport-layout-events" id="toc-entry--and-exit--airport-layout-events" class="nav-link" data-scroll-target="#entry--and-exit--airport-layout-events"><span class="header-section-number">7.8</span> 8. <code>entry-*</code> and <code>exit-*</code> — airport layout events</a></li>
+  <li><a href="#atot-and-aldt-runway-identification-and-touchdown" id="toc-atot-and-aldt-runway-identification-and-touchdown" class="nav-link" data-scroll-target="#atot-and-aldt-runway-identification-and-touchdown"><span class="header-section-number">7.9</span> 9. <code>ATOT</code> and <code>ALDT</code> — runway identification and touchdown</a></li>
+  <li><a href="#aobt-and-aibt-block-times" id="toc-aobt-and-aibt-block-times" class="nav-link" data-scroll-target="#aobt-and-aibt-block-times"><span class="header-section-number">7.10</span> 10. <code>AOBT</code> and <code>AIBT</code> — block times</a></li>
+  <li><a href="#icao-level-segments" id="toc-icao-level-segments" class="nav-link" data-scroll-target="#icao-level-segments"><span class="header-section-number">7.11</span> 11. ICAO level segments</a></li>
+  <li><a href="#first_seen-and-last_seen" id="toc-first_seen-and-last_seen" class="nav-link" data-scroll-target="#first_seen-and-last_seen"><span class="header-section-number">7.12</span> <code>first_seen</code> and <code>last_seen</code></a></li>
+  <li><a href="#measurements" id="toc-measurements" class="nav-link" data-scroll-target="#measurements"><span class="header-section-number">7.13</span> Measurements</a></li>
+  <li><a href="#event-identity" id="toc-event-identity" class="nav-link" data-scroll-target="#event-identity"><span class="header-section-number">7.14</span> Event identity</a></li>
+  </ul></li>
+  <li><a href="#what-the-detectors-produce" id="toc-what-the-detectors-produce" class="nav-link" data-scroll-target="#what-the-detectors-produce"><span class="header-section-number">8</span> What the detectors produce</a></li>
+  <li><a href="#how-accurate-the-milestones-are" id="toc-how-accurate-the-milestones-are" class="nav-link" data-scroll-target="#how-accurate-the-milestones-are"><span class="header-section-number">9</span> How accurate the milestones are</a></li>
+  <li><a href="#what-the-numbers-say" id="toc-what-the-numbers-say" class="nav-link" data-scroll-target="#what-the-numbers-say"><span class="header-section-number">10</span> What the numbers say</a>
+  <ul class="collapse">
+  <li><a href="#landing-time-is-transformed-take-off-trades-sharpness-for-reach" id="toc-landing-time-is-transformed-take-off-trades-sharpness-for-reach" class="nav-link" data-scroll-target="#landing-time-is-transformed-take-off-trades-sharpness-for-reach"><span class="header-section-number">10.1</span> Landing time is transformed; take-off trades sharpness for reach</a></li>
+  <li><a href="#requiring-complete-evidence-made-detection-worse" id="toc-requiring-complete-evidence-made-detection-worse" class="nav-link" data-scroll-target="#requiring-complete-evidence-made-detection-worse"><span class="header-section-number">10.2</span> Requiring complete evidence made detection worse</a></li>
+  <li><a href="#off-block-and-on-block-are-limited-by-reception-as-expected" id="toc-off-block-and-on-block-are-limited-by-reception-as-expected" class="nav-link" data-scroll-target="#off-block-and-on-block-are-limited-by-reception-as-expected"><span class="header-section-number">10.3</span> Off-block and on-block are limited by reception, as expected</a></li>
+  <li><a href="#does-it-hold-on-a-second-period" id="toc-does-it-hold-on-a-second-period" class="nav-link" data-scroll-target="#does-it-hold-on-a-second-period"><span class="header-section-number">10.4</span> Does it hold on a second period?</a></li>
+  <li><a href="#what-has-still-not-been-measured" id="toc-what-has-still-not-been-measured" class="nav-link" data-scroll-target="#what-has-still-not-been-measured"><span class="header-section-number">10.5</span> What has still not been measured</a></li>
+  </ul></li>
+  <li><a href="#breaking-change-for-consumers" id="toc-breaking-change-for-consumers" class="nav-link" data-scroll-target="#breaking-change-for-consumers"><span class="header-section-number">11</span> Breaking change for consumers</a></li>
+  <li><a href="#provenance" id="toc-provenance" class="nav-link" data-scroll-target="#provenance"><span class="header-section-number">12</span> Provenance</a></li>
+  </ul>
+<div class="quarto-alternate-formats"><h2>Other Formats</h2><ul><li><a href="index.pdf"><i class="bi bi-file-pdf"></i>PDF</a></li></ul></div></nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Flight events from ADS-B: fixing what OPDI publishes, and reaching the GANP KPIs</h1>
+<p class="subtitle lead">Version 2 — with the extraction methodology for every event</p>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    <div>
+    <div class="quarto-title-meta-heading">Author</div>
+    <div class="quarto-title-meta-contents">
+             <p>EUROCONTROL Performance Review Unit — Open Performance Data Initiative </p>
+          </div>
+  </div>
+    
+    <div>
+    <div class="quarto-title-meta-heading">Published</div>
+    <div class="quarto-title-meta-contents">
+      <p class="date">August 15, 2026</p>
+    </div>
+  </div>
+  
+    
+  </div>
+  
+<div>
+  <div class="abstract">
+    <div class="block-title">Abstract</div>
+    <p>OPDI has published flight events since v0.0.2 without a single test or a single comparison against reference data. This study audits the four detectors behind them, finds nine defects — one of which silently suppresses every take-off and landing at any aerodrome above roughly 200 ft — fixes them, and adds four milestone families chosen because they are what the ICAO GANP key performance indicators actually require. It reports what has been measured and, equally, what has not. Version 2 adds a full account of how each of the thirty-four published event types is extracted: the algorithm, its parameters and where they come from, the code that implements it, and what is known to be wrong with it.</p>
+  </div>
+</div>
+
+
+</header>
+
+
+<section id="what-changed-in-version-2" class="level2" data-number="1">
+<h2 data-number="1" class="anchored" data-anchor-id="what-changed-in-version-2"><span class="header-section-number">1</span> What changed in version 2</h2>
+<p>Version 1 reported <em>what</em> the detectors produce and how accurate the four milestones APDF can score turned out to be. It never said <em>how</em> any event is extracted, which left a reader unable to tell what triggers a <code>top-of-climb</code>, what <code>entry-runway</code> matches against, or which parameter would change either.</p>
+<p>That gap mattered more than it might elsewhere, because this study’s findings are about algorithm <em>shape</em> — that requiring complete evidence from a fuzzy rule is harmful, that a smoothing window behaves differently on noisier input, that a threshold detector is unusable without a dead band. None of those is legible without the method beside it.</p>
+<p>Version 2 adds that account and changes nothing else. <strong>The data, the figures and the findings are version 1’s</strong>, carried across with their provenance records intact rather than regenerated.</p>
+</section>
+<section id="what-this-study-is" class="level2" data-number="2">
+<h2 data-number="2" class="anchored" data-anchor-id="what-this-study-is"><span class="header-section-number">2</span> What this study is</h2>
+<p>Two things prompted it.</p>
+<p><strong>The events were never checked.</strong> OPDI’s flight-event table is the least-examined thing the project publishes. Departure and destination aerodrome detection has been through seven successive studies and a full rewrite; the event detectors had no tests at all, and no number in them had ever been compared against anything.</p>
+<p><strong>The event vocabulary did not reach the indicators.</strong> The stated goal is to compute as many ICAO GANP key performance indicators as ADS-B allows. Mapping the published KPI list against what OPDI emitted showed the gap concentrated in four milestone families — and that ICAO itself names ADS-B data providers as a feed for two indicators OPDI could not compute at all.</p>
+</section>
+<section id="what-was-wrong" class="level2" data-number="3">
+<h2 data-number="3" class="anchored" data-anchor-id="what-was-wrong"><span class="header-section-number">3</span> What was wrong</h2>
+<p>Nine defects, found by reading the detectors. None of them fails. Each produces fewer events, or events displaced in one direction — the failure mode that survives an eyeball check of the totals.</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 33%">
+<col style="width: 33%">
+<col style="width: 33%">
+</colgroup>
+<thead>
+<tr class="header">
+<th></th>
+<th>Defect</th>
+<th>Consequence</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>D1</td>
+<td>Ground membership measured against <strong>uncorrected pressure altitude</strong></td>
+<td>The membership reaches zero at 200 ft <em>pressure</em> altitude, so at any aerodrome above roughly 200 ft AMSL — or anywhere on a low-pressure day — no sample is ever classified as on-ground. Since take-off requires a preceding ground sample and landing requires a ground sample, <strong>neither event has ever been emitted for those flights.</strong> The loss is biased against high-elevation aerodromes.</td>
+</tr>
+<tr class="even">
+<td>D2</td>
+<td>The reference implementation’s 60-second majority smoothing was <strong>not ported</strong></td>
+<td>Phases were decided per state vector at 5-second spacing with no temporal aggregation, so one misclassified sample injects a spurious level segment or destroys a take-off.</td>
+</tr>
+<tr class="odd">
+<td>D3</td>
+<td>Cruise speed membership centred on 600 kt</td>
+<td>A turboprop at 250 kt scores 0.002, so it never reaches cruise and gets no top-of-climb or top-of-descent. <strong>Inherited from OpenAP, not introduced here</strong> — left unchanged pending measurement.</td>
+</tr>
+<tr class="even">
+<td>D4</td>
+<td><code>least</code>/<code>greatest</code> skip nulls</td>
+<td>A rule missing an input became a minimum over fewer terms, which can only <em>raise</em> its activation — so incomplete evidence out-competed complete evidence.</td>
+</tr>
+<tr class="odd">
+<td>D5</td>
+<td><code>first</code>/<code>last</code> inside a group-by</td>
+<td>Take partition order, not time order, so a reported entry position was not guaranteed to be the position at the reported entry time.</td>
+</tr>
+<tr class="even">
+<td>D6</td>
+<td>Events read the <strong>raw</strong> track table</td>
+<td>Trajectory cleaning reached the flight list and nothing else, so no published event has ever been derived from a cleaned trajectory.</td>
+</tr>
+<tr class="odd">
+<td>D7</td>
+<td>Non-reproducible event identifiers; one version string for every type</td>
+<td>The same event got a different identifier on every run, so two runs of a month could not be reconciled.</td>
+</tr>
+<tr class="even">
+<td>D8</td>
+<td>Flight-level crossings kept <strong>only the first and last</strong> per level, uninterpolated</td>
+<td>A flight that levels off and re-climbs through a level lost every crossing in between — exactly the crossings a vertical-efficiency indicator is about — and every reported instant was biased by up to one sample interval in the same direction.</td>
+</tr>
+<tr class="odd">
+<td>D9</td>
+<td>No tests</td>
+<td>Not one detector was covered.</td>
+</tr>
+</tbody>
+</table>
+<p>D1 and D2 are the two that matter most, because they mean the published take-off, landing, top-of-climb and top-of-descent events are missing <strong>non-randomly</strong>.</p>
+</section>
+<section id="what-was-built" class="level2" data-number="4">
+<h2 data-number="4" class="anchored" data-anchor-id="what-was-built"><span class="header-section-number">4</span> What was built</h2>
+<p>Eight defects are fixed and the ninth (D3) is left in place deliberately, because changing a constant inherited from the reference implementation should follow a measurement rather than precede one. Four milestone families were added:</p>
+<ul>
+<li><strong>Threshold crossings</strong>, rewritten. Every crossing rather than the first and last, with a hysteresis dead band so an aircraft cruising <em>at</em> a level emits none, and the instant interpolated to the exact threshold.</li>
+<li><strong>ASMA ring crossings</strong> at 40 and 100 NM, built around the flight’s own origin and destination — which is what the indicators mean, and what the reference data records.</li>
+<li><strong>ICAO level segments</strong>, implementing the published algorithm rather than reusing the fuzzy-phase level events. The two are <strong>not interchangeable</strong>.</li>
+<li><strong>Runway identification with ATOT and ALDT</strong>, and <strong>off-block/on-block</strong>.</li>
+</ul>
+<p>Every change is reversible: a <code>legacy()</code> configuration reproduces published <code>events_v0.0.2</code> exactly, and the new algorithm carries a new version string.</p>
+</section>
+<section id="which-kpis-this-reaches" class="level2" data-number="5">
+<h2 data-number="5" class="anchored" data-anchor-id="which-kpis-this-reaches"><span class="header-section-number">5</span> Which KPIs this reaches</h2>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 33%">
+<col style="width: 33%">
+<col style="width: 33%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>KPI</th>
+<th>Title</th>
+<th>Reachable from ADS-B?</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>KPI02</td>
+<td>Taxi-out additional time</td>
+<td>Yes</td>
+</tr>
+<tr class="even">
+<td>KPI05</td>
+<td>Actual en-route extension</td>
+<td>Yes — ICAO names ADS-B as the feed</td>
+</tr>
+<tr class="odd">
+<td>KPI08</td>
+<td>Additional time in terminal airspace</td>
+<td>Yes</td>
+</tr>
+<tr class="even">
+<td>KPI10</td>
+<td>Airport peak throughput</td>
+<td>Yes</td>
+</tr>
+<tr class="odd">
+<td>KPI13</td>
+<td>Taxi-in additional time</td>
+<td>Yes, coverage-limited</td>
+</tr>
+<tr class="even">
+<td>KPI15</td>
+<td>Flight time variability</td>
+<td>Yes</td>
+</tr>
+<tr class="odd">
+<td>KPI17</td>
+<td>Level-off during climb</td>
+<td>Yes</td>
+</tr>
+<tr class="even">
+<td>KPI18</td>
+<td>Level capping during cruise</td>
+<td>Yes (variant 2)</td>
+</tr>
+<tr class="odd">
+<td>KPI19</td>
+<td>Level-off during descent</td>
+<td>Yes</td>
+</tr>
+<tr class="even">
+<td>KPI01, KPI14</td>
+<td>Departure / arrival punctuality</td>
+<td>Actual half only — the scheduled half needs a schedule feed</td>
+</tr>
+<tr class="odd">
+<td>KPI11</td>
+<td>Airport throughput efficiency</td>
+<td>Numerator only</td>
+</tr>
+<tr class="even">
+<td>Others</td>
+<td>ATFM, capacity, flight plan, fuel, safety, noise</td>
+<td>No</td>
+</tr>
+</tbody>
+</table>
+<p>Nine fully and three partially, from four milestone families.</p>
+</section>
+<section id="ground-truth-and-its-ceiling" class="level2" data-number="6">
+<h2 data-number="6" class="anchored" data-anchor-id="ground-truth-and-its-ceiling"><span class="header-section-number">6</span> Ground truth, and its ceiling</h2>
+<p>Reference data is EUROCONTROL APDF. It is in movement form — there is no literal take-off-time column, and <code>SRC_PHASE</code> decides what a row carries — and crucially it has <strong>no aircraft address</strong>, so it cannot be joined to ADS-B directly. The route runs through the flight table on an internal key.</p>
+<p>That bridge is the ceiling on every coverage figure in this study: a milestone that cannot be reached is indistinguishable from one that was missed, unless the ceiling is known. So it is measured first.</p>
+<div id="tbl-bridge" class="cell quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl quarto-uncaptioned" id="tbl-bridge-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;1
+</figcaption>
+<div aria-describedby="tbl-bridge-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<table class="caption-top table table-sm table-striped small">
+<thead>
+<tr class="header">
+<th>Period</th>
+<th style="text-align: right;">APDF movements</th>
+<th style="text-align: right;">Reaching <code>icao24</code></th>
+<th style="text-align: right;">Share</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>2024-06</td>
+<td style="text-align: right;">1,161,115</td>
+<td style="text-align: right;">1,087,091</td>
+<td style="text-align: right;"><strong>93.62%</strong></td>
+</tr>
+<tr class="even">
+<td>2025-06</td>
+<td style="text-align: right;">1,224,742</td>
+<td style="text-align: right;">1,154,338</td>
+<td style="text-align: right;"><strong>94.25%</strong></td>
+</tr>
+</tbody>
+</table>
+</div>
+</figure>
+</div>
+<p>Both periods clear 93%, so the ceiling is high enough not to dominate any result. The residual loss is roughly three per cent of movements carrying no internal key, and a further two per cent whose key has no counterpart in the flight table.</p>
+<p>Two traps in this join are worth recording, because both fail silently:</p>
+<p><strong>The reference carries the commercial flight number, ADS-B carries the ATC callsign.</strong> The two disagree on 20.4% of rows — <code>LH416</code> against <code>DLH416</code> — and joining on the wrong one discards a fifth of the sample while looking exactly like a detection failure.</p>
+<p><strong>Timestamps are tagged Europe/Paris despite being named UTC.</strong> The instants are correct, so converting is right and stripping the zone is a two-hour error. Spark’s session timezone is set to UTC in the local session builder and not in the distributed one, so the loader asserts it rather than assuming it.</p>
+</section>
+<section id="how-each-event-is-extracted" class="level2" data-number="7">
+<h2 data-number="7" class="anchored" data-anchor-id="how-each-event-is-extracted"><span class="header-section-number">7</span> How each event is extracted</h2>
+<p>Every event OPDI publishes is produced by one of eleven detectors. This section states, for each, what the event means, how it is found, which parameters govern it and where they come from, which module implements it, and what is known to be wrong with it.</p>
+<p>Three conventions apply throughout. <strong>Storage is SI and thresholds are aviation</strong> — altitudes are metres and vertical rates metres per second on disk, scaled at the point of comparison into feet and feet per minute, because those are the units the thresholds are stated in. <strong>Every threshold is named</strong> in <code>EventConfig</code> (<code>src/opdi/config.py</code>); none is an inline literal, so any of them can be swept by the benchmark. And <strong><code>EventConfig.legacy()</code> reproduces <code>events_v0.0.2</code></strong>, so the detectors below describe the new version while the published one remains reachable.</p>
+<section id="flight-phase-classification" class="level3" data-number="7.1">
+<h3 data-number="7.1" class="anchored" data-anchor-id="flight-phase-classification"><span class="header-section-number">7.1</span> 1. Flight phase classification</h3>
+<p>Not an event type itself: it is the substrate for take-off, landing, top of climb and descent, and the phase-derived level segments.</p>
+<p>Each state vector is assigned a phase — ground, climb, descent, cruise or level — by fuzzy logic. Nine membership functions score altitude, rate of climb and speed; five rules combine them with a minimum t-norm; the phase is the rule with the highest activation.</p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>Membership</th>
+<th>Function</th>
+<th>Parameters</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>ground altitude</td>
+<td><code>zmf</code></td>
+<td>0 → 200 ft</td>
+</tr>
+<tr class="even">
+<td>low altitude</td>
+<td><code>gaussmf</code></td>
+<td>µ 10,000 ft, σ 10,000</td>
+</tr>
+<tr class="odd">
+<td>high altitude</td>
+<td><code>gaussmf</code></td>
+<td>µ 35,000 ft, σ 20,000</td>
+</tr>
+<tr class="even">
+<td>zero climb rate</td>
+<td><code>gaussmf</code></td>
+<td>µ 0 ft/min, σ 100</td>
+</tr>
+<tr class="odd">
+<td>positive climb rate</td>
+<td><code>smf</code></td>
+<td>10 → 1,000 ft/min</td>
+</tr>
+<tr class="even">
+<td>negative climb rate</td>
+<td><code>zmf</code></td>
+<td>−1,000 → −10 ft/min</td>
+</tr>
+<tr class="odd">
+<td>high speed</td>
+<td><code>gaussmf</code></td>
+<td>µ 600 kt, σ 100</td>
+</tr>
+<tr class="even">
+<td>medium speed</td>
+<td><code>gaussmf</code></td>
+<td>µ 300 kt, σ 100</td>
+</tr>
+<tr class="odd">
+<td>low speed</td>
+<td><code>gaussmf</code></td>
+<td>µ 0 kt, σ 50</td>
+</tr>
+</tbody>
+</table>
+<p><strong>These constants are OpenAP’s published values, not chosen here.</strong> That matters for one known limitation: a turboprop cruising at 250 kt scores 0.002 on the high-speed membership, so the cruise rule never wins and <strong>turboprop and general-aviation traffic get no top-of-climb or top-of-descent at all</strong>. It is inherited from the reference implementation rather than an OPDI defect, and it is left in place deliberately — changing a reference constant should follow a measurement rather than precede one.</p>
+<p>Two things differ from a naive port:</p>
+<p><strong>A 60-second majority smoothing</strong> (<code>phase_twindow_seconds</code>) is applied to the per-sample labels. OpenAP calls <code>phaselabel(twindow=60)</code>; the original OPDI port carried the membership functions across and dropped the smoothing, so phases were decided per state vector at 5-second spacing with no temporal aggregation. One misclassified sample was enough to inject a spurious level segment or destroy a take-off. Ties keep the unsmoothed label, which makes this a de-flicker rather than a relabel. <strong>This study found the change is not robust across periods</strong> — see the results section.</p>
+<p><strong>Ground membership is measured above field elevation</strong> (<code>phase_ground_above_field</code>). <code>baro_altitude_c</code> is uncorrected pressure altitude, so a 200 ft ceiling is unreachable at any aerodrome above roughly 200 ft AMSL or on a low-pressure day anywhere. The elevation of <strong>both</strong> the track’s ADEP and ADES is attached and the more permissive membership taken: a track is on the ground at only one of its ends, and cruise sits far above both, so the wrong end can only contribute a zero. A missing elevation falls back to zero, which is the published behaviour rather than a loss of phases.</p>
+<p><em>Implemented in</em> <code>pipeline/events.py</code>: <code>calculate_horizontal_segment_events</code>, <code>_smooth_phase</code>, <code>attach_field_elevation</code>.</p>
+</section>
+<section id="take-off-and-landing" class="level3" data-number="7.2">
+<h3 data-number="7.2" class="anchored" data-anchor-id="take-off-and-landing"><span class="header-section-number">7.2</span> 2. <code>take-off</code> and <code>landing</code></h3>
+<p>The instant the aircraft leaves or meets the ground, as the phase sequence sees it.</p>
+<p><code>take-off</code> fires where the previous sample was ground and the next is climb. <code>landing</code> fires where the previous sample was descent and the current is ground. The two definitions are deliberately asymmetric — one looks forward, one does not — which is inherited from the published detector and preserved so the type keeps its meaning.</p>
+<p><strong>Known weaknesses.</strong> Both depend entirely on a ground sample existing, so sparse surface reception removes them silently. Both are measured here against APDF and shown to have low coverage (1.8% and 2.1%) with a very long tail — the 90th-percentile take-off error is 71 minutes. The runway-anchored <code>ATOT</code>/<code>ALDT</code> below are the intended replacement; these keep their published type strings so existing consumers are undisturbed.</p>
+<p><em>Implemented in</em> <code>pipeline/events.py</code>: <code>calculate_horizontal_segment_events</code>.</p>
+</section>
+<section id="top-of-climb-and-top-of-descent" class="level3" data-number="7.3">
+<h3 data-number="7.3" class="anchored" data-anchor-id="top-of-climb-and-top-of-descent"><span class="header-section-number">7.3</span> 3. <code>top-of-climb</code> and <code>top-of-descent</code></h3>
+<p>The first and last sample classified as cruise, per track.</p>
+<p>Simple by construction, and therefore inheriting everything above: a flight that never reaches the cruise rule — a turboprop, or anything with missing velocity — has neither event. <strong>Neither has ever been validated against an external source</strong>, because none exists that records them.</p>
+<p><em>Implemented in</em> <code>pipeline/events.py</code>: <code>calculate_horizontal_segment_events</code>.</p>
+</section>
+<section id="level-start-and-level-end-phase-derived" class="level3" data-number="7.4">
+<h3 data-number="7.4" class="anchored" data-anchor-id="level-start-and-level-end-phase-derived"><span class="header-section-number">7.4</span> 4. <code>level-start</code> and <code>level-end</code> (phase-derived)</h3>
+<p>The boundaries of a run of samples classified cruise or level.</p>
+<p>A <code>level-start</code> is emitted where the phase enters cruise or level from something else, a <code>level-end</code> where it leaves. The first cruise sample carries both <code>level-start</code> and <code>top-of-climb</code>; the last carries <code>level-end</code> and <code>top-of-descent</code>.</p>
+<p><strong>These are not the ICAO level segments</strong> in section 11, and the two are not interchangeable. This pair asks “does this sample look like level flight” through the fuzzy classifier; ICAO asks a geometric question about an altitude band anchored at a segment’s own start. Both are published, under different names.</p>
+<p>Their volume is the clearest single measure of phase flicker: 1,270,412 <code>level-start</code> events under the published detector against 370,466 under the new one, on the same three days.</p>
+<p><em>Implemented in</em> <code>pipeline/events.py</code>: <code>calculate_horizontal_segment_events</code>.</p>
+</section>
+<section id="first-xing-fl-and-last-xing-fl-the-published-crossings" class="level3" data-number="7.5">
+<h3 data-number="7.5" class="anchored" data-anchor-id="first-xing-fl-and-last-xing-fl-the-published-crossings"><span class="header-section-number">7.5</span> 5. <code>first-xing-fl*</code> and <code>last-xing-fl*</code> — the published crossings</h3>
+<p>The first and last time a track crosses FL50, FL70, FL100 or FL245.</p>
+<p>A crossing is detected by comparing each sample’s flight level with the next one’s; the sample <em>before</em> the crossing is reported. A guard requires the sample to be within 10 flight levels of the boundary, which rejects crossings inferred across a data gap. The first and last per level are kept and everything between is discarded.</p>
+<p><strong>Three faults, which is why section 6 replaces this.</strong> Keeping only first and last discards every crossing in between — a flight that levels off and re-climbs through FL100 loses exactly the crossings a vertical-efficiency indicator is about. Reporting the bracketing sample biases every timestamp by up to one sample interval, always in the same direction. And the level is chosen by a first-match chain, so a single 5-second gap spanning FL50 <em>and</em> FL70 reports only one of them.</p>
+<p><strong>These types are emitted only under <code>events_v0.0.2</code>.</strong> The new version does not re-emit them; consumers migrate to <code>crossing_seq</code> in section 6.</p>
+<p><em>Implemented in</em> <code>pipeline/events.py</code>: <code>calculate_vertical_crossing_events</code>.</p>
+</section>
+<section id="xing-fl50-xing-fl70-xing-fl100-xing-fl245" class="level3" data-number="7.6">
+<h3 data-number="7.6" class="anchored" data-anchor-id="xing-fl50-xing-fl70-xing-fl100-xing-fl245"><span class="header-section-number">7.6</span> 6. <code>xing-fl50</code>, <code>xing-fl70</code>, <code>xing-fl100</code>, <code>xing-fl245</code></h3>
+<p>Every crossing of each monitored flight level, with the instant interpolated to the level itself.</p>
+<p>The detector is a Schmitt trigger. For a level <code>L</code> and dead band <code>h</code>, a sample is assigned <code>+1</code> above <code>L + h</code>, <code>−1</code> below <code>L − h</code>, and null inside the band. That side is forward-filled, and a crossing is confirmed where the filled value flips. An aircraft cruising <em>at</em> the level never leaves the band, so its side never resolves and <strong>no event is emitted</strong> — without this, barometric noise at a cruise level produces a crossing on almost every sample.</p>
+<p>The consequence has to be stated with the benefit: <strong>a flight that climbs and levels off exactly at FL100 registers no FL100 crossing</strong>, because it never clears the upper edge. That case is described by the level-segment and top-of-climb events instead.</p>
+<p>The instant is then interpolated to exactly <code>L</code> <strong>between the two samples that straddle it</strong> — which is a different row from the one that confirmed the crossing. Confirmation happens at the band edge; the crossing itself is earlier. Conflating them reintroduces the one-sided bias this replaces. Each event carries <code>crossing_seq</code> (1-based, in time order), <code>direction</code>, and <code>bracket_s</code>, the spacing of the two interpolated-between samples, so a consumer can tell an instant measured across 5 seconds from one inferred across four minutes.</p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>Parameter</th>
+<th>Value</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>crossing_levels_fl</code></td>
+<td>50, 70, 100, 245</td>
+<td>the published vocabulary</td>
+</tr>
+<tr class="even">
+<td><code>crossing_hysteresis_ft</code></td>
+<td>300 ft</td>
+<td>ours</td>
+</tr>
+<tr class="odd">
+<td><code>crossing_all_occurrences</code></td>
+<td>on</td>
+<td>new</td>
+</tr>
+<tr class="even">
+<td><code>crossing_interpolate</code></td>
+<td>on</td>
+<td>new</td>
+</tr>
+</tbody>
+</table>
+<p>Thresholds are evaluated as parallel columns over one window specification rather than by exploding the trajectory once per level, so four levels cost one shuffle rather than four, and only rows where a crossing fired are expanded into events.</p>
+<p><em>Implemented in</em> <code>pipeline/crossings.py</code>: <code>threshold_crossings</code>, <code>flight_level_crossings</code>; wired by <code>events.calculate_threshold_crossing_events</code>.</p>
+</section>
+<section id="xing-40nm-and-xing-100nm-the-asma-rings" class="level3" data-number="7.7">
+<h3 data-number="7.7" class="anchored" data-anchor-id="xing-40nm-and-xing-100nm-the-asma-rings"><span class="header-section-number">7.7</span> 7. <code>xing-40nm</code> and <code>xing-100nm</code> — the ASMA rings</h3>
+<p>Crossings of the 40 NM and 100 NM cylinders around the flight’s <strong>own</strong> origin and destination.</p>
+<p>The same detector as section 6, with distance to an aerodrome as the quantity instead of altitude, and a dead band of 1 NM. The rings come from the flight list’s ADEP and ADES rather than from the H3 aerodrome zone table, for two reasons: it is what the indicators mean — KPI08’s ASMA is a cylinder around the destination and KPI05’s reference area one around each end — and it is what APDF records, one crossing per movement rather than one per aerodrome overflown. It is also far cheaper, multiplying each sample by at most two rather than by every aerodrome within 110 NM.</p>
+<p><code>info</code> carries <code>crossing_seq</code>, <code>direction</code> (<code>inbound</code>/<code>outbound</code>), <code>apt_icao</code>, <code>bearing</code> and <code>flight_level</code>, matching <code>C40_CROSS_{TIME,LAT,LON,FL}</code> and <code>C40_BEARING</code> column for column so the comparison against reference data is direct rather than a translation.</p>
+<p><strong>Bearing is computed from the interpolated crossing position, not interpolated alongside it.</strong> A bearing is circular: averaging 359 and 1 gives 180, which would be wrong by half a turn on any crossing near due north.</p>
+<p><strong>A bug worth recording, because it shaped this section.</strong> The first run produced 2.85 million 40 NM crossings and 3.20 million at 100 NM against 236,899 tracks — with <em>identical</em> counts for both rings on the worst flights, a signature real geometry cannot produce. The cause was in a shared helper: <code>haversine_nm</code> clamped the argument of <code>asin</code> with <code>F.least(a, 1.0)</code>, and <code>F.least</code> skips nulls, so a missing coordinate became <code>asin(1)</code> — 10,807 NM, the antipodal distance. A transponder parked at Budapest transmitted for the whole 72-hour sample; cleaning nulled its repeated positions as stale broadcasts, and its distance series then alternated between 0.7 NM and the antipode, crossing both rings on nearly every sample. After the fix the counts are 151,526 and 138,512, a 19- and 23-fold reduction.</p>
+<p><em>Implemented in</em> <code>pipeline/crossings.py</code>: <code>ring_crossings</code>; wired by <code>events.calculate_ring_crossing_events</code>.</p>
+</section>
+<section id="entry--and-exit--airport-layout-events" class="level3" data-number="7.8">
+<h3 data-number="7.8" class="anchored" data-anchor-id="entry--and-exit--airport-layout-events"><span class="header-section-number">7.8</span> 8. <code>entry-*</code> and <code>exit-*</code> — airport layout events</h3>
+<p><em>Types emitted:</em> <code>entry-runway</code>, <code>exit-runway</code>, <code>entry-taxiway</code>, <code>exit-taxiway</code>, <code>entry-apron</code>, <code>exit-apron</code>, <code>entry-hangar</code>, <code>exit-hangar</code>, <code>entry-threshold</code>, <code>exit-threshold</code>, <code>entry-parking_position</code>, <code>exit-parking_position</code>, <code>entry-deicing_pad</code>, <code>exit-deicing_pad</code>.</p>
+<p>Entry to and exit from runway, taxiway, apron, hangar, threshold, parking position and de-icing pad.</p>
+<p>Low-altitude samples are matched against OpenStreetMap aeroway geometry that has been pre-rasterised to H3 resolution 12 hexagons in <code>hexaero_airport_layouts</code>. A sample joins a feature when its <code>h3_res_12</code> cell matches and the feature’s aerodrome is one the flight list names for that flight. Consecutive matches on the same feature form a traversal; a gap of more than 300 seconds starts a new one. Each traversal yields an entry and an exit event.</p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>Parameter</th>
+<th>Value</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>airport_max_fl</code></td>
+<td>FL20</td>
+<td>the published gate</td>
+</tr>
+<tr class="even">
+<td><code>airport_trace_gap_seconds</code></td>
+<td>300 s</td>
+<td>the published gate</td>
+</tr>
+<tr class="odd">
+<td>H3 resolution</td>
+<td>12</td>
+<td><code>H3Config.airport_layout_resolution</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Entry and exit attributes are taken from the samples at the entry and exit times</strong> (<code>airport_events_ordered</code>). The published detector used <code>first</code>/<code>last</code> inside a group-by, which take partition order rather than time order — so a reported entry position was not guaranteed to be the position at the reported entry time. This is a correctness fix, not a tuning knob.</p>
+<p><strong>Two limitations that bound coverage.</strong> The detector cannot fire for an aerodrome the flight list did not name, and it depends on OSM coverage, which <code>hexaero_airport_layouts</code> builds only for large and medium aerodromes within the ingestion area. A traversal completed inside a single 5-second sample is also dropped, because its duration is zero.</p>
+<p><code>entry-threshold</code> and <code>exit-threshold</code> fall from 774 to 9 between the published and new configurations. The threshold polygons are the smallest features in the layout set, so they are the most sensitive to which samples survive cleaning — this is the clearest instance of trajectory cleaning removing the samples a detector depends on, and it is not a detector change.</p>
+<p><em>Implemented in</em> <code>pipeline/events.py</code>: <code>calculate_airport_events</code>.</p>
+</section>
+<section id="atot-and-aldt-runway-identification-and-touchdown" class="level3" data-number="7.9">
+<h3 data-number="7.9" class="anchored" data-anchor-id="atot-and-aldt-runway-identification-and-touchdown"><span class="header-section-number">7.9</span> 9. <code>ATOT</code> and <code>ALDT</code> — runway identification and touchdown</h3>
+<p>Take-off and landing times, anchored on the runway the movement actually used.</p>
+<p>A native port of <code>traffic</code>’s <code>TrackBasedRunwayDetection</code>. Samples are kept when they are within 5 NM of the aerodrome, below 1,500 ft above field elevation, faster than 30 kt over the ground, and climbing or descending faster than 257 ft/min in the direction the role implies. At least four must survive. The median track of the survivors is matched against each runway’s bearing, and the nearest within 10 degrees wins; parallel runways are separated by cross-track distance to each centreline, in closed form where <code>traffic</code> uses a geometry library.</p>
+<p>Runway geometry comes from <code>oa_runways</code> — the OurAirports table step 00d has been generating since it was written and which nothing had ever read. It is the same data <code>traffic</code> downloads at runtime, so this adds no dependency and nothing to warm on an offline executor. <strong>Bearings are computed from the two threshold positions</strong> rather than taken from <code>le_heading_degT</code>, which is often null and sometimes magnetic rather than true.</p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>Parameter</th>
+<th>Value</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>runway_max_dist_nm</code></td>
+<td>5 NM</td>
+<td><code>traffic</code></td>
+</tr>
+<tr class="even">
+<td><code>runway_max_height_ft</code></td>
+<td>1,500 ft</td>
+<td><code>traffic</code></td>
+</tr>
+<tr class="odd">
+<td><code>runway_min_vert_rate_ftmin</code></td>
+<td>257 ft/min</td>
+<td><code>traffic</code></td>
+</tr>
+<tr class="even">
+<td><code>runway_min_groundspeed_kt</code></td>
+<td>30 kt</td>
+<td><code>traffic</code></td>
+</tr>
+<tr class="odd">
+<td><code>runway_max_bearing_deg</code></td>
+<td>10°</td>
+<td><code>traffic</code></td>
+</tr>
+</tbody>
+</table>
+<p>The detector <strong>abstains</strong> when no runway falls within the bearing tolerance. Naming the wrong runway corrupts a movement count; naming none is an explicit null.</p>
+<p><strong>Both times are proxies</strong>, and are documented as such: <code>ATOT</code> is the earliest surviving sample of a departure and <code>ALDT</code> the latest of an arrival. Their bias against reference data is measured and reported in the results rather than assumed to be zero.</p>
+<p><em>Implemented in</em> <code>pipeline/runways.py</code>: <code>runway_thresholds</code>, <code>detect_runway_movements</code>; wired by <code>events.calculate_runway_events</code>.</p>
+</section>
+<section id="aobt-and-aibt-block-times" class="level3" data-number="7.10">
+<h3 data-number="7.10" class="anchored" data-anchor-id="aobt-and-aibt-block-times"><span class="header-section-number">7.10</span> 10. <code>AOBT</code> and <code>AIBT</code> — block times</h3>
+<p>Off-block and on-block.</p>
+<p>The aircraft is moving once its groundspeed stays above 2 kt for a sustained 30 seconds — a port of the signal in <code>traffic</code>’s <code>StartMoving</code>, where the sustained part is what separates a push from a jitter in the speed field. The start of the first such run is the off-block candidate and the end of the last the on-block candidate.</p>
+<p>Both are <strong>anchored on the parking-position events</strong> from section 8: a candidate is only emitted for a track that was actually seen leaving or entering a stand. Without that anchor, a track first received mid-taxi would report its first movement as an off-block — a different event, and one that reads as an implausibly short taxi rather than as a miss.</p>
+<p><code>traffic</code>’s own parking-position path is deliberately <strong>not</strong> used: it resolves stands through a live OpenStreetMap Overpass query whose cache does not survive serialisation to an executor, so it cannot run without network access. OPDI’s <code>hexaero_airport_layouts</code> already carries the same geometry.</p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>Parameter</th>
+<th>Value</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>ground_speed_threshold_kt</code></td>
+<td>2 kt</td>
+<td><code>traffic</code></td>
+</tr>
+<tr class="even">
+<td><code>ground_move_min_seconds</code></td>
+<td>30 s</td>
+<td><code>traffic</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Coverage is the limitation, and it is measured</strong>: 2.6% of reference movements, with the off-block proxy firing around twelve minutes late. Surface reception is sparse, and sustained movement is detectable only once reception begins. Both numbers are reported as the finding rather than tuned away, and they are the reason pushback (T05) was not built — it needs strictly more coverage than this.</p>
+<p><em>Implemented in</em> <code>pipeline/ground.py</code>: <code>movement_window</code>, <code>block_times</code>; wired by <code>events.calculate_block_events</code>.</p>
+</section>
+<section id="icao-level-segments" class="level3" data-number="7.11">
+<h3 data-number="7.11" class="anchored" data-anchor-id="icao-level-segments"><span class="header-section-number">7.11</span> 11. ICAO level segments</h3>
+<p><em>Types emitted:</em> <code>level-off-climb-start</code>, <code>level-off-climb-end</code>, <code>level-off-descent-start</code>, <code>level-off-descent-end</code>.</p>
+<p>Level flight during climb and descent, as ICAO defines it for KPI17 and KPI19.</p>
+<p>ICAO specifies these with a complete algorithm rather than leaving detection to the implementer, and this is that algorithm:</p>
+<blockquote class="blockquote">
+<p>a data point starts a level segment when the altitude difference with the next data point is ≤ the level band limit and the vertical speed towards it is ≤ the vertical speed limit. The segment ends when the altitude differs from the segment’s starting altitude by more than the level band limit, or the vertical speed between two consecutive points exceeds the limit.</p>
+</blockquote>
+<p>The anchoring is what a plain window function cannot express: a segment’s end is defined against <em>its own start</em>, a running value that resets. It is implemented as a sessionisation — mark where flatness begins, forward-fill the anchor within the group — and each group is truncated at its first failure, so a trajectory that leaves the band and drifts back is not stitched across the excursion. Anchoring against the segment start rather than the previous sample is what stops a slow drift being read as one long level segment.</p>
+<p>Segments are then split into KPI17 and KPI19 by whether they fall before top-of-climb or after top-of-descent, with two exclusions: a <strong>minimum altitude</strong> below which the trajectory is not analysed, and an <strong>exclusion box</strong> that removes a segment sitting above 90% of the cruise altitude and lasting longer than five minutes — that is cruise, not a level-off, and without the box every cruise would be counted as the largest level-off in the flight.</p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>Parameter</th>
+<th>Value</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>level_band_limit_ft</code></td>
+<td>200 ft</td>
+<td>ICAO</td>
+</tr>
+<tr class="even">
+<td><code>level_vertical_speed_limit_ftmin</code></td>
+<td>300 ft/min</td>
+<td>ICAO</td>
+</tr>
+<tr class="odd">
+<td><code>level_min_duration_seconds</code></td>
+<td>20 s</td>
+<td>ICAO</td>
+</tr>
+<tr class="even">
+<td><code>level_exclusion_box_pct</code></td>
+<td>90%</td>
+<td>ICAO</td>
+</tr>
+<tr class="odd">
+<td><code>level_exclusion_box_seconds</code></td>
+<td>300 s</td>
+<td>ICAO</td>
+</tr>
+<tr class="even">
+<td><code>level_min_altitude_climb_ft</code></td>
+<td>3,000 ft</td>
+<td>ICAO</td>
+</tr>
+<tr class="odd">
+<td><code>level_min_altitude_descent_ft</code></td>
+<td>1,800 ft</td>
+<td>ICAO</td>
+</tr>
+<tr class="even">
+<td><code>level_analysis_radius_nm</code></td>
+<td>200 NM</td>
+<td>ICAO</td>
+</tr>
+</tbody>
+</table>
+<p>Top-of-climb and top-of-descent are taken from the phase detector’s own output rather than recomputed, so the two families cannot disagree about where cruise began — which matters because the exclusion box is defined against the cruise altitude.</p>
+<p><strong>No source available to OPDI holds level-segment truth</strong>, so the claim made for this family is conformance to the published algorithm, tested on synthetic trajectories whose geometry is known by construction. That is checkable; “accurate” is not.</p>
+<p><em>Implemented in</em> <code>pipeline/level_segments.py</code>: <code>level_segments</code>, <code>classify_level_offs</code>; wired by <code>events.calculate_level_off_events</code>.</p>
+</section>
+<section id="first_seen-and-last_seen" class="level3" data-number="7.12">
+<h3 data-number="7.12" class="anchored" data-anchor-id="first_seen-and-last_seen"><span class="header-section-number">7.12</span> <code>first_seen</code> and <code>last_seen</code></h3>
+<p>The first and last sample of each track, by time. Emitted for every track without condition, which is why their count — 236,899 on the sample — is also the track count.</p>
+<p><em>Implemented in</em> <code>pipeline/events.py</code>: <code>calculate_firstseen_lastseen_events</code>.</p>
+</section>
+<section id="measurements" class="level3" data-number="7.13">
+<h3 data-number="7.13" class="anchored" data-anchor-id="measurements"><span class="header-section-number">7.13</span> Measurements</h3>
+<p>Two values are attached to every event rather than being events themselves.</p>
+<p><strong><code>Distance flown (NM)</code></strong> is the cumulative great-circle distance from the start of the track, summed sample to sample with an Earth radius of 6,371 km and converted at 1.852 km per nautical mile. <strong><code>Time Passed (s)</code></strong> is the elapsed time from the track’s first sample.</p>
+<p>Both are <strong>interpolated to the crossing instant</strong> for the crossing families rather than read from a neighbouring sample — a measurement attached to an interpolated event but taken from a different row would disagree with its own event.</p>
+<p><em>Implemented in</em> <code>pipeline/events.py</code>: <code>add_distance_measure</code>, <code>add_time_measure</code>.</p>
+</section>
+<section id="event-identity" class="level3" data-number="7.14">
+<h3 data-number="7.14" class="anchored" data-anchor-id="event-identity"><span class="header-section-number">7.14</span> Event identity</h3>
+<p>Each event’s identifier is derived from the event’s own identity — track, type, time and version — rather than from a partition counter. The published detector used <code>monotonically_increasing_id()</code>, which encodes the partition index, so the same event received a different identifier on every run and two runs of a month could not be reconciled.</p>
+<p>This makes a re-run idempotent in <em>content</em>. It does <strong>not</strong> make the write idempotent: the storage layer appends, and the event tables are partitioned by <code>(type, version)</code> rather than by month, so an overwrite would destroy every other month. Re-processing safety currently rests on the per-month progress logs, and a month partition on the published tables is recorded as deferred work.</p>
+</section>
+</section>
+<section id="what-the-detectors-produce" class="level2" data-number="8">
+<h2 data-number="8" class="anchored" data-anchor-id="what-the-detectors-produce"><span class="header-section-number">8</span> What the detectors produce</h2>
+<p>Every event type step 04 emits, counted on the sample. Most of these have no counterpart in any reference dataset, so this table is the only place they are visible at all — a family that stopped being emitted would otherwise show up not as a regression but as an absence, which is harder to notice.</p>
+<div id="tbl-inventory" class="cell quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl quarto-uncaptioned" id="tbl-inventory-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;2
+</figcaption>
+<div aria-describedby="tbl-inventory-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<table class="caption-top table table-sm table-striped small">
+<thead>
+<tr class="header">
+<th style="text-align: right;">Event type</th>
+<th style="text-align: right;">L00_legacy</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: right;"><code>AIBT</code></td>
+<td style="text-align: right;">—</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;"><code>ALDT</code></td>
+<td style="text-align: right;">—</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;"><code>AOBT</code></td>
+<td style="text-align: right;">—</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;"><code>ATOT</code></td>
+<td style="text-align: right;">—</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;"><code>entry-apron</code></td>
+<td style="text-align: right;">2,565</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;"><code>entry-hangar</code></td>
+<td style="text-align: right;">34</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;"><code>entry-parking_position</code></td>
+<td style="text-align: right;">6,531</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;"><code>entry-runway</code></td>
+<td style="text-align: right;">31,233</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;"><code>entry-taxiway</code></td>
+<td style="text-align: right;">30,934</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;"><code>entry-threshold</code></td>
+<td style="text-align: right;">774</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;"><code>exit-apron</code></td>
+<td style="text-align: right;">2,564</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;"><code>exit-hangar</code></td>
+<td style="text-align: right;">34</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;"><code>exit-parking_position</code></td>
+<td style="text-align: right;">6,479</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;"><code>exit-runway</code></td>
+<td style="text-align: right;">31,175</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;"><code>exit-taxiway</code></td>
+<td style="text-align: right;">29,433</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;"><code>exit-threshold</code></td>
+<td style="text-align: right;">774</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;"><code>first-xing-fl100</code></td>
+<td style="text-align: right;">95,845</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;"><code>first-xing-fl245</code></td>
+<td style="text-align: right;">86,384</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;"><code>first-xing-fl50</code></td>
+<td style="text-align: right;">98,017</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;"><code>first-xing-fl70</code></td>
+<td style="text-align: right;">96,633</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;"><code>first_seen</code></td>
+<td style="text-align: right;">236,899</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;"><code>landing</code></td>
+<td style="text-align: right;">9,232</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;"><code>last-xing-fl100</code></td>
+<td style="text-align: right;">95,845</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;"><code>last-xing-fl245</code></td>
+<td style="text-align: right;">86,384</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;"><code>last-xing-fl50</code></td>
+<td style="text-align: right;">98,017</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;"><code>last-xing-fl70</code></td>
+<td style="text-align: right;">96,633</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;"><code>last_seen</code></td>
+<td style="text-align: right;">236,899</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;"><code>level-end</code></td>
+<td style="text-align: right;">888,611</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;"><code>level-off-climb-end</code></td>
+<td style="text-align: right;">—</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;"><code>level-off-climb-start</code></td>
+<td style="text-align: right;">—</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;"><code>level-off-descent-end</code></td>
+<td style="text-align: right;">—</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;"><code>level-off-descent-start</code></td>
+<td style="text-align: right;">—</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;"><code>level-start</code></td>
+<td style="text-align: right;">1,270,412</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;"><code>take-off</code></td>
+<td style="text-align: right;">8,483</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;"><code>top-of-climb</code></td>
+<td style="text-align: right;">114,099</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;"><code>top-of-descent</code></td>
+<td style="text-align: right;">108,767</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;"><code>xing-100nm</code></td>
+<td style="text-align: right;">—</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;"><code>xing-40nm</code></td>
+<td style="text-align: right;">—</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;"><code>xing-fl100</code></td>
+<td style="text-align: right;">—</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;"><code>xing-fl245</code></td>
+<td style="text-align: right;">—</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;"><code>xing-fl50</code></td>
+<td style="text-align: right;">—</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;"><code>xing-fl70</code></td>
+<td style="text-align: right;">—</td>
+</tr>
+</tbody>
+</table>
+</div>
+</figure>
+</div>
+</section>
+<section id="how-accurate-the-milestones-are" class="level2" data-number="9">
+<h2 data-number="9" class="anchored" data-anchor-id="how-accurate-the-milestones-are"><span class="header-section-number">9</span> How accurate the milestones are</h2>
+<p>Scored against APDF on the milestones it can reach. Coverage is the share of reference milestones with any detection; bias is the median signed error, so a negative value means the detector fires early.</p>
+<div id="tbl-ladder" class="cell quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl quarto-uncaptioned" id="tbl-ladder-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;3
+</figcaption>
+<div aria-describedby="tbl-ladder-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<table class="caption-top table table-sm table-striped small">
+<colgroup>
+<col style="width: 9%">
+<col style="width: 9%">
+<col style="width: 9%">
+<col style="width: 12%">
+<col style="width: 12%">
+<col style="width: 12%">
+<col style="width: 12%">
+<col style="width: 12%">
+<col style="width: 12%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Rung</th>
+<th>OPDI type</th>
+<th>vs</th>
+<th style="text-align: right;">Truth</th>
+<th style="text-align: right;">Detected</th>
+<th style="text-align: right;">Coverage</th>
+<th style="text-align: right;">Bias (s)</th>
+<th style="text-align: right;">MAD (s)</th>
+<th style="text-align: right;">±60 s</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>L11_blocks</td>
+<td><code>AIBT</code></td>
+<td>AIBT</td>
+<td style="text-align: right;">57,362</td>
+<td style="text-align: right;">1,520</td>
+<td style="text-align: right;">2.65%</td>
+<td style="text-align: right;">-323.0</td>
+<td style="text-align: right;">323.0</td>
+<td style="text-align: right;">0.01%</td>
+</tr>
+<tr class="even">
+<td>L12_level_offs</td>
+<td><code>AIBT</code></td>
+<td>AIBT</td>
+<td style="text-align: right;">57,362</td>
+<td style="text-align: right;">1,520</td>
+<td style="text-align: right;">2.65%</td>
+<td style="text-align: right;">-323.0</td>
+<td style="text-align: right;">323.0</td>
+<td style="text-align: right;">0.01%</td>
+</tr>
+<tr class="odd">
+<td>L13_shipped</td>
+<td><code>AIBT</code></td>
+<td>AIBT</td>
+<td style="text-align: right;">57,362</td>
+<td style="text-align: right;">1,520</td>
+<td style="text-align: right;">2.65%</td>
+<td style="text-align: right;">-323.0</td>
+<td style="text-align: right;">323.0</td>
+<td style="text-align: right;">0.01%</td>
+</tr>
+<tr class="even">
+<td>L00_legacy</td>
+<td><code>landing</code></td>
+<td>ALDT</td>
+<td style="text-align: right;">57,363</td>
+<td style="text-align: right;">1,215</td>
+<td style="text-align: right;">2.12%</td>
+<td style="text-align: right;">34.0</td>
+<td style="text-align: right;">35.0</td>
+<td style="text-align: right;">1.61%</td>
+</tr>
+<tr class="odd">
+<td>L01_clean_tracks</td>
+<td><code>landing</code></td>
+<td>ALDT</td>
+<td style="text-align: right;">57,363</td>
+<td style="text-align: right;">3,668</td>
+<td style="text-align: right;">6.39%</td>
+<td style="text-align: right;">7.0</td>
+<td style="text-align: right;">14.0</td>
+<td style="text-align: right;">5.41%</td>
+</tr>
+<tr class="even">
+<td>L02_smoothing</td>
+<td><code>landing</code></td>
+<td>ALDT</td>
+<td style="text-align: right;">57,363</td>
+<td style="text-align: right;">3,724</td>
+<td style="text-align: right;">6.49%</td>
+<td style="text-align: right;">6.0</td>
+<td style="text-align: right;">12.0</td>
+<td style="text-align: right;">5.59%</td>
+</tr>
+<tr class="odd">
+<td>L03_complete_rules</td>
+<td><code>landing</code></td>
+<td>ALDT</td>
+<td style="text-align: right;">57,363</td>
+<td style="text-align: right;">393</td>
+<td style="text-align: right;">0.69%</td>
+<td style="text-align: right;">22.0</td>
+<td style="text-align: right;">22.0</td>
+<td style="text-align: right;">0.67%</td>
+</tr>
+<tr class="even">
+<td>L04_field_elevation</td>
+<td><code>landing</code></td>
+<td>ALDT</td>
+<td style="text-align: right;">57,363</td>
+<td style="text-align: right;">1,066</td>
+<td style="text-align: right;">1.86%</td>
+<td style="text-align: right;">21.0</td>
+<td style="text-align: right;">21.0</td>
+<td style="text-align: right;">1.78%</td>
+</tr>
+<tr class="odd">
+<td>L05_ordered_airport</td>
+<td><code>landing</code></td>
+<td>ALDT</td>
+<td style="text-align: right;">57,363</td>
+<td style="text-align: right;">1,066</td>
+<td style="text-align: right;">1.86%</td>
+<td style="text-align: right;">21.0</td>
+<td style="text-align: right;">21.0</td>
+<td style="text-align: right;">1.78%</td>
+</tr>
+<tr class="even">
+<td>L06_deterministic_ids</td>
+<td><code>landing</code></td>
+<td>ALDT</td>
+<td style="text-align: right;">57,363</td>
+<td style="text-align: right;">1,066</td>
+<td style="text-align: right;">1.86%</td>
+<td style="text-align: right;">21.0</td>
+<td style="text-align: right;">21.0</td>
+<td style="text-align: right;">1.78%</td>
+</tr>
+<tr class="odd">
+<td>L07_all_crossings</td>
+<td><code>landing</code></td>
+<td>ALDT</td>
+<td style="text-align: right;">57,363</td>
+<td style="text-align: right;">1,066</td>
+<td style="text-align: right;">1.86%</td>
+<td style="text-align: right;">21.0</td>
+<td style="text-align: right;">21.0</td>
+<td style="text-align: right;">1.78%</td>
+</tr>
+<tr class="even">
+<td>L08_interpolated</td>
+<td><code>landing</code></td>
+<td>ALDT</td>
+<td style="text-align: right;">57,363</td>
+<td style="text-align: right;">1,066</td>
+<td style="text-align: right;">1.86%</td>
+<td style="text-align: right;">21.0</td>
+<td style="text-align: right;">21.0</td>
+<td style="text-align: right;">1.78%</td>
+</tr>
+<tr class="odd">
+<td>L09_rings</td>
+<td><code>landing</code></td>
+<td>ALDT</td>
+<td style="text-align: right;">57,363</td>
+<td style="text-align: right;">1,066</td>
+<td style="text-align: right;">1.86%</td>
+<td style="text-align: right;">21.0</td>
+<td style="text-align: right;">21.0</td>
+<td style="text-align: right;">1.78%</td>
+</tr>
+<tr class="even">
+<td>L10_runway</td>
+<td><code>ALDT</code></td>
+<td>ALDT</td>
+<td style="text-align: right;">57,363</td>
+<td style="text-align: right;">49,366</td>
+<td style="text-align: right;">86.06%</td>
+<td style="text-align: right;">-2.0</td>
+<td style="text-align: right;">19.0</td>
+<td style="text-align: right;">80.38%</td>
+</tr>
+<tr class="odd">
+<td>L10_runway</td>
+<td><code>landing</code></td>
+<td>ALDT</td>
+<td style="text-align: right;">57,363</td>
+<td style="text-align: right;">1,066</td>
+<td style="text-align: right;">1.86%</td>
+<td style="text-align: right;">21.0</td>
+<td style="text-align: right;">21.0</td>
+<td style="text-align: right;">1.78%</td>
+</tr>
+<tr class="even">
+<td>L11_blocks</td>
+<td><code>ALDT</code></td>
+<td>ALDT</td>
+<td style="text-align: right;">57,363</td>
+<td style="text-align: right;">49,366</td>
+<td style="text-align: right;">86.06%</td>
+<td style="text-align: right;">-2.0</td>
+<td style="text-align: right;">19.0</td>
+<td style="text-align: right;">80.38%</td>
+</tr>
+<tr class="odd">
+<td>L11_blocks</td>
+<td><code>landing</code></td>
+<td>ALDT</td>
+<td style="text-align: right;">57,363</td>
+<td style="text-align: right;">1,066</td>
+<td style="text-align: right;">1.86%</td>
+<td style="text-align: right;">21.0</td>
+<td style="text-align: right;">21.0</td>
+<td style="text-align: right;">1.78%</td>
+</tr>
+<tr class="even">
+<td>L12_level_offs</td>
+<td><code>ALDT</code></td>
+<td>ALDT</td>
+<td style="text-align: right;">57,363</td>
+<td style="text-align: right;">49,366</td>
+<td style="text-align: right;">86.06%</td>
+<td style="text-align: right;">-2.0</td>
+<td style="text-align: right;">19.0</td>
+<td style="text-align: right;">80.38%</td>
+</tr>
+<tr class="odd">
+<td>L12_level_offs</td>
+<td><code>landing</code></td>
+<td>ALDT</td>
+<td style="text-align: right;">57,363</td>
+<td style="text-align: right;">1,066</td>
+<td style="text-align: right;">1.86%</td>
+<td style="text-align: right;">21.0</td>
+<td style="text-align: right;">21.0</td>
+<td style="text-align: right;">1.78%</td>
+</tr>
+<tr class="even">
+<td>L13_shipped</td>
+<td><code>ALDT</code></td>
+<td>ALDT</td>
+<td style="text-align: right;">57,363</td>
+<td style="text-align: right;">49,366</td>
+<td style="text-align: right;">86.06%</td>
+<td style="text-align: right;">-2.0</td>
+<td style="text-align: right;">19.0</td>
+<td style="text-align: right;">80.38%</td>
+</tr>
+<tr class="odd">
+<td>L13_shipped</td>
+<td><code>landing</code></td>
+<td>ALDT</td>
+<td style="text-align: right;">57,363</td>
+<td style="text-align: right;">1,066</td>
+<td style="text-align: right;">1.86%</td>
+<td style="text-align: right;">21.0</td>
+<td style="text-align: right;">21.0</td>
+<td style="text-align: right;">1.78%</td>
+</tr>
+<tr class="even">
+<td>L11_blocks</td>
+<td><code>AOBT</code></td>
+<td>AOBT</td>
+<td style="text-align: right;">57,363</td>
+<td style="text-align: right;">1,509</td>
+<td style="text-align: right;">2.63%</td>
+<td style="text-align: right;">744.0</td>
+<td style="text-align: right;">748.0</td>
+<td style="text-align: right;">0.00%</td>
+</tr>
+<tr class="odd">
+<td>L12_level_offs</td>
+<td><code>AOBT</code></td>
+<td>AOBT</td>
+<td style="text-align: right;">57,363</td>
+<td style="text-align: right;">1,509</td>
+<td style="text-align: right;">2.63%</td>
+<td style="text-align: right;">744.0</td>
+<td style="text-align: right;">748.0</td>
+<td style="text-align: right;">0.00%</td>
+</tr>
+<tr class="even">
+<td>L13_shipped</td>
+<td><code>AOBT</code></td>
+<td>AOBT</td>
+<td style="text-align: right;">57,363</td>
+<td style="text-align: right;">1,509</td>
+<td style="text-align: right;">2.63%</td>
+<td style="text-align: right;">744.0</td>
+<td style="text-align: right;">748.0</td>
+<td style="text-align: right;">0.00%</td>
+</tr>
+<tr class="odd">
+<td>L00_legacy</td>
+<td><code>take-off</code></td>
+<td>ATOT</td>
+<td style="text-align: right;">57,364</td>
+<td style="text-align: right;">1,041</td>
+<td style="text-align: right;">1.81%</td>
+<td style="text-align: right;">1.0</td>
+<td style="text-align: right;">7.0</td>
+<td style="text-align: right;">1.31%</td>
+</tr>
+<tr class="even">
+<td>L01_clean_tracks</td>
+<td><code>take-off</code></td>
+<td>ATOT</td>
+<td style="text-align: right;">57,364</td>
+<td style="text-align: right;">1,871</td>
+<td style="text-align: right;">3.26%</td>
+<td style="text-align: right;">4.0</td>
+<td style="text-align: right;">11.0</td>
+<td style="text-align: right;">2.42%</td>
+</tr>
+<tr class="odd">
+<td>L02_smoothing</td>
+<td><code>take-off</code></td>
+<td>ATOT</td>
+<td style="text-align: right;">57,364</td>
+<td style="text-align: right;">688</td>
+<td style="text-align: right;">1.20%</td>
+<td style="text-align: right;">-1.0</td>
+<td style="text-align: right;">12.0</td>
+<td style="text-align: right;">1.15%</td>
+</tr>
+<tr class="even">
+<td>L03_complete_rules</td>
+<td><code>take-off</code></td>
+<td>ATOT</td>
+<td style="text-align: right;">57,364</td>
+<td style="text-align: right;">20</td>
+<td style="text-align: right;">0.03%</td>
+<td style="text-align: right;">-21.0</td>
+<td style="text-align: right;">23.0</td>
+<td style="text-align: right;">0.03%</td>
+</tr>
+<tr class="odd">
+<td>L04_field_elevation</td>
+<td><code>take-off</code></td>
+<td>ATOT</td>
+<td style="text-align: right;">57,364</td>
+<td style="text-align: right;">223</td>
+<td style="text-align: right;">0.39%</td>
+<td style="text-align: right;">-1.0</td>
+<td style="text-align: right;">16.0</td>
+<td style="text-align: right;">0.38%</td>
+</tr>
+<tr class="even">
+<td>L05_ordered_airport</td>
+<td><code>take-off</code></td>
+<td>ATOT</td>
+<td style="text-align: right;">57,364</td>
+<td style="text-align: right;">223</td>
+<td style="text-align: right;">0.39%</td>
+<td style="text-align: right;">-1.0</td>
+<td style="text-align: right;">16.0</td>
+<td style="text-align: right;">0.38%</td>
+</tr>
+<tr class="odd">
+<td>L06_deterministic_ids</td>
+<td><code>take-off</code></td>
+<td>ATOT</td>
+<td style="text-align: right;">57,364</td>
+<td style="text-align: right;">223</td>
+<td style="text-align: right;">0.39%</td>
+<td style="text-align: right;">-1.0</td>
+<td style="text-align: right;">16.0</td>
+<td style="text-align: right;">0.38%</td>
+</tr>
+<tr class="even">
+<td>L07_all_crossings</td>
+<td><code>take-off</code></td>
+<td>ATOT</td>
+<td style="text-align: right;">57,364</td>
+<td style="text-align: right;">223</td>
+<td style="text-align: right;">0.39%</td>
+<td style="text-align: right;">-1.0</td>
+<td style="text-align: right;">16.0</td>
+<td style="text-align: right;">0.38%</td>
+</tr>
+<tr class="odd">
+<td>L08_interpolated</td>
+<td><code>take-off</code></td>
+<td>ATOT</td>
+<td style="text-align: right;">57,364</td>
+<td style="text-align: right;">223</td>
+<td style="text-align: right;">0.39%</td>
+<td style="text-align: right;">-1.0</td>
+<td style="text-align: right;">16.0</td>
+<td style="text-align: right;">0.38%</td>
+</tr>
+<tr class="even">
+<td>L09_rings</td>
+<td><code>take-off</code></td>
+<td>ATOT</td>
+<td style="text-align: right;">57,364</td>
+<td style="text-align: right;">223</td>
+<td style="text-align: right;">0.39%</td>
+<td style="text-align: right;">-1.0</td>
+<td style="text-align: right;">16.0</td>
+<td style="text-align: right;">0.38%</td>
+</tr>
+<tr class="odd">
+<td>L10_runway</td>
+<td><code>ATOT</code></td>
+<td>ATOT</td>
+<td style="text-align: right;">57,364</td>
+<td style="text-align: right;">36,313</td>
+<td style="text-align: right;">63.30%</td>
+<td style="text-align: right;">19.0</td>
+<td style="text-align: right;">21.0</td>
+<td style="text-align: right;">58.63%</td>
+</tr>
+<tr class="even">
+<td>L10_runway</td>
+<td><code>take-off</code></td>
+<td>ATOT</td>
+<td style="text-align: right;">57,364</td>
+<td style="text-align: right;">223</td>
+<td style="text-align: right;">0.39%</td>
+<td style="text-align: right;">-1.0</td>
+<td style="text-align: right;">16.0</td>
+<td style="text-align: right;">0.38%</td>
+</tr>
+<tr class="odd">
+<td>L11_blocks</td>
+<td><code>ATOT</code></td>
+<td>ATOT</td>
+<td style="text-align: right;">57,364</td>
+<td style="text-align: right;">36,313</td>
+<td style="text-align: right;">63.30%</td>
+<td style="text-align: right;">19.0</td>
+<td style="text-align: right;">21.0</td>
+<td style="text-align: right;">58.63%</td>
+</tr>
+<tr class="even">
+<td>L11_blocks</td>
+<td><code>take-off</code></td>
+<td>ATOT</td>
+<td style="text-align: right;">57,364</td>
+<td style="text-align: right;">223</td>
+<td style="text-align: right;">0.39%</td>
+<td style="text-align: right;">-1.0</td>
+<td style="text-align: right;">16.0</td>
+<td style="text-align: right;">0.38%</td>
+</tr>
+<tr class="odd">
+<td>L12_level_offs</td>
+<td><code>ATOT</code></td>
+<td>ATOT</td>
+<td style="text-align: right;">57,364</td>
+<td style="text-align: right;">36,313</td>
+<td style="text-align: right;">63.30%</td>
+<td style="text-align: right;">19.0</td>
+<td style="text-align: right;">21.0</td>
+<td style="text-align: right;">58.63%</td>
+</tr>
+<tr class="even">
+<td>L12_level_offs</td>
+<td><code>take-off</code></td>
+<td>ATOT</td>
+<td style="text-align: right;">57,364</td>
+<td style="text-align: right;">223</td>
+<td style="text-align: right;">0.39%</td>
+<td style="text-align: right;">-1.0</td>
+<td style="text-align: right;">16.0</td>
+<td style="text-align: right;">0.38%</td>
+</tr>
+<tr class="odd">
+<td>L13_shipped</td>
+<td><code>ATOT</code></td>
+<td>ATOT</td>
+<td style="text-align: right;">57,364</td>
+<td style="text-align: right;">36,313</td>
+<td style="text-align: right;">63.30%</td>
+<td style="text-align: right;">19.0</td>
+<td style="text-align: right;">21.0</td>
+<td style="text-align: right;">58.63%</td>
+</tr>
+<tr class="even">
+<td>L13_shipped</td>
+<td><code>take-off</code></td>
+<td>ATOT</td>
+<td style="text-align: right;">57,364</td>
+<td style="text-align: right;">223</td>
+<td style="text-align: right;">0.39%</td>
+<td style="text-align: right;">-1.0</td>
+<td style="text-align: right;">16.0</td>
+<td style="text-align: right;">0.38%</td>
+</tr>
+</tbody>
+</table>
+</div>
+</figure>
+</div>
+</section>
+<section id="what-the-numbers-say" class="level2" data-number="10">
+<h2 data-number="10" class="anchored" data-anchor-id="what-the-numbers-say"><span class="header-section-number">10</span> What the numbers say</h2>
+<section id="landing-time-is-transformed-take-off-trades-sharpness-for-reach" class="level3" data-number="10.1">
+<h3 data-number="10.1" class="anchored" data-anchor-id="landing-time-is-transformed-take-off-trades-sharpness-for-reach"><span class="header-section-number">10.1</span> Landing time is transformed; take-off trades sharpness for reach</h3>
+<p>Both the published fuzzy-phase pair and the new runway-anchored pair are scored against the same APDF truth, because which of them wins is the question this study exists to answer.</p>
+<p>The published <code>landing</code> is beaten on every axis at once: the new <code>ALDT</code> covers forty times as many flights, its median error is two seconds early rather than thirty-four late, and four in five detections fall within a minute against one in sixty.</p>
+<p><code>take-off</code> is the more interesting case, and the honest reading is a trade rather than a win. The published detector has the <em>better median</em> — a one second bias against nineteen — but it fires on 1.8% of flights and its 90th percentile error is <strong>4,273 seconds</strong>. Seventy-one minutes. So it is often excellent and occasionally absurd, and nothing in its output distinguishes the two. The new <code>ATOT</code> covers thirty-five times more flights with a 90th percentile of 59 seconds. For an indicator averaged over a population, a detector that is never wildly wrong is worth more than one that is sometimes perfect.</p>
+</section>
+<section id="requiring-complete-evidence-made-detection-worse" class="level3" data-number="10.2">
+<h3 data-number="10.2" class="anchored" data-anchor-id="requiring-complete-evidence-made-detection-worse"><span class="header-section-number">10.2</span> Requiring complete evidence made detection worse</h3>
+<p>The ladder’s purpose is attribution, and it earned that here by contradicting one of this study’s own fixes.</p>
+<p><code>least</code>/<code>greatest</code> skip nulls, so a fuzzy rule missing an input became a minimum over fewer terms and could out-compete a complete rule. Requiring every input to be present is obviously more correct. On real data it removes 90% of phase-based landings — coverage falls from 6.49% to 0.69% — because ADS-B carries a null velocity often enough that insisting on complete evidence discards most ground samples.</p>
+<p>It matters less than it appears, since the runway-anchored detectors replace that path entirely. But it is a genuine negative result, it would have been invisible in a two-configuration comparison, and it is recorded here rather than quietly reverted.</p>
+</section>
+<section id="off-block-and-on-block-are-limited-by-reception-as-expected" class="level3" data-number="10.3">
+<h3 data-number="10.3" class="anchored" data-anchor-id="off-block-and-on-block-are-limited-by-reception-as-expected"><span class="header-section-number">10.3</span> Off-block and on-block are limited by reception, as expected</h3>
+<p>Coverage of 2.6% and a bias of +744 seconds. The bias is not noise: sustained movement is detectable only once reception begins, which is typically well after the aircraft actually leaves the stand. Both numbers are reported as the finding rather than tuned away, and they are why T05 (pushback) was not built — it needs strictly more coverage than this.</p>
+</section>
+<section id="does-it-hold-on-a-second-period" class="level3" data-number="10.4">
+<h3 data-number="10.4" class="anchored" data-anchor-id="does-it-hold-on-a-second-period"><span class="header-section-number">10.4</span> Does it hold on a second period?</h3>
+<p>Both periods were run. What 2024 can check is narrower than 2025: no flight list exists for that period, and the runway, ring, airport and block detectors all need one, so 2024 exercises the phase and crossing families only. The ALDT and ATOT headline figures are therefore <strong>single-period</strong>.</p>
+<p>For what it does cover, the two disagree in an instructive way.</p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>Rung</th>
+<th style="text-align: right;"><code>landing</code> coverage, 2025</th>
+<th style="text-align: right;">2024</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>L01_clean_tracks</code></td>
+<td style="text-align: right;">6.39%</td>
+<td style="text-align: right;">6.66%</td>
+</tr>
+<tr class="even">
+<td><code>L02_smoothing</code></td>
+<td style="text-align: right;">6.49%</td>
+<td style="text-align: right;"><strong>0.96%</strong></td>
+</tr>
+<tr class="odd">
+<td><code>L03_complete_rules</code></td>
+<td style="text-align: right;">0.69%</td>
+<td style="text-align: right;">0.23%</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Requiring complete fuzzy rules reproduces.</strong> A large relative collapse on both periods – 89% and 76% – so the finding is a property of the change rather than of a month.</p>
+<p><strong>The smoothing does not.</strong> Restoring the reference implementation’s 60-second majority vote is near-neutral on 2025 and costs 86% of landing coverage on 2024. This was the change with the strongest prior justification in the whole study, and it is the one the second period contradicts.</p>
+<p>One confound has to be stated with it. The 2024 tracks predate step 02’s altitude repair, so that run substitutes the raw barometric altitude. The period therefore differs in input preparation as well as in date, and the smoothing operates on phase labels derived from exactly that column. The divergence may be the substitution rather than the month, and this study cannot separate the two. What it can say is that the change is <strong>not robust across the conditions tested</strong>, which is the useful half of the claim: a fix that behaves this differently on noisier input should not be adopted on the strength of its rationale alone.</p>
+</section>
+<section id="what-has-still-not-been-measured" class="level3" data-number="10.5">
+<h3 data-number="10.5" class="anchored" data-anchor-id="what-has-still-not-been-measured"><span class="header-section-number">10.5</span> What has still not been measured</h3>
+<p><strong>The vertical family cannot be scored against data at all.</strong> No source available to OPDI holds level-segment truth. The claim made for KPI17 and KPI19 is conformance to ICAO’s published algorithm, tested on trajectories whose geometry is known by construction. That is checkable; “accurate” is not.</p>
+<p><strong>Top-of-climb and top-of-descent timing rests on no external evidence.</strong> The counts move — 114,099 to 100,925 for TOC — but nothing says which is closer to the truth.</p>
+<p><strong>The 2025 ladder is stale against the current code.</strong> It was produced before the changes that made the 2024 period runnable – the track redirect, the column backfills, the identity source. Those cannot alter a 2025 result, but the provenance fingerprint covers the file rather than the behaviour, so the chain reports it stale and this page says so rather than re-recording it as current. Clearing it honestly means re-running it.</p>
+<p><strong>Ring crossings are not yet scored against <code>C40_CROSS_TIME</code>.</strong> The detector runs and its volumes are now plausible, but the comparison against the reference crossing times is not in this version.</p>
+</section>
+</section>
+<section id="breaking-change-for-consumers" class="level2" data-number="11">
+<h2 data-number="11" class="anchored" data-anchor-id="breaking-change-for-consumers"><span class="header-section-number">11</span> Breaking change for consumers</h2>
+<p>The new version does <strong>not</strong> re-emit <code>first-xing-fl*</code> and <code>last-xing-fl*</code>. Those types keep their meaning under the frozen <code>events_v0.0.2</code>, so published data stays reproducible, but consumers moving to the new version must migrate to the crossing sequence number carried in each event’s <code>info</code>: the first crossing is sequence 1, the last is the maximum.</p>
+<p>Consumers should also know that <code>level-start</code>/<code>level-end</code> and the new ICAO <code>level-off-*</code> family answer different questions and are not interchangeable, and that the event table grows materially — every crossing is now emitted where previously only two per level were.</p>
+</section>
+<section id="provenance" class="level2" data-number="12">
+<h2 data-number="12" class="anchored" data-anchor-id="provenance"><span class="header-section-number">12</span> Provenance</h2>
+<div id="tbl-provenance" class="cell quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl quarto-uncaptioned" id="tbl-provenance-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;4
+</figcaption>
+<div aria-describedby="tbl-provenance-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<table class="caption-top table table-sm table-striped small">
+<colgroup>
+<col style="width: 25%">
+<col style="width: 25%">
+<col style="width: 25%">
+<col style="width: 25%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Output</th>
+<th>Script</th>
+<th>Git SHA</th>
+<th>Produced</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>bridge_2024.json</code></td>
+<td><code>benchmarks/events_gt.py</code></td>
+<td><code>b0ac011</code></td>
+<td>2026-08-14</td>
+</tr>
+<tr class="even">
+<td><code>bridge_2025.json</code></td>
+<td><code>benchmarks/events_gt.py</code></td>
+<td><code>b0ac011</code></td>
+<td>2026-08-14</td>
+</tr>
+<tr class="odd">
+<td><code>inventory_2024.csv</code></td>
+<td><code>benchmarks/event_bench.py</code></td>
+<td><code>b054e82</code></td>
+<td>2026-08-15</td>
+</tr>
+<tr class="even">
+<td><code>inventory_2025.csv</code></td>
+<td><code>benchmarks/event_bench.py</code></td>
+<td><code>7dcb643</code></td>
+<td>2026-08-15</td>
+</tr>
+<tr class="odd">
+<td><code>ladder_2024.csv</code></td>
+<td><code>benchmarks/event_bench.py</code></td>
+<td><code>b054e82</code></td>
+<td>2026-08-15</td>
+</tr>
+<tr class="even">
+<td><code>ladder_2025.csv</code></td>
+<td><code>benchmarks/event_bench.py</code></td>
+<td><code>7dcb643</code></td>
+<td>2026-08-15</td>
+</tr>
+</tbody>
+</table>
+</div>
+</figure>
+</div>
+<p>Every figure above is produced by <code>benchmarks/regenerate_events.py</code>, which re-runs a job only when the source files that job depends on have changed. Outputs with no manifest entry are reported as unverified rather than shown as fact. The ladder outputs are absent from this table because they have not been produced.</p>
+
+
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp('/' + window.location.host + '/');
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+</div> <!-- /content -->
+
+
+
+
+</body></html>

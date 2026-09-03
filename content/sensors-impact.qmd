@@ -1,0 +1,231 @@
+---
+title: "Impact on Airport Monitoring"
+---
+
+```{r setup}
+#| include: false
+library(knitr)
+library(ggplot2)
+# Read-only: every figure comes from a cache under data/. Refresh with
+#   Rscript R/update_sensor_cache.R
+source("../R/portal_config.R")
+source("../R/airport_impact.R")
+source("../R/airport_capture_daily.R")
+```
+
+Deploying a sensor is one thing; showing that it changed what can be observed is
+another. This page answers that question twice over — once as a snapshot across
+every instrumented airport, and once as a time series in which a single sensor
+switching on is visible to the day.
+
+## What the sensors add
+
+How much aircraft observation would be lost without the \acr{OPDI} sensors? For
+each airport we take every state vector within **40 NM** of the airport
+reference point and ask which receivers in the \acr{OSN} reported it. A fix is
+*exclusive* when only \acr{OPDI} sensors saw it: without them, that moment of
+flight would go unobserved.
+
+```{r impact-table}
+#| echo: false
+
+imp <- read_airport_impact()
+
+if (is.null(imp)) {
+  cat("::: {.callout-note appearance='simple'}\n",
+      "Coverage improvement metrics are being recomputed.\n:::\n", sep = "")
+} else {
+  a <- imp$airports
+  fmt_pct <- function(p, status) {
+    ifelse(status == "commissioning", "—", sprintf("%.1f%%", p))
+  }
+  tbl <- data.frame(
+    Airport            = sprintf("%s (%s)", a$name, a$icao),
+    Country            = a$country,
+    `Flight hours`     = ifelse(a$status == "commissioning", "—",
+                                sprintf("%.0f", a$total_hours)),
+    `OPDI-only hours`  = ifelse(a$status == "commissioning", "—",
+                                sprintf("%.0f", a$exclusive_hours)),
+    `Added coverage`   = fmt_pct(a$added_pct, a$status),
+    check.names = FALSE, stringsAsFactors = FALSE
+  )
+  knitr::kable(tbl, align = c("l", "l", "r", "r", "r"))
+}
+```
+
+```{r impact-note}
+#| echo: false
+#| output: asis
+
+if (!is.null(imp)) {
+  a <- imp$airports
+  rep <- a[a$status == "reporting", ]
+  commissioning <- a[a$status == "commissioning", ]
+
+  lines <- sprintf(
+    "Measured over a single day (%s) within %d NM of each airport reference point.",
+    imp$analysis_date, imp$radius_nm)
+
+  if (nrow(rep)) {
+    lines <- c(lines, sprintf(
+      "Across the reporting sites, OPDI sensors exclusively observed between %.0f%% and %.0f%% of flight hours.",
+      min(rep$added_pct), max(rep$added_pct)))
+  }
+  if (nrow(commissioning)) {
+    lines <- c(lines, sprintf(
+      "%s is still being commissioned and is not yet reporting.",
+      paste(commissioning$name, collapse = ", ")))
+  }
+
+  cat("::: {.callout-note appearance='simple'}\n",
+      paste(lines, collapse = " "),
+      "\n\nFlight hours count the time between consecutive receptions of the same aircraft. ",
+      "State vectors carrying no receiver attribution (about 8% of fixes) are excluded, ",
+      "so the totals describe traffic observed by an identified receiver rather than all traffic aloft.\n:::\n",
+      sep = "")
+}
+```
+
+
+## A sensor switching on
+
+The 40 NM figures above measure a single day. Tracking the same airports over
+time shows the effect of a deployment directly.
+
+The chart below plots the **daily capture rate** at every airport hosting
+\acr{OPDI} sensors: the share of an airport's reported movements — one
+departure or one arrival — that the \acr{OPDI} flight list attributes to it,
+measured against EUROCONTROL's published traffic statistics. A rate near 100%
+means \acr{OPDI} sees essentially all of the airport's traffic. The full
+method, and the caveats that come with it, are set out under
+[Where Next](sensors-expansion.qmd).
+
+```{r daily-capture-plot}
+#| echo: false
+#| out-width: "100%"
+#| fig-height: 6
+#| warning: false
+
+dc <- read_airport_capture_daily()
+
+if (!is.null(dc)) {
+  library(ggplot2)
+  m <- dc$daily
+  # Ingest gaps are days the flight list is missing, not coverage events; drop
+  # them from the line rather than draw a plunge to zero that means nothing.
+  m$capture_rate[m$data_gap] <- NA_real_
+  m$label <- sprintf("%s (%s)", m$airport, m$icao)
+
+  labels <- unique(m[, c("icao", "label")])
+
+  # Airport-specific events, detected in R/airport_capture_daily.R: an
+  # activation is the day a sensor first reports; an outage is a span during
+  # which one airport goes quiet while the others keep reporting.
+  ev <- dc$events
+  act <- out <- NULL
+  if (length(ev) && is.data.frame(ev) && nrow(ev)) {
+    ev <- merge(ev, labels, by = "icao")
+    act <- subset(ev, kind == "activation" & !is.na(resumed))
+    if (nrow(act)) act$at <- as.Date(act$resumed)
+    out <- subset(ev, kind == "outage")
+    if (nrow(out)) {
+      out$xmin <- as.Date(out$from)
+      # Extend to the last quiet day so the band covers the whole outage.
+      out$xmax <- as.Date(out$to) + 1
+    }
+  }
+
+  p <- ggplot(m, aes(x = day))
+
+  if (!is.null(out) && nrow(out)) {
+    p <- p + geom_rect(data = out, inherit.aes = FALSE,
+                       aes(xmin = xmin, xmax = xmax, ymin = -Inf, ymax = Inf),
+                       fill = "#c0392b", alpha = 0.10)
+  }
+
+  p <- p +
+    geom_hline(yintercept = 100, linetype = "dotted",
+               colour = "grey60", linewidth = 0.3) +
+    geom_point(aes(y = capture_rate), colour = "#c35a00",
+               alpha = 0.25, size = 0.5) +
+    geom_line(aes(y = capture_rate_7d), colour = "#c35a00", linewidth = 0.7)
+
+  if (!is.null(act) && nrow(act)) {
+    p <- p + geom_vline(data = act, inherit.aes = FALSE,
+                        aes(xintercept = at),
+                        linetype = "dashed", colour = "#37536b", linewidth = 0.5)
+  }
+
+  p <- p +
+    facet_wrap(~ label, ncol = 2) +
+    # Palanga's general-aviation traffic runs past 150%; clip rather than let
+    # one facet stretch the axis for all six.
+    coord_cartesian(ylim = c(0, 130)) +
+    scale_y_continuous(labels = function(x) paste0(x, "%"),
+                       breaks = c(0, 50, 100)) +
+    scale_x_date(date_labels = "%b", date_breaks = "1 month") +
+    labs(x = NULL, y = "Daily capture rate",
+         caption = paste0(
+           "Points: daily rate. Line: 7-day mean. Dashed line: sensor activation.\n",
+           "Red band: airport-specific outage. Days on which the OPDI flight list\n",
+           "is missing network-wide are omitted.")) +
+    theme_minimal(base_size = 11) +
+    theme(panel.grid.minor = element_blank(),
+          strip.text = element_text(face = "bold", size = 9),
+          plot.caption = element_text(colour = "grey40", hjust = 0, size = 8))
+  p
+}
+```
+
+```{r daily-capture-note}
+#| echo: false
+#| output: asis
+
+if (!is.null(dc)) {
+  m <- dc$daily[!dc$daily$data_gap, ]
+  ev <- dc$events
+
+  act <- if (length(ev) && is.data.frame(ev)) subset(ev, kind == "activation") else NULL
+  out <- if (length(ev) && is.data.frame(ev)) subset(ev, kind == "outage") else NULL
+
+  lines <- character()
+
+  if (!is.null(act) && nrow(act)) {
+    a <- act[1, ]
+    g <- m[m$icao == a$icao, ]
+    on <- as.Date(a$resumed)
+    before <- mean(g$capture_rate[g$day < on], na.rm = TRUE)
+    after  <- mean(g$capture_rate[g$day >= on], na.rm = TRUE)
+    nm <- unique(g$airport)[1]
+    lines <- c(lines, sprintf(
+      paste0("**%s is the clearest case.** Its capture rate sat at %.1f%% until %s, then stepped to ",
+             "%.1f%% from the day its OPDI sensor began reporting. The other airports stay flat across ",
+             "the same window, which is what makes the step attributable to the sensor rather than to a ",
+             "change in traffic or in the flight-list pipeline."),
+      nm, before, format(on - 1, "%d %B"), after))
+  }
+
+  if (!is.null(out) && nrow(out)) {
+    o <- out[1, ]
+    nm <- unique(m$airport[m$icao == o$icao])[1]
+    lines <- c(lines, sprintf(
+      paste0("The red band marks a %d-day outage at **%s**, from %s to %s, with reporting resuming on %s. ",
+             "Only that airport goes quiet — its neighbours continue reporting throughout — so the cause ",
+             "is local to the receiver, not the data pipeline."),
+      o$days, nm, format(as.Date(o$from), "%d %B"), format(as.Date(o$to), "%d %B"),
+      format(as.Date(o$resumed), "%d %B")))
+  }
+
+  # With no activation and no outage detected there is nothing to annotate, and
+  # an empty callout would render as a bare box.
+  if (length(lines)) {
+    cat("::: {.callout-note appearance='simple'}\n",
+        paste(lines, collapse = "\n\n"), "\n:::\n", sep = "")
+  }
+}
+```
+
+---
+
+The sensors deployed so far close real gaps. Finding the next ones means asking
+which airports are still unobserved: see [Where Next](sensors-expansion.qmd).

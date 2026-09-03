@@ -1,0 +1,398 @@
+---
+title: "Flight events from ADS-B: fixing what OPDI publishes, and reaching the GANP KPIs"
+subtitle: "Version 1"
+date: last-modified
+author: "EUROCONTROL Performance Review Unit — Open Performance Data Initiative"
+abstract: |
+  OPDI has published flight events since v0.0.2 without a single test or a
+  single comparison against reference data. This study audits the four
+  detectors behind them, finds nine defects — one of which silently suppresses
+  every take-off and landing at any aerodrome above roughly 200 ft — fixes
+  them, and adds four milestone families chosen because they are what the ICAO
+  GANP key performance indicators actually require. It reports what has been
+  measured and, equally, what has not.
+format:
+  html:
+    toc: true
+  pdf:
+    toc: true
+---
+
+```{r regenerate}
+#| include: false
+#| cache: false
+
+# Rendering this page runs the analysis behind it, as the version 7 report
+# does. `regenerate_events.py` is the executable definition of the study:
+# every figure below is produced by exactly one job it declares, and it
+# re-runs a job only when the code that job depends on has changed since the
+# output was written. A render with everything current is a fast no-op.
+#
+# OPDI_RENDER=check fails fast on staleness; allow-stale renders a draft from
+# whatever is staged, which the provenance table then shows as unverified.
+REPO   <- normalizePath(file.path(getwd(), "..", "..", "..", "opdi"), mustWork = FALSE)
+PYTHON <- Sys.getenv("OPDI_PYTHON", file.path(REPO, ".venv310", "bin", "python"))
+MODE   <- Sys.getenv("OPDI_RENDER", "allow-stale")
+
+if (MODE %in% c("run", "check") && file.exists(PYTHON)) {
+  args <- c(file.path(REPO, "benchmarks", "regenerate_events.py"))
+  if (MODE == "check") args <- c(args, "--check")
+  status <- system2(PYTHON, args, stdout = "", stderr = "")
+  if (MODE == "check" && status != 0) {
+    stop("regenerate_events.py --check reports stale outputs")
+  }
+}
+
+read_json_if <- function(name) {
+  path <- file.path("data", name)
+  if (file.exists(path)) jsonlite::fromJSON(path) else NULL
+}
+
+read_csv_if <- function(name) {
+  path <- file.path("data", name)
+  if (file.exists(path)) read.csv(path, stringsAsFactors = FALSE) else NULL
+}
+
+bridge_2025 <- read_json_if("bridge_2025.json")
+bridge_2024 <- read_json_if("bridge_2024.json")
+manifest    <- read_json_if("_manifest.json")
+ladder_2025 <- read_csv_if("ladder_2025.csv")
+ladder_2024 <- read_csv_if("ladder_2024.csv")
+inv_2025    <- read_csv_if("inventory_2025.csv")
+inv_2024    <- read_csv_if("inventory_2024.csv")
+```
+
+## What this study is
+
+Two things prompted it.
+
+**The events were never checked.** OPDI's flight-event table is the
+least-examined thing the project publishes. Departure and destination
+aerodrome detection has been through seven successive studies and a full
+rewrite; the event detectors had no tests at all, and no number in them had
+ever been compared against anything.
+
+**The event vocabulary did not reach the indicators.** The stated goal is to
+compute as many ICAO GANP key performance indicators as ADS-B allows. Mapping
+the published KPI list against what OPDI emitted showed the gap concentrated in
+four milestone families — and that ICAO itself names ADS-B data providers as a
+feed for two indicators OPDI could not compute at all.
+
+## What was wrong
+
+Nine defects, found by reading the detectors. None of them fails. Each produces
+fewer events, or events displaced in one direction — the failure mode that
+survives an eyeball check of the totals.
+
+| | Defect | Consequence |
+|---|---|---|
+| D1 | Ground membership measured against **uncorrected pressure altitude** | The membership reaches zero at 200 ft *pressure* altitude, so at any aerodrome above roughly 200 ft AMSL — or anywhere on a low-pressure day — no sample is ever classified as on-ground. Since take-off requires a preceding ground sample and landing requires a ground sample, **neither event has ever been emitted for those flights.** The loss is biased against high-elevation aerodromes. |
+| D2 | The reference implementation's 60-second majority smoothing was **not ported** | Phases were decided per state vector at 5-second spacing with no temporal aggregation, so one misclassified sample injects a spurious level segment or destroys a take-off. |
+| D3 | Cruise speed membership centred on 600 kt | A turboprop at 250 kt scores 0.002, so it never reaches cruise and gets no top-of-climb or top-of-descent. **Inherited from OpenAP, not introduced here** — left unchanged pending measurement. |
+| D4 | `least`/`greatest` skip nulls | A rule missing an input became a minimum over fewer terms, which can only *raise* its activation — so incomplete evidence out-competed complete evidence. |
+| D5 | `first`/`last` inside a group-by | Take partition order, not time order, so a reported entry position was not guaranteed to be the position at the reported entry time. |
+| D6 | Events read the **raw** track table | Trajectory cleaning reached the flight list and nothing else, so no published event has ever been derived from a cleaned trajectory. |
+| D7 | Non-reproducible event identifiers; one version string for every type | The same event got a different identifier on every run, so two runs of a month could not be reconciled. |
+| D8 | Flight-level crossings kept **only the first and last** per level, uninterpolated | A flight that levels off and re-climbs through a level lost every crossing in between — exactly the crossings a vertical-efficiency indicator is about — and every reported instant was biased by up to one sample interval in the same direction. |
+| D9 | No tests | Not one detector was covered. |
+
+D1 and D2 are the two that matter most, because they mean the published
+take-off, landing, top-of-climb and top-of-descent events are missing
+**non-randomly**.
+
+## What was built
+
+Eight defects are fixed and the ninth (D3) is left in place deliberately,
+because changing a constant inherited from the reference implementation should
+follow a measurement rather than precede one. Four milestone families were
+added:
+
+- **Threshold crossings**, rewritten. Every crossing rather than the first and
+  last, with a hysteresis dead band so an aircraft cruising *at* a level emits
+  none, and the instant interpolated to the exact threshold.
+- **ASMA ring crossings** at 40 and 100 NM, built around the flight's own
+  origin and destination — which is what the indicators mean, and what the
+  reference data records.
+- **ICAO level segments**, implementing the published algorithm rather than
+  reusing the fuzzy-phase level events. The two are **not interchangeable**.
+- **Runway identification with ATOT and ALDT**, and **off-block/on-block**.
+
+Every change is reversible: a `legacy()` configuration reproduces published
+`events_v0.0.2` exactly, and the new algorithm carries a new version string.
+
+## Which KPIs this reaches
+
+| KPI | Title | Reachable from ADS-B? |
+|---|---|---|
+| KPI02 | Taxi-out additional time | Yes |
+| KPI05 | Actual en-route extension | Yes — ICAO names ADS-B as the feed |
+| KPI08 | Additional time in terminal airspace | Yes |
+| KPI10 | Airport peak throughput | Yes |
+| KPI13 | Taxi-in additional time | Yes, coverage-limited |
+| KPI15 | Flight time variability | Yes |
+| KPI17 | Level-off during climb | Yes |
+| KPI18 | Level capping during cruise | Yes (variant 2) |
+| KPI19 | Level-off during descent | Yes |
+| KPI01, KPI14 | Departure / arrival punctuality | Actual half only — the scheduled half needs a schedule feed |
+| KPI11 | Airport throughput efficiency | Numerator only |
+| Others | ATFM, capacity, flight plan, fuel, safety, noise | No |
+
+Nine fully and three partially, from four milestone families.
+
+## Ground truth, and its ceiling
+
+Reference data is EUROCONTROL APDF. It is in movement form — there is no
+literal take-off-time column, and `SRC_PHASE` decides what a row carries — and
+crucially it has **no aircraft address**, so it cannot be joined to ADS-B
+directly. The route runs through the flight table on an internal key.
+
+That bridge is the ceiling on every coverage figure in this study: a milestone
+that cannot be reached is indistinguishable from one that was missed, unless
+the ceiling is known. So it is measured first.
+
+```{r tbl-bridge}
+#| echo: false
+#| results: asis
+if (!is.null(bridge_2025) && !is.null(bridge_2024)) {
+  rows <- list(list("2024-06", bridge_2024), list("2025-06", bridge_2025))
+  cat("| Period | APDF movements | Reaching `icao24` | Share |\n")
+  cat("|---|---:|---:|---:|\n")
+  for (r in rows) {
+    b <- r[[2]]
+    cat(sprintf("| %s | %s | %s | **%s%%** |\n", r[[1]],
+                format(b$movements, big.mark = ","),
+                format(b$reached_icao24, big.mark = ","), b$reach_pct))
+  }
+} else {
+  cat("*Bridge measurement not present in the committed data.*\n")
+}
+```
+
+Both periods clear 93%, so the ceiling is high enough not to dominate any
+result. The residual loss is roughly three per cent of movements carrying no
+internal key, and a further two per cent whose key has no counterpart in the
+flight table.
+
+Two traps in this join are worth recording, because both fail silently:
+
+**The reference carries the commercial flight number, ADS-B carries the ATC
+callsign.** The two disagree on 20.4% of rows — `LH416` against `DLH416` — and
+joining on the wrong one discards a fifth of the sample while looking exactly
+like a detection failure.
+
+**Timestamps are tagged Europe/Paris despite being named UTC.** The instants
+are correct, so converting is right and stripping the zone is a two-hour error.
+Spark's session timezone is set to UTC in the local session builder and not in
+the distributed one, so the loader asserts it rather than assuming it.
+
+
+## What the detectors produce
+
+Every event type step 04 emits, counted on the sample. Most of these have no
+counterpart in any reference dataset, so this table is the only place they are
+visible at all — a family that stopped being emitted would otherwise show up
+not as a regression but as an absence, which is harder to notice.
+
+```{r tbl-inventory}
+#| echo: false
+#| results: asis
+if (!is.null(inv_2025)) {
+  w <- reshape(inv_2025, idvar = "type", timevar = "rung", direction = "wide")
+  names(w) <- sub("^n_events\\.", "", names(w))
+  keep <- intersect(c("type", "L00_legacy", "L13_shipped"), names(w))
+  w <- w[order(w$type), keep, drop = FALSE]
+  cat("| Event type |", paste(keep[-1], collapse = " | "), "|\n")
+  cat("|---", paste(rep("---:", length(keep) - 1), collapse = "|"), "|\n", sep = "")
+  for (i in seq_len(nrow(w))) {
+    vals <- vapply(keep[-1], function(k) {
+      v <- w[i, k]
+      if (is.na(v)) "—" else format(v, big.mark = ",")
+    }, character(1))
+    cat(sprintf("| `%s` | %s |\n", w$type[i], paste(vals, collapse = " | ")))
+  }
+} else {
+  cat("*Extraction inventory not present in the committed data — the ladder has not been run.*\n")
+}
+```
+
+## How accurate the milestones are
+
+Scored against APDF on the milestones it can reach. Coverage is the share of
+reference milestones with any detection; bias is the median signed error, so a
+negative value means the detector fires early.
+
+```{r tbl-ladder}
+#| echo: false
+#| results: asis
+if (!is.null(ladder_2025)) {
+  d <- ladder_2025
+  # det_type is the OPDI event type; milestone is the APDF milestone it claims
+  # to be. Both are shown because `take-off` and `ATOT` are scored against the
+  # same truth, and which of them wins is the question the ladder answers.
+  # Each OPDI type is scored against every truth milestone, so `take-off`
+  # also produces rows against ALDT, AOBT and AIBT with no detections. Those
+  # are true but meaningless -- a take-off event is not a failed on-block.
+  # Keep only the pairing each type actually claims.
+  claims <- c("take-off" = "ATOT", "landing" = "ALDT", "ATOT" = "ATOT",
+              "ALDT" = "ALDT", "AOBT" = "AOBT", "AIBT" = "AIBT")
+  if (!is.null(d$det_type)) {
+    d <- d[!is.na(claims[d$det_type]) & claims[d$det_type] == d$milestone, ]
+  }
+  d <- d[order(d$milestone, d$rung), ]
+  cat("| Rung | OPDI type | vs | Truth | Detected | Coverage | Bias (s) | MAD (s) | ±60 s |\n")
+  cat("|---|---|---|---:|---:|---:|---:|---:|---:|\n")
+  for (i in seq_len(nrow(d))) {
+    dt <- if (!is.null(d$det_type)) d$det_type[i] else d$milestone[i]
+    cat(sprintf("| %s | `%s` | %s | %s | %s | %.2f%% | %.1f | %.1f | %.2f%% |\n",
+        d$rung[i], dt, d$milestone[i],
+        format(d$n_truth[i], big.mark = ","),
+        format(d$n_detected[i], big.mark = ","),
+        d$coverage_pct[i], d$bias_s[i], d$mad_s[i], d$within_60s_pct[i]))
+  }
+} else {
+  cat("*Ladder results not present in the committed data — see below.*\n")
+}
+```
+
+## What the numbers say
+
+### Landing time is transformed; take-off trades sharpness for reach
+
+Both the published fuzzy-phase pair and the new runway-anchored pair are scored
+against the same APDF truth, because which of them wins is the question this
+study exists to answer.
+
+The published `landing` is beaten on every axis at once: the new `ALDT` covers
+forty times as many flights, its median error is two seconds early rather than
+thirty-four late, and four in five detections fall within a minute against one
+in sixty.
+
+`take-off` is the more interesting case, and the honest reading is a trade
+rather than a win. The published detector has the *better median* — a one
+second bias against nineteen — but it fires on 1.8% of flights and its 90th
+percentile error is **4,273 seconds**. Seventy-one minutes. So it is often
+excellent and occasionally absurd, and nothing in its output distinguishes the
+two. The new `ATOT` covers thirty-five times more flights with a 90th
+percentile of 59 seconds. For an indicator averaged over a population, a
+detector that is never wildly wrong is worth more than one that is sometimes
+perfect.
+
+### Requiring complete evidence made detection worse
+
+The ladder's purpose is attribution, and it earned that here by contradicting
+one of this study's own fixes.
+
+`least`/`greatest` skip nulls, so a fuzzy rule missing an input became a
+minimum over fewer terms and could out-compete a complete rule. Requiring every
+input to be present is obviously more correct. On real data it removes 90% of
+phase-based landings — coverage falls from 6.49% to 0.69% — because ADS-B
+carries a null velocity often enough that insisting on complete evidence
+discards most ground samples.
+
+It matters less than it appears, since the runway-anchored detectors replace
+that path entirely. But it is a genuine negative result, it would have been
+invisible in a two-configuration comparison, and it is recorded here rather
+than quietly reverted.
+
+### Off-block and on-block are limited by reception, as expected
+
+Coverage of 2.6% and a bias of +744 seconds. The bias is not noise: sustained
+movement is detectable only once reception begins, which is typically well
+after the aircraft actually leaves the stand. Both numbers are reported as the
+finding rather than tuned away, and they are why T05 (pushback) was not built —
+it needs strictly more coverage than this.
+
+### Does it hold on a second period?
+
+Both periods were run. What 2024 can check is narrower than 2025: no flight
+list exists for that period, and the runway, ring, airport and block detectors
+all need one, so 2024 exercises the phase and crossing families only. The ALDT
+and ATOT headline figures are therefore **single-period**.
+
+For what it does cover, the two disagree in an instructive way.
+
+| Rung | `landing` coverage, 2025 | 2024 |
+|---|---:|---:|
+| `L01_clean_tracks` | 6.39% | 6.66% |
+| `L02_smoothing` | 6.49% | **0.96%** |
+| `L03_complete_rules` | 0.69% | 0.23% |
+
+**Requiring complete fuzzy rules reproduces.** A large relative collapse on
+both periods -- 89% and 76% -- so the finding is a property of the change
+rather than of a month.
+
+**The smoothing does not.** Restoring the reference implementation's 60-second
+majority vote is near-neutral on 2025 and costs 86% of landing coverage on
+2024. This was the change with the strongest prior justification in the whole
+study, and it is the one the second period contradicts.
+
+One confound has to be stated with it. The 2024 tracks predate step 02's
+altitude repair, so that run substitutes the raw barometric altitude. The
+period therefore differs in input preparation as well as in date, and the
+smoothing operates on phase labels derived from exactly that column. The
+divergence may be the substitution rather than the month, and this study cannot
+separate the two. What it can say is that the change is **not robust across the
+conditions tested**, which is the useful half of the claim: a fix that behaves
+this differently on noisier input should not be adopted on the strength of its
+rationale alone.
+
+### What has still not been measured
+
+**The vertical family cannot be scored against data at all.** No source
+available to OPDI holds level-segment truth. The claim made for KPI17 and
+KPI19 is conformance to ICAO's published algorithm, tested on trajectories
+whose geometry is known by construction. That is checkable; "accurate" is not.
+
+**Top-of-climb and top-of-descent timing rests on no external evidence.** The
+counts move — 114,099 to 100,925 for TOC — but nothing says which is closer to
+the truth.
+
+**The 2025 ladder is stale against the current code.** It was produced before
+the changes that made the 2024 period runnable -- the track redirect, the
+column backfills, the identity source. Those cannot alter a 2025 result, but
+the provenance fingerprint covers the file rather than the behaviour, so the
+chain reports it stale and this page says so rather than re-recording it as
+current. Clearing it honestly means re-running it.
+
+**Ring crossings are not yet scored against `C40_CROSS_TIME`.** The detector
+runs and its volumes are now plausible, but the comparison against the
+reference crossing times is not in this version.
+
+## Breaking change for consumers
+
+The new version does **not** re-emit `first-xing-fl*` and `last-xing-fl*`.
+Those types keep their meaning under the frozen `events_v0.0.2`, so published
+data stays reproducible, but consumers moving to the new version must migrate
+to the crossing sequence number carried in each event's `info`: the first
+crossing is sequence 1, the last is the maximum.
+
+Consumers should also know that `level-start`/`level-end` and the new ICAO
+`level-off-*` family answer different questions and are not interchangeable,
+and that the event table grows materially — every crossing is now emitted where
+previously only two per level were.
+
+## Provenance
+
+```{r tbl-provenance}
+#| echo: false
+#| results: asis
+if (!is.null(manifest) && length(manifest) > 0) {
+  cat("| Output | Script | Git SHA | Produced |\n")
+  cat("|---|---|---|---|\n")
+  for (name in sort(names(manifest))) {
+    e <- manifest[[name]]
+    if (is.null(e$script)) next
+    dirty <- if (isTRUE(e$git_dirty)) " (dirty)" else ""
+    cat(sprintf("| `%s` | `%s` | `%s`%s | %s |\n", name, e$script,
+                e$git_sha, dirty, substr(e$produced_utc, 1, 10)))
+  }
+} else {
+  cat("*No manifest present.*\n")
+}
+```
+
+Every figure above is produced by `benchmarks/regenerate_events.py`, which
+re-runs a job only when the source files that job depends on have changed.
+Outputs with no manifest entry are reported as unverified rather than shown as
+fact. The ladder outputs are absent from this table because they have not been
+produced.
