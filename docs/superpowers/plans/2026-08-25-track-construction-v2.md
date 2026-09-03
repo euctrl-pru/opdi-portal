@@ -60,7 +60,7 @@ user the same day, recorded verbatim in Global Constraints.
   logical table name.
 - **One Spark job at a time.** Driver port pinned to 7078; cluster quota 30 CPU
   / 192 GiB. A second concurrent job kills both.
-- **S3 is a shared 100 GB bucket.** Batch `DeleteObjects` is broken on this
+- **S3 is a shared 200 GB bucket** (`BUCKET_QUOTA_GB = 200.0`). Batch `DeleteObjects` is broken on this
   endpoint — single-object deletes only. Never delete a prefix this study did not
   create. `opdi/osn_symposium_paper_2026/` belongs to another project.
 - **Units: SI in storage, aviation in anything human-facing**, with the unit in
@@ -78,7 +78,29 @@ Two git worktrees:
 
 | Role | Path | Referred to as |
 |---|---|---|
-| Pipeline + benchmarks | `/home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v1` | `$OPDI` |
+| Pipeline + benchmarks | `/home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v2` | `$OPDI` |
+
+**`$OPDI` moved (2026-08-31).** The original `track-construction-v1`
+worktree was deleted mid-session with the agent that held it. Its work was
+recovered onto branch `track-construction-v1-recovered`, merged to `opdi` main,
+and Task 7 then created `track-construction-v2` (branch of the same name, based
+on `origin/main` at `8077c4a`, carrying commit `c380344`). Every path in Tasks
+1-9 written as `.../track-construction-v1` means `.../track-construction-v2`
+from here on. The venv is at `$OPDI/.venv310` and is untracked -- if it is
+missing, pass an interpreter through `OPDI_PYTHON` rather than rebuilding it.
+
+**CORRECTION 2026-08-31: there is no `.venv310` inside any worktree.** The only
+one is at `/home/jupyter/work/opdi-workspace/opdi/.venv310`, in the main
+checkout. Every command in this plan written as `cd $OPDI && .venv310/bin/python`
+was wrong -- that relative path does not resolve -- and has been rewritten to the
+absolute interpreter. This never corrupted a result, because the *code* still
+comes from the worktree two ways over: `pyproject.toml` sets
+`pythonpath = ["src", "tests"]` so pytest prepends the worktree's `src` ahead of
+the venv's editable `.pth` (which points at the main checkout), and each
+benchmark script does its own `sys.path.insert(0, REPO / "src")` with `REPO`
+derived from `__file__`. So the shared interpreter supplies dependencies only.
+Verify with `python -c "import opdi; print(opdi.__file__)"` if a result ever
+looks like it came from the wrong tree.
 | Papers (portal) | `/home/jupyter/work/opdi-workspace/opdi-portal/.claude/worktrees/track-construction-v1-plan` | `$PORTAL` |
 
 ## File Structure
@@ -163,8 +185,8 @@ def test_every_table_step_03_writes_is_redirected():
 - [ ] **Step 2: Run it to confirm it fails**
 
 ```bash
-cd /home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v1
-.venv310/bin/python -m pytest tests/test_track_pipeline_v2.py -v
+cd /home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v2
+/home/jupyter/work/opdi-workspace/opdi/.venv310/bin/python -m pytest tests/test_track_pipeline_v2.py -v
 ```
 
 Expected: FAIL on the first assert.
@@ -189,8 +211,8 @@ TABLES = ("osn_tracks", "osn_tracks_clean", "opdi_flight_list",
 - [ ] **Step 4: Run the test to confirm it passes**
 
 ```bash
-cd /home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v1
-.venv310/bin/python -m pytest tests/test_track_pipeline_v2.py -v
+cd /home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v2
+/home/jupyter/work/opdi-workspace/opdi/.venv310/bin/python -m pytest tests/test_track_pipeline_v2.py -v
 ```
 
 Expected: 1 passed.
@@ -198,7 +220,7 @@ Expected: 1 passed.
 - [ ] **Step 5: Commit**
 
 ```bash
-cd /home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v1
+cd /home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v2
 uvx ruff check benchmarks/track_pipeline_v2.py tests/test_track_pipeline_v2.py
 git add benchmarks/track_pipeline_v2.py tests/test_track_pipeline_v2.py
 git commit -m "fix(bench): redirect the candidates table step 03 also writes
@@ -247,7 +269,7 @@ callsign itself, so the result does not depend on partitioning.
 - [ ] **Step 1: Read the current aggregate before changing it**
 
 ```bash
-cd /home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v1
+cd /home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v2
 sed -n '415,455p' src/opdi/pipeline/flights.py
 ```
 
@@ -398,8 +420,8 @@ def test_resolution_is_a_no_op_on_a_legacy_style_track(spark):
 - [ ] **Step 3: Run them to confirm they fail**
 
 ```bash
-cd /home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v1
-.venv310/bin/python -m pytest tests/test_flights_labelling.py -v
+cd /home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v2
+/home/jupyter/work/opdi-workspace/opdi/.venv310/bin/python -m pytest tests/test_flights_labelling.py -v
 ```
 
 Expected: `ImportError: cannot import name 'dominant_flight_id'`.
@@ -558,9 +580,9 @@ FLIGHT_LIST_VERSION = "v5.0.0"
 - [ ] **Step 6: Run the tests and the full suite**
 
 ```bash
-cd /home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v1
-.venv310/bin/python -m pytest tests/test_flights_labelling.py -v
-.venv310/bin/python -m pytest tests/ -q
+cd /home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v2
+/home/jupyter/work/opdi-workspace/opdi/.venv310/bin/python -m pytest tests/test_flights_labelling.py -v
+/home/jupyter/work/opdi-workspace/opdi/.venv310/bin/python -m pytest tests/ -q
 ```
 
 Expected: 10 passed, then the whole suite green (260+ as of 2026-08-23).
@@ -568,7 +590,7 @@ Expected: 10 passed, then the whole suite green (260+ as of 2026-08-23).
 - [ ] **Step 7: Commit**
 
 ```bash
-cd /home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v1
+cd /home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v2
 uvx ruff check src/opdi/pipeline/flights.py tests/test_flights_labelling.py
 git add src/opdi/pipeline/flights.py tests/test_flights_labelling.py
 git commit -m "fix(flights): label a flight with the callsign it actually flew
@@ -627,7 +649,7 @@ is OPDI's actual deliverable.
 - [ ] **Step 1: Locate the helper Task 2 wrote**
 
 ```bash
-cd /home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v1
+cd /home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v2
 grep -rn "def resolve_flight_id" src/opdi/
 ```
 
@@ -675,8 +697,8 @@ def test_a_track_with_two_callsigns_yields_one_group_per_zone(spark):
 - [ ] **Step 3: Run it to confirm it fails**
 
 ```bash
-cd /home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v1
-.venv310/bin/python -m pytest tests/test_events_labelling.py -v
+cd /home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v2
+/home/jupyter/work/opdi-workspace/opdi/.venv310/bin/python -m pytest tests/test_events_labelling.py -v
 ```
 
 Expected: FAIL with two groups, one of them labelled `""`.
@@ -717,9 +739,9 @@ Order: rename, `fillna`, guarded resolve, **then** `dropna`.
 - [ ] **Step 5: Verify, including the whole suite**
 
 ```bash
-cd /home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v1
-.venv310/bin/python -m pytest tests/test_events_labelling.py -v
-.venv310/bin/python -m pytest tests/ -q
+cd /home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v2
+/home/jupyter/work/opdi-workspace/opdi/.venv310/bin/python -m pytest tests/test_events_labelling.py -v
+/home/jupyter/work/opdi-workspace/opdi/.venv310/bin/python -m pytest tests/ -q
 ```
 
 The suite stood at **277 passed** after Task 2. Report the new count. If an
@@ -741,7 +763,7 @@ comment). Confirm nothing else groups or joins on it, and say so in the report.
 - [ ] **Step 7: Commit**
 
 ```bash
-cd /home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v1
+cd /home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v2
 uvx ruff check src/opdi/pipeline/events.py tests/test_events_labelling.py
 git add src/opdi/pipeline/events.py tests/test_events_labelling.py
 git commit -m "fix(events): one event per zone crossing, not one per callsign
@@ -794,9 +816,9 @@ shipping nothing.
 - [ ] **Step 1: Verify the bounded lookback is in place**
 
 ```bash
-cd /home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v1
+cd /home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v2
 grep -n "recent" -B 4 -A 6 src/opdi/pipeline/segmentation/methods.py | sed -n '1,40p'
-.venv310/bin/python -m pytest tests/test_tracks_method.py -v
+/home/jupyter/work/opdi-workspace/opdi/.venv310/bin/python -m pytest tests/test_tracks_method.py -v
 ```
 
 Expected: the `recent = (... ) / 60.0 < p.gap_minutes` guard is present in
@@ -847,8 +869,8 @@ def test_standard_resolves_to_the_recommended_rule():
 - [ ] **Step 3: Run them to confirm they fail**
 
 ```bash
-cd /home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v1
-.venv310/bin/python -m pytest tests/test_segmentation_default.py -v
+cd /home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v2
+/home/jupyter/work/opdi-workspace/opdi/.venv310/bin/python -m pytest tests/test_segmentation_default.py -v
 ```
 
 Expected: the first two fail (default is still `"legacy"`); the last two pass
@@ -895,9 +917,9 @@ In `$OPDI/src/opdi/config.py`, on `SegmentationConfig`:
 - [ ] **Step 5: Run the tests and the full suite**
 
 ```bash
-cd /home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v1
-.venv310/bin/python -m pytest tests/test_segmentation_default.py tests/test_tracks_method.py -v
-.venv310/bin/python -m pytest tests/ -q
+cd /home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v2
+/home/jupyter/work/opdi-workspace/opdi/.venv310/bin/python -m pytest tests/test_segmentation_default.py tests/test_tracks_method.py -v
+/home/jupyter/work/opdi-workspace/opdi/.venv310/bin/python -m pytest tests/ -q
 ```
 
 Expected: all pass. **Any test that asserted `method == "legacy"` as the default
@@ -907,7 +929,7 @@ test is a lost guarantee.
 - [ ] **Step 6: Commit**
 
 ```bash
-cd /home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v1
+cd /home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v2
 uvx ruff check src/opdi/config.py tests/test_segmentation_default.py
 git add src/opdi/config.py tests/test_segmentation_default.py
 git commit -m "feat(tracks): ship the recommended segmentation as the default
@@ -1066,8 +1088,8 @@ period, with `code_paths` including `benchmarks/track_diagnostics.py`.
 - [ ] **Step 4: Run them**
 
 ```bash
-cd /home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v1
-.venv310/bin/python -u benchmarks/regenerate_track_v1.py --only containment_2025 containment_2024 boundary_hist_2025 boundary_hist_2024
+cd /home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v2
+/home/jupyter/work/opdi-workspace/opdi/.venv310/bin/python -u benchmarks/regenerate_track_v1.py --only containment_2025 containment_2024 boundary_hist_2025 boundary_hist_2024
 ```
 
 - [ ] **Step 5: Report the containment number before writing prose about it**
@@ -1080,7 +1102,7 @@ is a decision they wanted to make, not one to absorb into a paragraph.
 - [ ] **Step 6: Commit**
 
 ```bash
-cd /home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v1
+cd /home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v2
 uvx ruff check benchmarks/track_diagnostics.py benchmarks/regenerate_track_v1.py
 git add benchmarks/track_diagnostics.py benchmarks/regenerate_track_v1.py
 git commit -m "feat(bench): measure what the containment rule excludes, and the boundary distribution"
@@ -1178,8 +1200,8 @@ def test_a_flight_genuinely_outside_the_window_is_still_dropped(spark):
 - [ ] **Step 2: Run the tests to confirm they fail**
 
 ```bash
-cd /home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v1
-.venv310/bin/python -m pytest tests/test_track_truth_window.py -v
+cd /home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v2
+/home/jupyter/work/opdi-workspace/opdi/.venv310/bin/python -m pytest tests/test_track_truth_window.py -v
 ```
 
 - [ ] **Step 3: Fix the pre-filter, and say so where the design is documented**
@@ -1200,7 +1222,7 @@ without a third pass.
 - [ ] **Step 5: Full suite**
 
 ```bash
-.venv310/bin/python -m pytest tests/ -q
+/home/jupyter/work/opdi-workspace/opdi/.venv310/bin/python -m pytest tests/ -q
 ```
 
 It stood at **312 passed**. Report the new count. **Do not run any regeneration
@@ -1210,7 +1232,7 @@ invalidated by any later text edit anyway.
 - [ ] **Step 6: Commit**
 
 ```bash
-cd /home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v1
+cd /home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v2
 uvx ruff check benchmarks/track_truth.py benchmarks/regenerate_track_v1.py tests/test_track_truth_window.py
 git add benchmarks/track_truth.py benchmarks/regenerate_track_v1.py tests/test_track_truth_window.py
 git commit -m "fix(bench): window ground truth on the flight, not on its off-block day
@@ -1275,8 +1297,8 @@ rewritten accordingly in Task 6.
 - [ ] **Step 1: Confirm what is stale, and that it is only what should be**
 
 ```bash
-cd /home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v1
-.venv310/bin/python benchmarks/regenerate_track_v1.py --check
+cd /home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v2
+/home/jupyter/work/opdi-workspace/opdi/.venv310/bin/python benchmarks/regenerate_track_v1.py --check
 ```
 
 Expected: the `payoff_*` jobs are stale; the `arms_*` and `sweep_*` jobs are
@@ -1289,8 +1311,8 @@ anything.
 One at a time. ~2h total.
 
 ```bash
-cd /home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v1
-.venv310/bin/python -u benchmarks/regenerate_track_v1.py
+cd /home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v2
+/home/jupyter/work/opdi-workspace/opdi/.venv310/bin/python -u benchmarks/regenerate_track_v1.py
 ```
 
 - [ ] **Step 2b: Report the measured `match_rates` delta (ruling R32)**
@@ -1543,16 +1565,52 @@ Rewritten throughout for a reader who knows OPDI and not this methodology."
 
 ### Task 7: Run the V2 study
 
+> **AMENDED 2026-08-31.** Runs after Task 13, not before it. Three changes below:
+> the flight list is built for two arms rather than three (comment 7), every arm
+> is scored gate-to-gate as well as airborne (comment 4), and the study restarts
+> from code that already exists.
+>
+> **The code is already written and committed** at `c380344` on branch
+> `track-construction-v2` — `benchmarks/regenerate_track_v2.py` and
+> `benchmarks/track_continuity.py`, 439 tests passing. Steps 1-4 below are
+> therefore *verification* of existing code plus the amendments, not fresh
+> implementation. The first attempt died mid-run with no results: it reached
+> step 02a cleaning at 104/200 on the `legacy` arm of `pipeline_2025` and left
+> nothing on S3, so its `finally` blocks worked. Nothing needs cleaning up
+> before restarting.
+
 Three arms — `legacy`, `airframe_only`, `standard` — through the real pipeline,
 steps 01→02→02a→03, one day per period. `airframe_only` is the ablation
 midpoint: `standard` is `airframe_only` plus the callsign-change break, so the
 three arms separate the two fixes.
 
+**Comment 7 — the flight list is built for two arms only.** ADEP/ADES is run for
+`legacy` and `standard`. `airframe_only` gets segmentation scoring and continuity
+but **no step 03**, which is the expensive step. The ablation survives intact:
+it was only ever the midpoint of the *segmentation* comparison, and the
+downstream question is "does shipping this change ADEP/ADES", which needs the
+before and the after, not the midpoint. Expect this to cut roughly a third off
+the run.
+
+**Comment 4 — every arm is scored twice.** Pass a scorer closure to `run_arm`
+that calls `track_score.score_arm_gated(matched, extents, matched_gate)`, where
+`matched_gate` is `overlap_join(assign, gt, bounds=("t_off_block", "t_in_block"))`
+over the same `assign` and `gt`. The row gains the `gate_*` columns. Ground truth
+must come from a `load_flight_intervals` that has been through Task 11 — if
+`t_off_block` is missing, the run fails at the join rather than silently scoring
+airborne twice, which is the behaviour we want.
+
 **Preconditions, all three checked before starting:**
 
-1. `kubectl -n eurocontrol get pods | grep -c Running` is 0.
+1. `kubectl -n eurocontrol get pods --no-headers | grep -iv jupyterlab | wc -l`
+   is 0. **Not `grep -c Running`** — the `jupyterlab-*` pod that hosts this
+   session is always Running, so that form never returns 0 and would block
+   the task forever. Spark pods carry a `spark-role` label;
+   `kubectl -n eurocontrol get pods -l spark-role` is the precise check.
 2. S3 headroom ≥ 12 GB (an arm peaks ~6.8 GB; the runner refuses below 8).
-3. Tasks 1–3 are committed — the runs fingerprint that code.
+3. Tasks 1–3 **and 10–12** are committed — the runs fingerprint that code.
+   Starting before Task 12 lands means re-running everything a second time.
+4. Task 13 is complete and `regenerate_track_v1.py --check` exits 0.
 
 - [ ] **Step 1: Build `regenerate_track_v2.py`**
 
@@ -1561,6 +1619,10 @@ unchanged. Replace the docstring, `PAPER`, and `jobs()`:
 
 ```python
 METHODS = ["legacy", "airframe_only", "standard"]
+#: Comment 7: ADEP/ADES for the before and the after only. `airframe_only` is
+#: the segmentation ablation's midpoint and has no downstream question of its
+#: own, so it skips step 03 -- the expensive step.
+FLIGHT_LIST_METHODS = ["legacy", "standard"]
 DAYS = {"2025": "2025-06-05", "2024": "2024-06-05"}
 
 SEG = ["src/opdi/pipeline/segmentation/base.py",
@@ -1607,9 +1669,9 @@ counts; merging two tracks halves tracks-per-airframe.
 - [ ] **Step 4: Verify `--check` needs no cluster**
 
 ```bash
-cd /home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v1
+cd /home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v2
 OPDI_PAPER_DIR=/home/jupyter/work/opdi-workspace/opdi-portal/.claude/worktrees/track-construction-v1-plan/papers/track-construction-v2 \
-  .venv310/bin/python benchmarks/regenerate_track_v2.py --check
+  /home/jupyter/work/opdi-workspace/opdi/.venv310/bin/python benchmarks/regenerate_track_v2.py --check
 ```
 
 Expected: non-zero, all outputs missing, **no Spark session and no S3 call**.
@@ -1619,18 +1681,18 @@ Expected: non-zero, all outputs missing, **no Spark session and no S3 call**.
 ~23 min ingest per period plus ~40 min per arm; about 4h total.
 
 ```bash
-cd /home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v1
+cd /home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v2
 export OPDI_PAPER_DIR=/home/jupyter/work/opdi-workspace/opdi-portal/.claude/worktrees/track-construction-v1-plan/papers/track-construction-v2
-.venv310/bin/python -u benchmarks/regenerate_track_v2.py --only pipeline_2025
-.venv310/bin/python -u benchmarks/regenerate_track_v2.py --only pipeline_2024
-.venv310/bin/python -u benchmarks/regenerate_track_v2.py --only continuity_2025 continuity_2024
+/home/jupyter/work/opdi-workspace/opdi/.venv310/bin/python -u benchmarks/regenerate_track_v2.py --only pipeline_2025
+/home/jupyter/work/opdi-workspace/opdi/.venv310/bin/python -u benchmarks/regenerate_track_v2.py --only pipeline_2024
+/home/jupyter/work/opdi-workspace/opdi/.venv310/bin/python -u benchmarks/regenerate_track_v2.py --only continuity_2025 continuity_2024
 ```
 
 - [ ] **Step 6: Verify, and sanity-check the numbers**
 
 ```bash
-.venv310/bin/python benchmarks/regenerate_track_v2.py --check
-.venv310/bin/python /home/jupyter/.claude/jobs/e2181584/tmp/v2_progress.py
+/home/jupyter/work/opdi-workspace/opdi/.venv310/bin/python benchmarks/regenerate_track_v2.py --check
+/home/jupyter/work/opdi-workspace/opdi/.venv310/bin/python /home/jupyter/.claude/jobs/e2181584/tmp/v2_progress.py
 ```
 
 `--check` exits 0; nothing remains under `research/tcv2/`. Then confirm:
@@ -1644,11 +1706,18 @@ export OPDI_PAPER_DIR=/home/jupyter/work/opdi-workspace/opdi-portal/.claude/work
   buys on this sample, and **that changes what Task 3 shipped** — report it
   immediately rather than writing it up.
 - `null_baro_pct` is near the 21.11% the smoke run measured.
+- **`gate_clean_match_pct <= clean_match_pct` is not guaranteed and its
+  direction is the finding.** The gate interval is a superset, so it matches
+  strictly more samples — which can *lower* the clean rate by exposing taxi
+  samples that landed in the wrong track, or *raise* it by nothing at all. A
+  gate rate identical to the airborne rate across all three arms means the gate
+  columns are not being computed; check the closure before believing it.
+- `airframe_only` has no ADEP/ADES columns. That is comment 7, not a failure.
 
 - [ ] **Step 7: Commit**
 
 ```bash
-cd /home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v1
+cd /home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v2
 uvx ruff check benchmarks/
 git add benchmarks/
 git commit -m "feat(bench): the track-construction V2 study, end to end"
@@ -1666,6 +1735,24 @@ git commit -m "data(track-v2): three arms through the real pipeline, both period
 audience rule: knows OPDI, does not know this methodology. V2 must stand alone;
 where it uses a metric V1 defines, it defines it again briefly rather than
 sending the reader away.
+
+> **AMENDED 2026-08-31.** Four constraints inherited from the amendment:
+>
+> - **The prose rules in Global Constraints bind V2 from the first draft.** V1
+>   needs an editorial pass (Task 14 §G) because it was written before those
+>   rules existed. V2 has no such excuse — write it clean rather than writing it
+>   long and cutting later.
+> - **No V-measure.** It does not exist in the codebase after Task 12, and it is
+>   not mentioned here.
+> - **Report both intervals.** Every headline rate appears airborne and
+>   gate-to-gate, with the per-side coverage stated once (`aobt` ~100%, `aibt`
+>   ~50%). A release note that reports only the airborne rate repeats the exact
+>   omission comment 4 was raised about.
+> - **No provenance chapter.** One sentence in the reading guide, as in V1 §I.
+>   The manifest is still written; it just is not a chapter.
+>
+> Also: `airframe_only` carries no ADEP/ADES numbers, so V2's downstream section
+> compares `legacy` against `standard` and says why the midpoint is absent.
 
 - [ ] **Step 1: Executable-render preamble**
 
@@ -1844,7 +1931,7 @@ Three edits, not one.
 - [ ] **Step 5: Commit locally, do not push**
 
 ```bash
-cd /home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v1
+cd /home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v2
 git add benchmarks/DATASETS.md && git commit -m "docs: record the tcv2 research prefix"
 
 cd /home/jupyter/work/opdi-workspace/opdi-portal/.claude/worktrees/track-construction-v1-plan
@@ -1860,6 +1947,1237 @@ rendered; the containment number from Task 4; whether V2's `legacy` arm agreed
 with V1's harness figure; and — restated because the work lives only in
 worktrees — that a worktree can be deleted with its session, so anything to be
 kept should be pushed or cherry-picked by the user.
+
+---
+
+## Amendment — 2026-08-31, ten further comments on V1
+
+Ten comments on the revised V1, taken after Tasks 1–5 completed and Task 7's
+code landed at `c380344` without producing results. Three were resolved with the
+user on 2026-08-31 and those rulings are recorded below. The rest are
+implemented by **Tasks 10–14**, plus in-place edits to Tasks 7 and 8.
+
+**Comment → task map.** Every comment lands somewhere; this table is the
+coverage check.
+
+| # | Comment | Where it is handled |
+|---|---|---|
+| 1 | V-measure is introduced but never used — delete it everywhere | Task 12 (code), Task 14 §A |
+| 2 | §4.2's last paragraph is too long | Task 14 §B |
+| 3 | Does `traffic` forward/backward fill? | Task 12 (measurement), Task 14 §C |
+| 4 | Tracks must include stand, taxi-out and taxi-in | Task 11 (metric), Task 7 (measured), Task 14 §D |
+| 5 | Drop Chapter 7 | Task 14 §E |
+| 6 | Replace it with a `recommended` parameter sweep | Task 10 (harness), Task 13 (run), Task 14 §E |
+| 7 | ADEP/ADES on `recommended` and `legacy` only | Task 7 (amended), Task 14 §F |
+| 8 | No claudisch language; sound natural; be to the point | Global Constraints, Task 14 §G |
+| 9 | Final params missing from §9 "what shipped" | Task 14 §H |
+| 10 | Chapter 10 provenance is not needed | Task 14 §I |
+
+### Execution order — read this before dispatching anything
+
+Tasks 10, 11 and 12 all modify files that `regenerate_track_v1.py` and
+`regenerate_track_v2.py` declare as dependencies: `segmentation/base.py`,
+`track_score.py`, `track_truth.py`, `track_diagnostics.py`. Each one alone marks
+every job in both papers stale. Task 5 has just spent 8h20m refreshing exactly
+those fingerprints.
+
+So the three code tasks are **code and unit tests only, with no cluster run
+between them**, and Task 13 pays the re-run cost once:
+
+```
+10 → 11 → 12   code only; no Spark, no S3
+      ↓
+     13        ONE combined re-run: every stale V1 job + the new sweep
+      ↓
+      7        the V2 study, amended
+      ↓
+     14        the V1 editorial pass — needs 13's and 7's numbers
+      ↓
+    8 → 9      write V2, publish
+```
+
+Running 10, 11 or 12 against the cluster individually is the one sequencing
+error this amendment exists to prevent: three 8-hour re-runs to buy what one
+buys.
+
+### Decisions taken with the user (2026-08-31)
+
+- **The taxi interval uses real block times, with a calibrated buffer as
+  fallback.** Containment gains a second, wider interval
+  `[t_off_block, t_in_block]` = `[aobt, aibt]` where APDF measured them, and
+  `[t_off − B_dep, t_land + B_arr]` where it did not. `aobt` falls back to NM's
+  `AOBT_3` and covers ~100% of flights; **`aibt` is APDF-only, has no fallback,
+  and covers about half** (44,841 of ~89,500 on 2025-06-05/07). `B_dep` and
+  `B_arr` are the *measured* median taxi times over the covered flights, per
+  period — not chosen constants. Coverage is reported per side, never as one
+  figure.
+- **§8.2 stays, and recomputes nothing.** Comment 7 removes ADEP/ADES *runs* for
+  the six non-shipping arms; it does not delete a finding already paid for. The
+  eight-arm scatter showing that clustering quality fails to predict downstream
+  accuracy stays on the CSVs already in `data/`, because it is what justifies
+  not optimising `clean_match_pct` directly.
+- **The sweep tests decoupling the callsign lookback.** `gap_minutes` currently
+  does double duty in `recommended`: the general gap break *and* the bound on
+  the callsign lookback. That is an implementation accident, so
+  `callsign_lookback_minutes` becomes a real parameter defaulting to `None`,
+  meaning "follow `gap_minutes`" — which reproduces today's behaviour exactly.
+
+### Global Constraints — additions and corrections
+
+Apply these to the Global Constraints section above before dispatching Task 10.
+
+- **CORRECTION.** "S3 is a shared 100 GB bucket" is **wrong**. The quota is
+  **200 GB** (`BUCKET_QUOTA_GB = 200.0` on `opdi` main). The scratch inventory
+  script at `/home/jupyter/.claude/jobs/e2181584/tmp/clean_bucket.py:87`
+  hardcodes `100e9` and has under-reported headroom by 100 GB all session — it
+  said 1.52 GB free when ~101 GB was available. Task 10 Step 0 fixes it.
+  Everything else in that bullet stands: single-object deletes only, never
+  delete a prefix this study did not create.
+
+- **NEW — prose.** *Write like someone who knows the subject, not like an
+  assistant.* Checkable rules:
+  - No "delve", "leverage", "robust", "comprehensive", "seamless", "crucial",
+    "it's worth noting", "it is important to note", "that said".
+  - No sentence whose only job is to announce the next sentence.
+  - No three-item list whose third item is filler for rhythm.
+  - No em-dash clause that restates the clause before it.
+  - Active voice with a named actor: "the sweep found", not "it was found that".
+  - Hedges need a number beside them. "Somewhat", "relatively", "fairly" are
+    allowed only where a measurement justifies them.
+  - A paragraph that survives deleting its first sentence did not need it.
+
+- **NEW — V-measure is gone.** Not reported, not plotted, not mentioned, not
+  computed in any code path this plan touches. Task 12 Step 3 removes the code;
+  Task 14 §A removes the prose.
+
+---
+
+### Task 10: Decouple the callsign lookback; make the sweep harness arm-agnostic
+
+**No cluster. No Spark job. Code and unit tests only.**
+
+Two changes that together let Chapter 7 be rebuilt around `recommended` instead
+of `legacy`. `track_sweep.py` hardcodes `rule = legacy()`, so it can sweep one
+arm only; and `recommended`'s lookback bound is welded to `gap_minutes`, so the
+axis the user most wants tested cannot be varied at all.
+
+**Files:**
+- Modify: `$OPDI/src/opdi/pipeline/segmentation/base.py:88-95` — new parameter
+- Modify: `$OPDI/src/opdi/pipeline/segmentation/__init__.py` — export accessor
+- Modify: `$OPDI/src/opdi/pipeline/segmentation/methods.py:455-460` — use it
+- Modify: `$OPDI/src/opdi/config.py` — `SegmentationConfig` gains the same field
+- Modify: `$OPDI/benchmarks/track_sweep.py` — `--method`, `--grid-lookback`
+- Test: `$OPDI/tests/test_segmentation_lookback.py` (create)
+- Fix (scratch, not committed): `/home/jupyter/.claude/jobs/e2181584/tmp/clean_bucket.py:87`
+
+**Interfaces:**
+- Produces: `SegmentationParams.callsign_lookback_minutes: float | None = None`
+  and `segmentation.base.lookback_minutes(p) -> float`. Task 13 sweeps it;
+  Task 14 §H reports it.
+- Produces: `track_sweep.py --method {legacy,recommended,…}` and
+  `--grid-lookback N [N …]`. Task 13 calls both.
+
+- [ ] **Step 0: Fix the bucket quota constant**
+
+```bash
+sed -i 's/(100e9-total)/(200e9-total)/' /home/jupyter/.claude/jobs/e2181584/tmp/clean_bucket.py
+grep -n "200e9" /home/jupyter/.claude/jobs/e2181584/tmp/clean_bucket.py
+```
+
+Expected: one line, the `BUCKET` print. Scratch tooling, not repo code — do not
+commit it and do not look for it in git.
+
+- [ ] **Step 1: Write the failing test**
+
+```python
+# $OPDI/tests/test_segmentation_lookback.py
+"""`callsign_lookback_minutes` decouples A8's lookback bound from `gap_minutes`.
+
+The bound exists because `break_expr` is evaluated over the whole airframe
+window, and an unbounded `F.last` reaches back past a gap break into the
+previous flight. `gap_minutes` became the bound only because it was to hand --
+the two quantities answer different questions, and this pins the difference.
+"""
+from dataclasses import fields
+
+from opdi.pipeline.segmentation import SegmentationParams
+from opdi.pipeline.segmentation.base import lookback_minutes
+
+
+def test_default_follows_gap_minutes():
+    """None means "follow gap_minutes" -- today's behaviour, exactly."""
+    p = SegmentationParams(gap_minutes=42.0)
+    assert p.callsign_lookback_minutes is None
+    assert lookback_minutes(p) == 42.0
+
+
+def test_explicit_value_overrides():
+    p = SegmentationParams(gap_minutes=30.0, callsign_lookback_minutes=5.0)
+    assert lookback_minutes(p) == 5.0
+
+
+def test_zero_is_honoured_not_treated_as_unset():
+    """0.0 is falsy, and `or` would silently read it as unset.
+
+    A zero lookback is a meaningful grid cell: it disables the callsign-change
+    break entirely, which is the sweep's `airframe_only` corner. If this fails,
+    the implementation used `or` instead of an `is None` check.
+    """
+    p = SegmentationParams(gap_minutes=30.0, callsign_lookback_minutes=0.0)
+    assert lookback_minutes(p) == 0.0
+
+
+def test_config_and_params_still_agree_field_for_field():
+    """`from_config` raises TypeError when SegmentationConfig lacks a field.
+
+    tests/test_segmentation_base.py already asserts the default sets match. This
+    asserts the *new* field, so an edit to one dataclass cannot quietly leave
+    the other behind.
+    """
+    from opdi.config import SegmentationConfig
+
+    names = {f.name for f in fields(SegmentationConfig)}
+    assert "callsign_lookback_minutes" in names
+    assert SegmentationConfig().callsign_lookback_minutes is None
+    assert SegmentationParams.from_config(SegmentationConfig()) == SegmentationParams()
+```
+
+- [ ] **Step 2: Run it to confirm it fails**
+
+```bash
+cd /home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v2
+/home/jupyter/work/opdi-workspace/opdi/.venv310/bin/python -m pytest tests/test_segmentation_lookback.py -v
+```
+
+Expected: FAIL — `cannot import name 'lookback_minutes'`.
+
+- [ ] **Step 3: Add the parameter and its accessor**
+
+In `base.py`, after `low_alt_ft` (line 90):
+
+```python
+    #: Bound on A8's callsign lookback, in minutes. ``None`` means "follow
+    #: ``gap_minutes``", which is what the rule did when the bound was written
+    #: and is therefore the only default that reproduces published behaviour.
+    #:
+    #: Separate from ``gap_minutes`` because the two answer different questions.
+    #: ``gap_minutes`` asks how long a reception hole must be before it is a new
+    #: flight. This asks how long a *callsign* stays valid for comparison across
+    #: blank samples. Nothing says one number is right for both; they were the
+    #: same number because one was to hand when the other was needed.
+    callsign_lookback_minutes: float | None = None
+```
+
+Beside the other accessors:
+
+```python
+def lookback_minutes(p: "SegmentationParams") -> float:
+    """A8's lookback bound: the explicit value, or ``gap_minutes`` when unset.
+
+    ``is None`` rather than ``or``: ``0.0`` is a meaningful setting -- it
+    disables the callsign-change break, which is the grid's ``airframe_only``
+    corner -- and ``or`` would read it as unset.
+    """
+    if p.callsign_lookback_minutes is None:
+        return p.gap_minutes
+    return p.callsign_lookback_minutes
+```
+
+Export it from `__init__.py` alongside `gap_minutes`.
+
+In `config.py`, `SegmentationConfig` gains the identical field with the
+identical default:
+
+```python
+    callsign_lookback_minutes: float | None = None
+```
+
+In `methods.py`, `recommended`'s `expr` (around line 455) replaces
+`p.gap_minutes` in the `recent` predicate — **and only there**:
+
+```python
+        recent = (
+            F.unix_timestamp(F.col("_ts")) - F.unix_timestamp(prev_real_ts)
+        ) / 60.0 < lookback_minutes(p)
+```
+
+`legacy().break_expr(p)` on the next line keeps `p.gap_minutes` untouched. The
+two uses are now distinct, which is the whole point.
+
+- [ ] **Step 4: Run the tests**
+
+```bash
+cd /home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v2
+/home/jupyter/work/opdi-workspace/opdi/.venv310/bin/python -m pytest tests/test_segmentation_lookback.py -v
+/home/jupyter/work/opdi-workspace/opdi/.venv310/bin/python -m pytest tests/ -q
+```
+
+Both pass. The suite stood at **439** after `c380344`; report the new count. A
+failure here is a real signal: `from_config` raises `TypeError` when
+`SegmentationConfig` lacks a params field, so a half-applied change fails loudly.
+
+- [ ] **Step 5: Make the sweep harness arm-agnostic**
+
+In `track_sweep.py`, replace the `legacy` import:
+
+```python
+from opdi.pipeline.segmentation.methods import ARMS  # noqa: E402
+```
+
+Add two arguments beside the existing grid overrides:
+
+```python
+    ap.add_argument("--method", default="legacy", choices=sorted(ARMS),
+                    help="which arm to sweep; the grid is the same for all of "
+                         "them, but only `recommended` reads --grid-lookback")
+    ap.add_argument("--grid-lookback", nargs="+", type=float, default=None,
+                    help="callsign_lookback_minutes values. Omit to leave it "
+                         "unset, i.e. following gap_minutes -- which is what "
+                         "every cell of the legacy sweep did.")
+```
+
+Replace `rule = legacy()` with `rule = ARMS[args.method]()`.
+
+The grid becomes four-dimensional, with `None` the sentinel for "unset":
+
+```python
+    lookback_grid = args.grid_lookback if args.grid_lookback else [None]
+    grid = list(itertools.product(gap_grid, low_gap_grid, low_ft_grid, lookback_grid))
+    # a low-altitude rule looser than the general one is inert
+    grid = [c for c in grid if c[1] <= c[0]]
+```
+
+`CELL_KEYS` gains the fourth column, and each cell's `params` and `row` gain
+`callsign_lookback_minutes`. **`--resume` compatibility matters**: the legacy
+sweep's committed CSVs have no such column, so `cell_key` must read a missing
+key as `None` rather than raising:
+
+```python
+CELL_KEYS = ("gap_minutes", "low_alt_gap_minutes", "low_alt_ft",
+             "callsign_lookback_minutes")
+
+
+def cell_key(row: dict) -> tuple:
+    """The grid-cell identity, tolerant of CSVs written before the 4th axis.
+
+    A row from a three-axis sweep has no `callsign_lookback_minutes` at all and
+    must read as the unset cell -- otherwise `--resume` against any committed V1
+    sweep file raises KeyError instead of skipping.
+    """
+    out = []
+    for k in CELL_KEYS:
+        v = row.get(k, "")
+        out.append(None if v in ("", None, "None") else float(v))
+    return tuple(out)
+```
+
+Also drop `v_measure` from the progress line — Task 12 removes the function and
+a sweep printing it would not import:
+
+```python
+                print(
+                    f"  [{i}/{len(todo)}] gap={g} lowgap={lg} lowalt={lft}ft "
+                    f"lookback={lb}  clean={row['clean_match_pct']:.2f}%"
+                )
+```
+
+- [ ] **Step 6: Test the harness change without a cluster**
+
+```python
+# append to $OPDI/tests/test_segmentation_lookback.py
+def test_cell_key_reads_a_three_axis_row_as_the_unset_cell():
+    """--resume against a committed V1 sweep CSV must skip, not crash."""
+    import pathlib
+    import sys
+
+    sys.path.insert(
+        0, str(pathlib.Path(__file__).resolve().parent.parent / "benchmarks")
+    )
+    from track_sweep import cell_key
+
+    legacy_row = {"gap_minutes": "30", "low_alt_gap_minutes": "15",
+                  "low_alt_ft": "5000"}
+    assert cell_key(legacy_row) == (30.0, 15.0, 5000.0, None)
+    assert cell_key({**legacy_row, "callsign_lookback_minutes": ""}) == (
+        30.0, 15.0, 5000.0, None)
+    assert cell_key({**legacy_row, "callsign_lookback_minutes": "5"}) == (
+        30.0, 15.0, 5000.0, 5.0)
+```
+
+```bash
+/home/jupyter/work/opdi-workspace/opdi/.venv310/bin/python -m pytest tests/test_segmentation_lookback.py -v
+```
+
+- [ ] **Step 7: Commit**
+
+```bash
+cd /home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v2
+uvx ruff check src/opdi benchmarks/track_sweep.py tests/test_segmentation_lookback.py
+git add src/opdi benchmarks/track_sweep.py tests/test_segmentation_lookback.py
+git commit -m "feat(segmentation): callsign lookback is its own parameter
+
+A8 bounded its callsign lookback with gap_minutes because that value was to
+hand, not because the two questions share an answer. gap_minutes asks how long a
+reception hole must be before it is a new flight; the lookback asks how long a
+callsign stays comparable across blank samples.
+
+Defaults to None, meaning follow gap_minutes -- published behaviour, unchanged.
+track_sweep.py gains --method and --grid-lookback so the sweep can run against
+an arm other than legacy."
+```
+
+---
+
+### Task 11: Score the whole turnaround, not just the airborne leg
+
+**No cluster. No Spark job. Code and unit tests only.**
+
+Comment 4, and it is a real blind spot rather than a presentation problem.
+`overlap_join` matches a state vector to a flight when
+`t_off <= event_time <= t_land` — the **airborne** interval. Every sample at the
+stand, during taxi-out and during taxi-in therefore matches no flight and is
+dropped before any metric sees it. `run_arm`'s own docstring
+(`track_methods.py:309-314`) says so: *"anything about the aircraft on the ground
+— taxi-out reception, for instance — is structurally absent from it."* The code
+knew; the paper did not.
+
+The fix is not a guessed buffer. `load_flight_intervals` **already carries
+`aobt` and `aibt`** — measured off-block and in-block times — and simply does not
+use them for containment.
+
+**Files:**
+- Modify: `$OPDI/benchmarks/track_truth.py` — gate interval, `bounds` argument
+- Modify: `$OPDI/benchmarks/track_score.py` — `score_arm_gated`
+- Test: `$OPDI/tests/test_track_gate_interval.py` (create)
+
+**Interfaces:**
+- Produces: `track_truth.gate_buffers(gt) -> (b_dep_s, b_arr_s)` — measured
+  median taxi times, seconds.
+- Produces: columns `t_off_block`, `t_in_block`, `gate_dep_measured`,
+  `gate_arr_measured` on `load_flight_intervals`' output.
+- Produces: `track_truth.attach_gate_interval(gt, b_dep_s, b_arr_s)`.
+- Produces: `overlap_join(assign, gt, bounds=("t_off", "t_land"))` — the default
+  is today's behaviour, so no existing caller changes.
+- Produces: `track_score.score_arm_gated(matched, extents, matched_gate)` — the
+  airborne row plus every gate metric under a `gate_` prefix.
+- Tasks 7 and 13 consume these; Task 14 §D reports them.
+
+- [ ] **Step 1: Write the failing tests**
+
+```python
+# $OPDI/tests/test_track_gate_interval.py
+"""Containment over the gate-to-gate interval, so taxi and stand samples count.
+
+The airborne interval [t_off, t_land] is what every V1 metric was computed over,
+which means no V1 number says anything about whether taxi-out was attached to
+the right flight. These tests pin the wider interval, and pin the property that
+makes the two comparable: the gate interval always *contains* the airborne one,
+so gate matching is a superset and can only ever add samples.
+"""
+import datetime as dt
+
+import track_truth
+from track_truth import overlap_join
+
+
+def _ts(s):
+    return dt.datetime.fromisoformat(s)
+
+
+def test_gate_interval_contains_the_airborne_interval(spark):
+    """The guard that makes the comparison sound.
+
+    APDF is real operational data: a bad AOBT after its own take-off exists.
+    Without least()/greatest() such a row yields a gate interval *narrower* than
+    the airborne one, and gate matching would drop samples airborne matching
+    kept -- inverting the finding.
+    """
+    gt = spark.createDataFrame(
+        [
+            # normal: off-block 12 min before take-off, in-block 6 after landing
+            ("f1", "abc123", _ts("2025-06-05T10:00:00"), _ts("2025-06-05T11:00:00"),
+             _ts("2025-06-05T09:48:00"), _ts("2025-06-05T11:06:00")),
+            # corrupt: AOBT after ATOT, AIBT before ALDT
+            ("f2", "def456", _ts("2025-06-05T14:00:00"), _ts("2025-06-05T15:00:00"),
+             _ts("2025-06-05T14:05:00"), _ts("2025-06-05T14:55:00")),
+        ],
+        "flight_key string, icao24 string, t_off timestamp, t_land timestamp, "
+        "aobt timestamp, aibt timestamp",
+    )
+    out = track_truth.attach_gate_interval(gt, b_dep_s=600, b_arr_s=300).collect()
+    by = {r["flight_key"]: r for r in out}
+
+    assert by["f1"]["t_off_block"] == _ts("2025-06-05T09:48:00")
+    assert by["f1"]["t_in_block"] == _ts("2025-06-05T11:06:00")
+    # clamped to the airborne bound, never inside it
+    assert by["f2"]["t_off_block"] == _ts("2025-06-05T14:00:00")
+    assert by["f2"]["t_in_block"] == _ts("2025-06-05T15:00:00")
+
+
+def test_null_block_times_fall_back_to_the_measured_buffer(spark):
+    """aibt is APDF-only and NULL for about half the sample. That half still
+    needs an interval, and the buffer is a measured median -- not a constant
+    someone liked the look of."""
+    gt = spark.createDataFrame(
+        [("f3", "abc123", _ts("2025-06-05T10:00:00"), _ts("2025-06-05T11:00:00"),
+          None, None)],
+        "flight_key string, icao24 string, t_off timestamp, t_land timestamp, "
+        "aobt timestamp, aibt timestamp",
+    )
+    r = track_truth.attach_gate_interval(gt, b_dep_s=600, b_arr_s=300).collect()[0]
+    assert r["t_off_block"] == _ts("2025-06-05T09:50:00")
+    assert r["t_in_block"] == _ts("2025-06-05T11:05:00")
+    assert r["gate_dep_measured"] is False
+    assert r["gate_arr_measured"] is False
+
+
+def test_gate_buffers_are_the_measured_medians(spark):
+    """b_dep is median(t_off - aobt) over the flights where aobt is measured."""
+    gt = spark.createDataFrame(
+        [("f1", _ts("2025-06-05T10:00:00"), _ts("2025-06-05T11:00:00"),
+          _ts("2025-06-05T09:50:00"), _ts("2025-06-05T11:05:00"), True, True),
+         ("f2", _ts("2025-06-05T12:00:00"), _ts("2025-06-05T13:00:00"),
+          _ts("2025-06-05T11:40:00"), _ts("2025-06-05T13:15:00"), True, True),
+         ("f3", _ts("2025-06-05T14:00:00"), _ts("2025-06-05T15:00:00"),
+          None, None, False, False)],
+        "flight_key string, t_off timestamp, t_land timestamp, aobt timestamp, "
+        "aibt timestamp, dep_measured boolean, arr_measured boolean",
+    )
+    b_dep, b_arr = track_truth.gate_buffers(gt)
+    assert b_dep == 900.0    # median of 600 s and 1200 s
+    assert b_arr == 750.0    # median of 300 s and 900 s
+
+
+def test_taxi_sample_matches_gate_but_not_airborne(spark):
+    """The finding, as a test. One sample during taxi-out.
+
+    Under the airborne interval it belongs to no flight and vanishes from every
+    metric. Under the gate interval it belongs to the flight it obviously
+    belongs to.
+    """
+    assign = spark.createDataFrame(
+        [("abc123", _ts("2025-06-05T09:52:00"), "trk1")],
+        "icao24 string, event_time timestamp, track_id string",
+    )
+    gt = spark.createDataFrame(
+        [("f1", "abc123", _ts("2025-06-05T10:00:00"), _ts("2025-06-05T11:00:00"),
+          _ts("2025-06-05T09:48:00"), _ts("2025-06-05T11:06:00"), "apdf",
+          "EBBR", "LEMD")],
+        "flight_key string, icao24 string, t_off timestamp, t_land timestamp, "
+        "t_off_block timestamp, t_in_block timestamp, t_source string, "
+        "gt_adep string, gt_ades string",
+    )
+    assert overlap_join(assign, gt).count() == 0
+    gated = overlap_join(assign, gt, bounds=("t_off_block", "t_in_block"))
+    assert gated.count() == 1
+    assert gated.collect()[0]["flight_key"] == "f1"
+```
+
+- [ ] **Step 2: Run them to confirm they fail**
+
+```bash
+cd /home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v2
+/home/jupyter/work/opdi-workspace/opdi/.venv310/bin/python -m pytest tests/test_track_gate_interval.py -v
+```
+
+Expected: FAIL — `attach_gate_interval` and `gate_buffers` do not exist, and
+`overlap_join` takes no `bounds`.
+
+- [ ] **Step 3: Implement in `track_truth.py`**
+
+```python
+def gate_buffers(gt: DataFrame) -> tuple:
+    """Median taxi-out and taxi-in, in seconds, over the flights that measured them.
+
+    These are the fallback where APDF has no block time. Measured rather than
+    chosen: `aobt` covers ~100% of flights through NM's AOBT_3 fallback, but
+    `aibt` is APDF-only and covers about half, so roughly half the arrival
+    intervals are modelled. Taking the modelled half's duration from the
+    measured half is the honest version of a buffer; picking ten minutes because
+    it sounds like a taxi is not.
+
+    Returns ``(b_dep_s, b_arr_s)``. A period with no measured flight on one side
+    falls back to zero there, degrading the gate interval to the airborne one
+    rather than inventing a duration.
+    """
+    row = gt.select(
+        F.percentile_approx(
+            F.when(F.col("dep_measured"),
+                   F.unix_timestamp("t_off") - F.unix_timestamp("aobt")),
+            0.5,
+        ).alias("b_dep"),
+        F.percentile_approx(
+            F.when(F.col("arr_measured"),
+                   F.unix_timestamp("aibt") - F.unix_timestamp("t_land")),
+            0.5,
+        ).alias("b_arr"),
+    ).collect()[0]
+    return (float(row["b_dep"] or 0.0), float(row["b_arr"] or 0.0))
+
+
+def attach_gate_interval(gt: DataFrame, b_dep_s: float, b_arr_s: float) -> DataFrame:
+    """Add the gate-to-gate interval beside the airborne one.
+
+    ``least``/``greatest`` are not defensive padding. APDF is operational data
+    and carries rows whose block time falls the wrong side of its own movement
+    time; without the clamp such a row yields a gate interval *narrower* than
+    the airborne interval, and gate matching would drop samples airborne
+    matching kept. The clamp makes the gate interval a guaranteed superset, so
+    the two metrics differ only by the samples the wider one adds.
+    """
+    return (
+        gt.withColumn("gate_dep_measured", F.col("aobt").isNotNull())
+        .withColumn("gate_arr_measured", F.col("aibt").isNotNull())
+        .withColumn(
+            "t_off_block",
+            F.least(
+                F.coalesce(
+                    F.col("aobt"),
+                    (F.unix_timestamp("t_off") - F.lit(b_dep_s)).cast("timestamp"),
+                ),
+                F.col("t_off"),
+            ),
+        )
+        .withColumn(
+            "t_in_block",
+            F.greatest(
+                F.coalesce(
+                    F.col("aibt"),
+                    (F.unix_timestamp("t_land") + F.lit(b_arr_s)).cast("timestamp"),
+                ),
+                F.col("t_land"),
+            ),
+        )
+    )
+```
+
+`overlap_join` gains the parameter, defaulting to today's behaviour:
+
+```python
+def overlap_join(assign: DataFrame, gt: DataFrame,
+                 bounds=("t_off", "t_land")) -> DataFrame:
+```
+
+Inside, the join predicate and the tie-break window read `bounds[0]`/`bounds[1]`
+instead of literal `t_off`/`t_land`. The **select stays fixed and still emits
+`t_off` and `t_land`**, because `boundary_error` needs the airborne boundaries
+whichever interval did the matching. Add to the docstring:
+
+```
+    ``bounds`` selects the interval. The default is the airborne
+    ``[t_off, t_land]``. Passing ``("t_off_block", "t_in_block")`` matches over
+    the gate-to-gate interval instead, which is what includes taxi-out, taxi-in
+    and stand samples. The emitted ``t_off``/``t_land`` are unchanged either
+    way: they are the airborne boundaries, and boundary error is defined against
+    them regardless of which interval decided membership.
+```
+
+Finally, `load_flight_intervals` calls `attach_gate_interval` on its result
+(after the existing filters), using buffers computed from that same frame, and
+adds `t_off_block`, `t_in_block`, `gate_dep_measured`, `gate_arr_measured` to
+its final `select`.
+
+- [ ] **Step 4: Implement `score_arm_gated` in `track_score.py`**
+
+```python
+def score_arm_gated(matched, extents, matched_gate) -> dict:
+    """The airborne row, plus every gate-to-gate rate under a `gate_` prefix.
+
+    Both are reported because they answer different questions and the paper
+    needs both. The airborne metrics are what every V1 number was computed over
+    and must stay comparable to; the gate metrics say whether the aircraft's
+    time at the stand and on the taxiways ended up in the right track.
+
+    Boundary error is computed once, from the airborne match. It is defined
+    against `t_off`/`t_land`, so computing it twice would produce two columns
+    with the same name and different meanings.
+    """
+    row = score_arm(matched, extents)
+    row.update({f"gate_{k}": v for k, v in match_rates(matched_gate).items()})
+    return row
+```
+
+`run_arm`'s default scorer stays `score_arm`; callers wanting gate metrics pass
+their own closure, which builds `matched_gate` from the same `assign` and `gt`.
+
+- [ ] **Step 5: Run the tests**
+
+```bash
+cd /home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v2
+/home/jupyter/work/opdi-workspace/opdi/.venv310/bin/python -m pytest tests/test_track_gate_interval.py -v
+/home/jupyter/work/opdi-workspace/opdi/.venv310/bin/python -m pytest tests/ -q
+```
+
+Both pass. Report the count.
+
+- [ ] **Step 6: Prove the airborne path did not move**
+
+The design rests on gate metrics being *additive*. Prove it:
+
+```python
+# append to tests/test_track_gate_interval.py
+def test_airborne_metrics_are_untouched_by_the_gate_columns(spark):
+    """score_arm over a gt frame carrying gate columns must equal score_arm
+    over the same frame without them.
+
+    If this fails, the gate work changed numbers V1 already published and Task
+    13's re-run will silently rewrite them.
+    """
+    from track_score import score_arm, track_extents
+
+    assign = spark.createDataFrame(
+        [("abc123", _ts("2025-06-05T10:10:00"), "trk1"),
+         ("abc123", _ts("2025-06-05T10:50:00"), "trk1"),
+         ("def456", _ts("2025-06-05T14:30:00"), "trk2")],
+        "icao24 string, event_time timestamp, track_id string",
+    )
+    plain_schema = (
+        "flight_key string, icao24 string, t_off timestamp, t_land timestamp, "
+        "t_source string, gt_adep string, gt_ades string"
+    )
+    plain_rows = [
+        ("f1", "abc123", _ts("2025-06-05T10:00:00"),
+         _ts("2025-06-05T11:00:00"), "apdf", "EBBR", "LEMD"),
+        ("f2", "def456", _ts("2025-06-05T14:00:00"),
+         _ts("2025-06-05T15:00:00"), "apdf", "EHAM", "LFPG"),
+    ]
+    plain = spark.createDataFrame(plain_rows, plain_schema)
+    widened = track_truth.attach_gate_interval(
+        plain.withColumn("aobt", F.lit(None).cast("timestamp"))
+             .withColumn("aibt", F.lit(None).cast("timestamp")),
+        b_dep_s=600, b_arr_s=300,
+    )
+
+    extents = track_extents(assign)
+    a = score_arm(overlap_join(assign, plain), extents)
+    b = score_arm(overlap_join(assign, widened), extents)
+    assert a == b, f"airborne metrics moved: {a} vs {b}"
+```
+
+Add `from pyspark.sql import functions as F` at the top of the test module.
+
+- [ ] **Step 7: Commit**
+
+```bash
+cd /home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v2
+uvx ruff check benchmarks tests/test_track_gate_interval.py
+git add benchmarks tests/test_track_gate_interval.py
+git commit -m "feat(bench): score the turnaround, not only the airborne leg
+
+overlap_join matched on [t_off, t_land], so every sample at the stand and on the
+taxiways matched no flight and was dropped before any metric saw it. run_arm's
+docstring already said so. No V1 number says anything about whether taxi-out was
+attached to the right flight.
+
+The interval now has a gate-to-gate variant built from APDF's measured block
+times, falling back to the measured median taxi time where AIBT is absent --
+about half the sample, since AIBT is APDF-only with no NM fallback. Clamped so
+the gate interval always contains the airborne one, which keeps the two
+comparable."
+```
+
+---
+
+### Task 12: The `traffic` fill diagnostic, and the removal of V-measure
+
+**No cluster. No Spark job. Code and unit tests only.**
+
+Two small unrelated changes, batched because both are single-file edits to the
+benchmark layer and both must land before Task 13's re-run.
+
+**Comment 3, answered.** From
+`/home/jupyter/work/opdi-workspace/traffic/src/traffic/core/flight.py`:
+
+- `Flight.split()` (line 1462) fills **nothing**. It cuts on raw timestamp gaps.
+- `Flight.filter()` (line 1845) takes `strategy=lambda x: x.bfill().ffill()` as
+  its **default**.
+- `Flight.resample()` (line 1712) defaults to `how="interpolate"` — numeric
+  columns interpolated, the rest forward-filled (lines 1799-1806).
+
+So the hypothesis is right about the workflow: a `Flight` reaching `.split()` in
+idiomatic traffic use has been gap-filled and often resampled to 1 s. A3 applies
+the rule to a raw frame where `baro_altitude` is NULL ~21% of the time, and A3's
+predicate reads altitude on *both sides* of the candidate gap — the samples that
+decide the split.
+
+**That is not the dominant cause, and the paper must not claim it is.** A3 lost
+on *merging*, and merging is under-splitting. Its mechanism is traffic's single
+10-minute gap threshold meeting an aircraft that broadcasts continuously through
+a turnaround: no gap, no split, and no amount of filling creates a gap that was
+never there. Legacy's second rule — a shorter gap below 5,000 ft — is what
+catches that case. The measurement below separates the two so §6.3 can be
+written from evidence.
+
+**Files:**
+- Modify: `$OPDI/benchmarks/track_diagnostics.py` — new `gap_boundary_nulls`
+- Modify: `$OPDI/benchmarks/track_score.py` — delete `vmeasure`
+- Modify: `$OPDI/benchmarks/regenerate_track_v1.py` — new job
+- Test: `$OPDI/tests/test_track_diagnostics_gaps.py` (create)
+
+**Interfaces:**
+- Produces: `track_diagnostics.gap_boundary_nulls(sv, gap_minutes=10.0) -> dict`
+  with `n_gaps`, `n_null_either_side`, `null_pct`, `n_no_gap_turnarounds`.
+  Task 13 runs it; Task 14 §C reports it.
+- Removes: `track_score.vmeasure`. `score_arm` calls it today and must be
+  updated in the same commit.
+
+- [ ] **Step 1: Write the failing test**
+
+```python
+# $OPDI/tests/test_track_diagnostics_gaps.py
+"""How often A3's split predicate cannot see the altitude it needs.
+
+traffic's rule reads altitude on both sides of a candidate gap. On a raw OSN
+frame that value is often NULL, and a NULL comparison is not a split decision --
+it is the absence of one. This counts how often that happens, so section 6.3 can
+say which part of A3's failure is the missing fill and which part is the
+single-threshold design.
+"""
+import datetime as dt
+
+from track_diagnostics import gap_boundary_nulls
+
+
+def _ts(s):
+    return dt.datetime.fromisoformat(s)
+
+
+def test_counts_gaps_whose_boundary_altitude_is_null(spark):
+    sv = spark.createDataFrame(
+        [
+            # a gap with altitude on both sides -- the predicate can decide
+            ("a1", _ts("2025-06-05T10:00:00"), 30000.0, False),
+            ("a1", _ts("2025-06-05T10:20:00"), 31000.0, False),
+            # a gap with NULL on the far side -- it cannot
+            ("a2", _ts("2025-06-05T10:00:00"), 30000.0, False),
+            ("a2", _ts("2025-06-05T10:20:00"), None, False),
+        ],
+        "icao24 string, event_time timestamp, baro_altitude_ft double, "
+        "on_ground boolean",
+    )
+    out = gap_boundary_nulls(sv, gap_minutes=10.0)
+    assert out["n_gaps"] == 2
+    assert out["n_null_either_side"] == 1
+    assert out["null_pct"] == 50.0
+
+
+def test_counts_turnarounds_with_no_gap_at_all(spark):
+    """The failure no fill can fix: continuous broadcast through a turnaround.
+
+    traffic has one threshold, on gap length. An aircraft on stand still
+    broadcasting produces no gap, so the rule never splits and the two legs
+    merge. Legacy catches this with its second rule, a shorter gap below
+    5,000 ft. Counting these separates A3's two failure modes.
+    """
+    sv = spark.createDataFrame(
+        [("b1", _ts("2025-06-05T10:00:00"), 300.0, True),
+         ("b1", _ts("2025-06-05T10:02:00"), 300.0, True),
+         ("b1", _ts("2025-06-05T10:04:00"), 300.0, True),
+         ("b1", _ts("2025-06-05T10:06:00"), 300.0, True),
+         ("b1", _ts("2025-06-05T10:08:00"), 300.0, True),
+         ("b1", _ts("2025-06-05T10:11:00"), 300.0, True)],
+        "icao24 string, event_time timestamp, baro_altitude_ft double, "
+        "on_ground boolean",
+    )
+    out = gap_boundary_nulls(sv, gap_minutes=10.0)
+    assert out["n_gaps"] == 0
+    assert out["n_no_gap_turnarounds"] >= 1
+```
+
+- [ ] **Step 2: Run it to confirm it fails**
+
+```bash
+cd /home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v2
+/home/jupyter/work/opdi-workspace/opdi/.venv310/bin/python -m pytest tests/test_track_diagnostics_gaps.py -v
+```
+
+Expected: FAIL — `gap_boundary_nulls` does not exist.
+
+- [ ] **Step 3: Implement it, then delete V-measure**
+
+`gap_boundary_nulls` groups on `icao24`, orders on `event_time`, and over a
+`rowsBetween(-1, -1)` lag computes the gap in minutes and the previous
+`baro_altitude_ft`. A gap is a row where `gap > gap_minutes`. It is
+**undecidable** when either its own or the previous altitude is NULL. A
+"no-gap turnaround" is a maximal run of `on_ground = true` samples spanning more
+than `gap_minutes` with **no** internal gap above the threshold — the case
+traffic's single rule structurally cannot see.
+
+Then remove V-measure.
+
+**CORRECTED 2026-08-31 (ruling R46). Do not delete the `vmeasure` function.**
+An earlier draft of this task said to. That was wrong, and would have deleted
+two metrics the paper keeps. `track_score.vmeasure` computes **three** things
+and returns them in one dict: `homogeneity`, `completeness`, and `v_measure`.
+Homogeneity and completeness map onto merging and fragmentation, they are §4.1's
+whole subject, and they stay. Only the harmonic mean goes.
+
+So:
+
+- **Rename** `vmeasure` to `homogeneity_completeness`. A function named
+  `vmeasure` that does not return a V-measure is a worse defect than the one
+  this comment is fixing.
+- Delete the two lines computing `denom` and `v`, and the `"v_measure"` key from
+  both the normal return and the `total == 0` early return.
+- **Keep `_entropy`.** Homogeneity and completeness are entropy-based; it is
+  load-bearing, not V-measure scaffolding.
+- Update `score_arm`'s call site to the new name.
+- `v_measure` from `track_sweep.py`'s progress line (Task 10 Step 5 did this —
+  verify rather than repeat).
+- Any `v_measure` key in `track_pipeline_v2.py`'s exported columns.
+
+Also fix the docstring while renaming: it currently opens "Homogeneity,
+completeness and their harmonic mean," which the rename falsifies. Say what the
+two measures are for — one is the merging measure, the other the fragmentation
+measure — since that is the reason they survived and the mean did not.
+
+```bash
+grep -rn "vmeasure\|v_measure" benchmarks/ src/ tests/
+```
+
+must return nothing, while `homogeneity` and `completeness` must still be
+present and still be reported by `score_arm`. The committed CSVs keep their
+`v_measure` column — they are historical records and are not edited by hand;
+Task 13's re-run drops it naturally.
+
+**One consequence for Task 13.** The Task 11 reviewer noted that `vmeasure`
+sums floats in Python over `contingency(...).collect()` order, which is
+partition-order dependent, so `homogeneity` and `completeness` can differ in
+their last bits between runs of identical code. Task 13 Step 3 demands
+byte-identical airborne columns — **compare those two columns with a tolerance,
+not `==`**, or a re-run will look like a regression it is not. Every other
+airborne column is exact and must be compared exactly.
+
+- [ ] **Step 4: Run the tests**
+
+```bash
+cd /home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v2
+/home/jupyter/work/opdi-workspace/opdi/.venv310/bin/python -m pytest tests/test_track_diagnostics_gaps.py -v
+/home/jupyter/work/opdi-workspace/opdi/.venv310/bin/python -m pytest tests/ -q
+```
+
+Any existing test asserting on `v_measure` is **deleted, not weakened** — the
+metric is gone, so a test for it tests nothing. Report which ones went.
+
+- [ ] **Step 5: Declare the new job in `regenerate_track_v1.py`**
+
+One job per period, `traffic_fill_<period>`, writing
+`traffic_fill_<period>.csv`. Its `code_paths` must include
+`benchmarks/track_diagnostics.py`. It reads the same cleaned track table the
+arms jobs read.
+
+- [ ] **Step 6: Commit**
+
+```bash
+cd /home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v2
+uvx ruff check benchmarks tests/test_track_diagnostics_gaps.py
+git add benchmarks tests
+git commit -m "feat(bench): measure what A3's split predicate cannot see; drop V-measure
+
+traffic's Flight.split fills nothing, but Flight.filter defaults to
+bfill().ffill() and Flight.resample defaults to interpolation -- so the rule is
+designed against a filled frame. OPDI applies it to a raw one where
+baro_altitude is NULL about a fifth of the time, on the very samples that decide
+the split. gap_boundary_nulls counts that, and separately counts turnarounds
+with no gap at all, which is the failure no fill can fix.
+
+V-measure went with it. It ranked the arms differently from the headline metric
+at the top of the table, it chose nothing, and it collects the whole contingency
+table to the driver to compute."
+```
+
+---
+
+### Task 13: One combined re-run
+
+**The expensive task, deliberately singular.** Tasks 10, 11 and 12 each changed
+a file `regenerate_track_v1.py` fingerprints, so every V1 job is stale. Running
+them one at a time costs three full re-runs; Task 5 established the shape of
+one, at 8h20m.
+
+**Preconditions, all three checked before starting:**
+
+1. `kubectl -n eurocontrol get pods --no-headers | grep -iv jupyterlab | wc -l`
+   is 0. **Not `grep -c Running`** — the `jupyterlab-*` pod that hosts this
+   session is always Running, so that form never returns 0 and would block
+   the task forever. Spark pods carry a `spark-role` label;
+   `kubectl -n eurocontrol get pods -l spark-role` is the precise check.
+2. S3 headroom ≥ 12 GB. **The quota is 200 GB**, not the 100 GB the scratch
+   script assumed before Task 10 Step 0.
+3. Tasks 10, 11 and 12 are committed.
+
+- [ ] **Step 1: Establish the stale set, and record it**
+
+```bash
+cd /home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v2
+export OPDI_PAPER_DIR=/home/jupyter/work/opdi-workspace/opdi-portal/.claude/worktrees/track-construction-v1-plan/papers/track-construction-v1
+/home/jupyter/work/opdi-workspace/opdi/.venv310/bin/python benchmarks/regenerate_track_v1.py --check
+```
+
+Write the list into the report *before* running anything. Expect all fourteen,
+plus the two new `traffic_fill_*` jobs.
+
+- [ ] **Step 2: Re-run the stale jobs**
+
+Serially — one Spark job at a time, driver port 7078. Follow Task 5's invocation
+pattern.
+
+- [ ] **Step 3: Verify the airborne numbers did not move**
+
+**The most important check in this task.** Tasks 10–12 were designed to be
+additive: the lookback defaults to `None` (reproducing `gap_minutes`), the gate
+interval adds columns, and V-measure's removal computes strictly less. So every
+surviving airborne metric must be **identical**, not merely close.
+
+```bash
+cd /home/jupyter/work/opdi-workspace/opdi-portal/.claude/worktrees/track-construction-v1-plan
+git diff --stat papers/track-construction-v1/data/
+git diff papers/track-construction-v1/data/arms_2025.csv
+```
+
+Expected: `v_measure` disappears, `gate_*` appear, and **every other cell is
+byte-identical**. A moved `clean_match_pct` means one of the three tasks was not
+additive after all — stop and find out which before continuing. Report the diff
+either way.
+
+- [ ] **Step 4: Sweep `recommended`, staged**
+
+Staged as V1's legacy sweep was, because the four-axis product is 1,175 cells
+and that is not a sweep, it is a weekend.
+
+```bash
+cd /home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v2
+D=/home/jupyter/work/opdi-workspace/opdi-portal/.claude/worktrees/track-construction-v1-plan/papers/track-construction-v1/data
+
+# stage 1 -- the three legacy axes, at `recommended`, on 2025. 235 cells.
+/home/jupyter/work/opdi-workspace/opdi/.venv310/bin/python -u benchmarks/track_sweep.py --method recommended \
+  --period 2025 --results-dir $D --resume
+
+# stage 2 -- the lookback axis alone, at stage 1's optimum. Substitute the
+# winning triple; do not guess it.
+/home/jupyter/work/opdi-workspace/opdi/.venv310/bin/python -u benchmarks/track_sweep.py --method recommended \
+  --period 2025 --results-dir $D \
+  --grid-gap <G*> --grid-low-alt-gap <LG*> --grid-low-alt-ft <LFT*> \
+  --grid-lookback 0 5 10 15 30 60 120
+
+# stage 3 -- confirm the winner on 2024.
+/home/jupyter/work/opdi-workspace/opdi/.venv310/bin/python -u benchmarks/track_sweep.py --method recommended \
+  --period 2024 --results-dir $D \
+  --grid-gap <G*> --grid-low-alt-gap <LG*> --grid-low-alt-ft <LFT*> \
+  --grid-lookback <LB*>
+```
+
+Outputs `sweep_recommended_2025_stage{1,2}.csv` and
+`sweep_recommended_2024_stage3.csv`.
+
+**If a winning value sits on a grid edge, extend the grid and re-run** — the
+rule V1's Chapter 7 followed when `low_alt_ft` peaked at its boundary. An
+optimum at the edge is not an optimum; it is a grid that stopped too early.
+
+- [ ] **Step 5: Verify and commit**
+
+```bash
+/home/jupyter/work/opdi-workspace/opdi/.venv310/bin/python benchmarks/regenerate_track_v1.py --check   # exits 0
+```
+
+Nothing remains under `research/`. Commit the data in the portal worktree scoped
+to `papers/track-construction-v1/data/` — **never `git add -A`** there; that
+checkout carries 283 unrelated `_site` deletions that must not be staged.
+
+---
+
+### Task 14: The V1 editorial pass
+
+Everything from the ten comments that is prose. Runs after Tasks 13 and 7,
+because §D, §E and §F need numbers those produce.
+
+**Files:**
+- Modify: `$PORTAL/papers/track-construction-v1/index.qmd`
+
+Ten lettered edits, each its own commit — a reviewer should be able to reject
+one without unpicking the rest.
+
+- [ ] **§A — Delete V-measure (comment 1)**
+
+Remove the "**V-measure** is their harmonic mean…" paragraph at lines 465-479
+entirely. Homogeneity and completeness stay: they map onto merging and
+fragmentation, and they are used. In the arms table (lines ~731 and ~739), drop
+the `v_measure` column and its `"V-measure"` header. Then:
+
+```bash
+grep -in "v-measure\|v_measure" papers/track-construction-v1/index.qmd
+```
+
+must return nothing. Not "nothing important" — nothing.
+
+- [ ] **§B — Shorten §4.2's last paragraph (comment 2)**
+
+The paragraph beginning "A flight that is both merged and fragmented counts as
+**merged**…" runs about 120 words over four ideas: the tie-break, the
+strictness, the rejected alternative, the lower-bound claim. Keep the tie-break
+with its one-clause reason, and the lower-bound sentence. The rejected tolerant
+alternative moves to a footnote or goes. Target: under 50 words.
+
+- [ ] **§C — Rewrite §6.3 with the fill finding (comment 3)**
+
+In this order: traffic's `split` fills nothing; its `filter` and `resample`
+default to `bfill().ffill()` and interpolation, so the rule is designed against
+a filled frame; OPDI applies it raw, where `baro_altitude` is NULL about a fifth
+of the time, on the samples the predicate reads. Then the measurement from
+`traffic_fill_<period>.csv`: what share of candidate gaps have an undecidable
+boundary.
+
+Then the correction, and do not bury it: **this is not the main cause.** A3 lost
+on merging, merging is under-splitting, and the mechanism is one gap threshold
+meeting a continuously-broadcasting turnaround — `n_no_gap_turnarounds` from the
+same CSV. Filling cannot create a gap that was never there. Legacy's second rule
+is what catches it.
+
+The conclusion changes from "the reference approach does not transfer" to
+something truer: it transfers badly because it is used outside the preprocessing
+it assumes, and even inside that preprocessing one threshold cannot see a
+turnaround with no gap.
+
+- [ ] **§D — The turnaround is part of the track (comment 4)**
+
+A change of framing across the paper, not one section's edit.
+
+In §4.3 (`sec-containment`), add a subsection saying plainly that containment
+ran on the airborne interval, that every stand and taxi sample therefore matched
+no flight and left the metrics, and that it is now measured both ways. Give the
+gate interval, the block-time sources, and the per-side coverage — `aobt` ~100%
+via NM's fallback, `aibt` ~50% because it is APDF-only. State that the buffers
+are measured medians, and give them per period.
+
+Report `gate_clean_match_pct` beside `clean_match_pct` in the arms table. Where
+the two disagree, that gap **is** the taxi-attachment quality — the new result
+this comment buys.
+
+In §6.7, rewrite the A7 verdict — **but not the way an earlier draft of this
+plan predicted.** That draft said A7 would "fail the gate metric by more than it
+fails the airborne one". Measured, it does not: A7 loses 0.89 points (2025) and
+0.74 (2024), among the smallest drops of any arm. The prediction was wrong and
+the measurement replaces it.
+
+The reason is worth stating, because it sharpens what the gate metric actually
+detects. A7 groups on `icao24`, so nothing about a blank callsign at the stand
+splits its ground samples; its failure is slicing at vertical crossings, which
+happen in the air. It is already bad airborne (37.6%) and the ground barely adds
+to it. A7 is a bad rule for a reason the gate interval does not measure.
+
+What the gate interval *does* detect, and this is the new result:
+
+| group key | arms | gate drop |
+|---|---|---|
+| includes callsign | `legacy`, `no_month_suffix`, `traffic_style` | −14 to −18 pts |
+| splits on ground state | `ground_anchored` | −18 pts |
+| airframe alone | `airframe_only`, `recommended` | under −1 pt |
+
+Callsign goes blank or flips to the next rotation's value while the aircraft is
+at the stand, so any rule carrying callsign in its group key shatters the taxi
+phases into separate tracks. `ground_anchored` cuts through the taxi by
+construction. The two rules that group on the airframe alone hold the turnaround
+together.
+
+State the headline plainly: the `recommended` − `legacy` gap is **+40.65 points
+airborne and +55.87 gate-to-gate** (2025; +38.96 and +56.00 for 2024). Measuring
+only the airborne leg understated the shipped change's benefit by about sixteen
+points. The denominators are one flight apart (89,625 against 89,626), so the
+comparison is clean and the paper should say so rather than leaving a reader to
+wonder whether the wider interval simply scored more flights.
+
+Then sweep the paper for the airborne assumption. `boundary_error`'s sign
+convention already documents that OPDI tracks legitimately overhang ground
+truth's interval on both sides — that passage now needs to say the overhang is
+*wanted*, not tolerated.
+
+- [ ] **§E — Replace Chapter 7 (comments 5 and 6)**
+
+Delete `## Was legacy simply mistuned?` (`sec-sweep`) and its three
+subsections. Replace with `## Tuning what actually ships {#sec-sweep}`, built on
+Task 13 Step 4's CSVs: the three-axis grid at `recommended`, then the lookback
+axis, then the 2024 confirmation.
+
+Report where each axis peaks and whether the optimum is interior. State plainly
+whether the sweep beats the shipped defaults, **including if it does not** — a
+sweep finding the current settings already good is a result, and is the more
+likely one.
+
+The lookback axis gets its own paragraph: the only axis unique to
+`recommended`, pinned to `gap_minutes` by accident rather than design, made real
+by Task 10. If a decoupled value wins by enough to matter, say so and say what
+shipping it would cost.
+
+Keep whatever Chapter 7 said about *method* — grid staging, the edge-extension
+rule — since Task 13 followed the same discipline. Drop the legacy numbers.
+
+- [ ] **§F — ADEP/ADES on two arms (comment 7)**
+
+Chapter 8's headline comparison becomes `legacy` vs `recommended`. Remove the
+other six from the payoff tables.
+
+**§8.2 stays** (user ruling, 2026-08-31). It reads the eight-arm CSVs already in
+`data/` and recomputes nothing. Add one sentence saying exactly that: the
+scatter is a historical measurement retained because it justifies not optimising
+`clean_match_pct` directly, and it is not re-run.
+
+- [ ] **§G — The prose pass (comment 8)**
+
+Against the Global Constraints prose rules. Mechanical first:
+
+```bash
+grep -inE "delve|leverage|robust|comprehensive|seamless|crucial|it is worth noting|it's worth noting|it is important to note|that said" papers/track-construction-v1/index.qmd
+```
+
+Then the judgement pass, which matters more. Read each section's opening
+sentence and ask whether it says anything or merely announces. Read each
+em-dash clause and ask whether it restates the clause before it. The paper is
+1,665 lines and was written under an instruction to explain every term to a
+first-time reader. That instruction stands — but it produced padding, and
+padding is what this comment is about. Explaining a term is not the same as
+warming up to it.
+
+Report the line count before and after. A real pass should remove a few hundred
+lines without losing a single number or definition.
+
+- [ ] **§H — Final parameters in §9 (comment 9)**
+
+`## What shipped` (`sec-defaults`) names the method but not the numbers a reader
+needs to reproduce it. Add a table: `gap_minutes`, `low_alt_gap_minutes`,
+`low_alt_ft`, `callsign_lookback_minutes` — shipped value, the value the sweep
+preferred, and whether they differ. Read from the config and the sweep CSVs as
+inline R over `data/`, not typed: the no-typed-numbers rule applies here as
+everywhere.
+
+If Task 13's sweep found a better cell that did not ship, say why not, in one
+sentence.
+
+- [ ] **§I — Delete Chapter 10 (comment 10)**
+
+Remove `## Provenance` (`sec-provenance`, lines ~1450-1516). The provenance
+*system* stays — `_manifest.json` is still written and still stamps every
+figure. What goes is the chapter about it. Keep one sentence in "How to read
+this page" saying the numbers are stamped and where the manifest lives.
+
+Check the anchor is not cross-referenced before deleting:
+
+```bash
+grep -n "sec-provenance" papers/track-construction-v1/index.qmd
+```
+
+- [ ] **§J — Render and verify**
+
+```bash
+cd /home/jupyter/work/opdi-workspace/opdi-portal/.claude/worktrees/track-construction-v1-plan/papers/track-construction-v1
+OPDI_REPO_DIR=/home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v2 \
+OPDI_PAPER_DIR=$PWD \
+OPDI_PYTHON=/home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v2/home/jupyter/work/opdi-workspace/opdi/.venv310/bin/python \
+  quarto render index.qmd --to html
+```
+
+Then again with `--to pdf`. **The PDF is a committed artifact and goes stale
+silently** — it has embarrassed this paper once already. Grep the *rendered*
+output, not the source, for `V-measure` and for the Chapter 7 heading.
 
 ---
 
