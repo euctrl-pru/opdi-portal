@@ -659,11 +659,16 @@ interval**, off-block to in-block.
 **Where the block times come from.** `aobt` prefers APDF's measured off-block
 time and falls back to Network Manager's `AOBT_3`, so it exists for substantially
 every flight. `aibt` has no fallback and cannot have one — `ARVT_3` is a landing
-time, not a gate arrival — so the arrival side is APDF-only, and about 62% of
-scored flights carry a measured in-block time on each sample (measured in the
-ground-truth loader, not read from a CSV here). Where a block time is missing the
+time, not a gate arrival — so the arrival side is APDF-only, and
+`r sprintf("%.1f%%", CT("2025", "gate_arr_measured_pct"))` of scored flights
+carry a measured in-block time against
+`r sprintf("%.1f%%", CT("2025", "gate_dep_measured_pct"))` on the departure
+side. Where a block time is missing the
 interval is extended past the airborne endpoint by the median measured taxi on
-that side, over the flights of that period that did measure one. Taking the
+that side, over the flights of that period that did measure one —
+`r sprintf("%.0f", CT("2025", "gate_b_dep_s"))` s before take-off and
+`r sprintf("%.0f", CT("2025", "gate_b_arr_s"))` s after landing on the 2025
+sample. Taking the
 modelled half's duration from the measured half is the honest version of a
 buffer; ten minutes because it sounds like a taxi is not.
 
