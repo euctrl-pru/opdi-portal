@@ -1,0 +1,914 @@
+---
+title: "A new rule builds OPDI's flight tracks"
+subtitle: "Version 2 — the release note: what changed in the pipeline, what it recovers, and why every `track_id` you hold stops joining"
+author: "EUROCONTROL Performance Review Unit"
+date: last-modified
+---
+
+```{r regenerate}
+#| include: false
+#| cache: false
+
+# Rendering this page runs the analysis behind it.
+#
+# `regenerate_track_v2.py` is the executable definition of the study: each CSV
+# read below is produced by exactly one job it declares, with exactly the
+# arguments it declares. It re-runs a job when the *code that job depends on*
+# has changed since the output was written -- not when the file is old, which
+# says nothing. A render with everything current is a fast no-op; a render after
+# editing `segmentation/methods.py` re-runs both pipeline jobs before the first
+# table is drawn.
+#
+# Re-running one is expensive here in a way it was not for V1. V2's jobs drive
+# the *production* steps 01 -> 02 -> 02a -> 03 over a full day of state vectors,
+# three arms per period, which is hours of cluster time and needs credentials.
+# OPDI_RENDER selects what happens instead:
+#
+#   run          (default) regenerate anything stale, then render
+#   check        fail fast naming every stale job, regenerate nothing
+#   allow-stale  render a draft from whatever is staged, after naming staleness
+#   skip         do not invoke the entrypoint at all
+#
+# `skip` exists for the case this page was last rendered under: the cluster was
+# fully committed to another job, and starting a Spark session would have taken
+# quota from it. It is the only mode that touches neither the cluster nor S3,
+# and it is honest about what it buys -- nothing is checked against the code, so
+# the CSVs are trusted as staged.
+REPO   <- Sys.getenv("OPDI_REPO_DIR",
+                     normalizePath(file.path(getwd(), "..", "..", "..", "opdi"),
+                                   mustWork = FALSE))
+PYTHON <- Sys.getenv("OPDI_PYTHON", file.path(REPO, ".venv310", "bin", "python"))
+MODE   <- Sys.getenv("OPDI_RENDER", "run")
+
+# The pipeline repo is a sibling of the portal. That resolution is wrong inside
+# a git worktree, where the paper sits under .claude/worktrees/<name>/papers and
+# the sibling walk lands somewhere that does not exist -- so the regeneration
+# step would be skipped silently and the page would render whatever is staged.
+# OPDI_REPO_DIR overrides it; the default is unchanged for a normal checkout.
+#
+# A missing entrypoint must not read as "nothing to regenerate". Skipping it
+# silently is how a page ends up publishing numbers no command can account for.
+regen <- file.path(REPO, "benchmarks", "regenerate_track_v2.py")
+if (!file.exists(regen) && MODE != "skip") {
+  stop("regenerate_track_v2.py not found under REPO=", REPO,
+       " -- set OPDI_REPO_DIR, or OPDI_RENDER=skip to render without it.")
+}
+
+# `skip` short-circuits before system2, so no Python process starts and no Spark
+# session is created. Every other mode reaches the entrypoint.
+if (MODE != "skip" && file.exists(regen)) {
+  flags <- switch(MODE,
+                  "run" = character(0),
+                  "check" = "--check",
+                  "allow-stale" = c("--check", "--allow-stale"),
+                  character(0))
+  status <- system2(PYTHON, c(shQuote(regen), flags), stdout = "", stderr = "")
+  if (!identical(status, 0L)) {
+    stop("regenerate_track_v2.py exited ", status,
+         " -- the figures below would not match the code that is checked out. ",
+         "Set OPDI_RENDER=allow-stale to render anyway.")
+  }
+}
+```
+
+```{r setup}
+#| include: false
+library(knitr)
+library(ggplot2)
+
+# Read-only. Every figure and table on this page comes from a committed CSV.
+# Nothing here reads S3, a database or a Spark cluster.
+
+D <- function(f) read.csv(file.path("data", f), stringsAsFactors = FALSE)
+
+pipe <- rbind(D("pipeline_2025.csv"), D("pipeline_2024.csv"))
+pipe$period <- as.character(pipe$period)
+
+# V1's arms, read from V1's own committed CSVs rather than retyped here. The
+# cross-validation compares two measurements of the same quantity, and a
+# transcribed comparand is exactly the thing that goes stale silently.
+V1DIR <- file.path("..", "track-construction-v1", "data")
+if (!dir.exists(V1DIR)) {
+  stop("V1's data directory not found at ", V1DIR,
+       " -- the cross-validation section reads its arms_*.csv directly.")
+}
+D1 <- function(f) read.csv(file.path(V1DIR, f), stringsAsFactors = FALSE)
+v1 <- rbind(D1("arms_2025.csv"), D1("arms_2024.csv"))
+v1$period <- as.character(v1$period)
+
+# One accessor per file, so no two tables on this page can disagree about what
+# an arm scored. Both stop rather than return a zero-length value: a missing arm
+# would otherwise propagate into a table cell as a blank and read as a measured
+# result.
+P <- function(m, p, col) {
+  v <- pipe[pipe$method == m & pipe$period == p, col]
+  if (length(v) != 1) stop("no single pipeline row for ", m, "/", p)
+  v
+}
+# V1 named the shipped rule `recommended`; the pipeline names it `standard`.
+# Same rule, renamed when it stopped being a recommendation and became a
+# default. Mapped once, here, so nothing below has to remember it.
+V1ARM <- c(legacy = "legacy", airframe_only = "airframe_only",
+           standard = "recommended")
+V <- function(m, p, col) {
+  v <- v1[v1$arm == V1ARM[[m]] & v1$period == p, col]
+  if (length(v) != 1) stop("no single V1 row for ", m, "/", p)
+  v
+}
+
+PERIODS <- c("2025", "2024")
+ARMS    <- c("legacy", "airframe_only", "standard")
+ARMLAB  <- c(legacy = "legacy", airframe_only = "airframe_only",
+             standard = "standard (ships)")
+
+num  <- function(x) formatC(x, format = "d", big.mark = ",")
+pct  <- function(x) sprintf("%.2f%%", x)
+pp   <- function(x) sprintf("%+.2f", x)
+p1   <- function(x) sprintf("%.1f", x)
+p4   <- function(x) sprintf("%.4f", x)
+# A magnitude, for sentences that already carry the direction in a verb.
+# "falls -0.66 points" is a double negative; "falls 0.66 points" is not.
+mag  <- function(x) sprintf("%.2f", abs(x))
+# Every cell that can be absent goes through this. `airframe_only` carries no
+# ADEP/ADES numbers, and an NA formatted by default prints the literal "NA" into
+# a table -- which reads as a measured value of nothing rather than as a cell no
+# run produced.
+dash <- function(x, f = pct) ifelse(is.na(x), "—", f(x))
+
+# --- headline values, computed here rather than written into the prose, so the
+# --- opening paragraph cannot drift away from the tables that justify it.
+GAIN      <- function(p) P("standard", p, "clean_match_pct") -
+                         P("legacy", p, "clean_match_pct")
+GATE_GAIN <- function(p) P("standard", p, "gate_clean_match_pct") -
+                         P("legacy", p, "gate_clean_match_pct")
+V1_GAIN      <- function(p) V("standard", p, "clean_match_pct") -
+                            V("legacy", p, "clean_match_pct")
+V1_GATE_GAIN <- function(p) V("standard", p, "gate_clean_match_pct") -
+                            V("legacy", p, "gate_clean_match_pct")
+# The largest disagreement between the pipeline's answer and the harness's, over
+# both intervals and both periods. This is the number the cross-validation is.
+CROSS <- max(abs(c(sapply(PERIODS, function(p) GAIN(p) - V1_GAIN(p)),
+                   sapply(PERIODS, function(p) GATE_GAIN(p) - V1_GATE_GAIN(p)))))
+
+# The ablation, split at its midpoint. Both halves are in points of clean
+# matching, so they sum to the total by construction.
+STEP1 <- function(p) P("airframe_only", p, "clean_match_pct") -
+                     P("legacy", p, "clean_match_pct")
+STEP2 <- function(p) P("standard", p, "clean_match_pct") -
+                     P("airframe_only", p, "clean_match_pct")
+
+# The partition change. `n_tracks` counts tracks carrying at least one
+# ground-truth sample, which is the count V1 also reports and the only one the
+# two studies can be compared on.
+DROP    <- function(p) 100 * (1 - P("standard", p, "n_tracks") /
+                                  P("legacy", p, "n_tracks"))
+V1_DROP <- function(p) 100 * (1 - V("standard", p, "n_tracks") /
+                                  V("legacy", p, "n_tracks"))
+EXPDROP <- function(p) 100 * (1 - P("standard", p, "n_tracks_exported") /
+                                  P("legacy", p, "n_tracks_exported"))
+
+# The flight list's own score for one arm: correct aerodromes minus twice the
+# wrong ones, summed over both ends. Written once because the payoff section
+# quotes the total, the delta and the share, and three transcriptions of one
+# formula is three chances to use a different k.
+SCORE <- function(m, p) P(m, p, "adep_score") + P(m, p, "ades_score")
+# How many of the period's ground-truth flights got an aerodrome at all on one
+# side. The denominator the payoff has to be read against.
+NAMED <- function(m, p, side) P(m, p, paste0(side, "_correct")) +
+                              P(m, p, paste0(side, "_wrong"))
+
+# The gate interval admits flights the airborne interval does not, so the two
+# rates have different denominators in principle. Here they do not, and the
+# difference is measured rather than asserted.
+DENOM_GAP <- function(p) P("legacy", p, "n_flights") -
+                         P("legacy", p, "gate_n_flights")
+
+# Wall-clock minutes per arm, as the pipeline job recorded them. Quoted as a
+# range because the ordering is not stable between periods and a single
+# difference would read as a systematic cost.
+MIN_LO <- min(pipe$minutes)
+MIN_HI <- max(pipe$minutes)
+
+# What ships, from `SegmentationConfig` in `src/opdi/config.py`. Configuration
+# values, not measurements -- named here so the config table and the prose read
+# one source.
+SHIP <- list(method = "standard", gap = 30, low_gap = 15, low_ft = 5000,
+             lookback = "None")
+
+# How many parameter combinations V1 swept before leaving the thresholds alone.
+# Counted from V1's own grid rather than quoted, for the same reason its arms
+# are read rather than transcribed.
+SWEEP_CELLS <- nrow(D1("sweep_recommended_2025_stage1.csv"))
+```
+
+## Summary {.unnumbered}
+
+**OPDI now builds `track_id` with a different rule, and no identifier from any
+earlier release joins to any identifier in this one.**
+
+Segmentation is the pipeline's decision about which state vectors belong to the
+same flight. It is made once, in step 02, and everything downstream inherits it:
+the flight list groups by `track_id`, events fire per track, measurements
+accumulate from a track's first sample. Every OPDI release up to v0.0.2 made
+that decision by grouping on `(icao24, callsign)` and cutting on time gaps. From
+this release forward the pipeline groups on `icao24` alone and cuts when the
+airframe's callsign genuinely changes. The configuration key is
+`segmentation.method`, and its default moved from `"legacy"` to `"standard"`.
+
+**What it recovers.** On a full day of state vectors through the production
+steps, the share of Network Manager flights that come out as exactly one track
+carrying nothing else rises from `r pct(P("legacy", "2025", "clean_match_pct"))`
+to `r pct(P("standard", "2025", "clean_match_pct"))` on 2025-06-05, and from
+`r pct(P("legacy", "2024", "clean_match_pct"))` to
+`r pct(P("standard", "2024", "clean_match_pct"))` on 2024-06-05. Score the
+turnaround as part of the flight — block to block, so stand and taxi samples
+count — and the same change is
+`r pct(P("legacy", "2025", "gate_clean_match_pct"))` to
+`r pct(P("standard", "2025", "gate_clean_match_pct"))`, a gain of
+`r pp(GATE_GAIN("2025"))` points.
+
+**Why this page exists.** Version 1 of this study measured eight candidate rules
+in a harness that read a pre-built track table, and recommended this one. A
+harness is not the pipeline, and the question a recommendation cannot answer is
+whether its result survives the real thing. It does. The pipeline and the
+harness disagree by at most `r sprintf("%.2f", CROSS)` points across two periods
+and two scoring intervals — four independent comparisons of the same quantity,
+agreeing to about a point.
+
+**What it costs.** The flight list names slightly fewer arrival aerodromes:
+`r pct(100 * P("standard", "2025", "ades_coverage"))` of ground-truth flights
+against `r pct(100 * P("legacy", "2025", "ades_coverage"))`, at essentially
+unchanged accuracy. Across both ends the flight list's own score falls
+`r pct(100 * (1 - SCORE("standard", "2025") / SCORE("legacy", "2025")))` on 2025
+and `r pct(100 * (1 - SCORE("standard", "2024") / SCORE("legacy", "2024")))` on
+2024. The mechanism is merging, and [the payoff section](#sec-payoff) measures
+it.
+
+**What breaks.** Every `track_id` changes. The two rules hash different group
+keys and use different suffixes, so the count of identifiers surviving the
+release is zero for reasons visible in the code rather than in any measurement.
+The partition itself shrinks by `r pct(DROP("2025"))` on 2025 and
+`r pct(DROP("2024"))` on 2024. A consumer joining on `track_id` across the
+release boundary gets an empty result, not an error. **Nothing in the published
+data says which rule produced a row** — `osn_tracks` carries no version column,
+so the release date is the only discriminator. That is
+[what breaks](#sec-continuity), and it is the section to read if you read only
+one.
+
+::: {.callout-note}
+## How to read this page
+
+This is a release note, not a study. It reports one pipeline run per period,
+three segmentation arms each, through the production steps 01 → 02 → 02a → 03.
+[What changed](#sec-changed) is the consumer-visible list.
+[How a segmentation is scored](#sec-metrics) defines every term used later, so
+this page stands alone and does not send you to V1 for a definition.
+[What it improves](#sec-results) and [which change does the work](#sec-ablation)
+are the measurement. [What it costs](#sec-payoff) is downstream.
+[What breaks](#sec-continuity) and [what ships](#sec-defaults) are the
+operational sections.
+
+Every number here is an expression evaluated at render time over a committed CSV
+— `data/pipeline_2025.csv` and `data/pipeline_2024.csv` for the pipeline run,
+and V1's own `arms_*.csv` for the harness figures the cross-validation compares
+against. Both pipeline files are declared by
+`benchmarks/regenerate_track_v2.py`, which this page runs before drawing
+anything, which invokes `benchmarks/track_pipeline_v2.py` to produce them, and
+which stamps each output with the code that produced it in
+`data/_manifest.json` — script, arguments, git SHA, and a fingerprint over the
+source files the job depends on. Nothing is typed into the prose, which is what stops the
+text and the tables drifting apart. Two exceptions are named where they appear:
+the configuration defaults, which are code rather than measurement, and one
+diagnostic quoted from `config.py`.
+
+**V1's figures are a different measurement of the same quantity, not a baseline
+these are differences from.** V1 scored a harness over three days; V2 scores the
+pipeline over one. Where both are quoted, they are quoted as two answers to one
+question.
+:::
+
+## What changed {#sec-changed}
+
+```{r changed-table}
+#| echo: false
+ch <- data.frame(
+  What = c("`segmentation.method`",
+           "`FLIGHT_LIST_VERSION`",
+           "`FLT_ID` (flight list)",
+           "`FLT_ID` on unlabelled overflights",
+           "Airport events (step 04)"),
+  From = c("`\"legacy\"`", "`v2.0.0` / `v3.0.0`",
+           "lexicographically smallest callsign in the track",
+           "`NULL`",
+           "one event per callsign broadcast during a zone crossing"),
+  To = c("`\"standard\"`", "`v5.0.0`",
+         "the track's dominant non-blank callsign",
+         "`\"\"`",
+         "one event per zone crossing"),
+  check.names = FALSE)
+kable(ch, row.names = FALSE, align = "lll",
+      col.names = c("What", "Was", "Is now"))
+```
+
+**The two rules, stated in full.** `legacy` groups samples by
+`SHA2(icao24 || callsign)`, orders them by time, and starts a new track when the
+gap to the previous sample exceeds `r SHIP$gap` minutes, or exceeds
+`r SHIP$low_gap` minutes while the aircraft is below `r num(SHIP$low_ft)` ft.
+The identifier it stamps carries a `_{year}_{month}` suffix. `standard` groups
+by `SHA2(icao24)`, keeps both gap rules unchanged, and adds one break: the last
+*non-blank* callsign seen on this airframe differs from the current one. Its
+identifier carries a sample offset instead of a month suffix.
+
+The break compares the last non-blank callsign rather than the raw column
+because ADS-B broadcasts the callsign in its own message type and it is blank
+until the crew sets it. Comparing raw values would fire on every blank sample
+and reproduce exactly the fragmentation the change removes. The lookback is
+bounded by the gap threshold, so it cannot reach back across a gap break into
+the previous flight.
+
+**Three changes reach data consumers directly, and none of them raises an
+error.**
+
+`FLT_ID` is now the dominant callsign of the track rather than the
+lexicographically smallest, because a blank sorts first and a `standard` track
+can carry a blank. Under legacy segmentation the two aggregates agree on every
+track — callsign is in the group key, so a legacy track carries one value by
+construction — so no historical data is affected.
+
+**Unlabelled overflights now carry `""` where they carried `NULL`.** The column
+previously used `""` for unlabelled detected flights and `NULL` for unlabelled
+overflights: two spellings of "no callsign" in one column, so
+`WHERE FLT_ID IS NULL` and `WHERE FLT_ID = ''` answered the same question
+differently. **A consumer filtering overflights on `IS NULL` now silently gets
+nothing back.**
+
+Step 04 emits one airport event per zone crossing. It previously grouped on
+`flight_id` without aggregating it, so an aircraft that broadcast two callsigns
+while crossing one runway emitted two entry-runway events for one crossing. On
+legacy tracks that could not happen, and the two behaviours are identical on
+every published release.
+
+**`osn_tracks` gains no version column.** A row does not say which segmentation
+produced it. The release date is the only discriminator, which is why
+[what breaks](#sec-continuity) is written the way it is.
+
+## What has already happened to a sample {#sec-pipeline}
+
+*Side information: if you know the pipeline steps, skip to
+[the metrics](#sec-metrics).*
+
+Segmentation is step 02 of a chain, and the samples reaching it are not raw
+OpenSky rows. Step 01 restricts them to the OPDI bounding box and thins them to
+one sample per aircraft per 5 s interval, so every gap threshold in this study
+is measured against a 5 s grid.
+
+```{r pipeline-diagram}
+#| echo: false
+#| fig-width: 7
+#| fig-height: 4.2
+#| fig-cap: "The production chain. Step 02 is where the rule changed; every step below it inherits the result, and this release ran the whole chain per arm rather than a harness over step 02's output."
+# Drawn with ggplot rather than as a mermaid block, deliberately. A mermaid
+# diagram written as an executable cell renders in HTML but needs a headless
+# browser to rasterise for PDF, and that browser does not start in this
+# environment -- the render then hangs with no error. A mermaid fence emitted
+# from knitr avoids the hang but arrives without the JavaScript that draws it,
+# so it shows as literal text. A plot goes through whatever device Quarto has
+# already selected and is correct in both formats.
+nodes <- data.frame(
+  y = 5:1,
+  label = c(
+    "step 01 — ingest OSN state vectors: bbox + thinning",
+    "step 02 — tracks: assign track_id",
+    "step 02a — cleaning: mask bad values to NULL",
+    "step 03 — flight list: ADEP / ADES per track",
+    "step 04 — events and measurements per track"),
+  changed = c(FALSE, TRUE, FALSE, FALSE, FALSE))
+h <- 0.34
+ggplot(nodes) +
+  geom_rect(aes(xmin = 0, xmax = 1, ymin = y - h, ymax = y + h,
+                fill = changed, colour = changed, linewidth = changed)) +
+  geom_text(aes(x = 0.5, y = y, label = label, fontface = ifelse(changed, 2, 1)),
+            size = 3.1) +
+  geom_segment(data = nodes[nodes$y > 1, ],
+               aes(x = 0.5, xend = 0.5, y = y - h, yend = y - 1 + h),
+               arrow = arrow(length = unit(1.8, "mm"), type = "closed"),
+               colour = "grey40", linewidth = 0.3) +
+  annotate("text", x = 1.04, y = 4, hjust = 0, size = 2.9, colour = "grey25",
+           label = "the rule inside step 02\nis what this release changes") +
+  annotate("segment", x = 1.02, xend = 1.02, y = 5 + h, yend = 2 - h,
+           colour = "grey55", linewidth = 0.3) +
+  annotate("text", x = 1.04, y = 2, hjust = 0, size = 2.9, colour = "grey25",
+           label = "run per arm, both periods\n(step 03 for legacy and\nstandard only)") +
+  coord_cartesian(xlim = c(0, 1.6), ylim = c(0.4, 5.6), clip = "off") +
+  scale_fill_manual(values = c(`FALSE` = "white", `TRUE` = "grey90")) +
+  scale_colour_manual(values = c(`FALSE` = "grey55", `TRUE` = "grey15")) +
+  scale_linewidth_manual(values = c(`FALSE` = 0.3, `TRUE` = 0.8)) +
+  theme_void() +
+  theme(legend.position = "none")
+```
+
+```{r pipeline-table}
+#| echo: false
+steps <- data.frame(
+  Step = c("01", "02", "02a", "03", "04"),
+  Does = c(
+    "Downloads OpenSky state vectors, restricts them to the OPDI bounding box, and thins them to one sample per aircraft per interval.",
+    "Groups samples into tracks and stamps `track_id`. **This is the step that changed.**",
+    "Masks values that cannot be right — duplicates, out-of-range positions, stale broadcasts, derivative spikes, isolated points — to NULL, keeping the row. Writes a second table rather than editing the first.",
+    "One flight per `track_id`: departure and destination aerodrome, and the flight's callsign label.",
+    "Milestones per track — take-off, top-of-climb, level segments, landing — and the measurements attached to them."
+  ),
+  Output = c("`osn_statevectors`", "`osn_tracks`", "`osn_tracks_clean`",
+             "`opdi_flight_list`", "events, measurements"),
+  check.names = FALSE)
+kable(steps, row.names = FALSE, align = "lll",
+      col.names = c("Step", "What it does", "Writes"))
+```
+
+Each arm ran 01 → 02 → 02a for its period, and `legacy` and `standard` ran 03 as
+well. The three arms of a period share one ingested copy of the day, so a
+difference between arms cannot be an artefact of having ingested the day three
+times.
+
+## How a segmentation is scored {#sec-metrics}
+
+*Nothing after this section introduces a metric.*
+
+Ground truth is Network Manager's flight table, joined to ADS-B on `icao24` —
+the 24-bit airframe address, which Network Manager carries as
+`AIRCRAFT_ADDRESS`. A ground-truth flight is an airframe and a span of time; a
+state vector is attributed to the flight of the same airframe whose span holds
+its timestamp. A track and a flight are *matched* when at least one of the
+track's samples is attributed to that flight. The join is never on callsign,
+because callsign is exactly what the rules under comparison disagree about.
+
+**Every ground-truth flight falls in one of three classes, which sum to 100%.**
+
+- **clean** — the flight's samples are in one track, and that track carries no
+  other flight. This is `clean_match_pct`, the headline.
+- **fragmented** — the flight's samples span several tracks, none of which
+  carries another flight.
+- **merged** — the flight's dominant track also carries at least one other
+  flight.
+
+A flight that is both counts as **merged**, because merging is the worse
+failure: a merged flight is unrecoverable downstream, where a fragmented one is
+at least present in pieces. One stray sample in a second track costs a flight
+its clean match, so `clean_match_pct` is a lower bound and is read as one.
+
+Two entropy-based clustering measures name the two failure modes on a 0–1 scale.
+**Homogeneity** asks whether each track holds samples from only one flight, so
+it falls with merging. **Completeness** asks whether each flight's samples all
+landed in one track, so it falls with fragmentation. Both are weighted over
+every sample in the period, and most samples sit in tracks that every arm gets
+right, so they span a narrow range and name the failure modes rather than rank
+the arms. The three-class rate is what ranks them.
+
+**Each arm is scored twice, over two intervals of the same partition.**
+
+- The **airborne** interval runs from take-off to landing, `[t_off, t_land]`. A
+  sample taken on stand or on a taxiway falls outside it and is attributed to no
+  flight.
+- The **gate-to-gate** interval runs off-block to in-block, so the turnaround
+  counts. This matters because an OPDI track is supposed to carry it: first- and
+  last-seen events fire on it, taxi phases are extracted from it, and every
+  cumulative measurement starts at the track's first sample. A rule that
+  shatters a flight between the gate and the runway threshold scores a clean
+  airborne match and hands over a broken product.
+
+The gate interval is where a rule carrying callsign in its group key comes
+apart, because that is when the callsign is blank or rotating: the aircraft is
+on stand, the crew has not set the next leg's callsign, and every blank sample
+forms a group — and therefore a track — of its own.
+
+Block times come from APDF where a movement was measured. The departure side
+falls back to Network Manager's `AOBT_3` and so exists for substantially every
+flight; the arrival side has no fallback, because `ARVT_3` is a landing time and
+not a gate arrival, and is therefore APDF-only. Where a block time is missing
+the interval is extended past the airborne endpoint by the median measured taxi
+on that side, over the flights of that period that measured one.
+
+**The two intervals score the same flights here.** The gate interval can in
+principle admit flights the airborne one does not — a departure seen only on the
+taxiway — so the denominators are reported rather than assumed. On 2025 they
+differ by `r num(abs(DENOM_GAP("2025")))` flights out of
+`r num(P("legacy", "2025", "n_flights"))`, and on 2024 by
+`r num(abs(DENOM_GAP("2024")))`. Nothing below is a change of denominator
+wearing the clothes of a change of rate.
+
+**The sample.** One day per period, run whole:
+`r num(P("legacy", "2025", "n_samples"))` state vectors on 2025-06-05 and
+`r num(P("legacy", "2024", "n_samples"))` on 2024-06-05.
+`r num(P("legacy", "2025", "n_ground_truth"))` Network Manager flights are in
+scope for 2025 and `r num(P("legacy", "2024", "n_ground_truth"))` for 2024, of
+which `r num(P("legacy", "2025", "n_flights"))` and
+`r num(P("legacy", "2024", "n_flights"))` respectively have at least one ADS-B
+sample inside their airborne interval and are what the rates are computed over.
+
+## What it improves {#sec-results}
+
+```{r results-table}
+#| echo: false
+res <- do.call(rbind, lapply(PERIODS, function(p) {
+  do.call(rbind, lapply(ARMS, function(m) data.frame(
+    Period = p,
+    Arm = ARMLAB[[m]],
+    Clean = pct(P(m, p, "clean_match_pct")),
+    Frag = pct(P(m, p, "fragmented_pct")),
+    Merged = pct(P(m, p, "merged_pct")),
+    GClean = pct(P(m, p, "gate_clean_match_pct")),
+    GFrag = pct(P(m, p, "gate_fragmented_pct")),
+    GMerged = pct(P(m, p, "gate_merged_pct")),
+    check.names = FALSE)))
+}))
+kable(res, row.names = FALSE, align = "llrrrrrr",
+      col.names = c("Period", "Arm", "clean", "fragmented", "merged",
+                    "clean", "fragmented", "merged"),
+      caption = "Airborne (columns 3–5) and gate-to-gate (columns 6–8). Each triple sums to 100%.")
+```
+
+`legacy` fragments `r pct(P("legacy", "2025", "fragmented_pct"))` of flights on
+2025 and merges `r pct(P("legacy", "2025", "merged_pct"))`. Almost all of its
+failure is the splitting and almost none is the opposite error. `standard`
+fragments `r pct(P("standard", "2025", "fragmented_pct"))` and merges
+`r pct(P("standard", "2025", "merged_pct"))`: a fragmentation fix that pays for
+itself several times over in a small amount of new merging.
+
+Scored gate to gate, `legacy` falls to
+`r pct(P("legacy", "2025", "gate_clean_match_pct"))` while `standard` holds
+`r pct(P("standard", "2025", "gate_clean_match_pct"))`. The wider interval costs
+`standard` `r mag(P("standard", "2025", "gate_clean_match_pct") - P("standard", "2025", "clean_match_pct"))`
+points on 2025 and `legacy`
+`r mag(P("legacy", "2025", "gate_clean_match_pct") - P("legacy", "2025", "clean_match_pct"))`.
+Adding the turnaround adds samples, and added samples can only fragment a
+partition further; the size of the two penalties is the difference between a
+rule that carries callsign in its group key and one that does not.
+
+```{r hc-table}
+#| echo: false
+hc <- do.call(rbind, lapply(PERIODS, function(p) {
+  do.call(rbind, lapply(ARMS, function(m) data.frame(
+    Period = p, Arm = ARMLAB[[m]],
+    Hom = p4(P(m, p, "homogeneity")),
+    Comp = p4(P(m, p, "completeness")),
+    Tracks = num(P(m, p, "n_tracks")),
+    Exported = num(P(m, p, "n_tracks_exported")),
+    check.names = FALSE)))
+}))
+kable(hc, row.names = FALSE, align = "llrrrr",
+      col.names = c("Period", "Arm", "homogeneity", "completeness",
+                    "matched tracks", "tracks written"),
+      caption = "Homogeneity falls with merging, completeness with fragmentation. `matched tracks` counts tracks carrying at least one ground-truth sample; `tracks written` counts every track step 02 wrote for the day.")
+```
+
+Completeness rises from `r p4(P("legacy", "2025", "completeness"))` to
+`r p4(P("standard", "2025", "completeness"))` on 2025 while homogeneity falls
+from `r p4(P("legacy", "2025", "homogeneity"))` to
+`r p4(P("standard", "2025", "homogeneity"))`: less fragmentation, marginally
+more merging, the same finding the three-class rates give and the reason both
+are reported.
+
+Running `standard` costs no more cluster time than running `legacy`. Arm
+runtimes across the six runs span `r p1(MIN_LO)` to `r p1(MIN_HI)` minutes, and
+which arm is slowest reverses between the two periods — on 2025 `legacy` took
+`r p1(P("legacy", "2025", "minutes"))` minutes against `standard`'s
+`r p1(P("standard", "2025", "minutes"))`, and on 2024 the order is the other way
+round. These are wall-clock times on a shared cluster and settle nothing finer
+than that.
+
+## Does the harness result survive the pipeline? {#sec-crossval}
+
+This is the question the release was made to answer, and it is why the arms were
+re-run through the production steps rather than scored again in the harness that
+recommended them.
+
+V1 measured segmentation by applying each candidate rule to an already-built,
+already-cleaned track table. That design bought eight rules for the price of one
+pipeline run, and it left one thing open: a re-implementation of a rule scored
+over a re-used table is not the rule the pipeline runs over the table the
+pipeline builds. Cleaning runs *after* segmentation in production and *before*
+it in the harness. If the recommendation depended on that ordering, or on any
+other difference between the two, the recommendation was an artefact.
+
+```{r crossval-table}
+#| echo: false
+cv <- do.call(rbind, lapply(PERIODS, function(p) {
+  data.frame(
+    Period = p,
+    Interval = c("airborne", "gate-to-gate"),
+    Pipeline = c(pp(GAIN(p)), pp(GATE_GAIN(p))),
+    Harness = c(pp(V1_GAIN(p)), pp(V1_GATE_GAIN(p))),
+    Diff = c(pp(GAIN(p) - V1_GAIN(p)), pp(GATE_GAIN(p) - V1_GATE_GAIN(p))),
+    check.names = FALSE)
+}))
+kable(cv, row.names = FALSE, align = "llrrr",
+      col.names = c("Period", "Interval", "pipeline (V2)", "harness (V1)",
+                    "difference"),
+      caption = "`standard` minus `legacy`, in points of clean matching. Two independent measurements of one quantity over different samples: V1 scored three days in a harness, V2 scores one day through the production steps.")
+```
+
+The two measurements agree to within `r sprintf("%.2f", CROSS)` points on all
+four comparisons. The pipeline run confirms the harness result: the gain V1
+recommended on is the gain production delivers, and the harness's shortcuts did
+not manufacture it.
+
+The agreement also disciplines the claim. Four numbers this close, from
+different samples and different code paths, say that the effect is a property of
+the segmentation rule rather than of the day, the ordering of cleaning, or the
+implementation.
+
+## Which change is doing the work {#sec-ablation}
+
+`standard` is two changes to `legacy`, and either could have been carrying the
+result. Dropping callsign from the group key stops blank callsigns from forming
+tracks. Adding the callsign-change break puts back the separation the group key
+used to supply. The middle arm, `airframe_only`, is the first change without the
+second, and it exists so the gain can be split.
+
+```{r ablation-table}
+#| echo: false
+ab <- do.call(rbind, lapply(PERIODS, function(p) data.frame(
+  Period = p,
+  Step = c("legacy → airframe_only", "airframe_only → standard", "total"),
+  What = c("drop callsign from the group key", "add the callsign-change break", ""),
+  Points = c(pp(STEP1(p)), pp(STEP2(p)), pp(GAIN(p))),
+  Merged = c(pp(P("airframe_only", p, "merged_pct") - P("legacy", p, "merged_pct")),
+             pp(P("standard", p, "merged_pct") - P("airframe_only", p, "merged_pct")),
+             pp(P("standard", p, "merged_pct") - P("legacy", p, "merged_pct"))),
+  check.names = FALSE)))
+kable(ab, row.names = FALSE, align = "lllrr",
+      col.names = c("Period", "Step", "What it changes",
+                    "clean matching (points)", "merged (points)"),
+      caption = "The gain split at its midpoint, airborne interval. The two steps sum to the total by construction.")
+```
+
+**Dropping callsign from the group key is nearly all of it**:
+`r mag(STEP1("2025"))` of the `r mag(GAIN("2025"))` points on 2025, and
+`r mag(STEP1("2024"))` of `r mag(GAIN("2024"))` on 2024. The mechanism is blunt.
+With callsign in the key, a sample decoded without one forms its own group and
+therefore its own track; a diagnostic taken while the rules were implemented and
+recorded in `config.py` — not read from a CSV here — puts 42.4% of legacy's
+tracks in that state. Fragmentation is what that produces, and it is an artefact
+of the key rather than anything about the flight.
+
+**The callsign-change break earns the rest by removing merging.**
+`airframe_only` alone merges `r pct(P("airframe_only", "2025", "merged_pct"))`
+of flights on 2025 against `legacy`'s
+`r pct(P("legacy", "2025", "merged_pct"))`: grouping on the airframe alone joins
+two consecutive legs of the same aircraft into one track, and the second leg
+stops existing downstream. Restoring the break cuts that to
+`r pct(P("standard", "2025", "merged_pct"))` and adds `r pp(STEP2("2025"))`
+points of clean matching on 2025 and `r pp(STEP2("2024"))` on 2024. The trade is
+visible in the fragmentation column too — `standard` fragments
+`r mag(P("standard", "2025", "fragmented_pct") - P("airframe_only", "2025", "fragmented_pct"))`
+points more than `airframe_only`, the cost of splitting on a signal that is
+sometimes noise — and it is worth paying because merging is the failure that
+loses a flight outright.
+
+Both halves earn their place on both periods, which is why the shipped rule is
+the combination and not either piece.
+
+## What it costs downstream {#sec-payoff}
+
+Step 03 — the expensive step — ran for `legacy` and `standard` only.
+`airframe_only` is the segmentation ablation's midpoint and has no downstream
+question of its own: what a consumer needs is what the release changes, which is
+the before and the after. **Its ADEP/ADES cells are blank because no run
+produced them, not because a run failed.**
+
+```{r payoff-table}
+#| echo: false
+pay <- do.call(rbind, lapply(PERIODS, function(p) {
+  do.call(rbind, lapply(ARMS, function(m) data.frame(
+    Period = p, Arm = ARMLAB[[m]],
+    AdepCov = dash(100 * P(m, p, "adep_coverage")),
+    AdepAcc = dash(100 * P(m, p, "adep_accuracy")),
+    AdesCov = dash(100 * P(m, p, "ades_coverage")),
+    AdesAcc = dash(100 * P(m, p, "ades_accuracy")),
+    Score = dash(SCORE(m, p), num),
+    check.names = FALSE)))
+}))
+kable(pay, row.names = FALSE, align = "llrrrrr",
+      col.names = c("Period", "Arm", "ADEP coverage", "ADEP accuracy",
+                    "ADES coverage", "ADES accuracy", "score"),
+      caption = "Coverage is the share of ground-truth flights given an aerodrome at all; accuracy is the share of those that are right. `score` is correct minus twice wrong, summed over both ends — the flight list's own trade-off between naming an aerodrome and naming it wrong.")
+```
+
+**Accuracy is unchanged and coverage falls slightly.** ADEP accuracy moves
+`r pp(100 * (P("standard", "2025", "adep_accuracy") - P("legacy", "2025", "adep_accuracy")))`
+points on 2025 and
+`r pp(100 * (P("standard", "2024", "adep_accuracy") - P("legacy", "2024", "adep_accuracy")))`
+on 2024. The loss is on the arrival side: ADES coverage falls
+`r mag(100 * (P("standard", "2025", "ades_coverage") - P("legacy", "2025", "ades_coverage")))`
+points on 2025 and
+`r mag(100 * (P("standard", "2024", "ades_coverage") - P("legacy", "2024", "ades_coverage")))`
+on 2024. Over both ends the score falls
+`r num(SCORE("legacy", "2025") - SCORE("standard", "2025"))` points on 2025 and
+`r num(SCORE("legacy", "2024") - SCORE("standard", "2024"))` on 2024, which is
+`r pct(100 * (1 - SCORE("standard", "2025") / SCORE("legacy", "2025")))` and
+`r pct(100 * (1 - SCORE("standard", "2024") / SCORE("legacy", "2024")))` of the
+total.
+
+**The mechanism is merging, the only failure mode the new rule makes worse.** A
+merged track holds two legs and gets one arrival aerodrome named for it, so the
+second leg's arrival is not named at all — a coverage loss rather than an
+accuracy loss, which is what the table shows. `standard` merges
+`r pct(P("standard", "2025", "merged_pct"))` of flights on 2025 against
+`legacy`'s `r pct(P("legacy", "2025", "merged_pct"))`, and that difference is
+where the arrival coverage went.
+
+**Why the downstream effect is so much smaller than the segmentation gain.**
+Read the denominator. Of `r num(P("legacy", "2025", "n_ground_truth"))`
+ground-truth flights on 2025, `legacy` already names an ADEP for
+`r num(NAMED("legacy", "2025", "adep"))` of them and `standard` for
+`r num(NAMED("standard", "2025", "adep"))`. The flight list resolves an
+aerodrome from the samples near the ground at either end of a track, and a
+fragmented flight usually keeps those samples in *some* fragment — the piece
+holding the departure roll still sees the departure aerodrome. Segmentation
+moves the flights where that is not true, a small share of a large denominator.
+A `r pp(GAIN("2025"))`-point gain in clean matching beside a
+`r pct(100 * (1 - SCORE("standard", "2025") / SCORE("legacy", "2025")))` change
+in aerodrome score is not a null result; it is two metrics measuring different
+things, one of which was already close to its ceiling.
+
+The gain is real for anything that consumes a track rather than a flight-list
+row. Events, taxi phases and every cumulative measurement are computed per track
+and are wrong in exactly the way segmentation was wrong.
+
+## What breaks {#sec-continuity}
+
+::: {.callout-important}
+## A `track_id` is not a flight
+
+It is the identifier of a partition, and this release repartitions. Every
+`track_id` published before it and every `track_id` published after it are drawn
+from disjoint sets. A join across the boundary returns an empty result rather
+than an error, which reads as missing data rather than as a broken key — and
+nothing in the data will tell you, because `osn_tracks` carries no column saying
+which rule built a row.
+:::
+
+**No identifier survives, and no run measured that.** It is true by
+construction, from two facts in `segmentation/methods.py`. `legacy` hashes
+`icao24 || callsign` and suffixes `_{year}_{month}`; `standard` hashes `icao24`
+alone and suffixes a sample offset. Different hash inputs and different suffix
+shapes mean the count of identifiers common to the two releases is zero, and no
+measurement could return anything else.
+
+**The partition change was measured.**
+
+```{r continuity-table}
+#| echo: false
+co <- do.call(rbind, lapply(PERIODS, function(p) data.frame(
+  Period = p,
+  Legacy = num(P("legacy", p, "n_tracks")),
+  Standard = num(P("standard", p, "n_tracks")),
+  Change = pct(-DROP(p)),
+  V1 = pct(-V1_DROP(p)),
+  Exported = pct(-EXPDROP(p)),
+  check.names = FALSE)))
+kable(co, row.names = FALSE, align = "lrrrrr",
+      col.names = c("Period", "legacy tracks", "standard tracks",
+                    "change", "same change, V1 harness",
+                    "change in tracks written"),
+      caption = "Tracks carrying at least one ground-truth sample. The last column is the same comparison over every track step 02 wrote, whose denominator includes tracks no ground-truth flight touches.")
+```
+
+The number of tracks falls `r pct(DROP("2025"))` on 2025 and
+`r pct(DROP("2024"))` on 2024, and V1's harness measured the same reduction
+independently at `r pct(V1_DROP("2025"))` and `r pct(V1_DROP("2024"))`. Both
+arms see the same airframes, so tracks-per-airframe moves by the same ratio: a
+consumer counting tracks per aircraft per day sees that proportional fall, and
+none of the tracks it loses are lost flights.
+
+**What a consumer has to do.** Re-key anything that joins on `track_id` across
+the boundary, and treat the release date as the discriminator between the two
+regimes, because the data carries no other. Re-processing a past month with
+`segmentation.method = "legacy"` reproduces that month's identifiers; running
+the default over it does not.
+
+::: {.callout-warning}
+## The cleaned table cannot reproduce its own identifiers
+
+`track_id` is assigned in step 02 from **raw** altitudes. Step 02a then masks
+the values that fail its filters to NULL, including
+`r pct(P("standard", "2025", "null_baro_pct"))` of `baro_altitude` on 2025 and
+`r pct(P("standard", "2024", "null_baro_pct"))` on 2024.
+
+Legacy's low-altitude split tests `altitude < 5,000 ft`, and a NULL compared
+against 5,000 is neither true nor false, so re-deriving the partition from
+`osn_tracks_clean` misses splits the original run made. Anyone doing so gets a
+different answer and concludes the segmentation is non-deterministic. It is not.
+The input it was computed from is no longer in the table being read.
+
+Reproducing a published `track_id` needs `segmentation.method = "legacy"` **and**
+the raw altitudes, which means re-ingesting rather than reading the cleaned
+table.
+:::
+
+## What ships {#sec-defaults}
+
+```{r defaults-table}
+#| echo: false
+df <- data.frame(
+  Setting = c("`segmentation.method`", "`segmentation.gap_minutes`",
+              "`segmentation.low_alt_gap_minutes`", "`segmentation.low_alt_ft`",
+              "`segmentation.callsign_lookback_minutes`"),
+  Value = c(paste0("`\"", SHIP$method, "\"`"), num(SHIP$gap), num(SHIP$low_gap),
+            num(SHIP$low_ft), paste0("`", SHIP$lookback, "`")),
+  Means = c(
+    "Group on `icao24`; break on a gap, or on a genuine non-blank callsign change. `\"legacy\"` stays selectable and reproduces published identifiers.",
+    "Split when the gap to the previous sample exceeds this, at any altitude.",
+    "Split on this shorter gap when the aircraft is low.",
+    "The altitude below which the shorter gap applies.",
+    "Bound on how far back the callsign comparison looks. `None` follows `gap_minutes`, so the lookback cannot reach across a gap break into the previous flight."
+  ),
+  check.names = FALSE)
+kable(df, row.names = FALSE, align = "lll",
+      col.names = c("Setting", "Ships as", "What it means"))
+```
+
+The three gap thresholds are unchanged from `legacy`. V1 swept them over
+`r num(SWEEP_CELLS)` combinations and found the shipped cell within a point of the best cell
+anywhere, with the ordering of the one axis worth moving reversing between the
+two periods — so nothing was retuned, and this release changes the group key and
+the break condition only.
+
+**Re-running a past month with the defaults will not reproduce it.** It will
+produce the same aerodromes for substantially the same flights, and different
+identifiers for all of them.
+
+## Limitations
+
+**One day per period.** Every rate on this page is 2025-06-05 or 2024-06-05, run
+whole through the production steps. Two independent days agreeing, and agreeing
+with V1's three-day harness sample, is the whole of the evidence that the result
+is not a property of a day.
+
+**Five of V1's eight rules were not re-run.** The pipeline arms are `legacy`,
+`airframe_only` and `standard`. The ground-anchored, airport-anchored,
+vertical-profile, month-suffix and traffic-style rules exist only as harness
+measurements, and nothing here says how they would behave in production.
+
+**Step 04 was not measured.** Events and measurements inherit the new partition,
+and no arm here scored them. The airport-event change described in
+[what changed](#sec-changed) is a code change with a stated mechanism, not a
+measured delta.
+
+**Ground truth is Network Manager flights only.** A track that merges a Network
+Manager flight with a military or general-aviation flight the ground truth does
+not carry is scored as clean, so the merge rates here are lower bounds.
+
+**V1's figures are a second measurement, not a baseline.** Where the
+cross-validation sets V1 beside V2 it is comparing two answers to one question
+over different samples. Neither column is the other's error bar.
+
+**Published data carries no marker of which segmentation produced it.**
+Distinguishing the two regimes depends on knowing the release date. This is
+stated three times on this page because it is the failure a consumer cannot
+detect from the data.
+
+**The release's safety guards are keyed on configuration, because the data
+carries no provenance.** Both `flights.py` and `events.py` skip callsign
+resolution when the run stamps a legacy version string, so a correctly
+configured legacy re-run reproduces its released month byte for byte. Neither
+guard can ask the question it actually needs answered — *were the tracks I am
+reading built with the legacy rule?* — because no column records it. A
+legacy-stamped run over an `osn_tracks` rebuilt with `standard` therefore fans
+out while stamping the frozen version, and nothing in the output reveals it.
+`flights.py`'s `tracks_table == "osn_tracks"` clause distinguishes raw tracks
+from *clean* ones, not legacy-built from standard-built. This is the cost of
+shipping without a segmentation marker, and it already affects one shipped
+configuration: `benchmarks/event_bench.py`'s rungs `L00`–`L12` inherit
+`events_v0.0.2` and so run unresolved.
+
+**Production and the benchmark resolve the callsign over different rows at a
+month boundary.** Production resolves inside the reader, *after* the month
+filter, because moving it earlier defeats partition pruning. The benchmark
+resolves over its whole redirected table. The two therefore agree for every
+track that lies inside one month and can disagree for one that straddles a
+boundary. No track in either sample straddles one — V1's payoff runs three June
+days, V2 runs 2025-06-05 and 2024-06-05 — so nothing on this page is affected. A
+whole-month comparison would meet it, which is why it is written down rather
+than left for someone to rediscover.
+
+## Provenance note {#sec-provenance}
+
+`pipeline_2024.csv` and `pipeline_2025.csv` were produced at `opdi` commit
+`2f95ec4`. Two commits landed afterward that touch a declared dependency of
+both files. `e88516a` edits `benchmarks/track_pipeline_v2.py` to pass
+`args.period` instead of the `PERIODS` dict into `extents_name`, fixing the
+filename of the extents export — an output that same commit stops declaring.
+`090db8a` adds three paragraphs to a docstring in `benchmarks/track_score.py`
+and changes no executable line. Neither touches the code that computes
+`n_tracks`, `clean_match_pct`, or any other value these two CSVs carry.
+
+`benchmarks/provenance.py` fingerprints a declared dependency by hashing its
+full file bytes, so it cannot tell a filename argument or a docstring from a
+change to the arithmetic. Both commits mark `pipeline_2024.csv` and
+`pipeline_2025.csv` stale, and `--check` reports them that way. Reproducing
+them to clear the flag costs about 3.8 hours per period, 7.6 hours total, and
+would write files identical to the ones committed here, because nothing that
+ran actually changed. This page renders with `OPDI_RENDER=skip` and reports
+these two outputs as staged rather than paying that cost for an identical
+result.
