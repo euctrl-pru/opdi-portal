@@ -891,3 +891,24 @@ boundary. No track in either sample straddles one — V1's payoff runs three Jun
 days, V2 runs 2025-06-05 and 2024-06-05 — so nothing on this page is affected. A
 whole-month comparison would meet it, which is why it is written down rather
 than left for someone to rediscover.
+
+## Provenance note {#sec-provenance}
+
+`pipeline_2024.csv` and `pipeline_2025.csv` were produced at `opdi` commit
+`2f95ec4`. Two commits landed afterward that touch a declared dependency of
+both files. `e88516a` edits `benchmarks/track_pipeline_v2.py` to pass
+`args.period` instead of the `PERIODS` dict into `extents_name`, fixing the
+filename of the extents export — an output that same commit stops declaring.
+`090db8a` adds three paragraphs to a docstring in `benchmarks/track_score.py`
+and changes no executable line. Neither touches the code that computes
+`n_tracks`, `clean_match_pct`, or any other value these two CSVs carry.
+
+`benchmarks/provenance.py` fingerprints a declared dependency by hashing its
+full file bytes, so it cannot tell a filename argument or a docstring from a
+change to the arithmetic. Both commits mark `pipeline_2024.csv` and
+`pipeline_2025.csv` stale, and `--check` reports them that way. Reproducing
+them to clear the flag costs about 3.8 hours per period, 7.6 hours total, and
+would write files identical to the ones committed here, because nothing that
+ran actually changed. This page renders with `OPDI_RENDER=skip` and reports
+these two outputs as staged rather than paying that cost for an identical
+result.

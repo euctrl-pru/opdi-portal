@@ -1,0 +1,31 @@
+---
+title: "OPDI Papers"
+---
+
+Methodology studies behind the [Open Performance Data Initiative](https://www.eurocontrol.int/opdi), covering how OPDI turns raw ADS-B state vectors into flight tracks.
+
+## Papers
+
+**[Turning ADS-B state vectors into flight tracks — version 1](track-construction-v1/index.qmd)**
+&nbsp;·&nbsp; [PDF](track-construction-v1/index.pdf)
+
+The eight-rule benchmark that selected the shipped segmentation. Scores eight
+candidate rules for grouping state vectors into tracks against three days of
+Network Manager ground truth, finds that the rule behind every `track_id`
+OPDI has published to date recovers only 50.15% of flights one-to-one on
+2025, and that grouping on the airframe alone instead of `(icao24,
+callsign)` raises that to 90.80%. That rule now ships as
+`segmentation.method = "standard"`.
+
+**[A new rule builds OPDI's flight tracks — version 2](track-construction-v2/index.qmd)**
+&nbsp;·&nbsp; [PDF](track-construction-v2/index.pdf)
+
+The release note: the real pipeline reproduces V1's harness result. Runs
+`legacy`, `airframe_only` and `standard` through the full production chain —
+steps 01 through 03, not a harness over an already-cleaned table — on two
+independent days a year apart, and finds the pipeline's gain for `standard`
+over `legacy` agrees with V1's harness figure to within 1.08 points on all
+four comparisons (airborne and gate-to-gate, 2025 and 2024). States what
+changes for a consumer: `track_id` stops carrying a `_{year}_{month}`
+suffix, no `track_id` published before the release date joins against data
+built after it, and nothing in `osn_tracks` marks which rule produced a row.
