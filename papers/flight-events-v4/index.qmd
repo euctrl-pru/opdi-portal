@@ -392,6 +392,49 @@ if (has(lad, c("rung", "det_type", "coverage_pct"))) {
 }
 ```
 
+### What publishing both families is worth
+
+The table above compares each detector against the milestone it was designed to
+replace. This one asks the question a consumer actually faces: **given that
+`events_v0.2.0` publishes both methods, how often is the instant available at
+all?** Each row pools the two detectors for that milestone, which is exactly
+what the published table contains.
+
+```{r tbl-union}
+#| echo: false
+#| results: asis
+if (has(pera, c("gt_airport", "milestone", "n_detected", "n_truth"))) {
+  cat("| APDF milestone | Detected | Reachable | Coverage | V3 single-detector |
+")
+  cat("|---|---:|---:|---:|---:|
+")
+  v3 <- c(ATOT = "63.30% (`ATOT`)", ALDT = "86.06% (`ALDT`)")
+  for (m in c("ATOT", "ALDT")) {
+    r <- pera[pera$milestone == m, ]
+    if (!nrow(r)) next
+    d <- sum(as.numeric(r$n_detected), na.rm = TRUE)
+    t <- sum(as.numeric(r$n_truth), na.rm = TRUE)
+    if (!is.finite(t) || t <= 0) next
+    cat(sprintf("| %s | %s | %s | **%.1f%%** | %s |\n",
+                m, format(d, big.mark = ","), format(t, big.mark = ","),
+                100 * d / t, v3[[m]]))
+  }
+  cat("\n")
+} else {
+  pending("The union coverage table")
+}
+```
+
+**This is the study's central finding, and it is the reason both families
+ship.** The two methods fail on different flights. Where surface and
+low-altitude reception is too thin for the 15 ft crossing to be seen, the
+1 500 ft climb/descent window still resolves the movement; where the window's
+gates reject a trajectory, the runway traversal often still carries it. Neither
+alone reaches what the pair reaches, so retiring either would have cost
+coverage that nothing else recovers --- which is why the plan's intention to
+retire `ATOT`/`ALDT` was abandoned on the evidence rather than carried through.
+See [`ATOT`/`ALDT` are retained, not retired].
+
 Three properties of this study bound every number in it, and they are stated
 here rather than in a footnote.
 
@@ -600,6 +643,102 @@ coverage figure by roughly ten and looks like a catastrophic detector rather
 than a mismatched denominator. This is stated because it is the kind of error
 that produces a plausible-looking table.
 
+# Timing a runway movement: two methods, four milestones
+
+Four of this study's milestones name the two instants every runway movement
+has -- the lift-off and the touchdown. `ATOT` and `ALDT` name them the way
+OPDI has since v0.1.0; `airborne` (T08) and `touchdown` (T17) name them the way
+this family introduces. They are not variants of one algorithm. They are two
+different methods that answer the same two questions from the same trajectory,
+and every difference in the numbers that follow traces back to the method.
+This chapter states both once, so the per-milestone chapters can be about the
+result rather than the mechanism.
+
+## Method A --- the window extreme (`ATOT`, `ALDT`)
+
+`detect_runway_movements` reads the part of a trajectory that is unambiguously
+a departure or an arrival and takes its endpoint. For each flight it keeps the
+samples that are
+
+* within `runway_max_dist_nm` = **5 NM** of the aerodrome the flight list names,
+* below `runway_max_height_ft` = **1 500 ft above the field**,
+* faster than `runway_min_groundspeed_kt` = **30 kt**, and
+* climbing faster than `runway_min_vert_rate_ftmin` = **257 ft/min** (a
+  departure) or descending faster than that (an arrival).
+
+What survives is the **initial climb** or the **final descent**. The runway is
+named by the median ground track of those samples against each runway bearing
+(within `runway_max_bearing_deg` = 10 deg, the aircraft's cross-track distance
+to the centreline breaking ties between parallels). The time is then simply the
+**earliest** surviving sample for a departure -- a lift-off proxy -- and the
+**latest** for an arrival -- a touchdown proxy.
+
+Its character follows from that last step. The time is the *extreme sample of a
+detection window*, so it is displaced from the true instant by construction:
+the earliest climb sample OPDI received is already climbing, and V3 measured
+that displacement at **+19 s median** on `ATOT`. But because the window sits in
+the climb and descent, hundreds to 1 500 ft up, it reads on signal that
+ordinary receivers see everywhere -- so it needs neither surface reception nor
+an airport layout, and its coverage is high.
+
+## Method B --- the interpolated crossing (`airborne`, `touchdown`)
+
+`runway_ops` first establishes *what the aircraft was doing on this runway* --
+a **traversal** (see [Line-up]) -- and then reads a single geometric instant
+from it. A traversal is the run of samples whose H3 resolution-12 cell falls in
+the runway grid of an aerodrome the flight names: the runway rectangle itself
+(occupancy), and for an arrival the approach corridor short of the threshold.
+It is classified departure, arrival or crossing from its alignment, its speed
+and its height at entry and exit.
+
+The milestone is then **not a sample at all**. `airborne` is the instant the
+height above the field crosses `runway_airborne_height_ft` = **15 ft** going
+*up*; `touchdown` is the same crossing going *down*. A Schmitt trigger with a
+5 ft dead band decides *whether* the crossing happened -- so a rotation that
+settles briefly does not emit twice -- and the instant is obtained by **linear
+interpolation between the two samples that straddle 15 ft**, which is a
+different pair of rows from the pair that confirmed it. That is the same
+threshold-crossing engine [Flight-level crossings] describes.
+
+Its character is the opposite of Method A's. An interpolated crossing is not
+displaced by construction, so it carries essentially no method bias -- measured
+at **~±2 s** where the reference is precise enough to see it (below). But it
+can only be read where the aircraft was received *near the runway*, at 15 ft
+rather than at 1 500 ft, and only for a flight whose aerodrome the flight list
+resolved -- so its coverage depends on surface reception and on the runway grid
+in a way Method A's does not.
+
+## The differences, in one place
+
+| | `ATOT` / `ALDT` (Method A) | `airborne` / `touchdown` (Method B) |
+|---|---|---|
+| Detector | `detect_runway_movements` | `runway_ops` traversals |
+| Associates by | distance + height window, runway by median track | H3 runway-grid occupancy + along/cross-track geometry |
+| Reads the aircraft at | the climb / descent, up to 1 500 ft AGL | the 15 ft AGL crossing, on and just off the runway |
+| The time is | the **extreme sample** of the window | the **interpolated** 15 ft crossing |
+| Method bias | displaced by construction (+19 s on `ATOT`, V3) | ~±2 s (interpolation, no window extreme) |
+| Depends on | flight-list aerodrome only | flight-list aerodrome **and** surface/low reception **and** the runway grid |
+| Height datum | height above field elevation | height above field elevation, gated at 15 ft |
+
+**The trade the two methods make is coverage against accuracy, and it is not
+symmetric.** Method A buys coverage by reading the well-received climb, and
+pays for it with a systematic bias no larger sample averages away. Method B
+buys accuracy with an interpolated crossing, and pays for it by needing the
+aircraft near the ground -- which is where ADS-B reception is thinnest. The
+whole question this study asks of these four milestones is whether Method B's
+accuracy can be had without surrendering Method A's coverage; the
+[Airborne] and [Touchdown] chapters report the answer against APDF.
+
+**One caveat governs how that answer can even be read.** The bias above is
+measured against APDF's `ATOT`/`ALDT`, and at seventeen of the twenty
+aerodromes APDF reports those times only to the **whole minute** (see
+[Ground truth, and its ceiling]). A whole-minute truth cannot resolve a
+few-second method difference -- it injects tens of seconds of apparent bias
+that is the reference's rounding, not the detector's error. Method B's ~±2 s is
+therefore visible only at the three aerodromes whose APDF times are to the
+second (`LSZH`, `LEIB`, `EDDS`); the per-aerodrome tables carry the resolution
+flag for exactly this reason, and a bias read without it is a bias read wrong.
+
 # Line-up
 
 **What it is.** A-CDM **T06**: the moment the aircraft enters the runway to
@@ -794,7 +933,7 @@ not at the real start, and nothing in the output distinguishes the two. The
 # Airborne
 
 **What it is.** A-CDM **T08**: wheels off the ground. Published as `airborne`.
-This is the milestone `ATOT` was trying to be, and its replacement.
+This is the milestone `ATOT` was trying to be. It is published *alongside* `ATOT`, not in place of it — see [`ATOT`/`ALDT` are retained, not retired].
 
 **How it is detected.** The question is *when did the height above the field
 pass fifteen feet*, and the answer must not be "at the first sample that was
@@ -950,7 +1089,7 @@ reception before the threshold is more than 60 s old falls outside
 # Touchdown
 
 **What it is.** A-CDM **T17**: the wheels meet the runway. Published as
-`touchdown`, and it is the replacement for `ALDT`.
+`touchdown`, published *alongside* `ALDT` rather than in place of it (see [`ATOT`/`ALDT` are retained, not retired]).
 
 **How it is detected.** The mirror of [Airborne]: the same height-above-field
 signal through the same crossing engine, in the **downward** direction. The
@@ -1901,9 +2040,7 @@ successor.
 
 | Retired type | Replaced by | Why |
 |---|---|---|
-| `take-off` | [Airborne] (T08) | phase transition → interpolated 15 ft AGL crossing on a classified departure |
-| `ATOT` | [Airborne] (T08) | window extreme → interpolated instant |
-| `ALDT` | [Touchdown] (T17) | window extreme → interpolated instant |
+| `take-off` | [Airborne] (T08) | fuzzy phase transition → interpolated 15 ft AGL crossing on a classified departure; the benchmark confirms `airborne` beats it on both coverage and bias |
 | `AOBT` | [Off-block and on-block] (T04) | renamed to `off-block`; same detector |
 | `AIBT` | [Off-block and on-block] (T21) | renamed to `on-block`; same detector |
 | `entry-runway` | [Line-up], [Runway crossings] | one type conflated departures, arrivals and taxi crossings |
@@ -1913,6 +2050,21 @@ Already retired at `events_v0.1.0` and still not emitted:
 `first-xing-fl{50,70,100,245}` and `last-xing-fl{50,70,100,245}`, replaced by
 the crossing sequence number in [Flight-level crossings] — the first crossing
 is `crossing_seq == 1`, the last is the maximum.
+
+### `ATOT`/`ALDT` are retained, not retired
+
+The A-CDM `airborne`/`touchdown` were designed to *replace* `ATOT`/`ALDT`, and
+on accuracy they do — the interpolated 15 ft crossing carries ~±2 s where APDF
+resolves times to the second, against `ATOT`'s structural +19 s. But the
+benchmark showed the two methods read the aircraft at different heights (see
+[Timing a runway movement: two methods, four milestones]): `ATOT`/`ALDT` in the
+climb and descent up to 1 500 ft, `airborne`/`touchdown` at the 15 ft crossing
+on and beside the runway. The second needs surface and low-altitude reception
+the first does not. Rather than surrender the older detectors' coverage for the
+newer ones' accuracy, `events_v0.2.0` **publishes both**, distinguished by type
+string, so a consumer chooses the property it needs. A row-count alarm keyed on
+`ATOT`/`ALDT` disappearing would therefore be a false alarm — they are still
+emitted.
 
 ## Other changes worth a row-count alarm
 
