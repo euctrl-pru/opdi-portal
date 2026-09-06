@@ -1,0 +1,63 @@
+{
+  "bridge_2026.json": {
+    "argv": [
+      "--period",
+      "2026",
+      "--airports",
+      "study"
+    ],
+    "bytes": 245,
+    "code_fingerprint": "cc55673f7c2491e0",
+    "code_paths": [
+      "benchmarks/events_gt.py",
+      "benchmarks/events_gt.py",
+      "benchmarks/osn_sample.py"
+    ],
+    "git_dirty": false,
+    "git_sha": "b55ae43",
+    "input_tables": {
+      "s3a://eurocontrol/opdi/research/reference": {
+        "bytes": 678413010,
+        "newest": "2026-08-27T20:22:25.974000+00:00",
+        "objects": 8
+      }
+    },
+    "inputs": {},
+    "notes": "the bridge match rate, scoped to the twenty study aerodromes -- `events_gt.bridge_report` applies the same airport filter the milestones get, and carries the network-wide figure alongside it under `network` as context. Runs first and alone because it is the ceiling on every coverage figure downstream: a milestone that cannot be reached is indistinguishable from one that was missed unless this number is known -- and a ceiling computed over a different population than the coverage caps nothing.",
+    "produced_utc": "2026-09-03T23:45:52+00:00",
+    "script": "benchmarks/events_gt.py",
+    "sha256_16": "909e5d8c50d168ab"
+  },
+  "table:s3a://eurocontrol/opdi/research/flight_list_2026": {
+    "argv": [
+      "-u",
+      "benchmarks/flight_list_2026.py",
+      "--executors",
+      "12"
+    ],
+    "code_fingerprint": "d61b5c6ee1aefdd7",
+    "code_paths": [
+      "benchmarks/flight_list_2026.py",
+      "src/opdi/config.py",
+      "src/opdi/pipeline/flights.py"
+    ],
+    "git_dirty": false,
+    "git_sha": "b55ae43",
+    "input_tables": {
+      "s3a://eurocontrol/opdi/research/flight_list_2026": {
+        "bytes": 8765228,
+        "newest": "2026-09-02T23:03:25.806000+00:00",
+        "objects": 4
+      },
+      "s3a://eurocontrol/opdi/research/tracks_clean_2026": {
+        "bytes": 10589513497,
+        "newest": "2026-08-28T00:20:45.989000+00:00",
+        "objects": 201
+      }
+    },
+    "inputs": {},
+    "notes": "the 2026 flight list, through step 03's own process_dai. Every aerodrome-anchored family -- airport events, rings, the runway milestones, the PRU tops -- resolves ADEP/ADES through it, and the published flight list holds 2025 only, so without this the ladder reports those families as empty rather than as absent. | PRE-EXISTING: identity recorded without a rebuild, so the command below is how it is built, not necessarily how this copy was built.",
+    "produced_utc": "2026-09-03T23:44:52+00:00",
+    "script": "/home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/flight-events-v4/.venv310/bin/python"
+  }
+}
