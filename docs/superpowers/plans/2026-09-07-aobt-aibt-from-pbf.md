@@ -1324,6 +1324,32 @@ say so rather than reporting the numbers as a success:
   no HTTP request to cache, and the file on disk *is* the cache. The bbox
   proposal from that section survives only as Task 3's fallback; OSM's own
   aerodrome polygon replaced it as the primary assignment method.
+* **Nested aerodromes reassign geometry, and that is correct — but it moves
+  coverage.** Task 5's one deviation from cell-for-cell parity was EBBR apron:
+  4,366 Overpass cells against 3,921, with 445 lost and **none gained**.
+  Diagnosed to the cell. The 22 apron features are identical in both sources
+  and rasterise identically; the difference is assignment. **EBMB (Brussels
+  Melsbroek, the co-located military air base) has its own
+  `aeroway=aerodrome` polygon nested inside EBBR's** — 0.00004719 against
+  0.00111581 square degrees, about 24× smaller — and exactly one apron feature
+  falls inside both. The smallest-polygon tie-break hands it to EBMB, and it
+  rasterises to precisely the 445 cells.
+
+  Overpass's geocoded *place* polygon over-reached and published Melsbroek's
+  apron as Brussels Airport's; the polygon path attributes it to the aerodrome
+  that actually owns it. The tie-break worked as designed.
+
+  **The consequence is operational, not cosmetic.** `calculate_airport_events`
+  joins on `array_contains(sv.apt, hexaero_apt_icao)`, so an aircraft on that
+  apron now matches `EBMB` cells: a flight whose flight-list aerodrome is EBBR
+  gets **no** off-block/on-block event there, and an EBMB flight does. That is
+  the right modelling of two distinct aerodromes, but it changes EBBR's apron
+  coverage against the published baseline and the AOBT/AIBT chapter must say
+  so rather than let a reader attribute the difference to reception.
+
+  How many of the 1,353 aerodromes have a nested neighbour is **not measured**.
+  EBBR was the only one of the twenty studied.
+
 * **The extract is a snapshot.** Cells will differ from an Overpass build made
   on another day, and nothing in the event schema records which layout vintage
   produced an event. `industrialization-plan.md` §3.5 raises this; it is not
