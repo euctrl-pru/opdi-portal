@@ -62,7 +62,8 @@ this plan implements its §3 and §5.
 | Decision | Value |
 |---|---|
 | Extract | `https://download.geofabrik.de/europe-latest.osm.pbf` (~30 GB; 385 GB free on `/`) |
-| Extract location | `/home/jupyter/work/osm/europe-latest.osm.pbf` |
+| Extract location | `/home/jupyter/work/osm/europe-latest.osm.pbf` (source of truth, 34,940,824,103 bytes) |
+| **Working extract** | `/home/jupyter/work/osm/aeroway-europe.osm.pbf` — 16 MB, built once by Task 4B. **Everything from Task 5 on reads this**, not the 34.9 GB original: a full aeroway scan takes 1.1 s instead of 348 s, and it fits `with_areas()` inside the container's 16 GB cap. |
 | Test extract | `https://download.geofabrik.de/europe/luxembourg-latest.osm.pbf` (~40 MB) |
 | Aeroway tags | `AEROWAY_TAGS` at `h3_airport_layouts.py:48` — taxiway, runway, apron, hangar, threshold, parking_position, deicing_pad |
 | H3 resolution | 12 (`config.h3.airport_layout_resolution`) |
@@ -905,7 +906,7 @@ comparison is a set operation rather than a tolerance.
 
 Run:
     .venv310/bin/python benchmarks/compare_layout_sources.py \
-        --pbf /home/jupyter/work/osm/europe-latest.osm.pbf \
+        --pbf /home/jupyter/work/osm/aeroway-europe.osm.pbf \
         --parts /home/jupyter/work/osm/overpass_baseline \
         --airports EBBR LSZH EICK EGGD
 """
@@ -971,7 +972,7 @@ millisecond, so restricting the comparison buys nothing and costs coverage.
 ```bash
 cd /home/jupyter/work/opdi-workspace/opdi
 .venv310/bin/python benchmarks/compare_layout_sources.py \
-  --pbf /home/jupyter/work/osm/europe-latest.osm.pbf \
+  --pbf /home/jupyter/work/osm/aeroway-europe.osm.pbf \
   --parts /home/jupyter/work/osm/overpass_baseline \
   --airports EBBR EDDS EFHK EGGD EICK ENVA ESSA LEIB LFLL LFPO LHBP LKPR LOWW LPFR LSZH
 ```
@@ -1068,7 +1069,7 @@ at a research name, exactly as the benchmark does:
 
 ```bash
 cd /home/jupyter/work/opdi-workspace/opdi
-OPDI_OSM_PBF=/home/jupyter/work/osm/europe-latest.osm.pbf \
+OPDI_OSM_PBF=/home/jupyter/work/osm/aeroway-europe.osm.pbf \
   .venv310/bin/python - <<'PY'
 import os, sys, time
 sys.path.insert(0, "src"); sys.path.insert(0, "benchmarks")
