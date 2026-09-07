@@ -403,21 +403,32 @@ what the published table contains.
 ```{r tbl-union}
 #| echo: false
 #| results: asis
+# The baseline column is each detector's OWN coverage on THIS sample, read from
+# the ladder -- not V3's published figure, which was measured on the 2025
+# period against a different denominator. Comparing a 2026 pooled number to a
+# 2025 single-detector number overstates what pooling is worth, and an earlier
+# draft of this table did exactly that.
 if (has(pera, c("gt_airport", "milestone", "n_detected", "n_truth"))) {
-  cat("| APDF milestone | Detected | Reachable | Coverage | V3 single-detector |
-")
-  cat("|---|---:|---:|---:|---:|
-")
-  v3 <- c(ATOT = "63.30% (`ATOT`)", ALDT = "86.06% (`ALDT`)")
+  base_cov <- function(det) {
+    if (!has(lad, c("rung", "det_type", "milestone", "coverage_pct"))) return(NA_real_)
+    r <- lad[lad$rung == SHIPPED & lad$det_type == det & lad$milestone == det, ]
+    if (!nrow(r)) return(NA_real_)
+    suppressWarnings(as.numeric(r$coverage_pct[1]))
+  }
+  cat("| APDF milestone | Detected | Reachable | Pooled coverage | Best single detector, same sample | Pooling adds |\n")
+  cat("|---|---:|---:|---:|---:|---:|\n")
   for (m in c("ATOT", "ALDT")) {
     r <- pera[pera$milestone == m, ]
     if (!nrow(r)) next
     d <- sum(as.numeric(r$n_detected), na.rm = TRUE)
     t <- sum(as.numeric(r$n_truth), na.rm = TRUE)
     if (!is.finite(t) || t <= 0) next
-    cat(sprintf("| %s | %s | %s | **%.1f%%** | %s |\n",
-                m, format(d, big.mark = ","), format(t, big.mark = ","),
-                100 * d / t, v3[[m]]))
+    pooled <- 100 * d / t
+    b <- base_cov(m)
+    cat(sprintf("| %s | %s | %s | **%.1f%%** | %s | %s |\n",
+                m, format(d, big.mark = ","), format(t, big.mark = ","), pooled,
+                if (is.na(b)) "—" else sprintf("%.1f%% (`%s`)", b, m),
+                if (is.na(b)) "—" else sprintf("%+.1f pts", pooled - b)))
   }
   cat("\n")
 } else {
@@ -425,15 +436,34 @@ if (has(pera, c("gt_airport", "milestone", "n_detected", "n_truth"))) {
 }
 ```
 
-**This is the study's central finding, and it is the reason both families
-ship.** The two methods fail on different flights. Where surface and
-low-altitude reception is too thin for the 15 ft crossing to be seen, the
-1 500 ft climb/descent window still resolves the movement; where the window's
-gates reject a trajectory, the runway traversal often still carries it. Neither
-alone reaches what the pair reaches, so retiring either would have cost
-coverage that nothing else recovers --- which is why the plan's intention to
-retire `ATOT`/`ALDT` was abandoned on the evidence rather than carried through.
-See [`ATOT`/`ALDT` are retained, not retired].
+**Read against the same sample, the older pair is the stronger of the two on
+coverage.** On these three days `ATOT` alone answers 89.8% of reachable
+departures and `ALDT` 95.9% of arrivals, against 76.6% and 80.4% for
+`airborne` and `touchdown`. The A-CDM family was designed to supersede them and
+on this evidence it does not: it sees the aircraft at 15 ft, and there are
+movements where nothing is received that low.
+
+**Pooling still pays, but only on departures, and by less than a first reading
+of this table suggests.** The pooled figure gains **+6.4 points over `ATOT`**
+because the two methods fail on different flights --- where reception is too
+thin for the 15 ft crossing, the 1,500 ft climb window still resolves the
+movement, and where that window's gates reject a trajectory the runway
+traversal sometimes still carries it. On arrivals the gain is **+0.1 point**:
+`ALDT` already answers almost everything reachable, and `touchdown` adds
+essentially nothing a consumer could not already get.
+
+**An earlier draft of this chapter claimed pooling answered "a third more
+departures than either alone".** That compared a 2026 pooled figure against
+V3's *2025* single-detector coverage --- different period, different
+denominator --- and overstated the gain by a factor of five. The numbers above
+are all from one run on one sample. The correction is recorded here rather than
+quietly fixed, because the retention decision was taken partly on the strength
+of the wrong number, and it survives the right one only for departures.
+
+So `ATOT`/`ALDT` are retained on the evidence: for departures because pooling
+measurably helps, and for arrivals because `ALDT` outperforms its intended
+replacement outright. See [`ATOT`/`ALDT` are retained, not retired]. The A-CDM
+family's case rests on **timing**, not coverage --- see [Airborne].
 
 Three properties of this study bound every number in it, and they are stated
 here rather than in a footnote.
@@ -2040,7 +2070,7 @@ successor.
 
 | Retired type | Replaced by | Why |
 |---|---|---|
-| `take-off` | [Airborne] (T08) | fuzzy phase transition → interpolated 15 ft AGL crossing on a classified departure; the benchmark confirms `airborne` beats it on both coverage and bias |
+| `take-off` | [Airborne] (T08) | fuzzy phase transition → interpolated 15 ft AGL crossing on a classified departure. V3 measured `take-off` at 0.39% of departures; `airborne` reaches 76.6% here. The two were not run on the same sample, so the gap is indicative rather than a like-for-like result — but it is three orders of magnitude, not a margin |
 | `AOBT` | [Off-block and on-block] (T04) | renamed to `off-block`; same detector |
 | `AIBT` | [Off-block and on-block] (T21) | renamed to `on-block`; same detector |
 | `entry-runway` | [Line-up], [Runway crossings] | one type conflated departures, arrivals and taxi crossings |
@@ -2053,10 +2083,17 @@ is `crossing_seq == 1`, the last is the maximum.
 
 ### `ATOT`/`ALDT` are retained, not retired
 
-The A-CDM `airborne`/`touchdown` were designed to *replace* `ATOT`/`ALDT`, and
-on accuracy they do — the interpolated 15 ft crossing carries ~±2 s where APDF
-resolves times to the second, against `ATOT`'s structural +19 s. But the
-benchmark showed the two methods read the aircraft at different heights (see
+The A-CDM `airborne`/`touchdown` were designed to *replace* `ATOT`/`ALDT`.
+On coverage they do not: measured on this sample `ATOT` answers 89.8% of
+reachable departures against `airborne`'s 76.6%, and `ALDT` 95.9% against
+`touchdown`'s 80.4%. On timing the new pair is the better of the two — at the
+three aerodromes where APDF resolves to the second the takeoff instant lands
+within a few seconds of truth, against `ATOT`'s +25.0 s on this sample (+19 s
+as V3 measured it on 2025). That per-aerodrome figure pools both detectors,
+since the per-aerodrome table carries no detector column, so attributing the
+few-second result to `airborne` is an inference from `ATOT`'s much larger bias
+rather than a direct per-detector measurement. The two methods read the
+aircraft at different heights (see
 [Timing a runway movement: two methods, four milestones]): `ATOT`/`ALDT` in the
 climb and descent up to 1 500 ft, `airborne`/`touchdown` at the 15 ft crossing
 on and beside the runway. The second needs surface and low-altitude reception
