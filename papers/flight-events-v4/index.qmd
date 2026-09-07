@@ -2341,7 +2341,23 @@ Dashes are **suppressed cells, not missing detections**: fewer than
 information. The detections behind each dash are listed under the table, so a
 suppressed row can still be told apart from an absent one.
 
-## A.1 ATOT — against `airborne` {.unnumbered}
+**Every figure here is measured against APDF**, not against another OPDI
+milestone: `n truth` counts APDF movements at that aerodrome and the bias is the
+detected instant minus the APDF one. The section headings said "against
+`airborne`" in an earlier draft, which read as though one OPDI milestone were
+being scored against another; nothing of the sort is computed anywhere in this
+paper.
+
+**Each row pools every detector that answers the milestone.** Under
+`events_v0.2.0` the ATOT milestone is answered by both `ATOT` and `airborne`,
+and the ALDT milestone by both `ALDT` and `touchdown`, so a row is "what OPDI
+published for this movement, whichever detector produced it" — the question a
+consumer of the table actually has. It is *not* a per-detector figure, because
+the scorer groups on (aerodrome, milestone) and carries no detector column. For
+the per-detector split, network-wide, see [What the evidence says]; the
+per-detector split *per aerodrome* is not measured by this campaign.
+
+## A.1 ATOT — against APDF {.unnumbered}
 
 ```{r annex-atot}
 #| echo: false
@@ -2349,7 +2365,7 @@ suppressed row can still be told apart from an absent one.
 airport_table("ATOT", what = "The per-aerodrome ATOT table")
 ```
 
-## A.2 ALDT — against `touchdown` {.unnumbered}
+## A.2 ALDT — against APDF {.unnumbered}
 
 ```{r annex-aldt}
 #| echo: false
@@ -2357,7 +2373,7 @@ airport_table("ATOT", what = "The per-aerodrome ATOT table")
 airport_table("ALDT", what = "The per-aerodrome ALDT table")
 ```
 
-## A.3 AOBT — against `off-block` {.unnumbered}
+## A.3 AOBT — against APDF {.unnumbered}
 
 ```{r annex-aobt}
 #| echo: false
@@ -2365,7 +2381,7 @@ airport_table("ALDT", what = "The per-aerodrome ALDT table")
 airport_table("AOBT", what = "The per-aerodrome AOBT table")
 ```
 
-## A.4 AIBT — against `on-block` {.unnumbered}
+## A.4 AIBT — against APDF {.unnumbered}
 
 ```{r annex-aibt}
 #| echo: false
