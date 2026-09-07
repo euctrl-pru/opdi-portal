@@ -136,6 +136,7 @@ rwy      <- rd("runway_2026.csv")
 res      <- rd("resolution_2026.csv")
 rng      <- rd("rings_2026.csv")
 perd     <- rd("per_airport_by_detector_2026.csv")
+prules   <- rd("pooling_rules_2026.csv")
 br       <- rd("bridge_2026.json")
 manifest <- rd("_manifest.json")
 
@@ -502,6 +503,64 @@ So `ATOT`/`ALDT` are retained on the evidence: for departures because pooling
 measurably helps, and for arrivals because `ALDT` outperforms its intended
 replacement outright. See [`ATOT`/`ALDT` are retained, not retired]. The A-CDM
 family's case rests on **timing**, not coverage --- see [Airborne].
+
+### How a consumer should actually pool them
+
+The pooled row above is **not a rule anybody can ship.** `align` keeps whichever
+of the two detections is nearer the reference, which requires already knowing
+the reference: it is an oracle, and its bias is a floor no published table can
+reproduce. The question a consumer faces is the reachable one --- *take one
+detector, fall back to the other* --- so both orders are scored here against the
+oracle that bounds them.
+
+```{r tbl-pooling-rules}
+#| echo: false
+#| results: asis
+if (has(prules, c("rule", "milestone", "coverage_pct", "bias_s", "mad_s"))) {
+  labs <- c(legacy_first = "legacy first",
+            acdm_first   = "A-CDM first",
+            oracle_nearest = "*oracle*")
+  cat("| Milestone | Rule | Coverage | Bias | MAD | within 10 s |\n")
+  cat("|---|---|---:|---:|---:|---:|\n")
+  # "legacy first" = take ATOT/ALDT, fall back to the A-CDM pair; "A-CDM
+  # first" is the reverse; *oracle* is nearest-to-truth and is in the table
+  # only as the bound the two rules are read against.
+  for (m in c("ATOT", "ALDT")) {
+    for (rl in c("legacy_first", "acdm_first", "oracle_nearest")) {
+      r <- prules[prules$milestone == m & prules$rule == rl, , drop = FALSE]
+      if (!nrow(r)) next
+      cat(sprintf("| %s | %s | %s | %s | %s | %s |\n", m, labs[[rl]],
+                  pct(r$coverage_pct[1]), sec(r$bias_s[1]),
+                  absec(r$mad_s[1]), pct(r$within_10s_pct[1])))
+    }
+  }
+  cat("\n")
+} else {
+  pending("The pooling-rule comparison")
+}
+```
+
+**Coverage does not depend on the order, and cannot.** A movement is answered if
+*either* detector answered it, so both rules reach the same 96.2% of departures
+and 96.0% of arrivals. Choosing a leader is therefore purely an accuracy
+decision, with no coverage cost either way --- which is the useful thing to know
+before making it.
+
+**Prefer the older detector, fall back to the A-CDM one.** On departures the two
+rules tie on median bias, both at +25 s --- the reference's minute-rounding
+dominates --- so the discriminating column is the tight one: `ATOT`-first puts
+**30.9%** of departures within ten seconds against A-CDM-first's **24.7%**. On
+arrivals `ALDT`-first is better on spread (**MAD 15 s against 18 s**, within ten
+seconds **41.1% against 25.5%**) even though A-CDM-first has the smaller median
+bias (−2.4 s against +5.0 s). A median closer to zero with a wider spread is the
+worse instrument: it is right on average and less often right on the movement.
+
+**The gap to the oracle says how much a cleverer rule could win.** On departures
+almost nothing --- 31.7% within ten seconds against the rule's 30.9%, so a
+per-movement chooser would buy under a point. On arrivals it is real: 49.5%
+against 41.1%. Something decidable at publication time --- reception density at
+the aerodrome, or whether the traversal carried a surface sample --- might close
+part of that, and this study does not attempt it.
 
 Three properties of this study bound every number in it, and they are stated
 here rather than in a footnote.
