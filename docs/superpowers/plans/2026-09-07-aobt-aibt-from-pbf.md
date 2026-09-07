@@ -12,8 +12,10 @@ with pyosmium instead of querying the public Overpass and Nominatim services.
 the network; everything downstream of it — `fill_missing_width`,
 `convert_to_polygon`, `polygon_to_h3`, `HEXAERO_SCHEMA` — is pure and stays
 exactly as it is. A new `pbf_source.py` reads the extract **once**, keeps only
-`aeroway` features, assigns each to an aerodrome by geometry, and serves
-per-airport GeoDataFrames from memory. `hexagonify_airport` gains a `source`
+`aeroway` features, assigns each to the aerodrome whose own OSM boundary
+(`aeroway=aerodrome`, matched on its `icao` tag) contains it — falling back to
+a runway-extent bounding box only for aerodromes OSM maps as a bare node — and
+serves per-airport GeoDataFrames from memory. `hexagonify_airport` gains a `source`
 parameter so the Overpass path remains available and the two can be compared.
 
 **Tech Stack:** pyosmium (PBF reading, geometry building), shapely, geopandas,
@@ -75,7 +77,7 @@ this plan implements its §3 and §5.
 
 | File | Responsibility |
 |---|---|
-| `pbf_source.py` | Read a `.osm.pbf` once, keep `aeroway` features, build shapely geometries, assign each feature to an aerodrome, and serve per-airport GeoDataFrames. The only new networked/IO-heavy unit. |
+| `pbf_source.py` | Read a `.osm.pbf` once, keep `aeroway` features, build shapely geometries, assign each feature to an aerodrome (by containment in OSM's own aerodrome polygon; bounding box only where there is none), and serve per-airport GeoDataFrames. The only new IO-heavy unit. |
 
 **Modified in `opdi/src/opdi/reference/`:**
 
@@ -369,10 +371,52 @@ git commit -m "feat(reference): read aeroway geometry from a local OSM extract"
 
 ### Task 3: Assign each feature to an aerodrome
 
-The extract has no notion of which airport a taxiway belongs to. Overpass got
-this from the place polygon; here it comes from reference data we already hold.
-**This is the task that can silently corrupt the table** — a feature assigned to
-the wrong aerodrome becomes a stand at an airport that does not have it.
+**Revised 2026-09-07.** The original version of this task derived a bounding box
+per aerodrome from its runway extent and resolved overlaps with a
+nearest-aerodrome guard. That is replaced. **OSM tags aerodromes itself** --
+`aeroway=aerodrome` carrying an `icao=` tag -- so the airport's own boundary
+polygon is *in the extract*, keyed by exactly the identifier the layout table
+is indexed on. That is the same polygon Overpass was fetching, except that
+Overpass had to geocode the airport's *name* through Nominatim to find it,
+which is the step that failed silently and returned nothing for five of twenty
+airports during the flight-events-v4 campaign.
+
+Assignment therefore becomes **containment in the aerodrome's own polygon**,
+which deletes three judgement calls: the runway-extent box, the `1.5 km`
+margin, and the nearest-aerodrome tie-break that existed only because
+rectangles overlap where real boundaries do not.
+
+**Measured on the 34.9 GB Europe extract before this task was written:**
+
+| | count |
+|---|---|
+| `aeroway=aerodrome` features carrying an `icao` tag | 3,281 (2,485 ways, 310 relations, **486 nodes**) |
+| distinct ICAO codes among them | **3,254** |
+| of the 20 study aerodromes, present | **20/20** |
+| of the original 20 the published table held, present | **20/20** |
+
+3,254 comfortably exceeds the 1,353 aerodromes in scope, and every airport this
+campaign cares about is present. But **486 of those features are nodes**, and a
+node has no area, so it can contain nothing.
+
+**So the bbox is retained, as the fallback and only as the fallback.** An
+aerodrome whose OSM feature is a bare node, or which has no `icao`-tagged
+feature at all, falls back to the runway-extent box with the nearest-aerodrome
+guard -- the code the first attempt at this task already wrote, preserved at
+`.superpowers/sdd/2026-09-07-aobt-aibt-from-pbf/task-3-box-fallback.patch`.
+Reuse it rather than rewriting it; it was reviewed as far as it went and its
+overlap test is mutation-verified.
+
+**Why the fallback must stay narrow.** The box is the weaker method: it is a
+rectangle around runway thresholds, so it admits whatever else sits in that
+rectangle. Applying it only where there is no polygon confines that weakness to
+the aerodromes that have no better option, instead of imposing it everywhere.
+
+**This is also a large performance win, which is a consequence rather than the
+reason.** The box path was measured at 0.53 s per `features_for` call against a
+1,353-aerodrome box set -- about 12 minutes of pure filtering for a full build,
+because each call compares against every other aerodrome. A spatial join
+assigns every feature in one pass.
 
 **Files:**
 - Modify: `opdi/src/opdi/reference/pbf_source.py`
@@ -382,70 +426,83 @@ the wrong aerodrome becomes a stand at an airport that does not have it.
 - Consumes: `read_aeroway_features` (Task 2); `oa_airports` and `oa_runways`
   via `StorageManager`.
 - Produces:
+  - `read_aerodromes(pbf_path) -> gpd.GeoDataFrame` with columns `icao`,
+    `name`, `element`, `id`, `geometry` -- one row per `aeroway=aerodrome`
+    feature carrying a non-empty `icao` tag whose geometry could be assembled
+    as a polygon. Nodes are **excluded** here and handled by the fallback.
   - `airport_boxes(storage, airport_types=None) -> pd.DataFrame` with columns
     `ident`, `lat_min`, `lat_max`, `lon_min`, `lon_max`, `apt_lat`, `apt_lon`
+    -- unchanged from the preserved patch.
   - `class PbfLayoutSource` with
-    `__init__(self, pbf_path: str, storage, airport_types=None)` and
-    `features_for(self, apt_icao: str) -> gpd.GeoDataFrame`
+    `__init__(self, pbf_path: str, storage, airport_types=None)`,
+    `features_for(self, apt_icao: str) -> gpd.GeoDataFrame`, and an
+    `assignment_report(self) -> pd.DataFrame` recording, per aerodrome in
+    scope, which method assigned it (`polygon` / `bbox` / `none`) and how many
+    features it received.
 
 - [ ] **Step 1: Write the failing tests**
 
-Append to `opdi/tests/test_pbf_source.py`:
+Append to `opdi/tests/test_pbf_source.py`. Keep the existing convention: a test
+that reads the Luxembourg extract carries `@needs_luxembourg`; a test that
+builds its own synthetic `.osm` fixture in `tmp_path` carries no decorator.
 
 ```python
-from opdi.reference.pbf_source import PbfLayoutSource, airport_boxes
+@needs_luxembourg
+def test_aerodrome_polygons_are_read_with_their_icao_code():
+    """ELLX is mapped as a closed way tagged `aeroway=aerodrome`, `icao=ELLX`.
+
+    This is the polygon Overpass used to fetch by geocoding the airport's name.
+    Reading it from the extract makes the key exact rather than a name lookup,
+    which is the failure that returned nothing for five of twenty airports.
+    """
+    ad = read_aerodromes(PBF)
+    assert "ELLX" in set(ad["icao"])
+    row = ad[ad["icao"] == "ELLX"].iloc[0]
+    assert row.geometry.geom_type in ("Polygon", "MultiPolygon")
+    assert row.geometry.area > 0
 
 
-class _Storage:
-    """`oa_airports` and `oa_runways` as the generator reads them."""
-
-    def __init__(self, spark):
-        self._t = {
-            "oa_airports": spark.createDataFrame(
-                [("ELLX", 49.6233, 6.2044, "large_airport"),
-                 ("EBBR", 50.9014, 4.4844, "large_airport")],
-                "ident string, latitude_deg double, longitude_deg double, type string",
-            ),
-            "oa_runways": spark.createDataFrame(
-                [("ELLX", 49.6266, 6.1867, 49.6200, 6.2247),
-                 ("EBBR", 50.9010, 4.4700, 50.9060, 4.5000)],
-                "airport_ident string, le_latitude_deg double, le_longitude_deg double, "
-                "he_latitude_deg double, he_longitude_deg double",
-            ),
-        }
-
-    def table_exists(self, name):
-        return name in self._t
-
-    def read_table(self, name):
-        return self._t[name]
-
-
-def test_a_box_is_built_from_the_runway_extent(spark):
-    """Runways bound an airport's long axis, so their extent plus a margin
-    encloses the aprons, stands and taxiways that sit between them. The margin
-    is what makes it an envelope rather than a line."""
-    boxes = airport_boxes(_Storage(spark)).set_index("ident")
-    ellx = boxes.loc["ELLX"]
-    assert ellx.lat_min < 49.6200 and ellx.lat_max > 49.6266
-    assert ellx.lon_min < 6.1867 and ellx.lon_max > 6.2247
-
-
-def test_features_are_assigned_to_the_nearest_aerodrome_only(spark):
-    """The guard against the failure this task can cause. A box can overlap a
-    neighbouring airfield, and `hexagonify_airport` stamps `apt_icao` on
-    whatever it is given -- so a feature inside two boxes must go to the
-    aerodrome it is actually closest to, and to no other."""
+@needs_luxembourg
+def test_features_are_assigned_by_containment_in_the_aerodrome_polygon(spark):
+    """The whole point of the change: a feature belongs to the airport whose
+    boundary encloses it, not to the airport whose rectangle it happens to
+    fall in."""
     src = PbfLayoutSource(PBF, _Storage(spark))
     ellx = src.features_for("ELLX")
-    ebbr = src.features_for("EBBR")
-    assert len(ellx) > 0, "ELLX is in the Luxembourg extract and has aeroways"
-    assert len(ebbr) == 0, "EBBR is in Belgium; nothing in this extract is its"
-    assert set(ellx["aeroway"]) <= set(AEROWAY_TAGS_SET)
+    assert len(ellx) > 0
+    assert set(ellx["aeroway"]) <= AEROWAY_TAGS_SET
+    # Every returned feature really is inside the polygon it was assigned to.
+    poly = read_aerodromes(PBF).set_index("icao").loc["ELLX"].geometry
+    assert ellx.geometry.representative_point().within(poly).all()
+
+
+@needs_luxembourg
+def test_an_aerodrome_absent_from_the_extract_returns_nothing(spark):
+    src = PbfLayoutSource(PBF, _Storage(spark))
+    assert len(src.features_for("EBBR")) == 0
+
+
+def test_an_aerodrome_with_only_a_node_falls_back_to_its_bbox(tmp_path, spark):
+    """486 of the extract's icao-tagged aerodrome features are bare nodes, and
+    a node encloses nothing. Those aerodromes must still get a grid, by the
+    runway-extent box -- otherwise switching to polygons would silently drop
+    every airport OSM has not drawn a boundary for.
+
+    The fixture is synthetic so the two paths can be exercised side by side:
+    one aerodrome mapped as a polygon, one as a bare node, each with a stand.
+    """
+    ...
+
+
+def test_the_polygon_path_wins_where_both_are_available(tmp_path, spark):
+    """An aerodrome with a polygon must NOT also pick up features its box would
+    have caught but its boundary excludes. Otherwise the fallback quietly
+    re-imposes the weakness the polygon was adopted to remove."""
+    ...
 
 
 def test_the_source_reads_the_extract_once(spark):
-    """1,353 airports must not mean 1,353 passes over a 30 GB file."""
+    """1,353 airports must not mean 1,353 passes over a 35 GB file."""
     src = PbfLayoutSource(PBF, _Storage(spark))
     src.features_for("ELLX")
     before = src._read_count
@@ -454,171 +511,71 @@ def test_the_source_reads_the_extract_once(spark):
     assert src._read_count == before, "the extract was re-read"
 ```
 
-Add near the imports of that file:
-
-```python
-from opdi.reference.h3_airport_layouts import AEROWAY_TAGS
-AEROWAY_TAGS_SET = set(AEROWAY_TAGS)
-```
+Write the two `...` bodies out in full -- they are the tests that pin the
+fallback boundary, and they are the reason this task can be reviewed at all.
+Build the fixtures as `.osm` XML in `tmp_path`, the same way Task 2's synthetic
+fixtures are built.
 
 - [ ] **Step 2: Run to verify they fail**
 
 Run: `.venv310/bin/python -m pytest tests/test_pbf_source.py -v`
-Expected: FAIL with `ImportError: cannot import name 'PbfLayoutSource'`
+Expected: FAIL with `ImportError: cannot import name 'read_aerodromes'`
 
-- [ ] **Step 3: Implement assignment**
+- [ ] **Step 3: Implement `read_aerodromes`**
 
-Append to `opdi/src/opdi/reference/pbf_source.py`:
+Same shape as `read_aeroway_features`, but selecting `aeroway=aerodrome` and
+requiring a non-empty `icao` tag. It needs `.with_areas()`, because an
+aerodrome boundary is a closed way or a multipolygon relation. Normalise the
+code with `.strip().upper()` -- OSM values are free text.
 
-```python
-import math
+Two traps carried over from Task 2, both already solved there and both applying
+again here: build geometry inside a `try` and **count** what fails per reason
+rather than swallowing it silently; and remember that `with_areas()` also emits
+the original closed `Way`, so take the assembled `Area` and ignore the way.
 
-from pyspark.sql import functions as F
+- [ ] **Step 4: Implement assignment, computed once**
 
-#: Margin around the runway extent, in kilometres. Aprons, stands and hangars
-#: sit off the runway axis; 1.5 km covers them at the largest aerodromes without
-#: reaching a neighbouring field at typical separations.
-BOX_MARGIN_KM = 1.5
+In `PbfLayoutSource._load`, after reading features and aerodromes, resolve
+every feature's aerodrome **in one pass** and cache it:
 
-#: Fallback half-size when an aerodrome has no usable runway coordinates, so it
-#: still gets a box rather than being dropped.
-FALLBACK_HALF_KM = 3.0
+1. Spatial-join the features' representative points against the aerodrome
+   polygons (`geopandas.sjoin`, predicate `within`). A representative point is
+   used rather than the whole geometry because a taxiway may cross the
+   boundary, and a feature is either this airport's or it is not.
+2. A feature landing in more than one polygon (airports do overlap in OSM, and
+   a few boundaries are drawn twice) is assigned deterministically to the
+   **smallest-area** polygon containing it, ties broken by `icao` ascending --
+   the smaller boundary is the more specific one.
+3. Aerodromes in scope with **no polygon** get the box path from the preserved
+   patch, applied only to features that step 1 left unassigned. Do not let the
+   box claim a feature that a polygon already owns.
+4. Record the outcome per aerodrome for `assignment_report()`.
 
-_KM_PER_DEG_LAT = 111.0
+`features_for` then becomes a lookup on the cached assignment. Drop the helper
+columns (`_lat`, `_lon`, join artefacts, the index columns `sjoin` adds) on the
+way out, on every path including the empty ones -- the seam contract is
+`element`, `id`, `geometry`, `aeroway`, `width`, `ref`, `surface`, `length`.
 
-
-def _deg_lon(km: float, lat: float) -> float:
-    return km / (_KM_PER_DEG_LAT * max(0.05, math.cos(math.radians(lat))))
-
-
-def airport_boxes(storage, airport_types=None) -> pd.DataFrame:
-    """One bounding box per aerodrome, from its runway extent.
-
-    Overpass derived the search area from a geocoded place polygon. That is the
-    step being removed, so the area has to come from reference data instead:
-    ``oa_runways`` holds both thresholds of every runway, and a runway bounds
-    the airport's long axis.
-    """
-    airport_types = airport_types or ["large_airport", "medium_airport"]
-    apt = (
-        storage.read_table("oa_airports")
-        .filter(F.col("type").isin(airport_types))
-        .select("ident", "latitude_deg", "longitude_deg")
-        .toPandas()
-        .rename(columns={"latitude_deg": "apt_lat", "longitude_deg": "apt_lon"})
-    )
-    rwy = (
-        storage.read_table("oa_runways")
-        .select("airport_ident", "le_latitude_deg", "le_longitude_deg",
-                "he_latitude_deg", "he_longitude_deg")
-        .toPandas()
-    )
-    lat = pd.concat([rwy["le_latitude_deg"], rwy["he_latitude_deg"]])
-    lon = pd.concat([rwy["le_longitude_deg"], rwy["he_longitude_deg"]])
-    ident = pd.concat([rwy["airport_ident"], rwy["airport_ident"]])
-    ext = (
-        pd.DataFrame({"ident": ident, "lat": lat, "lon": lon})
-        .dropna()
-        .groupby("ident")
-        .agg(lat_min=("lat", "min"), lat_max=("lat", "max"),
-             lon_min=("lon", "min"), lon_max=("lon", "max"))
-        .reset_index()
-    )
-    out = apt.merge(ext, on="ident", how="left")
-
-    have = out["lat_min"].notna()
-    m_lat = BOX_MARGIN_KM / _KM_PER_DEG_LAT
-    out.loc[have, "lat_min"] -= m_lat
-    out.loc[have, "lat_max"] += m_lat
-    out.loc[have, "lon_min"] -= [
-        _deg_lon(BOX_MARGIN_KM, v) for v in out.loc[have, "apt_lat"]
-    ]
-    out.loc[have, "lon_max"] += [
-        _deg_lon(BOX_MARGIN_KM, v) for v in out.loc[have, "apt_lat"]
-    ]
-
-    # No runway coordinates: a square around the aerodrome point, so it is
-    # still built rather than silently absent from the table.
-    miss = ~have
-    f_lat = FALLBACK_HALF_KM / _KM_PER_DEG_LAT
-    out.loc[miss, "lat_min"] = out.loc[miss, "apt_lat"] - f_lat
-    out.loc[miss, "lat_max"] = out.loc[miss, "apt_lat"] + f_lat
-    out.loc[miss, "lon_min"] = out.loc[miss, "apt_lon"] - [
-        _deg_lon(FALLBACK_HALF_KM, v) for v in out.loc[miss, "apt_lat"]
-    ]
-    out.loc[miss, "lon_max"] = out.loc[miss, "apt_lon"] + [
-        _deg_lon(FALLBACK_HALF_KM, v) for v in out.loc[miss, "apt_lat"]
-    ]
-    return out
-
-
-class PbfLayoutSource:
-    """Per-airport aeroway features, served from one pass over the extract.
-
-    The extract is read on first use and held in memory. Europe's aeroway
-    features are a small fraction of the file -- tens of megabytes as
-    geometry -- so this is affordable, and the alternative (a pass per airport)
-    would be 1,353 passes over 30 GB.
-    """
-
-    def __init__(self, pbf_path: str, storage, airport_types=None):
-        self.pbf_path = pbf_path
-        self._boxes = airport_boxes(storage, airport_types)
-        self._features: Optional[gpd.GeoDataFrame] = None
-        self._read_count = 0
-
-    def _load(self) -> gpd.GeoDataFrame:
-        if self._features is None:
-            self._features = read_aeroway_features(self.pbf_path)
-            self._read_count += 1
-            reps = self._features.geometry.representative_point()
-            self._features["_lat"] = reps.y.to_numpy()
-            self._features["_lon"] = reps.x.to_numpy()
-        return self._features
-
-    def features_for(self, apt_icao: str) -> gpd.GeoDataFrame:
-        """Features inside *apt_icao*'s box **and** nearer to it than to any
-        other aerodrome.
-
-        The second half is the guard. Boxes overlap where aerodromes are close,
-        and ``hexagonify_airport`` stamps ``apt_icao`` on whatever it is handed,
-        so without it a neighbour's stands would be published as this airport's.
-        """
-        feats = self._load()
-        row = self._boxes[self._boxes["ident"] == apt_icao]
-        if row.empty:
-            return feats.iloc[0:0]
-        r = row.iloc[0]
-        inside = feats[
-            feats["_lat"].between(r.lat_min, r.lat_max)
-            & feats["_lon"].between(r.lon_min, r.lon_max)
-        ]
-        if inside.empty:
-            return inside.drop(columns=["_lat", "_lon"], errors="ignore")
-
-        b = self._boxes
-        d_this = (inside["_lat"] - r.apt_lat) ** 2 + (
-            (inside["_lon"] - r.apt_lon) * math.cos(math.radians(r.apt_lat))
-        ) ** 2
-        nearest_is_this = pd.Series(True, index=inside.index)
-        for _, o in b[b["ident"] != apt_icao].iterrows():
-            d_other = (inside["_lat"] - o.apt_lat) ** 2 + (
-                (inside["_lon"] - o.apt_lon) * math.cos(math.radians(o.apt_lat))
-            ) ** 2
-            nearest_is_this &= d_this <= d_other
-        return inside[nearest_is_this].drop(columns=["_lat", "_lon"], errors="ignore")
-```
-
-- [ ] **Step 4: Run to verify they pass**
+- [ ] **Step 5: Run the tests to verify they pass**
 
 Run: `.venv310/bin/python -m pytest tests/test_pbf_source.py -v`
-Expected: PASS, six tests.
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 6: Report the assignment split**
+
+Not a commit gate, but it is what Task 6 needs to know before a full build.
+Using Luxembourg, report: how many aerodromes were assigned by polygon, by
+box, and not at all; and what fraction of the extract's aeroway features ended
+up assigned to *some* aerodrome, broken down by the seven families. **A large
+unassigned fraction is a finding, not a nuisance** -- it would mean OSM
+boundaries are tighter than the features that belong to the airport, and Task 5
+would then be comparing against an Overpass baseline built on the same
+boundaries, so it would not catch it.
+
+- [ ] **Step 7: Commit**
 
 ```bash
 git add src/opdi/reference/pbf_source.py tests/test_pbf_source.py
-git commit -m "feat(reference): assign PBF aeroway features to aerodromes by runway extent"
+git commit -m "feat(reference): assign PBF aeroway features by OSM aerodrome polygon, bbox as fallback"
 ```
 
 ---
@@ -944,10 +901,37 @@ print("missing:", sorted(set(STUDY) - have))
 PY
 ```
 
-**Gate:** all twenty study aerodromes must have stands, and the original twenty
-(`EBBR EDDF EDDM EGKK EGLL EHAM EIDW EKCH ENGM EPWA ESSA LEBL LEMD LFPG LGAV
-LIRF LOWW LPPT LSZH LTFM`) must all be present — that set is what the published
-table held before it was damaged, and this build is also its restoration.
+**Gate**, all four parts, and none of them is optional:
+
+1. All twenty study aerodromes have `parking_position` cells.
+2. The original twenty (`EBBR EDDF EDDM EGKK EGLL EHAM EIDW EKCH ENGM EPWA
+   ESSA LEBL LEMD LFPG LGAV LIRF LOWW LPPT LSZH LTFM`) are all present — that
+   set is what the published table held before it was damaged, and this build
+   is also its restoration.
+3. **All seven `AEROWAY_TAGS` families are present network-wide, with cell
+   counts of a plausible order.** The grid is the whole hexaero map, not just
+   the stands AOBT/AIBT ride on, and a family lost across all 1,353 aerodromes
+   would otherwise sail through a stands-only check. The raw feature census
+   over the Europe extract gives the denominator to sanity-check against:
+
+   | family | features in the extract |
+   |---|---|
+   | taxiway | 67,826 |
+   | runway | 12,195 |
+   | apron | 15,555 |
+   | hangar | 18,399 |
+   | threshold | 1,510 |
+   | parking_position | 37,600 |
+   | deicing_pad | 36 |
+
+   `threshold` and `deicing_pad` are absent from the Luxembourg extract used in
+   Tasks 2-4, so this is the **first** point at which either is exercised at
+   all. A zero for one of them here is a defect, not a quirk of the data.
+4. The extract is intact: `europe-latest.osm.pbf` is exactly
+   **34,940,824,103 bytes**. A truncated PBF can parse without raising and
+   yield a partial feature set, which looks identical to the
+   missing-aerodrome symptom this plan exists to repair. The first download
+   of this file died silently at 25.8 GB.
 
 - [ ] **Step 5: Publish**
 
@@ -1090,22 +1074,34 @@ say so rather than reporting the numbers as a success:
 
 ## Open items, stated rather than assumed
 
-* **pyosmium's API version is unverified.** This plan is written against 4.x
-  (`osmium.FileProcessor`, `osmium.filter.KeyFilter`, `.with_areas()`). If 3.x
-  installs, Task 2 needs the `osmium.SimpleHandler` form instead. Task 1 Step 5
-  detects which.
-* **The 1.5 km box margin is a judgement, not a measurement.** It is checked
-  only indirectly, by Task 5's cell comparison. An aerodrome with far-flung
-  cargo stands could lose them; the symptom would be `only_op` cells clustered
-  away from the runway.
-* **Nearest-aerodrome assignment is O(airports) per airport** — 1,353² distance
-  comparisons over a few hundred thousand features. If that is slow, restrict
-  the inner loop to aerodromes whose boxes actually overlap this one.
+* ~~pyosmium's API version is unverified.~~ **Resolved (Task 1):** pyosmium
+  **4.3.1** is installed and exposes the full 4.x API — `FileProcessor`,
+  `filter.KeyFilter`, `geom.WKBFactory`, `osm.Area`. No `SimpleHandler`
+  fallback is needed.
+* **The 1.5 km box margin is a judgement, not a measurement** — but it now
+  applies only to the fallback. Task 3 was revised to assign features by
+  containment in OSM's own `aeroway=aerodrome` polygon, matched on its `icao`
+  tag; the box is used only where no polygon exists (486 of the extract's
+  3,281 `icao`-tagged aerodrome features are bare nodes). The margin's weakness
+  is therefore confined to the aerodromes that have no better option instead of
+  being imposed everywhere. It is still checked only indirectly, by Task 5.
+* ~~Nearest-aerodrome assignment is O(airports) per airport.~~ **Resolved by
+  the same revision.** The box path was measured at 0.53 s per `features_for`
+  call against a 1,353-aerodrome box set — about 12 minutes of pure filtering
+  for a full build. The polygon path is a single spatial join over all
+  features. The nearest-aerodrome loop survives only on the fallback, where it
+  runs against a much smaller set.
+* **Containment could be tighter than reality.** A feature belonging to an
+  airport but drawn outside its OSM boundary is now unassigned where the box
+  would have caught it. Task 5's comparison against the Overpass baselines
+  cannot fully detect this, because Overpass derived its search area from the
+  same boundary — so Task 3 Step 6 reports the unassigned fraction per family
+  directly, and a large one is a finding rather than a nuisance.
 * **§3.4's response-caching proposal is deliberately not implemented.** It
   existed to stop a re-run re-querying Overpass; with a local extract there is
   no HTTP request to cache, and the file on disk *is* the cache. The bbox
-  proposal from that section survives in a different form: the box is what
-  assigns a feature to an aerodrome (Task 3) rather than what limits a query.
+  proposal from that section survives only as Task 3's fallback; OSM's own
+  aerodrome polygon replaced it as the primary assignment method.
 * **The extract is a snapshot.** Cells will differ from an Overpass build made
   on another day, and nothing in the event schema records which layout vintage
   produced an event. `industrialization-plan.md` §3.5 raises this; it is not
