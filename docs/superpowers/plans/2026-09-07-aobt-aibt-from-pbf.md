@@ -681,6 +681,203 @@ git commit -m "feat(layouts): step 00b can build from a local OSM extract"
 
 ---
 
+### Task 4B: Pre-filter the extract, because the container has 16 GB
+
+**Added 2026-09-07, after Task 5 was OOM-killed three times.**
+
+**What happened.** `hexagonify_airport` against the full Europe extract died
+three times with no output. The cause is not the code: this container's cgroup
+caps memory at **17,179,869,184 bytes (16 GB)** — `free` reports the host's
+251 GB and is misleading — and `/sys/fs/cgroup/memory.events` records **15
+`oom_kill` events**.
+
+The specific trigger is `with_areas()`. Assembling multipolygons requires
+osmium to hold **node locations for the whole file**, and Europe has billions
+of nodes. Its default `flex_mem` index does that in RAM and is killed well
+before it finishes. The two Europe scans that *succeeded* earlier — the aeroway
+census (348 s) and the aerodrome tag census (508 s) — both ran **without**
+`with_areas()`, which is why the limit went unnoticed until the gate.
+
+**What was tried and rejected.** pyosmium supports disk-backed node indexes.
+`with_locations("sparse_file_array,...")` does hold memory down — measured peak
+RSS **3.1 GB**, a fifth of the cap — so the approach is memory-correct. But it
+is far too slow: the index reached **57 GB on disk**, and the run was still in
+the area-assembly pass after **79 minutes** with no areas emitted, with the
+cgroup sitting at 15 GB of 16 GB in page cache. Random lookups across a 57 GB
+on-disk index are the bottleneck. Killed and rejected. **Do not retry this.**
+
+**The fix.** Filter the extract *once* down to only what aeroway geometry
+needs, and let everything afterwards run on a small file with the default
+in-memory index. This is what `osmium tags-filter` would do, and the CLI is not
+installed here, so it is done in pyosmium.
+
+The prize is not only that it fits: the filtered file is read in **seconds**
+rather than 9 minutes a pass, so Task 5's comparison, Task 6's 1,353-aerodrome
+build, and every future rebuild all become cheap. The 34.9 GB original stays on
+disk as the source of truth.
+
+**Files:**
+- Create: `opdi/src/opdi/reference/pbf_filter.py`
+- Test: `opdi/tests/test_pbf_filter.py`
+
+**Interfaces:**
+- Consumes: nothing from earlier tasks.
+- Produces:
+  - `filter_aeroway_pbf(src_path: str, dst_path: str) -> dict` — writes the
+    filtered extract and returns counts (`nodes`, `ways`, `relations`,
+    `bytes_in`, `bytes_out`, `seconds`).
+
+- [ ] **Step 1: Write the failing test**
+
+Create `opdi/tests/test_pbf_filter.py`. Use the Luxembourg extract, where the
+answer is checkable against Task 2's measured counts.
+
+```python
+@needs_luxembourg
+def test_the_filtered_extract_yields_the_same_aeroway_features(tmp_path):
+    """The filter is only correct if nothing downstream can tell the
+    difference. Task 2 measured Luxembourg at 116 taxiway, 5 runway, 57 apron,
+    6 hangar, 194 parking_position, 0 threshold, 0 deicing_pad -- so the
+    filtered file must reproduce that exactly, not approximately."""
+    dst = tmp_path / "aeroway-lux.osm.pbf"
+    stats = filter_aeroway_pbf(PBF, str(dst))
+    assert dst.exists() and stats["bytes_out"] < stats["bytes_in"]
+
+    before = read_aeroway_features(PBF)
+    after = read_aeroway_features(str(dst))
+    assert (after["aeroway"].value_counts().sort_index()
+            .equals(before["aeroway"].value_counts().sort_index()))
+    assert set(zip(after["element"], after["id"])) == set(zip(before["element"], before["id"]))
+
+
+@needs_luxembourg
+def test_aerodrome_polygons_survive_the_filter(tmp_path):
+    """Task 3 assigns features by containment in the `aeroway=aerodrome`
+    polygon. If the filter drops the boundary, or keeps it as an unassemblable
+    fragment, every feature becomes unassigned and the grid silently empties."""
+    dst = tmp_path / "aeroway-lux.osm.pbf"
+    filter_aeroway_pbf(PBF, str(dst))
+    before, after = read_aerodromes(PBF), read_aerodromes(str(dst))
+    assert set(after["icao"]) == set(before["icao"])
+    for icao in before["icao"]:
+        a = after.set_index("icao").loc[icao].geometry
+        b = before.set_index("icao").loc[icao].geometry
+        assert a.equals(b) or a.symmetric_difference(b).area < 1e-12
+
+
+def test_a_relation_member_way_is_kept_even_though_it_is_untagged(tmp_path):
+    """The trap. An apron mapped as a multipolygon relation has member ways
+    that carry no `aeroway` tag of their own. Filter on the tag alone and the
+    members vanish, the relation cannot be assembled, and the apron disappears
+    -- at every airport that maps aprons this way, silently."""
+    ...
+```
+
+Write the third test out in full against a synthetic `.osm` fixture: a relation
+tagged `aeroway=apron` whose two member ways are untagged, plus their nodes.
+Assert the relation still assembles to a polygon after filtering. **Verify by
+mutation that it fails if member ways are not collected.**
+
+- [ ] **Step 2: Run to verify they fail**
+
+Run: `.venv310/bin/python -m pytest tests/test_pbf_filter.py -v`
+Expected: FAIL — `ModuleNotFoundError: No module named 'opdi.reference.pbf_filter'`
+
+- [ ] **Step 3: Implement the filter**
+
+Three passes, because a PBF is ordered nodes → ways → relations and a relation
+is therefore read *after* the ways it references:
+
+1. **Pass A** — ways and relations. A way tagged `aeroway` goes into
+   `keep_ways` and its node refs into `keep_nodes`. A relation tagged `aeroway`
+   goes into `keep_rels` and its **member way ids** into `member_ways`.
+2. **Pass B** — ways again. Any way in `member_ways` not already kept goes into
+   `keep_ways` and contributes its node refs. This pass exists solely because
+   relations are read last; without it the member ways of every multipolygon
+   apron are missing.
+3. **Pass C** — write, in file order, with `osmium.SimpleWriter`: nodes in
+   `keep_nodes` **or** carrying an `aeroway` tag themselves (a
+   `parking_position` is often a bare node), then ways in `keep_ways`, then
+   relations in `keep_rels`.
+
+Use `osmium.index.IdSet` for the four id sets — verified present in pyosmium
+4.3.1 and far cheaper than Python sets at tens of millions of ids.
+
+Do **not** use `with_areas()` anywhere in this module. That is the thing being
+worked around; the filter deals in raw objects only.
+
+- [ ] **Step 4: Run the tests**
+
+Run: `.venv310/bin/python -m pytest tests/test_pbf_filter.py -v`
+
+- [ ] **Step 5: Build the filtered Europe extract**
+
+```bash
+cd /home/jupyter/work/opdi-workspace/opdi
+.venv310/bin/python -c "
+from opdi.reference.pbf_filter import filter_aeroway_pbf
+print(filter_aeroway_pbf('/home/jupyter/work/osm/europe-latest.osm.pbf',
+                         '/home/jupyter/work/osm/aeroway-europe.osm.pbf'))
+"
+```
+
+Three passes over 34.9 GB at roughly 350 s each, so expect **20-30 minutes**.
+Run it once, in the background, and do not restart it. Watch RSS: it must stay
+well under 16 GB, and if it climbs toward the cap, stop and report rather than
+letting the OOM killer end it.
+
+- [ ] **Step 6: Prove the filtered extract is equivalent, at Europe scale**
+
+The unit tests prove equivalence for Luxembourg. This proves it for the file
+that will actually be used:
+
+```bash
+.venv310/bin/python -c "
+import osmium, collections
+c = collections.Counter()
+for o in osmium.FileProcessor('/home/jupyter/work/osm/aeroway-europe.osm.pbf').with_filter(osmium.filter.KeyFilter('aeroway')):
+    c[o.tags.get('aeroway')] += 1
+for k in ('taxiway','runway','apron','hangar','threshold','parking_position','deicing_pad'):
+    print(f'{k:20s} {c.get(k,0)}')
+"
+```
+
+**Gate — these are the counts measured on the full 34.9 GB extract and every
+one must match exactly:**
+
+| family | expected |
+|---|---|
+| taxiway | 67,826 |
+| runway | 12,195 |
+| apron | 15,555 |
+| hangar | 18,399 |
+| threshold | 1,510 |
+| parking_position | 37,600 |
+| deicing_pad | 36 |
+
+A shortfall in any family means the filter dropped geometry and **must not be
+worked around** — Task 5 would then be grading a filter bug rather than the
+change of source. Also confirm the count of distinct `icao` codes on
+`aeroway=aerodrome` features is **3,254**, unchanged.
+
+- [ ] **Step 7: Commit**
+
+```bash
+git add src/opdi/reference/pbf_filter.py tests/test_pbf_filter.py
+git commit -m "feat(reference): pre-filter the OSM extract to aeroway geometry
+
+with_areas() over the 34.9 GB Europe extract needs node locations for the whole
+file and is OOM-killed under this container's 16 GB cgroup cap. A disk-backed
+node index holds memory to 3.1 GB but reached 57 GB on disk and had not
+finished assembling areas after 79 minutes.
+
+Filtering once to aeroway ways, their relation members and the nodes they
+reference gives a file small enough for the default in-memory index, read in
+seconds instead of nine minutes a pass."
+```
+
+---
+
 ### Task 5: Prove the PBF path agrees with the Overpass path
 
 Before rebuilding 1,353 aerodromes from a new source, show it produces what the
