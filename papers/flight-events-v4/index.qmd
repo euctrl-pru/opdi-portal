@@ -134,6 +134,7 @@ inv      <- rd("inventory_2026.csv")
 pera     <- rd("per_airport_2026.csv")
 rwy      <- rd("runway_2026.csv")
 res      <- rd("resolution_2026.csv")
+rng      <- rd("rings_2026.csv")
 br       <- rd("bridge_2026.json")
 manifest <- rd("_manifest.json")
 
@@ -1782,15 +1783,32 @@ translation.
 second-resolution, so it is the one place a seconds-level claim is defensible.
 On V3's sample the detector's spread sat **inside the disagreement between two
 independent EUROCONTROL derivations of the same crossing** — median error under
-half a second, median position error about 0.2 NM. That result is not re-run
-here: V4 stages the ladder, the per-aerodrome table and the runway table, and
-the ring comparison is computed but not staged for this paper.
+half a second, median position error about 0.2 NM. The V4 sample reproduces
+that: the table below is the ring comparison on these three days, and the
+sub-second bias is not a rounding artefact of the reference, because this is the
+one family whose reference resolves to the second.
 
 ```{r tbl-rings}
 #| echo: false
 #| results: asis
-score_table(c("xing-40nm" = SHIPPED, "xing-100nm" = SHIPPED),
-            what = "The ring comparison")
+# Reads rings_2026.csv, not the ladder: the ladder scores only the four APDF
+# movement milestones, so a ring row never appears in it and a score_table()
+# call against it renders as unstaged however complete the run was.
+if (has(rng, c("milestone", "coverage_pct", "bias_s"))) {
+  r <- rng[rng$rung == SHIPPED, ]
+  if (!nrow(r)) r <- rng
+  cat("| Ring | Coverage | Bias | MAD | Median position error | p90 position error |\n")
+  cat("|---|---:|---:|---:|---:|---:|\n")
+  for (i in order(r$milestone)) {
+    cat(sprintf("| `%s` | %s | %s | %s | %.2f NM | %.2f NM |\n",
+                r$milestone[i], pct(r$coverage_pct[i]), sec(r$bias_s[i]),
+                absec(r$mad_s[i]), as.numeric(r$median_pos_error_nm[i]),
+                as.numeric(r$p90_pos_error_nm[i])))
+  }
+  cat("\n")
+} else {
+  pending("The ring comparison")
+}
 ```
 
 **Limitations.** A ring crossing is not detected for an aerodrome merely
