@@ -184,23 +184,50 @@ cnt <- function(type, rung = SHIPPED) fm(n_ev(type, rung))
 # event type; `milestone` is the APDF quantity it was scored against.
 sc <- function(det_type, field, rung = SHIPPED) {
   if (!has(lad, c("rung", "det_type", field))) return(NA_real_)
-  num(lad[[field]][lad$rung == rung & lad$det_type == det_type])
+  keep <- lad$rung == rung & lad$det_type == det_type
+  # Restrict to the milestone this detector is actually scored against; see
+  # MILESTONE_OF below. Without it this reads whichever of the detector's four
+  # ladder rows comes first, three of which are the detector against a quantity
+  # it never emits and so a legitimate 0%.
+  m <- if (exists("MILESTONE_OF")) MILESTONE_OF[[det_type]] else NULL
+  if (!is.null(m) && "milestone" %in% names(lad) && any(keep & lad$milestone == m))
+    keep <- keep & lad$milestone == m
+  num(lad[[field]][keep])
 }
 
-# `det_rungs` is a **named** vector, detector -> the rung that detector lives
-# on. It has to be per detector rather than one rung for the table: a retired
-# type and its successor never coexist on the same rung, because the flag that
-# emits one gates off the other. Reading both at `SHIPPED` would silently draw
-# the successor alone while the prose promised a head-to-head, which is exactly
-# the comparison this paper is about. The rung is shown in its own column so
-# the cross-rung nature of the comparison is visible rather than implied.
+# `det_rungs` is a **named** vector, detector -> the rung to read it at. It
+# stays per detector because a comparison may still need to cross rungs, but it
+# no longer has to for the runway and block families: `events_v0.2.0` retains
+# `ATOT`/`ALDT`/`AOBT`/`AIBT` alongside their successors, so both sides of those
+# comparisons exist on the shipped rung and are read there. The rung column is
+# kept so that when a table *is* cross-rung the reader can see it.
+# Which APDF milestone each detector is scored against. The ladder carries one
+# row per (rung, det_type, milestone) -- four milestones per detector -- and all
+# but one of them is the detector scored against a quantity it never emits, so
+# its coverage is a legitimate 0%. Selecting on det_type alone and taking the
+# first row therefore reports that 0% as the detector's result, which is what an
+# earlier draft of this paper did: `airborne` was shown at 0.00% against a
+# `n truth` of 11,657 -- the *arrivals* count -- while its real departure
+# coverage was 76.6%.
+MILESTONE_OF <- c(airborne = "ATOT", touchdown = "ALDT",
+                  `off-block` = "AOBT", `on-block` = "AIBT",
+                  ATOT = "ATOT", ALDT = "ALDT", AOBT = "AOBT", AIBT = "AIBT",
+                  `take-off` = "ATOT", landing = "ALDT")
+
 score_table <- function(det_rungs, what = "This comparison") {
-  need <- c("rung", "det_type", "n_truth", "coverage_pct", "bias_s", "mad_s",
-            "p90_abs_s", "within_60s_pct")
+  need <- c("rung", "det_type", "milestone", "n_truth", "coverage_pct", "bias_s",
+            "mad_s", "p90_abs_s", "within_60s_pct")
   if (!has(lad, need)) return(invisible(pending(what)))
   types <- names(det_rungs)
-  rows <- lapply(types, function(t)
-    lad[lad$det_type == t & lad$rung == det_rungs[[t]], , drop = FALSE])
+  rows <- lapply(types, function(t) {
+    d <- lad[lad$det_type == t & lad$rung == det_rungs[[t]], , drop = FALSE]
+    m <- MILESTONE_OF[[t]]
+    if (!is.null(m) && "milestone" %in% names(d)) {
+      keep <- d[d$milestone == m, , drop = FALSE]
+      if (nrow(keep)) d <- keep
+    }
+    d
+  })
   if (all(vapply(rows, nrow, 0L) == 0L)) return(invisible(pending(what)))
   cat("| Detector | Rung | n truth | Coverage | Bias | MAD | p90 | within 60 s |\n")
   cat("|---|---|---:|---:|---:|---:|---:|---:|\n")
@@ -222,6 +249,15 @@ rung_table <- function(det_type, what = "The rung progression") {
   need <- c("rung", "det_type", "coverage_pct", "bias_s", "mad_s", "p90_abs_s")
   if (!has(lad, need)) return(invisible(pending(what)))
   d <- lad[lad$det_type == det_type, , drop = FALSE]
+  # Same milestone restriction as `score_table`, and for the same reason:
+  # without it every rung appears once per milestone, three of the four rows
+  # being the detector scored against a quantity it does not emit -- a table of
+  # repeated rungs with empty cells.
+  m <- MILESTONE_OF[[det_type]]
+  if (!is.null(m) && "milestone" %in% names(d)) {
+    keep <- d[d$milestone == m, , drop = FALSE]
+    if (nrow(keep)) d <- keep
+  }
   if (nrow(d) == 0) return(invisible(pending(what)))
   d <- d[order(d$rung), , drop = FALSE]
   cat("| Rung | Coverage | Bias | MAD | p90 |\n|---|---:|---:|---:|---:|\n")
@@ -874,13 +910,13 @@ with `first`/`last` inside a `groupBy`, which take partition order.
 
 | Parameter | Value | Source | Governs |
 |---|---|---|---|
-| `airport_trace_gap_seconds` | 300 s | published | when a traversal is considered ended |
-| `runway_align_max_deg` | 30° | ours | alignment tolerance for departure/arrival |
-| `runway_cross_min_deg` | 45° | ours | minimum angle for a crossing; the gap to 30° is the abstention band |
-| `runway_roll_speed_kt` | 50 kt | ours | rolling rather than taxiing |
-| `runway_taxi_speed_kt` | 40 kt | ours | ceiling for a taxiing crossing |
-| `runway_crossing_max_seconds` | 120 s | ours | longest traversal still readable as a crossing |
-| `runway_airborne_height_ft` | 15 ft | ours | the height that separates on-deck from airborne |
+| `airport trace gap seconds` | 300 s | published | when a traversal is considered ended |
+| `runway align max deg` | 30° | ours | alignment tolerance for departure/arrival |
+| `runway cross min deg` | 45° | ours | minimum angle for a crossing; the gap to 30° is the abstention band |
+| `runway roll speed kt` | 50 kt | ours | rolling rather than taxiing |
+| `runway taxi speed kt` | 40 kt | ours | ceiling for a taxiing crossing |
+| `runway crossing max seconds` | 120 s | ours | longest traversal still readable as a crossing |
+| `runway airborne height ft` | 15 ft | ours | the height that separates on-deck from airborne |
 | H3 resolution | 12 | `H3Config` | matching granularity |
 
 ```{r tbl-lineup-inv}
@@ -933,9 +969,9 @@ observed. A gap longer than `ROLL_MAX_GAP_SECONDS` therefore breaks the run.
 
 | Parameter | Value | Source | Governs |
 |---|---|---|---|
-| `runway_roll_speed_kt` | 50 kt | ours | rolling rather than taxiing; between taxi (~20 kt) and rotation (~140 kt) |
-| `runway_roll_min_seconds` | 5 s | ours | how long the speed must be held before the run is credible |
-| `ROLL_MAX_GAP_SECONDS` | 30 s | ours (module constant) | longest gap a roll may span — six times the nominal 5 s cadence |
+| `runway roll speed kt` | 50 kt | ours | rolling rather than taxiing; between taxi (~20 kt) and rotation (~140 kt) |
+| `runway roll min seconds` | 5 s | ours | how long the speed must be held before the run is credible |
+| `ROLL MAX GAP SECONDS` | 30 s | ours (module constant) | longest gap a roll may span — six times the nominal 5 s cadence |
 
 `ROLL_MAX_GAP_SECONDS` is a module constant rather than an `EventConfig` field,
 which is an inconsistency with the rest of this document and is recorded as one
@@ -987,8 +1023,8 @@ in the same direction is not noise a larger sample averages away.
 
 | Parameter | Value | Source | Governs |
 |---|---|---|---|
-| `runway_airborne_height_ft` | 15 ft | ours | the height taken as wheels-off |
-| `AIRBORNE_HYSTERESIS_FT` | 5 ft | ours (module constant) | dead band, so a rotation that settles briefly does not emit a second `airborne` |
+| `runway airborne height ft` | 15 ft | ours | the height taken as wheels-off |
+| `AIRBORNE HYSTERESIS FT` | 5 ft | ours (module constant) | dead band, so a rotation that settles briefly does not emit a second `airborne` |
 | plus the traversal parameters | — | — | see [Line-up] |
 
 Fifteen feet rather than zero because barometric altitude at the field is noisy
@@ -1000,16 +1036,18 @@ wheels-off, not a claim to have measured the wheels.
 ```{r tbl-airborne}
 #| echo: false
 #| results: asis
-score_table(c(ATOT = BASE, airborne = SHIPPED), what = "The airborne comparison")
+score_table(c(ATOT = SHIPPED, airborne = SHIPPED), what = "The airborne comparison")
 ```
 
-**The table above is deliberately cross-rung**, and the rung column says so.
-`ATOT` and `airborne` never coexist: `emit_runway_milestones` emits the second
-and gates off the first, so a single-rung table would draw the successor alone
-and the head-to-head this chapter promises would quietly not be there. `ATOT`
-is therefore read at `V00_v3_shipped`, the rung that reproduces what V3
-shipped, and `airborne` at `V07_shipped`. Same trajectories, same reference,
-two definitions of the same instant.
+**Both rows are the same rung, and that is the point.** An earlier draft read
+`ATOT` at `V00_v3_shipped` and `airborne` at `V07_shipped`, because the two were
+expected never to coexist -- the flag that emitted one was to gate off the
+other. `events_v0.2.0` retains both (see
+[`ATOT`/`ALDT` are retained, not retired]), so the comparison no longer has to
+cross rungs: same run, same trajectories, same reference, two definitions of the
+same instant. That also removes the trap in the cross-rung form, which was to
+invite comparison against whatever *other* sample the baseline rung happened to
+be measured on.
 
 ```{r tbl-airborne-rungs}
 #| echo: false
@@ -1073,9 +1111,9 @@ module constants applies to it too.
 
 | Parameter | Value | Source | Governs |
 |---|---|---|---|
-| `runway_airborne_height_ft` | 15 ft | ours | floor below which a threshold crossing is ground movement, not a landing |
-| `THRESHOLD_PLANE_HYSTERESIS_NM` | 0.05 NM | ours (module constant) | dead band on confirmation; ~304 ft, about 1.3 s at approach speed |
-| `ARRIVAL_LEAD_SECONDS` | 60 s | ours (module constant) | how far before the traversal's entry the arrival sample window reaches, so the pre-threshold sample exists |
+| `runway airborne height ft` | 15 ft | ours | floor below which a threshold crossing is ground movement, not a landing |
+| `THRESHOLD PLANE HYSTERESIS NM` | 0.05 NM | ours (module constant) | dead band on confirmation; ~304 ft, about 1.3 s at approach speed |
+| `ARRIVAL LEAD SECONDS` | 60 s | ours (module constant) | how far before the traversal's entry the arrival sample window reaches, so the pre-threshold sample exists |
 | plus the traversal parameters | — | — | see [Line-up] |
 
 The dead band's width does not decide the reported instant, which is worth
@@ -1142,7 +1180,7 @@ one gates off the other.
 ```{r tbl-touchdown}
 #| echo: false
 #| results: asis
-score_table(c(ALDT = BASE, touchdown = SHIPPED), what = "The touchdown comparison")
+score_table(c(ALDT = SHIPPED, touchdown = SHIPPED), what = "The touchdown comparison")
 ```
 
 ```{r tbl-touchdown-rungs}
@@ -1258,12 +1296,12 @@ machinery.
 
 | Parameter | Value | Source | Governs |
 |---|---|---|---|
-| `goaround_trigger_height_ft` | 500 ft | ours | how low the approach must get to count as one |
-| `goaround_recovery_height_ft` | 1,500 ft | ours | how high the climb-away must reach |
-| `goaround_min_roc_ftmin` | 500 ft/min | ours | separates a climb away from a stopped descent |
-| `goaround_radius_nm` | 10 NM | ours | how close to the aerodrome the excursion must happen |
-| `GOAROUND_HYSTERESIS_FT` | 50 ft | ours (module constant) | dead band on both heights, so a level-off at 500 ft does not toggle repeatedly |
-| `runway_airborne_height_ft` | 15 ft | ours | the touchdown suppression |
+| `goaround trigger height ft` | 500 ft | ours | how low the approach must get to count as one |
+| `goaround recovery height ft` | 1,500 ft | ours | how high the climb-away must reach |
+| `goaround min roc ftmin` | 500 ft/min | ours | separates a climb away from a stopped descent |
+| `goaround radius nm` | 10 NM | ours | how close to the aerodrome the excursion must happen |
+| `GOAROUND HYSTERESIS FT` | 50 ft | ours (module constant) | dead band on both heights, so a level-off at 500 ft does not toggle repeatedly |
+| `runway airborne height ft` | 15 ft | ours | the touchdown suppression |
 
 ```{r tbl-goaround-inv}
 #| echo: false
@@ -1314,10 +1352,10 @@ to a movement count by accident.
 
 | Parameter | Value | Source | Governs |
 |---|---|---|---|
-| `runway_cross_min_deg` | 45° | ours | minimum angle off the bearing |
-| `runway_taxi_speed_kt` | 40 kt | ours | speed ceiling |
-| `runway_crossing_max_seconds` | 120 s | ours | duration ceiling; a hold on the runway is not a crossing |
-| `runway_airborne_height_ft` | 15 ft | ours | both ends must be on the deck |
+| `runway cross min deg` | 45° | ours | minimum angle off the bearing |
+| `runway taxi speed kt` | 40 kt | ours | speed ceiling |
+| `runway crossing max seconds` | 120 s | ours | duration ceiling; a hold on the runway is not a crossing |
+| `runway airborne height ft` | 15 ft | ours | both ends must be on the deck |
 
 ```{r tbl-crossing-inv}
 #| echo: false
@@ -1374,15 +1412,15 @@ serialisation to an executor.
 
 | Parameter | Value | Source | Governs |
 |---|---|---|---|
-| `ground_speed_threshold_kt` | 2 kt | `traffic` | what counts as moving |
-| `ground_move_min_seconds` | 30 s | `traffic` | how long movement must persist |
+| `ground speed threshold kt` | 2 kt | `traffic` | what counts as moving |
+| `ground move min seconds` | 30 s | `traffic` | how long movement must persist |
 
 **Compared with reference data.** Scored against APDF's AOBT and AIBT.
 
 ```{r tbl-blocks}
 #| echo: false
 #| results: asis
-score_table(c(AOBT = BASE, AIBT = BASE, "off-block" = SHIPPED, "on-block" = SHIPPED),
+score_table(c(AOBT = SHIPPED, AIBT = SHIPPED, "off-block" = SHIPPED, "on-block" = SHIPPED),
             what = "The block-time comparison")
 ```
 
@@ -1475,13 +1513,13 @@ would drop every flight under about 400 NM, which is most of them.
 
 | Parameter | Value | Source | Governs |
 |---|---|---|---|
-| `level_analysis_radius_nm` | 200 NM | PRU | the ring bounding the analysis |
-| `level_exclusion_box_pct` | 90% | PRU | lower edge of the exclusion box |
-| `level_exclusion_box_seconds` | 300 s | PRU | duration above which a segment in the box is cruise |
-| `emit_pru_tops` | on | ours | whether the PRU pair is emitted alongside the phase pair |
-| `level_anchor` | `pru` | ours | which pair anchors the level-off classification |
-| `phase_cruise_speed_kt` | 600 kt | OpenAP | centre of the phase cruise-speed membership |
-| `phase_cruise_speed_sigma_kt` | 100 kt | OpenAP | its width |
+| `level analysis radius nm` | 200 NM | PRU | the ring bounding the analysis |
+| `level exclusion box pct` | 90% | PRU | lower edge of the exclusion box |
+| `level exclusion box seconds` | 300 s | PRU | duration above which a segment in the box is cruise |
+| `emit pru tops` | on | ours | whether the PRU pair is emitted alongside the phase pair |
+| `level anchor` | `pru` | ours | which pair anchors the level-off classification |
+| `phase cruise speed kt` | 600 kt | OpenAP | centre of the phase cruise-speed membership |
+| `phase cruise speed sigma kt` | 100 kt | OpenAP | its width |
 
 ```{r tbl-tops-inv}
 #| echo: false
@@ -1588,19 +1626,19 @@ measures both against the field.
 
 | Parameter | Value | Source | Governs |
 |---|---|---|---|
-| `level_method` | `pru` | ours | which arm runs |
-| `level_window_seconds` | 10 s | PRU | temporal size of the rolling window |
-| `level_vertical_speed_limit_ftmin` | 300 ft/min | PRU / ICAO | the Y/X ratio, and the ICAO arm's rate limit |
-| `level_window_height_ft` | 50 ft | derived | the window's height at a 10 s window |
-| `level_band_limit_ft` | 200 ft | ICAO | the ICAO arm's altitude band |
-| `level_min_duration_seconds` | 20 s | PRU / ICAO | shortest reportable segment |
-| `level_min_altitude_climb_ft` | 3,000 ft AGL | PRU / ICAO | where climb analysis starts |
-| `level_min_altitude_descent_ft` | 1,800 ft AGL | PRU / ICAO | where descent analysis stops |
-| `level_floors_above_field` | on | ours | whether those two are AGL or above the 1013.25 hPa datum |
-| `level_analysis_radius_nm` | 200 NM | PRU | radius around the aerodrome analysed |
-| `level_radius_enforced` | on | ours | whether that radius binds at all; off reproduces v0.1.0, which declared it and read it nowhere |
-| `level_exclusion_box_pct` | 90% | PRU / ICAO | lower edge of the cruise exclusion |
-| `level_exclusion_box_seconds` | 300 s | PRU / ICAO | duration above which a high segment is cruise |
+| `level method` | `pru` | ours | which arm runs |
+| `level window seconds` | 10 s | PRU | temporal size of the rolling window |
+| `level vertical speed limit ftmin` | 300 ft/min | PRU / ICAO | the Y/X ratio, and the ICAO arm's rate limit |
+| `level window height ft` | 50 ft | derived | the window's height at a 10 s window |
+| `level band limit ft` | 200 ft | ICAO | the ICAO arm's altitude band |
+| `level min duration seconds` | 20 s | PRU / ICAO | shortest reportable segment |
+| `level min altitude climb ft` | 3,000 ft AGL | PRU / ICAO | where climb analysis starts |
+| `level min altitude descent ft` | 1,800 ft AGL | PRU / ICAO | where descent analysis stops |
+| `level floors above field` | on | ours | whether those two are AGL or above the 1013.25 hPa datum |
+| `level analysis radius nm` | 200 NM | PRU | radius around the aerodrome analysed |
+| `level radius enforced` | on | ours | whether that radius binds at all; off reproduces v0.1.0, which declared it and read it nowhere |
+| `level exclusion box pct` | 90% | PRU / ICAO | lower edge of the cruise exclusion |
+| `level exclusion box seconds` | 300 s | PRU / ICAO | duration above which a high segment is cruise |
 
 **None of the published values must be tuned.** They are PRU's and ICAO's, and
 tuning them forfeits the only claim this family can make — conformance to a
@@ -1710,10 +1748,10 @@ reporting every crossing usable at all.
 
 | Parameter | Value | Source | Governs |
 |---|---|---|---|
-| `crossing_levels_fl` | 50, 70, 100, 245 | published vocabulary | which levels are monitored |
-| `crossing_hysteresis_ft` | 300 ft | ours | chatter suppression vs missed crossings |
-| `crossing_all_occurrences` | on | ours | every crossing rather than first and last |
-| `crossing_interpolate` | on | ours | interpolate to the level rather than report a sample |
+| `crossing levels fl` | 50, 70, 100, 245 | published vocabulary | which levels are monitored |
+| `crossing hysteresis ft` | 300 ft | ours | chatter suppression vs missed crossings |
+| `crossing all occurrences` | on | ours | every crossing rather than first and last |
+| `crossing interpolate` | on | ours | interpolate to the level rather than report a sample |
 
 Each event carries `crossing_seq` (1-based, in time order), `direction`, and
 `bracket_s` — the spacing of the two interpolated-between samples, so a
@@ -1770,9 +1808,9 @@ interpolated alongside it. A bearing is circular: averaging 359 and 1 gives
 
 | Parameter | Value | Source | Governs |
 |---|---|---|---|
-| `ring_radii_nm` | 40, 100 NM | ICAO | which cylinders |
-| `ring_hysteresis_nm` | 1 NM | ours | chatter suppression for a track flying tangentially |
-| `crossing_interpolate` | on | ours | shared with the level crossings |
+| `ring radii nm` | 40, 100 NM | ICAO | which cylinders |
+| `ring hysteresis nm` | 1 NM | ours | chatter suppression for a track flying tangentially |
+| `crossing interpolate` | on | ours | shared with the level crossings |
 
 `info` carries `crossing_seq`, `direction` (inbound/outbound), `apt_icao`,
 `bearing` and `flight_level`, matching `C40_CROSS_{TIME,LAT,LON,FL}` and
@@ -1855,11 +1893,11 @@ select.
 
 | Parameter | Value | Source | Governs |
 |---|---|---|---|
-| `airport_gate_above_field` | on | ours | whether the gate is AGL or against the 1013.25 datum |
-| `airport_max_height_agl_ft` | 2,000 ft | ours | the gate's value when it is AGL |
-| `airport_max_fl` | FL20 | published | the gate's value when it is not |
-| `airport_trace_gap_seconds` | 300 s | published | when a traversal is considered ended |
-| `airport_events_ordered` | on | ours | attributes taken at the entry/exit *times* |
+| `airport gate above field` | on | ours | whether the gate is AGL or against the 1013.25 datum |
+| `airport max height agl ft` | 2,000 ft | ours | the gate's value when it is AGL |
+| `airport max fl` | FL20 | published | the gate's value when it is not |
+| `airport trace gap seconds` | 300 s | published | when a traversal is considered ended |
+| `airport events ordered` | on | ours | attributes taken at the entry/exit *times* |
 | H3 resolution | 12 | `H3Config` | matching granularity |
 
 `airport_events_ordered` is a correctness fix, not a tuning knob: the published
