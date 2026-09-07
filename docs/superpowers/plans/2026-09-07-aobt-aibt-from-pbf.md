@@ -709,7 +709,7 @@ comparison is a set operation rather than a tolerance.
 Run:
     .venv310/bin/python benchmarks/compare_layout_sources.py \
         --pbf /home/jupyter/work/osm/europe-latest.osm.pbf \
-        --parts /home/jupyter/.claude/jobs/f9b282a2/tmp/osm_parts \
+        --parts /home/jupyter/work/osm/overpass_baseline \
         --airports EBBR LSZH EICK EGGD
 """
 import argparse
@@ -764,15 +764,39 @@ if __name__ == "__main__":
     raise SystemExit(main())
 ```
 
-- [ ] **Step 2: Run it on four aerodromes of different sizes**
+- [ ] **Step 2: Run it on every aerodrome that has a baseline**
+
+Not four. **Fifteen** — every Overpass baseline that survives from the
+flight-events-v4 campaign. The extra fourteen are nearly free: the source pays
+~18 minutes once to read the extract, then answers each airport in about a
+millisecond, so restricting the comparison buys nothing and costs coverage.
 
 ```bash
 cd /home/jupyter/work/opdi-workspace/opdi
 .venv310/bin/python benchmarks/compare_layout_sources.py \
   --pbf /home/jupyter/work/osm/europe-latest.osm.pbf \
-  --parts /home/jupyter/.claude/jobs/f9b282a2/tmp/osm_parts \
-  --airports EBBR LSZH EICK EGGD
+  --parts /home/jupyter/work/osm/overpass_baseline \
+  --airports EBBR EDDS EFHK EGGD EICK ENVA ESSA LEIB LFLL LFPO LHBP LKPR LOWW LPFR LSZH
 ```
+
+**Fifteen is also what makes all seven families testable.** Measured over the
+baselines:
+
+| family | baseline cells | aerodromes carrying it |
+|---|---|---|
+| taxiway | 60,102 | all 15 |
+| apron | 31,155 | all 15 |
+| parking_position | 26,011 | all 15 |
+| runway | 20,674 | all 15 |
+| hangar | 2,304 | 12 |
+| threshold | 183 | 8 — EBBR EDDS EGGD EICK ENVA LHBP LPFR LSZH |
+| deicing_pad | 164 | **2 — EBBR and EDDS only** |
+
+`threshold` and `deicing_pad` do not exist in the Luxembourg extract, so Tasks
+2-4 never exercised them. **This is the only point in the plan where either is
+checked before it reaches the published table**, and `deicing_pad` rests
+entirely on EBBR and EDDS. Dropping either airport from the run silently
+removes a whole family from the acceptance gate.
 
 - [ ] **Step 3: Judge the result against a stated bar**
 
