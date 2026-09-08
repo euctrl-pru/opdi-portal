@@ -320,6 +320,33 @@ pooled_cov <- function(milestone) {
   100 * sum(as.numeric(d$n_detected), na.rm = TRUE) / t
 }
 
+# One (aerodrome, det_type, milestone) coverage cell from
+# per_airport_by_detector_2026.csv.
+perd_val <- function(apt, det, milestone, field = "coverage_pct") {
+  if (!has(perd, c("gt_airport", "det_type", "milestone", field))) return(NA)
+  d <- perd[perd$gt_airport == apt & perd$det_type == det &
+              perd$milestone == milestone, , drop = FALSE]
+  if (nrow(d) == 0) return(NA)
+  d[[field]][1]
+}
+
+# Per-aerodrome coverage comparison between two detectors scored against the
+# same APDF milestone, over every aerodrome carrying both. Ties are counted
+# separately rather than folded into either side, because folding them changes
+# the count depending on which way you fold -- which is exactly the kind of
+# silent drift an inline count is supposed to prevent.
+pair_compare <- function(det_a, det_b, milestone) {
+  if (!has(perd, c("gt_airport", "det_type", "milestone", "coverage_pct")))
+    return(list(a_gt = NA, tie = NA, b_gt = NA, n = NA, a_wins = character(0)))
+  apts <- sort(unique(perd$gt_airport))
+  a <- vapply(apts, function(x) num(perd_val(x, det_a, milestone)), numeric(1))
+  b <- vapply(apts, function(x) num(perd_val(x, det_b, milestone)), numeric(1))
+  ok <- !is.na(a) & !is.na(b)
+  list(a_gt = sum(a[ok] > b[ok]), tie = sum(a[ok] == b[ok]),
+       b_gt = sum(b[ok] > a[ok]), n = sum(ok),
+       a_wins = apts[ok][a[ok] > b[ok]])
+}
+
 airport_table <- function(milestone, what = "This annex table") {
   need <- c("gt_airport", "milestone", "n_truth", "n_detected", "coverage_pct",
             "bias_s", "mad_s", "p90_abs_s", "within_60s_pct")
@@ -1588,6 +1615,16 @@ fix is worth roughly six points of the twenty-point gap between "~1%" and
 where this family now stands — the larger of the two fixes, and the one this
 chapter previously did not credit at all.**
 
+**A labelling note, not a hedge: every "before" figure in this section —
+7.30%/6.58% pooled, and the per-aerodrome before-values below — is a fixed
+number, not something computed from a file in `data/`.** It was measured by
+the run that immediately preceded this rebuild, and that run's own output
+CSVs were overwritten when this rebuild's results were staged, so nothing
+currently in this directory can reproduce it. Do not point these at
+`sc()`/`apt_val()`/`pera` in a future edit: the files those read now hold the
+*after* measurement, and doing so would silently relabel a before-value as an
+after-value under the same "before" text.
+
 The geometry rebuild measured here — the published table growing to 1,036
 aerodromes, all twenty study aerodromes now carrying parking-position cells —
 adds a further `r pct(sc("off-block","coverage_pct"))` pooled AOBT coverage
@@ -1597,6 +1634,12 @@ two points, not the step change the plan predicted.**
 ```{r tbl-blocks-geometry}
 #| echo: false
 #| results: asis
+# `before` is hardcoded on purpose, not a shortcut: it is the pooled/per-
+# aerodrome coverage from the run that preceded this rebuild, and that run's
+# CSVs were overwritten when this one was staged into data/. There is no file
+# left to read it from. Do NOT replace this with apt_val()/pera calls -- pera
+# now holds the *after* measurement, and doing so would relabel it as a
+# before-value while it silently became the same number twice.
 if (has(pera, c("gt_airport", "milestone", "coverage_pct", "n_detected"))) {
   cat("| Aerodrome | AOBT before | AOBT after | AIBT before | AIBT after |\n")
   cat("|---|---:|---:|---:|---:|\n")
@@ -2702,10 +2745,19 @@ det_pair_table("ATOT", c("ATOT", "airborne"), "The per-detector ATOT table")
 det_pair_table("ALDT", c("ALDT", "touchdown"), "The per-detector ALDT table")
 ```
 
-**What these two tables say.** On departures `airborne` beats `ATOT` on coverage
-at **four of the twenty** aerodromes, and where it does the gap is not marginal:
-LOWW **92.1% against 50.7%**, LEIB **94.2% against 71.5%**. At the other sixteen
-`ATOT` is ahead. On arrivals `touchdown` beats `ALDT` at **none** of the twenty.
+**What these two tables say.** On departures `airborne` beats `ATOT` on
+coverage (strictly greater) at
+**`r pair_compare("airborne","ATOT","ATOT")$a_gt` of the twenty** aerodromes,
+and where it does the gap is not marginal: LOWW
+**`r pct(perd_val("LOWW","airborne","ATOT"),1)` against
+`r pct(perd_val("LOWW","ATOT","ATOT"),1)`**, LEIB
+**`r pct(perd_val("LEIB","airborne","ATOT"),1)` against
+`r pct(perd_val("LEIB","ATOT","ATOT"),1)`**. The two tie exactly at
+**`r pair_compare("airborne","ATOT","ATOT")$tie`** more (LFLL, LSZH, UGKO), and
+`ATOT` is strictly ahead at the remaining
+**`r pair_compare("airborne","ATOT","ATOT")$b_gt`**. On arrivals `touchdown`
+beats `ALDT` (strictly greater) at
+**`r pair_compare("touchdown","ALDT","ALDT")$a_gt`** of the twenty.
 
 That is the whole case for publishing both, stated precisely. It is not that the
 A-CDM family is better; on this sample it is not. It is that `ATOT` collapses at
