@@ -290,6 +290,36 @@ truth_resolution <- function(apt, milestone) {
   if (share >= 0.5) "second" else "minute"
 }
 
+# One aerodrome's value for one milestone/field from per_airport_2026.csv --
+# used inline in prose so a per-aerodrome claim reads the same file the annex
+# tables do, rather than a number copied out of it by hand.
+apt_val <- function(apt, milestone, field) {
+  if (!has(pera, c("gt_airport", "milestone", field))) return(NA)
+  d <- pera[pera$gt_airport == apt & pera$milestone == milestone, , drop = FALSE]
+  if (nrow(d) == 0) return(NA)
+  d[[field]][1]
+}
+
+# One (rule, milestone) cell from pooling_rules_2026.csv.
+prule_val <- function(rule, milestone, field) {
+  if (!has(prules, c("rule", "milestone", field))) return(NA)
+  d <- prules[prules$rule == rule & prules$milestone == milestone, , drop = FALSE]
+  if (nrow(d) == 0) return(NA)
+  d[[field]][1]
+}
+
+# Pooled "either detector answered it" coverage for one APDF milestone, summed
+# over aerodromes from per_airport_2026.csv -- the same computation tbl-union
+# draws its table from, exposed as a value so prose can read it inline instead
+# of a number copied out of that table by hand.
+pooled_cov <- function(milestone) {
+  if (!has(pera, c("milestone", "n_detected", "n_truth"))) return(NA)
+  d <- pera[pera$milestone == milestone, , drop = FALSE]
+  t <- sum(as.numeric(d$n_truth), na.rm = TRUE)
+  if (!is.finite(t) || t <= 0) return(NA)
+  100 * sum(as.numeric(d$n_detected), na.rm = TRUE) / t
+}
+
 airport_table <- function(milestone, what = "This annex table") {
   need <- c("gt_airport", "milestone", "n_truth", "n_detected", "coverage_pct",
             "bias_s", "mad_s", "p90_abs_s", "within_60s_pct")
@@ -476,18 +506,23 @@ if (has(pera, c("gt_airport", "milestone", "n_detected", "n_truth"))) {
 ```
 
 **Read against the same sample, the older pair is the stronger of the two on
-coverage.** On these three days `ATOT` alone answers 89.8% of reachable
-departures and `ALDT` 95.9% of arrivals, against 76.6% and 80.4% for
-`airborne` and `touchdown`. The A-CDM family was designed to supersede them and
-on this evidence it does not: it sees the aircraft at 15 ft, and there are
-movements where nothing is received that low.
+coverage.** On these three days `ATOT` alone answers
+`r pct(sc("ATOT","coverage_pct"),1)` of reachable departures and `ALDT`
+`r pct(sc("ALDT","coverage_pct"),1)` of arrivals, against
+`r pct(sc("airborne","coverage_pct"),1)` and
+`r pct(sc("touchdown","coverage_pct"),1)` for `airborne` and `touchdown`. The
+A-CDM family was designed to supersede them and on this evidence it does not:
+it sees the aircraft at 15 ft, and there are movements where nothing is
+received that low.
 
 **Pooling still pays, but only on departures, and by less than a first reading
-of this table suggests.** The pooled figure gains **+6.4 points over `ATOT`**
-because the two methods fail on different flights --- where reception is too
-thin for the 15 ft crossing, the 1,500 ft climb window still resolves the
-movement, and where that window's gates reject a trajectory the runway
-traversal sometimes still carries it. On arrivals the gain is **+0.1 point**:
+of this table suggests.** The pooled figure gains
+**`r sprintf("%+.1f", pooled_cov("ATOT") - sc("ATOT","coverage_pct"))` points
+over `ATOT`** because the two methods fail on different flights --- where
+reception is too thin for the 15 ft crossing, the 1,500 ft climb window still
+resolves the movement, and where that window's gates reject a trajectory the
+runway traversal sometimes still carries it. On arrivals the gain is
+**`r sprintf("%+.2f", pooled_cov("ALDT") - sc("ALDT","coverage_pct"))` points**:
 `ALDT` already answers almost everything reachable, and `touchdown` adds
 essentially nothing a consumer could not already get.
 
@@ -541,26 +576,41 @@ if (has(prules, c("rule", "milestone", "coverage_pct", "bias_s", "mad_s"))) {
 ```
 
 **Coverage does not depend on the order, and cannot.** A movement is answered if
-*either* detector answered it, so both rules reach the same 96.2% of departures
-and 96.0% of arrivals. Choosing a leader is therefore purely an accuracy
-decision, with no coverage cost either way --- which is the useful thing to know
-before making it.
+*either* detector answered it, so both rules reach the same
+`r pct(prule_val("legacy_first","ATOT","coverage_pct"),1)` of departures and
+`r pct(prule_val("legacy_first","ALDT","coverage_pct"),1)` of arrivals.
+Choosing a leader is therefore purely an accuracy decision, with no coverage
+cost either way --- which is the useful thing to know before making it.
 
 **Prefer the older detector, fall back to the A-CDM one.** On departures the two
-rules tie on median bias, both at +25 s --- the reference's minute-rounding
-dominates --- so the discriminating column is the tight one: `ATOT`-first puts
-**30.9%** of departures within ten seconds against A-CDM-first's **24.7%**. On
-arrivals `ALDT`-first is better on spread (**MAD 15 s against 18 s**, within ten
-seconds **41.1% against 25.5%**) even though A-CDM-first has the smaller median
-bias (−2.4 s against +5.0 s). A median closer to zero with a wider spread is the
-worse instrument: it is right on average and less often right on the movement.
+rules tie on median bias, both at
+`r sec(prule_val("legacy_first","ATOT","bias_s"))` --- the reference's
+minute-rounding dominates --- so the discriminating column is the tight one:
+`ATOT`-first puts **`r pct(prule_val("legacy_first","ATOT","within_10s_pct"),1)`**
+of departures within ten seconds against A-CDM-first's
+**`r pct(prule_val("acdm_first","ATOT","within_10s_pct"),1)`**. On arrivals
+`ALDT`-first is better on spread (**MAD
+`r absec(prule_val("legacy_first","ALDT","mad_s"))` against
+`r absec(prule_val("acdm_first","ALDT","mad_s"))`**, within ten seconds
+**`r pct(prule_val("legacy_first","ALDT","within_10s_pct"),1)` against
+`r pct(prule_val("acdm_first","ALDT","within_10s_pct"),1)`**) even though
+A-CDM-first has the smaller median bias
+(`r sec(prule_val("acdm_first","ALDT","bias_s"),1)` against
+`r sec(prule_val("legacy_first","ALDT","bias_s"),1)`). A median closer to zero
+with a wider spread is the worse instrument: it is right on average and less
+often right on the movement.
 
 **The gap to the oracle says how much a cleverer rule could win.** On departures
-almost nothing --- 31.7% within ten seconds against the rule's 30.9%, so a
-per-movement chooser would buy under a point. On arrivals it is real: 49.5%
-against 41.1%. Something decidable at publication time --- reception density at
-the aerodrome, or whether the traversal carried a surface sample --- might close
-part of that, and this study does not attempt it.
+almost nothing ---
+`r pct(prule_val("oracle_nearest","ATOT","within_10s_pct"),1)` within ten
+seconds against the rule's
+`r pct(prule_val("legacy_first","ATOT","within_10s_pct"),1)`, so a
+per-movement chooser would buy under a point. On arrivals it is real:
+`r pct(prule_val("oracle_nearest","ALDT","within_10s_pct"),1)` against
+`r pct(prule_val("legacy_first","ALDT","within_10s_pct"),1)`. Something
+decidable at publication time --- reception density at the aerodrome, or
+whether the traversal carried a surface sample --- might close part of that,
+and this study does not attempt it.
 
 Three properties of this study bound every number in it, and they are stated
 here rather than in a footnote.
@@ -1503,29 +1553,162 @@ score_table(c(AOBT = SHIPPED, AIBT = SHIPPED, "off-block" = SHIPPED, "on-block" 
             what = "The block-time comparison")
 ```
 
-The table is cross-rung for the same reason as [Airborne]: `AOBT`/`AIBT` and
-`off-block`/`on-block` are one detector under two names, and the vocabulary
-flag that publishes the second set gates off the first. `AOBT`/`AIBT` are read
-at `V00_v3_shipped` and their renamed successors at `V07_shipped`, so the four
-rows should agree to within the rung's other changes — a disagreement between
-them would mean something *other* than the rename moved the block times, which
-is worth seeing.
+**All four rows are the same rung, and that is the point** — the same
+correction made in [Airborne]. `events_v0.2.0` retains `AOBT`/`AIBT` alongside
+`off-block`/`on-block`, so nothing forces this comparison across rungs any
+more; all four are read at `V07_shipped`, and the pairs agree because they are
+the same detector under two names, not because two runs happened to agree.
 
-V3's finding on the network sample was that **coverage here is a reception
-limit, not an algorithm limit**: an aircraft on a stand is often not received at
-all, and the bias is structural rather than random, because sustained movement
-becomes detectable only once reception begins, which is typically well after
-the aircraft has left. The V4 study set is the twenty best-covered aerodromes,
-so if that reading is right, coverage here should rise substantially while the
-bias persists — the two move for different reasons. That is a falsifiable
-prediction of this study, and the `V07_shipped` rows of the table above are
-where it is settled.
+### What geometry and the ground-admission gate were each worth
 
-**Limitations.** Reception-bound at the stand, by construction. The off-block
-bias was large enough on V3's sample that these milestones were not usable for
-KPI02 or KPI13 as they stand, and nothing in V4 changes the detector. Pushback
-(T05) was not built for the same reason: it needs strictly more coverage than
-this.
+**This chapter's own plan predicted that coverage here was a reception limit,
+and that giving every study aerodrome stand geometry would lift it
+substantially.** Measured, that prediction does not hold. Two fixes landed
+ahead of this measurement, and they are not the same size.
+
+The published `hexaero_airport_layouts` table carried stand geometry for only
+fifteen aerodromes before this study, against twenty in the study set — and,
+separately from coverage, an aerodrome with no `parking_position` cells at all
+cannot anchor either milestone, since the detector requires a
+parking-position sighting on the way in or out, per [Airport surface events].
+Two aerodromes, ENVA and EGNT, recorded exactly zero AOBT and AIBT detections
+both before this rebuild and after it — evidence that whatever geometry they
+now carry is still not producing an anchor there, at least on this sample.
+Which of the remaining eighteen genuinely had no stand geometry in the old
+table, as against having some that was too sparse to matter, is not
+separately known from this measurement; what is known is the per-aerodrome
+result below, which is not the broad lift either explanation alone predicts.
+Separately, `airport_admit_on_ground` — the fix that stops in-stand ADS-B
+surface reports from being discarded at an altitude gate that ADS-B ground
+messages cannot satisfy in the first place — had already landed before this
+measurement. Its effect is visible in the *starting point*: pooled coverage
+going into this rebuild was already 7.30% (AOBT) and 6.58% (AIBT), against a
+~1% campaign baseline at nineteen of twenty aerodromes beforehand. **That gate
+fix is worth roughly six points of the twenty-point gap between "~1%" and
+where this family now stands — the larger of the two fixes, and the one this
+chapter previously did not credit at all.**
+
+The geometry rebuild measured here — the published table growing to 1,036
+aerodromes, all twenty study aerodromes now carrying parking-position cells —
+adds a further `r pct(sc("off-block","coverage_pct"))` pooled AOBT coverage
+and `r pct(sc("on-block","coverage_pct"))` AIBT, up from 7.30%/6.58%: **roughly
+two points, not the step change the plan predicted.**
+
+```{r tbl-blocks-geometry}
+#| echo: false
+#| results: asis
+if (has(pera, c("gt_airport", "milestone", "coverage_pct", "n_detected"))) {
+  cat("| Aerodrome | AOBT before | AOBT after | AIBT before | AIBT after |\n")
+  cat("|---|---:|---:|---:|---:|\n")
+  before <- list(EDDS = c(1.63, 1.05), LKPR = c(1.66, 1.95), UGKO = c(0.00, 0.00),
+                 EBBR = c(1.18, 1.58))
+  for (apt in names(before)) {
+    b <- before[[apt]]
+    cat(sprintf("| %s | %s | %s | %s | %s |\n", apt, pct(b[1]),
+                pct(apt_val(apt, "AOBT", "coverage_pct")), pct(b[2]),
+                pct(apt_val(apt, "AIBT", "coverage_pct"))))
+  }
+  cat("\n")
+} else {
+  pending("The geometry before/after table")
+}
+```
+
+**Almost all of that two-point gain is one aerodrome.** EDDS AOBT coverage
+moves from 1.63% to `r pct(apt_val("EDDS","AOBT","coverage_pct"))`
+(`r fm(apt_val("EDDS","AOBT","n_detected"))` detections against 6 before) and
+AIBT from 1.05% to `r pct(apt_val("EDDS","AIBT","coverage_pct"))`. EDDS alone
+accounts for 150 of the 210 additional AOBT detections pooled across all
+twenty aerodromes. LKPR moves from 1.66%/1.95% to
+`r pct(apt_val("LKPR","AOBT","coverage_pct"))`/`r pct(apt_val("LKPR","AIBT","coverage_pct"))`,
+and UGKO — which had zero of either milestone before, at any coverage — reaches
+`r pct(apt_val("UGKO","AOBT","coverage_pct"))` AOBT and
+`r pct(apt_val("UGKO","AIBT","coverage_pct"))` AIBT, both on a handful of
+detections. **Every other aerodrome in the study moved by a point or less,**
+including several that gained stand geometry in this rebuild for the first
+time. Two, ENVA and EGNT, are still at exactly 0.00% on both milestones.
+
+**EBBR is a case worth naming rather than leaving to be misread.** This
+rebuild's OSM extract assigns one apron feature — 445 H3 cells — to EBMB
+(Brussels Melsbroek, the co-located military aerodrome with its own
+`aeroway=aerodrome` polygon nested inside EBBR's) rather than to EBBR, where
+Overpass's geocoded place polygon had previously over-reached and claimed it.
+Since `calculate_airport_events` joins on `array_contains(sv.apt,
+hexaero_apt_icao)`, an EBBR-labelled flight parked on that apron now produces
+no off-block or on-block event at EBBR at all — correct modelling of two
+distinct aerodromes, but a real change to what EBBR's geometry contains.
+**It did not move EBBR's measured coverage**: AOBT stayed at exactly 1.18%
+(`r fm(apt_val("EBBR","AOBT","n_detected"))` detections, both before and
+after), AIBT moved from 1.58% to `r pct(apt_val("EBBR","AIBT","coverage_pct"))`
+— because EBBR was already at the reception floor with the rest of the
+non-EDDS aerodromes, not because the apron reassignment pushed it there. A
+reader comparing EBBR's Annex A row against an earlier version of this table
+should attribute the difference to that floor, not to the EBMB split.
+
+**So the residual is reception, but it is a residual, not the whole
+shortfall.** Fifteen points of the twenty-point rise from ~1% to where this
+family now stands came from a gate that was discarding ADS-B ground reports
+before they could be scored at all; roughly two more points came from
+geometry, concentrated almost entirely at one aerodrome large enough and
+well-enough OSM-mapped for the fix to matter; what neither fix touches is
+covered next, and it is the more important finding of this measurement.
+
+### The timing is the real defect, and it is not a reception problem
+
+**Both milestones carry a large, one-sided, and essentially uniform bias.**
+Pooled AOBT fires `r sec(sc("off-block","bias_s"))`
+(MAD `r absec(sc("off-block","mad_s"))`) after the reference AOBT — about
+twelve minutes late — and pooled AIBT fires
+`r sec(sc("on-block","bias_s"))` (MAD `r absec(sc("on-block","mad_s"))`)
+*before* the reference AIBT — about five minutes early. `mad_s` tracks
+`|bias_s|` closely at every aerodrome this scores, which is the signature of a
+systematic offset, not scatter: within-60-second accuracy is at or near
+0.00% almost everywhere, including at LSZH and EDDS where coverage is highest.
+The bias is present at every aerodrome regardless of how well it is covered —
+`r sec(apt_val("LSZH","AOBT","bias_s"))` at LSZH,
+`r sec(apt_val("EDDS","AOBT","bias_s"))` at EDDS,
+`r sec(apt_val("LKPR","AOBT","bias_s"))` at LKPR — which rules out reception
+density as the cause: a reception problem would be worst where coverage is
+worst, and this is not that.
+
+**The same run, the same aerodromes, contradicts a reception explanation
+directly.** At LSZH in this measurement, `ATOT` lands at
+`r sec(apt_val("LSZH","ATOT","bias_s"))` with
+`r pct(apt_val("LSZH","ATOT","within_10s_pct"))` of departures within ten
+seconds, and `ALDT` at `r sec(apt_val("LSZH","ALDT","bias_s"))`. Both read
+ADS-B surface and near-surface data at the same aerodrome, the same period,
+the same reception conditions as the block-time detector. If reception at the
+stand were the limiting factor, the runway milestones next to it would show
+the same order-of-magnitude bias. They do not.
+
+**A hypothesis, stated as one, not as a finding: the anchor is probably the
+wrong cell, not a missing one.** `calculate_block_events` anchors off-block on
+the *last* parking-position cell a track touches before it starts moving, and
+on-block on the *first* one it touches after. At an aerodrome with stands
+lining the taxiways, an aircraft pushing back and taxiing out keeps crossing
+other aircrafts' stand polygons for minutes after it has left its own — so the
+*last* cell it touches is well into the taxi, which reads as a late off-block.
+Taxiing in, the *first* stand-shaped cell it crosses is upstream of its own
+gate, which reads as an early on-block. That predicts exactly the observed
+asymmetry — late departure, early arrival — at a magnitude set by taxi
+distance rather than by reception. The fix, if this holds up, would be to
+anchor on the stand where the aircraft actually **dwelled**, not the first or
+last cell brushed in passing. That is out of scope for this measurement and
+needs its own re-run to test; it is recorded here as the most likely next
+step, not as something this study established.
+
+**Limitations.** Not reception-bound at the stand, or not only — that was this
+chapter's account until this measurement, and it is now only the residual
+after two identified fixes: an altitude gate worth roughly six points of
+coverage and a stand-geometry rebuild worth roughly two more, concentrated
+almost entirely at one aerodrome. **What neither fix touches, and what makes
+these unusable for KPI02 or KPI13 regardless of coverage, is a systematic bias
+of about twelve minutes on off-block and five minutes on on-block**, present
+at every aerodrome including the best-covered ones, and consistent with the
+detector anchoring on the wrong stand cell rather than with any reception
+limit. Pushback (T05) was not built for the same reason V3 gave and this
+measurement does not change: it needs strictly more coverage than off-block
+has, and off-block's own accuracy is not yet usable to build on.
 
 # Top of climb and top of descent
 
@@ -2205,7 +2388,7 @@ successor.
 
 | Retired type | Replaced by | Why |
 |---|---|---|
-| `take-off` | [Airborne] (T08) | fuzzy phase transition → interpolated 15 ft AGL crossing on a classified departure. V3 measured `take-off` at 0.39% of departures; `airborne` reaches 76.6% here. The two were not run on the same sample, so the gap is indicative rather than a like-for-like result — but it is three orders of magnitude, not a margin |
+| `take-off` | [Airborne] (T08) | fuzzy phase transition → interpolated 15 ft AGL crossing on a classified departure. V3 measured `take-off` at 0.39% of departures; `airborne` reaches `r pct(sc("airborne","coverage_pct"),1)` here. The two were not run on the same sample, so the gap is indicative rather than a like-for-like result — but it is three orders of magnitude, not a margin |
 | `AOBT` | [Off-block and on-block] (T04) | renamed to `off-block`; same detector |
 | `AIBT` | [Off-block and on-block] (T21) | renamed to `on-block`; same detector |
 | `entry-runway` | [Line-up], [Runway crossings] | one type conflated departures, arrivals and taxi crossings |
@@ -2219,9 +2402,11 @@ is `crossing_seq == 1`, the last is the maximum.
 ### `ATOT`/`ALDT` are retained, not retired
 
 The A-CDM `airborne`/`touchdown` were designed to *replace* `ATOT`/`ALDT`.
-On coverage they do not: measured on this sample `ATOT` answers 89.8% of
-reachable departures against `airborne`'s 76.6%, and `ALDT` 95.9% against
-`touchdown`'s 80.4%. On timing the new pair is the better of the two — at the
+On coverage they do not: measured on this sample `ATOT` answers
+`r pct(sc("ATOT","coverage_pct"),1)` of reachable departures against
+`airborne`'s `r pct(sc("airborne","coverage_pct"),1)`, and `ALDT`
+`r pct(sc("ALDT","coverage_pct"),1)` against `touchdown`'s
+`r pct(sc("touchdown","coverage_pct"),1)`. On timing the new pair is the better of the two — at the
 three aerodromes where APDF resolves to the second the takeoff instant lands
 within a few seconds of truth, against `ATOT`'s +25.0 s on this sample (+19 s
 as V3 measured it on 2025). That per-aerodrome figure pools both detectors,
@@ -2525,8 +2710,11 @@ LOWW **92.1% against 50.7%**, LEIB **94.2% against 71.5%**. At the other sixteen
 That is the whole case for publishing both, stated precisely. It is not that the
 A-CDM family is better; on this sample it is not. It is that `ATOT` collapses at
 a small number of aerodromes and `airborne` does not collapse at the same ones,
-so the pooled figure is worth **+6.4 points** on departures. On arrivals `ALDT`
-is ahead everywhere and pooling gains **+0.1 point** -- `touchdown` earns its
+so the pooled figure is worth
+**`r sprintf("%+.1f", pooled_cov("ATOT") - sc("ATOT","coverage_pct"))` points**
+on departures. On arrivals `ALDT` is ahead everywhere and pooling gains
+**`r sprintf("%+.2f", pooled_cov("ALDT") - sc("ALDT","coverage_pct"))` points**
+-- `touchdown` earns its
 place in the table on its A-CDM semantics and its 4D fix, not on adding
 answers a consumer could not otherwise get.
 

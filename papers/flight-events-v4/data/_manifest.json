@@ -28,6 +28,385 @@
     "script": "benchmarks/events_gt.py",
     "sha256_16": "909e5d8c50d168ab"
   },
+  "inventory_2026.csv": {
+    "argv": [
+      "--period",
+      "2026",
+      "--ladder",
+      "v4",
+      "--airports",
+      "study",
+      "--runs",
+      "V07_shipped",
+      "--out-name",
+      "ladder_2026.csv",
+      "--executors",
+      "10",
+      "--driver-memory",
+      "16g"
+    ],
+    "bytes": 3076,
+    "code_fingerprint": "60f58551f7ddb0d8",
+    "code_paths": [
+      "benchmarks/event_bench.py",
+      "benchmarks/events_gt.py",
+      "benchmarks/events_score.py",
+      "benchmarks/osn_sample.py",
+      "src/opdi/config.py",
+      "src/opdi/pipeline/crossings.py",
+      "src/opdi/pipeline/elevation.py",
+      "src/opdi/pipeline/events.py",
+      "src/opdi/pipeline/ground.py",
+      "src/opdi/pipeline/layout.py",
+      "src/opdi/pipeline/level_segments.py",
+      "src/opdi/pipeline/runway_ops.py",
+      "src/opdi/pipeline/runways.py",
+      "src/opdi/pipeline/vertical_pru.py",
+      "src/opdi/reference/h3_airport_layouts.py",
+      "src/opdi/reference/pbf_source.py"
+    ],
+    "git_dirty": false,
+    "git_sha": "39093a1",
+    "input_tables": {
+      "s3a://eurocontrol/opdi/hexaero_airport_layouts": {
+        "bytes": 59175242,
+        "newest": "2026-09-07T21:47:44.512000+00:00",
+        "objects": 5
+      },
+      "s3a://eurocontrol/opdi/research/flight_list_2026": {
+        "bytes": 8765228,
+        "newest": "2026-09-02T23:03:25.806000+00:00",
+        "objects": 4
+      },
+      "s3a://eurocontrol/opdi/research/reference": {
+        "bytes": 678413010,
+        "newest": "2026-08-27T20:22:25.974000+00:00",
+        "objects": 8
+      },
+      "s3a://eurocontrol/opdi/research/tracks_clean_2026": {
+        "bytes": 10589513497,
+        "newest": "2026-08-28T00:20:45.989000+00:00",
+        "objects": 201
+      }
+    },
+    "inputs": {},
+    "notes": "This file is a MERGE, not raw job output: V07_shipped rows are the Task-7 re-run against the rebuilt hexaero_airport_layouts table (1,036 aerodromes / 2,900,230 rows); V06_runway_milestones rows are carried over unchanged from the prior committed file, because event_bench.py was invoked with --runs V07_shipped only (one distributed job, per the plan's pod constraint), not a full ladder re-run. V00-V05 were never present in this file even before this change -- rung_table() has shown only these two rungs since before Task 7. Actual invocation used --executors 10 --driver-memory 16g, not the --executors 12 the entrypoint's Job default records.",
+    "produced_utc": "2026-09-08T00:55:04+00:00",
+    "script": "benchmarks/event_bench.py",
+    "sha256_16": "01e6fbb2f4ec2645"
+  },
+  "ladder_2026.csv": {
+    "argv": [
+      "--period",
+      "2026",
+      "--ladder",
+      "v4",
+      "--airports",
+      "study",
+      "--runs",
+      "V07_shipped",
+      "--out-name",
+      "ladder_2026.csv",
+      "--executors",
+      "10",
+      "--driver-memory",
+      "16g"
+    ],
+    "bytes": 4467,
+    "code_fingerprint": "60f58551f7ddb0d8",
+    "code_paths": [
+      "benchmarks/event_bench.py",
+      "benchmarks/events_gt.py",
+      "benchmarks/events_score.py",
+      "benchmarks/osn_sample.py",
+      "src/opdi/config.py",
+      "src/opdi/pipeline/crossings.py",
+      "src/opdi/pipeline/elevation.py",
+      "src/opdi/pipeline/events.py",
+      "src/opdi/pipeline/ground.py",
+      "src/opdi/pipeline/layout.py",
+      "src/opdi/pipeline/level_segments.py",
+      "src/opdi/pipeline/runway_ops.py",
+      "src/opdi/pipeline/runways.py",
+      "src/opdi/pipeline/vertical_pru.py",
+      "src/opdi/reference/h3_airport_layouts.py",
+      "src/opdi/reference/pbf_source.py"
+    ],
+    "git_dirty": false,
+    "git_sha": "39093a1",
+    "input_tables": {
+      "s3a://eurocontrol/opdi/hexaero_airport_layouts": {
+        "bytes": 59175242,
+        "newest": "2026-09-07T21:47:44.512000+00:00",
+        "objects": 5
+      },
+      "s3a://eurocontrol/opdi/research/flight_list_2026": {
+        "bytes": 8765228,
+        "newest": "2026-09-02T23:03:25.806000+00:00",
+        "objects": 4
+      },
+      "s3a://eurocontrol/opdi/research/reference": {
+        "bytes": 678413010,
+        "newest": "2026-08-27T20:22:25.974000+00:00",
+        "objects": 8
+      },
+      "s3a://eurocontrol/opdi/research/tracks_clean_2026": {
+        "bytes": 10589513497,
+        "newest": "2026-08-28T00:20:45.989000+00:00",
+        "objects": 201
+      }
+    },
+    "inputs": {},
+    "notes": "This file is a MERGE, not raw job output: V07_shipped rows are the Task-7 re-run against the rebuilt hexaero_airport_layouts table (1,036 aerodromes / 2,900,230 rows); V06_runway_milestones rows are carried over unchanged from the prior committed file, because event_bench.py was invoked with --runs V07_shipped only (one distributed job, per the plan's pod constraint), not a full ladder re-run. V00-V05 were never present in this file even before this change -- rung_table() has shown only these two rungs since before Task 7. Actual invocation used --executors 10 --driver-memory 16g, not the --executors 12 the entrypoint's Job default records.",
+    "produced_utc": "2026-09-08T00:55:03+00:00",
+    "script": "benchmarks/event_bench.py",
+    "sha256_16": "0220605439ba2451"
+  },
+  "per_airport_2026.csv": {
+    "argv": [
+      "--period",
+      "2026",
+      "--ladder",
+      "v4",
+      "--rung",
+      "V07_shipped",
+      "--airports",
+      "study",
+      "--executors",
+      "10",
+      "--driver-memory",
+      "16g"
+    ],
+    "bytes": 8940,
+    "code_fingerprint": "b734a6db636dee66",
+    "code_paths": [
+      "benchmarks/event_bench.py",
+      "benchmarks/events_compare.py",
+      "benchmarks/events_gt.py",
+      "benchmarks/events_score.py",
+      "benchmarks/osn_sample.py"
+    ],
+    "git_dirty": false,
+    "git_sha": "39093a1",
+    "input_tables": {
+      "s3a://eurocontrol/opdi/hexaero_airport_layouts": {
+        "bytes": 59175242,
+        "newest": "2026-09-07T21:47:44.512000+00:00",
+        "objects": 5
+      },
+      "s3a://eurocontrol/opdi/research/flight_list_2026": {
+        "bytes": 8765228,
+        "newest": "2026-09-02T23:03:25.806000+00:00",
+        "objects": 4
+      },
+      "s3a://eurocontrol/opdi/research/reference": {
+        "bytes": 678413010,
+        "newest": "2026-08-27T20:22:25.974000+00:00",
+        "objects": 8
+      }
+    },
+    "inputs": {},
+    "notes": "Per-aerodrome and per-detector scoring of the same V07_shipped re-run, for Task 7 of the aobt-aibt-from-pbf plan. Confirms the block-time lift is concentrated at EDDS (+40.9pp AOBT, +22.4pp AIBT) with small moves elsewhere (LKPR, UGKO) and no material change at most of the fifteen aerodromes that already carried stand geometry, and pins the off-block/on-block bias (~+720s / ~-300s, uniform across aerodromes) that neither the gate fix nor the geometry touches. Actual invocation used --executors 10 --driver-memory 16g, not the --executors 12 the entrypoint's Job default records.",
+    "produced_utc": "2026-09-08T00:51:17+00:00",
+    "script": "benchmarks/events_compare.py",
+    "sha256_16": "cc6dc712b4893599"
+  },
+  "per_airport_by_detector_2026.csv": {
+    "argv": [
+      "--period",
+      "2026",
+      "--ladder",
+      "v4",
+      "--rung",
+      "V07_shipped",
+      "--airports",
+      "study",
+      "--executors",
+      "10",
+      "--driver-memory",
+      "16g"
+    ],
+    "bytes": 14698,
+    "code_fingerprint": "b734a6db636dee66",
+    "code_paths": [
+      "benchmarks/event_bench.py",
+      "benchmarks/events_compare.py",
+      "benchmarks/events_gt.py",
+      "benchmarks/events_score.py",
+      "benchmarks/osn_sample.py"
+    ],
+    "git_dirty": false,
+    "git_sha": "39093a1",
+    "input_tables": {
+      "s3a://eurocontrol/opdi/hexaero_airport_layouts": {
+        "bytes": 59175242,
+        "newest": "2026-09-07T21:47:44.512000+00:00",
+        "objects": 5
+      },
+      "s3a://eurocontrol/opdi/research/flight_list_2026": {
+        "bytes": 8765228,
+        "newest": "2026-09-02T23:03:25.806000+00:00",
+        "objects": 4
+      },
+      "s3a://eurocontrol/opdi/research/reference": {
+        "bytes": 678413010,
+        "newest": "2026-08-27T20:22:25.974000+00:00",
+        "objects": 8
+      }
+    },
+    "inputs": {},
+    "notes": "Per-aerodrome and per-detector scoring of the same V07_shipped re-run, for Task 7 of the aobt-aibt-from-pbf plan. Confirms the block-time lift is concentrated at EDDS (+40.9pp AOBT, +22.4pp AIBT) with small moves elsewhere (LKPR, UGKO) and no material change at most of the fifteen aerodromes that already carried stand geometry, and pins the off-block/on-block bias (~+720s / ~-300s, uniform across aerodromes) that neither the gate fix nor the geometry touches. Actual invocation used --executors 10 --driver-memory 16g, not the --executors 12 the entrypoint's Job default records.",
+    "produced_utc": "2026-09-08T00:51:17+00:00",
+    "script": "benchmarks/events_compare.py",
+    "sha256_16": "22941570ff45e439"
+  },
+  "pooling_rules_2026.csv": {
+    "argv": [
+      "--period",
+      "2026",
+      "--ladder",
+      "v4",
+      "--rung",
+      "V07_shipped",
+      "--airports",
+      "study",
+      "--executors",
+      "10",
+      "--driver-memory",
+      "16g"
+    ],
+    "bytes": 1710,
+    "code_fingerprint": "b734a6db636dee66",
+    "code_paths": [
+      "benchmarks/event_bench.py",
+      "benchmarks/events_compare.py",
+      "benchmarks/events_gt.py",
+      "benchmarks/events_score.py",
+      "benchmarks/osn_sample.py"
+    ],
+    "git_dirty": false,
+    "git_sha": "39093a1",
+    "input_tables": {
+      "s3a://eurocontrol/opdi/hexaero_airport_layouts": {
+        "bytes": 59175242,
+        "newest": "2026-09-07T21:47:44.512000+00:00",
+        "objects": 5
+      },
+      "s3a://eurocontrol/opdi/research/flight_list_2026": {
+        "bytes": 8765228,
+        "newest": "2026-09-02T23:03:25.806000+00:00",
+        "objects": 4
+      },
+      "s3a://eurocontrol/opdi/research/reference": {
+        "bytes": 678413010,
+        "newest": "2026-08-27T20:22:25.974000+00:00",
+        "objects": 8
+      }
+    },
+    "inputs": {},
+    "notes": "Per-aerodrome and per-detector scoring of the same V07_shipped re-run, for Task 7 of the aobt-aibt-from-pbf plan. Confirms the block-time lift is concentrated at EDDS (+40.9pp AOBT, +22.4pp AIBT) with small moves elsewhere (LKPR, UGKO) and no material change at most of the fifteen aerodromes that already carried stand geometry, and pins the off-block/on-block bias (~+720s / ~-300s, uniform across aerodromes) that neither the gate fix nor the geometry touches. Actual invocation used --executors 10 --driver-memory 16g, not the --executors 12 the entrypoint's Job default records.",
+    "produced_utc": "2026-09-08T00:51:18+00:00",
+    "script": "benchmarks/events_compare.py",
+    "sha256_16": "1fdfbe004875551f"
+  },
+  "resolution_2026.csv": {
+    "argv": [
+      "--period",
+      "2026",
+      "--ladder",
+      "v4",
+      "--rung",
+      "V07_shipped",
+      "--airports",
+      "study",
+      "--executors",
+      "10",
+      "--driver-memory",
+      "16g"
+    ],
+    "bytes": 10966,
+    "code_fingerprint": "b734a6db636dee66",
+    "code_paths": [
+      "benchmarks/event_bench.py",
+      "benchmarks/events_compare.py",
+      "benchmarks/events_gt.py",
+      "benchmarks/events_score.py",
+      "benchmarks/osn_sample.py"
+    ],
+    "git_dirty": false,
+    "git_sha": "39093a1",
+    "input_tables": {
+      "s3a://eurocontrol/opdi/hexaero_airport_layouts": {
+        "bytes": 59175242,
+        "newest": "2026-09-07T21:47:44.512000+00:00",
+        "objects": 5
+      },
+      "s3a://eurocontrol/opdi/research/flight_list_2026": {
+        "bytes": 8765228,
+        "newest": "2026-09-02T23:03:25.806000+00:00",
+        "objects": 4
+      },
+      "s3a://eurocontrol/opdi/research/reference": {
+        "bytes": 678413010,
+        "newest": "2026-08-27T20:22:25.974000+00:00",
+        "objects": 8
+      }
+    },
+    "inputs": {},
+    "notes": "Per-aerodrome and per-detector scoring of the same V07_shipped re-run, for Task 7 of the aobt-aibt-from-pbf plan. Confirms the block-time lift is concentrated at EDDS (+40.9pp AOBT, +22.4pp AIBT) with small moves elsewhere (LKPR, UGKO) and no material change at most of the fifteen aerodromes that already carried stand geometry, and pins the off-block/on-block bias (~+720s / ~-300s, uniform across aerodromes) that neither the gate fix nor the geometry touches. Actual invocation used --executors 10 --driver-memory 16g, not the --executors 12 the entrypoint's Job default records.",
+    "produced_utc": "2026-09-08T00:51:18+00:00",
+    "script": "benchmarks/events_compare.py",
+    "sha256_16": "7ebcd9e570ba3596"
+  },
+  "rings_2026.csv": {
+    "argv": [
+      "--period",
+      "2026",
+      "--ladder",
+      "v4",
+      "--rung",
+      "V07_shipped",
+      "--airports",
+      "study",
+      "--executors",
+      "10",
+      "--driver-memory",
+      "16g"
+    ],
+    "bytes": 674,
+    "code_fingerprint": "b734a6db636dee66",
+    "code_paths": [
+      "benchmarks/event_bench.py",
+      "benchmarks/events_compare.py",
+      "benchmarks/events_gt.py",
+      "benchmarks/events_score.py",
+      "benchmarks/osn_sample.py"
+    ],
+    "git_dirty": false,
+    "git_sha": "39093a1",
+    "input_tables": {
+      "s3a://eurocontrol/opdi/hexaero_airport_layouts": {
+        "bytes": 59175242,
+        "newest": "2026-09-07T21:47:44.512000+00:00",
+        "objects": 5
+      },
+      "s3a://eurocontrol/opdi/research/flight_list_2026": {
+        "bytes": 8765228,
+        "newest": "2026-09-02T23:03:25.806000+00:00",
+        "objects": 4
+      },
+      "s3a://eurocontrol/opdi/research/reference": {
+        "bytes": 678413010,
+        "newest": "2026-08-27T20:22:25.974000+00:00",
+        "objects": 8
+      }
+    },
+    "inputs": {},
+    "notes": "Restaged from the Task-7 V07_shipped re-run at the coordinator's request for traceability, even though the content is not materially different from the file it replaces: coverage_pct, bias_s, n_detected and every within_*_pct for xing-100nm/xing-40nm are byte-identical; only p90_abs_s/p90_pos_error_nm (approxQuantile) and xing-40nm's bias_s move in the 5th-6th significant figure -- percentile-approximation noise between Spark runs, not a change any figure in this paper reads. runway_2026.csv from the same run was byte-identical to the prior staged copy and was left as-is rather than restaged. Actual invocation used --executors 10 --driver-memory 16g, not the --executors 12 the entrypoint's Job default records.",
+    "produced_utc": "2026-09-08T01:04:08+00:00",
+    "script": "benchmarks/events_compare.py",
+    "sha256_16": "8826cba824cd194c"
+  },
   "table:s3a://eurocontrol/opdi/research/flight_list_2026": {
     "argv": [
       "-u",
