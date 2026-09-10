@@ -7,14 +7,14 @@
       "study"
     ],
     "bytes": 245,
-    "code_fingerprint": "cc55673f7c2491e0",
+    "code_fingerprint": "dcc85bcf238fa3d1",
     "code_paths": [
       "benchmarks/events_gt.py",
       "benchmarks/events_gt.py",
       "benchmarks/osn_sample.py"
     ],
     "git_dirty": false,
-    "git_sha": "b55ae43",
+    "git_sha": "380fb29",
     "input_tables": {
       "s3a://eurocontrol/opdi/research/reference": {
         "bytes": 678413010,
@@ -24,7 +24,7 @@
     },
     "inputs": {},
     "notes": "the bridge match rate, scoped to the twenty study aerodromes -- `events_gt.bridge_report` applies the same airport filter the milestones get, and carries the network-wide figure alongside it under `network` as context. Runs first and alone because it is the ceiling on every coverage figure downstream: a milestone that cannot be reached is indistinguishable from one that was missed unless this number is known -- and a ceiling computed over a different population than the coverage caps nothing.",
-    "produced_utc": "2026-09-03T23:45:52+00:00",
+    "produced_utc": "2026-09-10T07:46:28+00:00",
     "script": "benchmarks/events_gt.py",
     "sha256_16": "909e5d8c50d168ab"
   },
@@ -36,18 +36,26 @@
       "v4",
       "--airports",
       "study",
-      "--runs",
-      "V07_shipped",
       "--out-name",
       "ladder_2026.csv",
       "--executors",
-      "10",
-      "--driver-memory",
-      "16g"
+      "12",
+      "--reuse-table",
+      "V00_v3_shipped",
+      "V01_runway_tiebreak",
+      "V02_layout_agl",
+      "V03_pru_level",
+      "V04_level_geometry",
+      "V05_pru_tops",
+      "V06_runway_milestones",
+      "V07_shipped",
+      "--reuse-newer-than",
+      "2026-09-09T15:00:00"
     ],
-    "bytes": 3076,
-    "code_fingerprint": "60f58551f7ddb0d8",
+    "bytes": 11180,
+    "code_fingerprint": "9ec0701a8eedb5f4",
     "code_paths": [
+      "benchmarks/event_bench.py",
       "benchmarks/event_bench.py",
       "benchmarks/events_gt.py",
       "benchmarks/events_score.py",
@@ -61,21 +69,14 @@
       "src/opdi/pipeline/level_segments.py",
       "src/opdi/pipeline/runway_ops.py",
       "src/opdi/pipeline/runways.py",
-      "src/opdi/pipeline/vertical_pru.py",
-      "src/opdi/reference/h3_airport_layouts.py",
-      "src/opdi/reference/pbf_source.py"
+      "src/opdi/pipeline/vertical_pru.py"
     ],
     "git_dirty": false,
-    "git_sha": "39093a1",
+    "git_sha": "93b9b87",
     "input_tables": {
-      "s3a://eurocontrol/opdi/hexaero_airport_layouts": {
-        "bytes": 59175242,
-        "newest": "2026-09-07T21:47:44.512000+00:00",
-        "objects": 5
-      },
       "s3a://eurocontrol/opdi/research/flight_list_2026": {
-        "bytes": 8765228,
-        "newest": "2026-09-02T23:03:25.806000+00:00",
+        "bytes": 8808804,
+        "newest": "2026-09-09T15:20:06.034000+00:00",
         "objects": 4
       },
       "s3a://eurocontrol/opdi/research/reference": {
@@ -84,16 +85,16 @@
         "objects": 8
       },
       "s3a://eurocontrol/opdi/research/tracks_clean_2026": {
-        "bytes": 10589513497,
-        "newest": "2026-08-28T00:20:45.989000+00:00",
+        "bytes": 10597887884,
+        "newest": "2026-09-09T14:54:06.482000+00:00",
         "objects": 201
       }
     },
     "inputs": {},
-    "notes": "This file is a MERGE, not raw job output: V07_shipped rows are the Task-7 re-run against the rebuilt hexaero_airport_layouts table (1,036 aerodromes / 2,900,230 rows); V06_runway_milestones rows are carried over unchanged from the prior committed file, because event_bench.py was invoked with --runs V07_shipped only (one distributed job, per the plan's pod constraint), not a full ladder re-run. V00-V05 were never present in this file even before this change -- rung_table() has shown only these two rungs since before Task 7. Actual invocation used --executors 10 --driver-memory 16g, not the --executors 12 the entrypoint's Job default records.",
-    "produced_utc": "2026-09-08T00:55:04+00:00",
+    "notes": "the cumulative ladder from the reconstructed v0.1.0 configuration to the shipped one, one behaviour per rung, scored on this period -- plus the extraction inventory, which is the only place the families APDF cannot score are visible at all. V01 is deliberately config-identical to V00: the cross-track tie-break is a bug fix, not a flag, and its effect is read off runway_2026.csv against V3's runway_2025.csv.",
+    "produced_utc": "2026-09-10T09:53:01+00:00",
     "script": "benchmarks/event_bench.py",
-    "sha256_16": "01e6fbb2f4ec2645"
+    "sha256_16": "49cec6d78121662e"
   },
   "ladder_2026.csv": {
     "argv": [
@@ -103,18 +104,26 @@
       "v4",
       "--airports",
       "study",
-      "--runs",
-      "V07_shipped",
       "--out-name",
       "ladder_2026.csv",
       "--executors",
-      "10",
-      "--driver-memory",
-      "16g"
+      "12",
+      "--reuse-table",
+      "V00_v3_shipped",
+      "V01_runway_tiebreak",
+      "V02_layout_agl",
+      "V03_pru_level",
+      "V04_level_geometry",
+      "V05_pru_tops",
+      "V06_runway_milestones",
+      "V07_shipped",
+      "--reuse-newer-than",
+      "2026-09-09T15:00:00"
     ],
-    "bytes": 4467,
-    "code_fingerprint": "60f58551f7ddb0d8",
+    "bytes": 16498,
+    "code_fingerprint": "9ec0701a8eedb5f4",
     "code_paths": [
+      "benchmarks/event_bench.py",
       "benchmarks/event_bench.py",
       "benchmarks/events_gt.py",
       "benchmarks/events_score.py",
@@ -128,21 +137,14 @@
       "src/opdi/pipeline/level_segments.py",
       "src/opdi/pipeline/runway_ops.py",
       "src/opdi/pipeline/runways.py",
-      "src/opdi/pipeline/vertical_pru.py",
-      "src/opdi/reference/h3_airport_layouts.py",
-      "src/opdi/reference/pbf_source.py"
+      "src/opdi/pipeline/vertical_pru.py"
     ],
     "git_dirty": false,
-    "git_sha": "39093a1",
+    "git_sha": "93b9b87",
     "input_tables": {
-      "s3a://eurocontrol/opdi/hexaero_airport_layouts": {
-        "bytes": 59175242,
-        "newest": "2026-09-07T21:47:44.512000+00:00",
-        "objects": 5
-      },
       "s3a://eurocontrol/opdi/research/flight_list_2026": {
-        "bytes": 8765228,
-        "newest": "2026-09-02T23:03:25.806000+00:00",
+        "bytes": 8808804,
+        "newest": "2026-09-09T15:20:06.034000+00:00",
         "objects": 4
       },
       "s3a://eurocontrol/opdi/research/reference": {
@@ -151,16 +153,16 @@
         "objects": 8
       },
       "s3a://eurocontrol/opdi/research/tracks_clean_2026": {
-        "bytes": 10589513497,
-        "newest": "2026-08-28T00:20:45.989000+00:00",
+        "bytes": 10597887884,
+        "newest": "2026-09-09T14:54:06.482000+00:00",
         "objects": 201
       }
     },
     "inputs": {},
-    "notes": "This file is a MERGE, not raw job output: V07_shipped rows are the Task-7 re-run against the rebuilt hexaero_airport_layouts table (1,036 aerodromes / 2,900,230 rows); V06_runway_milestones rows are carried over unchanged from the prior committed file, because event_bench.py was invoked with --runs V07_shipped only (one distributed job, per the plan's pod constraint), not a full ladder re-run. V00-V05 were never present in this file even before this change -- rung_table() has shown only these two rungs since before Task 7. Actual invocation used --executors 10 --driver-memory 16g, not the --executors 12 the entrypoint's Job default records.",
-    "produced_utc": "2026-09-08T00:55:03+00:00",
+    "notes": "the cumulative ladder from the reconstructed v0.1.0 configuration to the shipped one, one behaviour per rung, scored on this period -- plus the extraction inventory, which is the only place the families APDF cannot score are visible at all. V01 is deliberately config-identical to V00: the cross-track tie-break is a bug fix, not a flag, and its effect is read off runway_2026.csv against V3's runway_2025.csv.",
+    "produced_utc": "2026-09-10T09:53:01+00:00",
     "script": "benchmarks/event_bench.py",
-    "sha256_16": "0220605439ba2451"
+    "sha256_16": "c351ba1716dcd405"
   },
   "per_airport_2026.csv": {
     "argv": [
@@ -173,30 +175,24 @@
       "--airports",
       "study",
       "--executors",
-      "10",
-      "--driver-memory",
-      "16g"
+      "12"
     ],
-    "bytes": 8940,
-    "code_fingerprint": "b734a6db636dee66",
+    "bytes": 9594,
+    "code_fingerprint": "d430b3d09cc53e50",
     "code_paths": [
       "benchmarks/event_bench.py",
+      "benchmarks/events_compare.py",
       "benchmarks/events_compare.py",
       "benchmarks/events_gt.py",
       "benchmarks/events_score.py",
       "benchmarks/osn_sample.py"
     ],
     "git_dirty": false,
-    "git_sha": "39093a1",
+    "git_sha": "c4d356e",
     "input_tables": {
-      "s3a://eurocontrol/opdi/hexaero_airport_layouts": {
-        "bytes": 59175242,
-        "newest": "2026-09-07T21:47:44.512000+00:00",
-        "objects": 5
-      },
       "s3a://eurocontrol/opdi/research/flight_list_2026": {
-        "bytes": 8765228,
-        "newest": "2026-09-02T23:03:25.806000+00:00",
+        "bytes": 8808804,
+        "newest": "2026-09-09T15:20:06.034000+00:00",
         "objects": 4
       },
       "s3a://eurocontrol/opdi/research/reference": {
@@ -206,10 +202,10 @@
       }
     },
     "inputs": {},
-    "notes": "Per-aerodrome and per-detector scoring of the same V07_shipped re-run, for Task 7 of the aobt-aibt-from-pbf plan. Confirms the block-time lift is concentrated at EDDS (+40.9pp AOBT, +22.4pp AIBT) with small moves elsewhere (LKPR, UGKO) and no material change at most of the fifteen aerodromes that already carried stand geometry, and pins the off-block/on-block bias (~+720s / ~-300s, uniform across aerodromes) that neither the gate fix nor the geometry touches. Actual invocation used --executors 10 --driver-memory 16g, not the --executors 12 the entrypoint's Job default records.",
-    "produced_utc": "2026-09-08T00:51:17+00:00",
+    "notes": "the shipped rung split three ways: per aerodrome (the network figure is an average over aerodromes differing in size by a factor of twenty), runway identity against AP_C_RWY, and by whether the aerodrome's APDF times are readable to the second -- 64% land on a whole minute, so an unstratified error distribution mostly measures the reference's quantisation. Reads the event table the ladder already wrote; re-runs no detector. The runway table carries both the stable milestone label (ATOT/ALDT either side of the vocabulary change) and the `det_type` that produced it, so it can be read against V3's runway_2025.csv column-to-column without pretending the two rows came from the same detector. It also computes the ring and inter-source-floor tables, which V4 does not stage: V3 measured those and nothing in V4 changes the ring detector.",
+    "produced_utc": "2026-09-10T09:58:04+00:00",
     "script": "benchmarks/events_compare.py",
-    "sha256_16": "cc6dc712b4893599"
+    "sha256_16": "47b51b33e94560d6"
   },
   "per_airport_by_detector_2026.csv": {
     "argv": [
@@ -222,30 +218,24 @@
       "--airports",
       "study",
       "--executors",
-      "10",
-      "--driver-memory",
-      "16g"
+      "12"
     ],
-    "bytes": 14698,
-    "code_fingerprint": "b734a6db636dee66",
+    "bytes": 15400,
+    "code_fingerprint": "d430b3d09cc53e50",
     "code_paths": [
       "benchmarks/event_bench.py",
+      "benchmarks/events_compare.py",
       "benchmarks/events_compare.py",
       "benchmarks/events_gt.py",
       "benchmarks/events_score.py",
       "benchmarks/osn_sample.py"
     ],
     "git_dirty": false,
-    "git_sha": "39093a1",
+    "git_sha": "c4d356e",
     "input_tables": {
-      "s3a://eurocontrol/opdi/hexaero_airport_layouts": {
-        "bytes": 59175242,
-        "newest": "2026-09-07T21:47:44.512000+00:00",
-        "objects": 5
-      },
       "s3a://eurocontrol/opdi/research/flight_list_2026": {
-        "bytes": 8765228,
-        "newest": "2026-09-02T23:03:25.806000+00:00",
+        "bytes": 8808804,
+        "newest": "2026-09-09T15:20:06.034000+00:00",
         "objects": 4
       },
       "s3a://eurocontrol/opdi/research/reference": {
@@ -255,10 +245,10 @@
       }
     },
     "inputs": {},
-    "notes": "Per-aerodrome and per-detector scoring of the same V07_shipped re-run, for Task 7 of the aobt-aibt-from-pbf plan. Confirms the block-time lift is concentrated at EDDS (+40.9pp AOBT, +22.4pp AIBT) with small moves elsewhere (LKPR, UGKO) and no material change at most of the fifteen aerodromes that already carried stand geometry, and pins the off-block/on-block bias (~+720s / ~-300s, uniform across aerodromes) that neither the gate fix nor the geometry touches. Actual invocation used --executors 10 --driver-memory 16g, not the --executors 12 the entrypoint's Job default records.",
-    "produced_utc": "2026-09-08T00:51:17+00:00",
+    "notes": "the shipped rung split three ways: per aerodrome (the network figure is an average over aerodromes differing in size by a factor of twenty), runway identity against AP_C_RWY, and by whether the aerodrome's APDF times are readable to the second -- 64% land on a whole minute, so an unstratified error distribution mostly measures the reference's quantisation. Reads the event table the ladder already wrote; re-runs no detector. The runway table carries both the stable milestone label (ATOT/ALDT either side of the vocabulary change) and the `det_type` that produced it, so it can be read against V3's runway_2025.csv column-to-column without pretending the two rows came from the same detector. It also computes the ring and inter-source-floor tables, which V4 does not stage: V3 measured those and nothing in V4 changes the ring detector.",
+    "produced_utc": "2026-09-10T09:58:05+00:00",
     "script": "benchmarks/events_compare.py",
-    "sha256_16": "22941570ff45e439"
+    "sha256_16": "ac4664fc047f9add"
   },
   "pooling_rules_2026.csv": {
     "argv": [
@@ -271,30 +261,24 @@
       "--airports",
       "study",
       "--executors",
-      "10",
-      "--driver-memory",
-      "16g"
+      "12"
     ],
-    "bytes": 1710,
-    "code_fingerprint": "b734a6db636dee66",
+    "bytes": 1807,
+    "code_fingerprint": "d430b3d09cc53e50",
     "code_paths": [
       "benchmarks/event_bench.py",
+      "benchmarks/events_compare.py",
       "benchmarks/events_compare.py",
       "benchmarks/events_gt.py",
       "benchmarks/events_score.py",
       "benchmarks/osn_sample.py"
     ],
     "git_dirty": false,
-    "git_sha": "39093a1",
+    "git_sha": "c4d356e",
     "input_tables": {
-      "s3a://eurocontrol/opdi/hexaero_airport_layouts": {
-        "bytes": 59175242,
-        "newest": "2026-09-07T21:47:44.512000+00:00",
-        "objects": 5
-      },
       "s3a://eurocontrol/opdi/research/flight_list_2026": {
-        "bytes": 8765228,
-        "newest": "2026-09-02T23:03:25.806000+00:00",
+        "bytes": 8808804,
+        "newest": "2026-09-09T15:20:06.034000+00:00",
         "objects": 4
       },
       "s3a://eurocontrol/opdi/research/reference": {
@@ -304,10 +288,10 @@
       }
     },
     "inputs": {},
-    "notes": "Per-aerodrome and per-detector scoring of the same V07_shipped re-run, for Task 7 of the aobt-aibt-from-pbf plan. Confirms the block-time lift is concentrated at EDDS (+40.9pp AOBT, +22.4pp AIBT) with small moves elsewhere (LKPR, UGKO) and no material change at most of the fifteen aerodromes that already carried stand geometry, and pins the off-block/on-block bias (~+720s / ~-300s, uniform across aerodromes) that neither the gate fix nor the geometry touches. Actual invocation used --executors 10 --driver-memory 16g, not the --executors 12 the entrypoint's Job default records.",
-    "produced_utc": "2026-09-08T00:51:18+00:00",
+    "notes": "the shipped rung split three ways: per aerodrome (the network figure is an average over aerodromes differing in size by a factor of twenty), runway identity against AP_C_RWY, and by whether the aerodrome's APDF times are readable to the second -- 64% land on a whole minute, so an unstratified error distribution mostly measures the reference's quantisation. Reads the event table the ladder already wrote; re-runs no detector. The runway table carries both the stable milestone label (ATOT/ALDT either side of the vocabulary change) and the `det_type` that produced it, so it can be read against V3's runway_2025.csv column-to-column without pretending the two rows came from the same detector. It also computes the ring and inter-source-floor tables, which V4 does not stage: V3 measured those and nothing in V4 changes the ring detector.",
+    "produced_utc": "2026-09-10T09:58:05+00:00",
     "script": "benchmarks/events_compare.py",
-    "sha256_16": "1fdfbe004875551f"
+    "sha256_16": "4004aeba5e641a82"
   },
   "resolution_2026.csv": {
     "argv": [
@@ -320,30 +304,24 @@
       "--airports",
       "study",
       "--executors",
-      "10",
-      "--driver-memory",
-      "16g"
+      "12"
     ],
-    "bytes": 10966,
-    "code_fingerprint": "b734a6db636dee66",
+    "bytes": 11867,
+    "code_fingerprint": "d430b3d09cc53e50",
     "code_paths": [
       "benchmarks/event_bench.py",
+      "benchmarks/events_compare.py",
       "benchmarks/events_compare.py",
       "benchmarks/events_gt.py",
       "benchmarks/events_score.py",
       "benchmarks/osn_sample.py"
     ],
     "git_dirty": false,
-    "git_sha": "39093a1",
+    "git_sha": "93b9b87",
     "input_tables": {
-      "s3a://eurocontrol/opdi/hexaero_airport_layouts": {
-        "bytes": 59175242,
-        "newest": "2026-09-07T21:47:44.512000+00:00",
-        "objects": 5
-      },
       "s3a://eurocontrol/opdi/research/flight_list_2026": {
-        "bytes": 8765228,
-        "newest": "2026-09-02T23:03:25.806000+00:00",
+        "bytes": 8808804,
+        "newest": "2026-09-09T15:20:06.034000+00:00",
         "objects": 4
       },
       "s3a://eurocontrol/opdi/research/reference": {
@@ -353,10 +331,10 @@
       }
     },
     "inputs": {},
-    "notes": "Per-aerodrome and per-detector scoring of the same V07_shipped re-run, for Task 7 of the aobt-aibt-from-pbf plan. Confirms the block-time lift is concentrated at EDDS (+40.9pp AOBT, +22.4pp AIBT) with small moves elsewhere (LKPR, UGKO) and no material change at most of the fifteen aerodromes that already carried stand geometry, and pins the off-block/on-block bias (~+720s / ~-300s, uniform across aerodromes) that neither the gate fix nor the geometry touches. Actual invocation used --executors 10 --driver-memory 16g, not the --executors 12 the entrypoint's Job default records.",
-    "produced_utc": "2026-09-08T00:51:18+00:00",
+    "notes": "the shipped rung split three ways: per aerodrome (the network figure is an average over aerodromes differing in size by a factor of twenty), runway identity against AP_C_RWY, and by whether the aerodrome's APDF times are readable to the second -- 64% land on a whole minute, so an unstratified error distribution mostly measures the reference's quantisation. Reads the event table the ladder already wrote; re-runs no detector. The runway table carries both the stable milestone label (ATOT/ALDT either side of the vocabulary change) and the `det_type` that produced it, so it can be read against V3's runway_2025.csv column-to-column without pretending the two rows came from the same detector. It also computes the ring and inter-source-floor tables, which V4 does not stage: V3 measured those and nothing in V4 changes the ring detector.",
+    "produced_utc": "2026-09-10T09:54:43+00:00",
     "script": "benchmarks/events_compare.py",
-    "sha256_16": "7ebcd9e570ba3596"
+    "sha256_16": "2cc34df1c68e8681"
   },
   "rings_2026.csv": {
     "argv": [
@@ -369,30 +347,24 @@
       "--airports",
       "study",
       "--executors",
-      "10",
-      "--driver-memory",
-      "16g"
+      "12"
     ],
-    "bytes": 674,
-    "code_fingerprint": "b734a6db636dee66",
+    "bytes": 676,
+    "code_fingerprint": "d430b3d09cc53e50",
     "code_paths": [
       "benchmarks/event_bench.py",
+      "benchmarks/events_compare.py",
       "benchmarks/events_compare.py",
       "benchmarks/events_gt.py",
       "benchmarks/events_score.py",
       "benchmarks/osn_sample.py"
     ],
     "git_dirty": false,
-    "git_sha": "39093a1",
+    "git_sha": "c4d356e",
     "input_tables": {
-      "s3a://eurocontrol/opdi/hexaero_airport_layouts": {
-        "bytes": 59175242,
-        "newest": "2026-09-07T21:47:44.512000+00:00",
-        "objects": 5
-      },
       "s3a://eurocontrol/opdi/research/flight_list_2026": {
-        "bytes": 8765228,
-        "newest": "2026-09-02T23:03:25.806000+00:00",
+        "bytes": 8808804,
+        "newest": "2026-09-09T15:20:06.034000+00:00",
         "objects": 4
       },
       "s3a://eurocontrol/opdi/research/reference": {
@@ -402,10 +374,53 @@
       }
     },
     "inputs": {},
-    "notes": "Restaged from the Task-7 V07_shipped re-run at the coordinator's request for traceability, even though the content is not materially different from the file it replaces: coverage_pct, bias_s, n_detected and every within_*_pct for xing-100nm/xing-40nm are byte-identical; only p90_abs_s/p90_pos_error_nm (approxQuantile) and xing-40nm's bias_s move in the 5th-6th significant figure -- percentile-approximation noise between Spark runs, not a change any figure in this paper reads. runway_2026.csv from the same run was byte-identical to the prior staged copy and was left as-is rather than restaged. Actual invocation used --executors 10 --driver-memory 16g, not the --executors 12 the entrypoint's Job default records.",
-    "produced_utc": "2026-09-08T01:04:08+00:00",
+    "notes": "the shipped rung split three ways: per aerodrome (the network figure is an average over aerodromes differing in size by a factor of twenty), runway identity against AP_C_RWY, and by whether the aerodrome's APDF times are readable to the second -- 64% land on a whole minute, so an unstratified error distribution mostly measures the reference's quantisation. Reads the event table the ladder already wrote; re-runs no detector. The runway table carries both the stable milestone label (ATOT/ALDT either side of the vocabulary change) and the `det_type` that produced it, so it can be read against V3's runway_2025.csv column-to-column without pretending the two rows came from the same detector. It also computes the ring and inter-source-floor tables, which V4 does not stage: V3 measured those and nothing in V4 changes the ring detector.",
+    "produced_utc": "2026-09-10T09:58:05+00:00",
     "script": "benchmarks/events_compare.py",
-    "sha256_16": "8826cba824cd194c"
+    "sha256_16": "45b38ee30567ef8e"
+  },
+  "runway_2026.csv": {
+    "argv": [
+      "--period",
+      "2026",
+      "--ladder",
+      "v4",
+      "--rung",
+      "V07_shipped",
+      "--airports",
+      "study",
+      "--executors",
+      "12"
+    ],
+    "bytes": 284,
+    "code_fingerprint": "d430b3d09cc53e50",
+    "code_paths": [
+      "benchmarks/event_bench.py",
+      "benchmarks/events_compare.py",
+      "benchmarks/events_compare.py",
+      "benchmarks/events_gt.py",
+      "benchmarks/events_score.py",
+      "benchmarks/osn_sample.py"
+    ],
+    "git_dirty": false,
+    "git_sha": "93b9b87",
+    "input_tables": {
+      "s3a://eurocontrol/opdi/research/flight_list_2026": {
+        "bytes": 8808804,
+        "newest": "2026-09-09T15:20:06.034000+00:00",
+        "objects": 4
+      },
+      "s3a://eurocontrol/opdi/research/reference": {
+        "bytes": 678413010,
+        "newest": "2026-08-27T20:22:25.974000+00:00",
+        "objects": 8
+      }
+    },
+    "inputs": {},
+    "notes": "the shipped rung split three ways: per aerodrome (the network figure is an average over aerodromes differing in size by a factor of twenty), runway identity against AP_C_RWY, and by whether the aerodrome's APDF times are readable to the second -- 64% land on a whole minute, so an unstratified error distribution mostly measures the reference's quantisation. Reads the event table the ladder already wrote; re-runs no detector. The runway table carries both the stable milestone label (ATOT/ALDT either side of the vocabulary change) and the `det_type` that produced it, so it can be read against V3's runway_2025.csv column-to-column without pretending the two rows came from the same detector. It also computes the ring and inter-source-floor tables, which V4 does not stage: V3 measured those and nothing in V4 changes the ring detector.",
+    "produced_utc": "2026-09-10T09:54:43+00:00",
+    "script": "benchmarks/events_compare.py",
+    "sha256_16": "13bbb10061fde4e3"
   },
   "table:s3a://eurocontrol/opdi/research/flight_list_2026": {
     "argv": [
@@ -414,29 +429,29 @@
       "--executors",
       "12"
     ],
-    "code_fingerprint": "d61b5c6ee1aefdd7",
+    "code_fingerprint": "dba06ffbcf788aad",
     "code_paths": [
       "benchmarks/flight_list_2026.py",
       "src/opdi/config.py",
       "src/opdi/pipeline/flights.py"
     ],
     "git_dirty": false,
-    "git_sha": "b55ae43",
+    "git_sha": "ed1bab5",
     "input_tables": {
       "s3a://eurocontrol/opdi/research/flight_list_2026": {
-        "bytes": 8765228,
-        "newest": "2026-09-02T23:03:25.806000+00:00",
+        "bytes": 8808804,
+        "newest": "2026-09-09T15:20:06.034000+00:00",
         "objects": 4
       },
       "s3a://eurocontrol/opdi/research/tracks_clean_2026": {
-        "bytes": 10589513497,
-        "newest": "2026-08-28T00:20:45.989000+00:00",
+        "bytes": 10597887884,
+        "newest": "2026-09-09T14:54:06.482000+00:00",
         "objects": 201
       }
     },
     "inputs": {},
-    "notes": "the 2026 flight list, through step 03's own process_dai. Every aerodrome-anchored family -- airport events, rings, the runway milestones, the PRU tops -- resolves ADEP/ADES through it, and the published flight list holds 2025 only, so without this the ladder reports those families as empty rather than as absent. | PRE-EXISTING: identity recorded without a rebuild, so the command below is how it is built, not necessarily how this copy was built.",
-    "produced_utc": "2026-09-03T23:44:52+00:00",
-    "script": "/home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/flight-events-v4/.venv310/bin/python"
+    "notes": "the 2026 flight list, through step 03's own process_dai. Every aerodrome-anchored family -- airport events, rings, the runway milestones, the PRU tops -- resolves ADEP/ADES through it, and the published flight list holds 2025 only, so without this the ladder reports those families as empty rather than as absent.",
+    "produced_utc": "2026-09-09T15:20:08+00:00",
+    "script": "/home/jupyter/work/opdi-workspace/opdi/.venv310/bin/python"
   }
 }
