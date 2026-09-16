@@ -91,6 +91,28 @@ Superseded. Kept as the record of what was published first.
 
 :::: {.publication-card}
 ::: {.publication-info}
+**[Turning ADS-B state vectors into flight tracks — version 3](track-construction-v3/index.qmd)**
+&nbsp;·&nbsp; [PDF](track-construction-v3/track-construction-v3.pdf)
+
+A defect in the rule version 2 shipped, found after the fact: the break fires
+on a callsign change but never asks whether the callsign changes back. A
+flicker — a callsign decoded wrong for one sample and then right again —
+trips the break twice, trisecting a flight that never changed. 23.1% of every
+track boundary the shipped rule draws on a sample day traces to a flicker leg,
+against 5.0% that are a genuine change. The fix, `debounced`, requires a new
+callsign to persist before it counts: about 19% fewer tracks, a
+persisted-callsign guard that shrinks rather than grows as the hold
+lengthens, and no measured increase in genuine two-flight fusions. States
+plainly what APDF's block times cannot referee here — rounding and
+transponder dwell put timing out of reach — and uses movement counts as a
+guard instead, which passes. The fix ships in the codebase and defaults off;
+promoting it would break `track_id` continuity a second time, which this page
+declines to decide on its own.
+:::
+::::
+
+:::: {.publication-card}
+::: {.publication-info}
 **[Turning ADS-B state vectors into flight tracks — version 2](track-construction-v2/index.qmd)**
 &nbsp;·&nbsp; [PDF](track-construction-v2/track-construction-v2.pdf)
 

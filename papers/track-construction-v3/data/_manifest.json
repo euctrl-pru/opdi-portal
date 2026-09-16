@@ -1,0 +1,75 @@
+{
+  "flicker_2026.csv": {
+    "script": "benchmarks/callsign_flicker.py",
+    "argv": ["--day", "2026-06-01"],
+    "git_sha": "da2dcde",
+    "git_dirty": false,
+    "hand_staged": true,
+    "declared_job": "flicker_2026",
+    "code_fingerprint": "31b62c7861c951ae",
+    "code_paths": [
+      "benchmarks/callsign_flicker.py",
+      "src/opdi/pipeline/segmentation/__init__.py",
+      "src/opdi/pipeline/segmentation/base.py",
+      "src/opdi/pipeline/segmentation/methods.py"
+    ],
+    "inputs": {},
+    "input_tables": {},
+    "notes": "Hand-transcribed from Task 1's cluster run at commit da2dcde -- opdi/.superpowers/sdd/2026-09-15-track-splitting-callsign-debounce/task-6-numbers.md, section 'Flicker'. --out-name support was added to callsign_flicker.py afterward at commit 624c6e3, which is why this entry's code_fingerprint (computed against da2dcde's version of the declared code_paths) will not match a fingerprint computed against the current checkout: the classification logic did not change, only the ability to write this CSV, but `regenerate_track_v3.py --check` correctly reports this output as stale until the job is actually re-run."
+  },
+  "fragmentation_2026.csv": {
+    "script": "benchmarks/track_fragmentation.py",
+    "argv": ["--day", "2026-06-01", "--holds", "15", "30", "60"],
+    "git_sha": "da2dcde",
+    "git_dirty": false,
+    "hand_staged": true,
+    "declared_job": "fragmentation_2026",
+    "code_fingerprint": "4106f7aaf96401fd",
+    "code_paths": [
+      "benchmarks/track_fragmentation.py",
+      "src/opdi/pipeline/segmentation/__init__.py",
+      "src/opdi/pipeline/segmentation/base.py",
+      "src/opdi/pipeline/segmentation/methods.py"
+    ],
+    "inputs": {},
+    "input_tables": {},
+    "notes": "Hand-transcribed from Task 4's cluster run at commit da2dcde -- task-6-numbers.md, section 'Fragmentation'. Same staleness note as flicker_2026.csv: --out-name was added at 624c6e3, after the run that produced these numbers."
+  },
+  "movements_2026.csv": {
+    "script": "benchmarks/movement_counts.py",
+    "argv": ["--days", "2026-06-03", "--warehouses", "recommended=opdi-prod", "debounced=opdi/research/a9"],
+    "git_sha": "da2dcde",
+    "git_dirty": false,
+    "hand_staged": true,
+    "declared_job": "movements_2026",
+    "code_fingerprint": "bf0e9f6d7ca631ac",
+    "code_paths": [
+      "benchmarks/movement_counts.py",
+      "src/opdi/pipeline/segmentation/__init__.py",
+      "src/opdi/pipeline/segmentation/base.py",
+      "src/opdi/pipeline/segmentation/methods.py",
+      "benchmarks/run_debounced_day.py"
+    ],
+    "inputs": {},
+    "input_tables": {},
+    "notes": "Hand-transcribed from Task 5's cluster run at commit da2dcde (recommended read from opdi-prod, debounced read from the self-contained research/a9 warehouse run_debounced_day.py built) -- task-6-numbers.md, section 'APDF movement guard'. movement_counts.py did not yet have the --warehouses loop at da2dcde; Task 5 ran it twice by hand, once per warehouse, and the two runs are combined into one row pair here. --out-name and --warehouses were added at 624c6e3, after the runs that produced these numbers."
+  },
+  "genuine_merge_2026.csv": {
+    "script": "benchmarks/debounced_vs_recommended_merge.py",
+    "argv": ["--day", "2026-06-01"],
+    "git_sha": "da2dcde",
+    "git_dirty": false,
+    "hand_staged": true,
+    "declared_job": false,
+    "code_fingerprint": "872df0f0a5b8634f",
+    "code_paths": [
+      "benchmarks/debounced_vs_recommended_merge.py",
+      "src/opdi/pipeline/segmentation/__init__.py",
+      "src/opdi/pipeline/segmentation/base.py",
+      "src/opdi/pipeline/segmentation/methods.py"
+    ],
+    "inputs": {},
+    "input_tables": {},
+    "notes": "No job in regenerate_track_v3.py -- a one-off follow-up Task 4 ran by hand to interpret fragmentation_2026.csv's persisted-callsign guard once it showed a nonzero residual. debounced_vs_recommended_merge.py is read-only and has no --out-name; wiring it in would need that added first. task-6-numbers.md, section 'Genuine-merge comparison'."
+  }
+}

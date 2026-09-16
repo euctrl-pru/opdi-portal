@@ -1,0 +1,532 @@
+---
+title: "A callsign that changes and changes back"
+subtitle: "Version 3 — a defect in the shipped segmentation rule, what it costs, and why the fix is not yet the default"
+author: "EUROCONTROL Performance Review Unit"
+date: last-modified
+---
+
+```{r regenerate}
+#| include: false
+#| cache: false
+
+# Rendering this page runs the analysis behind it.
+#
+# `regenerate_track_v3.py` is the executable definition of the study: each CSV
+# read below is produced by exactly one job it declares, with exactly the
+# arguments it declares. It re-runs a job when the *code that job depends on*
+# has changed since the output was written -- not when the file is old, which
+# says nothing. A render with everything current is a fast no-op; a render
+# after editing `segmentation/methods.py` re-runs every job before the first
+# table is drawn.
+#
+# OPDI_RENDER selects what happens instead:
+#
+#   run          (default) regenerate anything stale, then render
+#   check        fail fast naming every stale job, regenerate nothing
+#   allow-stale  render a draft from whatever is staged, after naming staleness
+#   skip         do not invoke the entrypoint at all
+#
+# `skip` exists for the case this page was last rendered under: the numbers
+# were hand-staged from Tasks 1, 4 and 5's cluster runs rather than regenerated
+# by this checkout, and starting a Spark session would only re-derive the same
+# figures at cluster cost. It is the only mode that touches neither the
+# cluster nor S3, and it is honest about what it buys -- nothing is checked
+# against the code, so the CSVs are trusted as staged. See
+# [Provenance](#sec-provenance).
+REPO   <- Sys.getenv("OPDI_REPO_DIR",
+                     normalizePath(file.path(getwd(), "..", "..", "..", "opdi"),
+                                   mustWork = FALSE))
+PYTHON <- Sys.getenv("OPDI_PYTHON", file.path(REPO, ".venv310", "bin", "python"))
+MODE   <- Sys.getenv("OPDI_RENDER", "run")
+
+# The pipeline repo is a sibling of the portal. That resolution is wrong inside
+# a git worktree, where the paper sits under .claude/worktrees/<name>/papers and
+# the sibling walk lands somewhere that does not exist -- so the regeneration
+# step would be skipped silently and the page would render whatever is staged.
+# OPDI_REPO_DIR overrides it; the default is unchanged for a normal checkout.
+#
+# A missing entrypoint must not read as "nothing to regenerate". Skipping it
+# silently is how a page ends up publishing numbers no command can account for.
+regen <- file.path(REPO, "benchmarks", "regenerate_track_v3.py")
+if (!file.exists(regen) && MODE != "skip") {
+  stop("regenerate_track_v3.py not found under REPO=", REPO,
+       " -- set OPDI_REPO_DIR, or OPDI_RENDER=skip to render without it.")
+}
+
+# `skip` short-circuits before system2, so no Python process starts and no Spark
+# session is created. Every other mode reaches the entrypoint.
+if (MODE != "skip" && file.exists(regen)) {
+  flags <- switch(MODE,
+                  "run" = character(0),
+                  "check" = "--check",
+                  "allow-stale" = c("--check", "--allow-stale"),
+                  character(0))
+  status <- system2(PYTHON, c(shQuote(regen), flags), stdout = "", stderr = "")
+  if (!identical(status, 0L)) {
+    stop("regenerate_track_v3.py exited ", status,
+         " -- the figures below would not match the code that is checked out. ",
+         "Set OPDI_RENDER=allow-stale to render anyway.")
+  }
+}
+```
+
+```{r setup}
+#| include: false
+library(knitr)
+
+# Read-only. Every figure and table on this page comes from a committed CSV.
+# Nothing here reads S3, a database or a Spark cluster.
+
+D <- function(f) read.csv(file.path("data", f), stringsAsFactors = FALSE)
+
+flicker <- D("flicker_2026.csv")          # one row: 2026-06-01
+fragm   <- D("fragmentation_2026.csv")    # one row per (arm, hold)
+moves   <- D("movements_2026.csv")        # one row per label
+genuine <- D("genuine_merge_2026.csv")    # one row per arm
+
+# One accessor per file, so no two tables on this page can disagree about what
+# a run scored. Each stops rather than returns a zero-length value: a missing
+# row would otherwise propagate into a table cell as a blank and read as a
+# measured result.
+FLK <- function(col) {
+  v <- flicker[[col]]
+  if (length(v) != 1) stop("no single flicker value for ", col)
+  v
+}
+FRG <- function(arm, hold, col) {
+  v <- fragm[fragm$arm == arm & fragm$hold_s == hold, col]
+  if (length(v) != 1) stop("no single fragmentation row for ", arm, "/", hold)
+  v
+}
+MOV <- function(label, col) {
+  v <- moves[moves$label == label, col]
+  if (length(v) != 1) stop("no single movement row for ", label)
+  v
+}
+GEN <- function(arm, col) {
+  v <- genuine[genuine$arm == arm, col]
+  if (length(v) != 1) stop("no single genuine-merge row for ", arm)
+  v
+}
+
+num  <- function(x) formatC(x, format = "d", big.mark = ",")
+pct  <- function(x) sprintf("%.1f%%", x)
+p2   <- function(x) sprintf("%.2f", x)
+p3   <- function(x) sprintf("%.3f", x)
+ratio <- function(x) sprintf("%.2fx", x)
+
+# What ships, from `SegmentationConfig` in `src/opdi/config.py`. Configuration
+# values, not measurements -- named here so the config table and the prose
+# read one source.
+SHIP <- list(method = "standard", resolved = "recommended",
+             hold_s = 0.0, arm9 = "debounced")
+
+# The partition's own size: how many fewer tracks the debounce draws at each
+# hold, computed from the staged table rather than retyped.
+DROP <- function(hold) 100 * (1 - FRG("debounced", hold, "tracks") /
+                                  FRG("recommended", 0, "tracks"))
+```
+
+## Summary {.unnumbered}
+
+**The rule OPDI shipped in [version 2](../track-construction-v2/index.qmd)
+breaks a track on a callsign change and never asks whether the callsign
+changes back.** `recommended` (arm A8) groups on the airframe and cuts when
+the last non-blank callsign genuinely differs from the current one. A
+*flicker* — a callsign decoded as X, then Y for one sample, then X again —
+satisfies that test twice: once on the way out, once on the way back. One
+flight becomes three tracks.
+
+**The defect is not rare.** Of `r num(FLK("n_boundaries"))` track boundaries
+`recommended` draws on 2026-06-01, `r pct(FLK("flicker_attributed_pct"))` —
+`r num(FLK("boundary_flicker_revert_leg") + FLK("boundary_flicker_excursion_leg"))`
+boundaries — trace to a flicker's excursion or revert leg, against only
+`r num(FLK("boundary_genuine_callsign_change"))`
+(`r pct(FLK("boundary_genuine_callsign_change_pct"))`) that are a genuine
+change. [What v2 shipped, and the question nobody asked](#sec-shipped) states
+the rule; [the defect, found by elimination](#sec-defect) is the measurement.
+
+**The fix.** `debounced` (arm A9) adds one condition: a new callsign must
+persist for `callsign_min_persistence_seconds` before the break fires. At a
+30 s hold it draws `r pct(DROP(30))` fewer tracks than `recommended`.
+[The debounce, and what it costs](#sec-debounce) reports that fragmentation
+change alongside the guard that tells a suppressed flicker from a genuinely
+merged flight apart, which is the number that matters more than the raw
+count.
+
+**What it does not change.** [Genuine-merge neutrality](#sec-genuine) finds
+the debounce fuses `r num(GEN("debounced", "refined_genuine_merges"))`
+distinct two-flight pairs a day against `recommended`'s
+`r num(GEN("recommended", "refined_genuine_merges"))` — a ratio of
+`r ratio(GEN("debounced", "refined_genuine_merges") / GEN("recommended", "refined_genuine_merges"))`
+— and the same rotation pairs appear under both arms, so this is a
+pre-existing property of the shared gap rules, not something the debounce
+introduces.
+
+**What APDF can and cannot say.** [Against APDF, and the limits of
+that](#sec-apdf) is the section most worth reading carefully: block times
+cannot referee this fix, and the guard that can — movement counts — passes.
+
+**What ships.** `callsign_min_persistence_seconds` defaults to
+`r p2(SHIP$hold_s)`, which reproduces `recommended` exactly.
+[`track_id` again](#sec-trackid) states plainly why promoting A9 is not
+decided on this page.
+
+::: {.callout-note}
+## How to read this page
+
+This is a validation note for one fix, not a new sweep. Each numbered section
+reports a measurement Tasks 1, 4 or 5 already took; nothing here is computed
+for the first time on this page. [What v2 shipped](#sec-shipped) restates the
+rule so this page stands alone. [The defect](#sec-defect) is the case for
+fixing it. [The debounce](#sec-debounce) and [genuine-merge
+neutrality](#sec-genuine) are the two ways the fix could have gone wrong, both
+checked. [Against APDF](#sec-apdf) is the external check, with its limits
+stated before its result. [`track_id` again](#sec-trackid) is the operational
+answer: not yet.
+
+Every number here is an expression evaluated at render time over a committed
+CSV — `data/flicker_2026.csv`, `data/fragmentation_2026.csv`,
+`data/movements_2026.csv` and `data/genuine_merge_2026.csv`. The first three
+are declared by `benchmarks/regenerate_track_v3.py`, which this page runs
+before drawing anything; the fourth is a hand-staged follow-up with no
+declared job of its own. [Provenance](#sec-provenance) says which is which and
+why. Nothing is typed into the prose, which is what stops the text and the
+tables drifting apart.
+:::
+
+## What v2 shipped, and the question nobody asked {#sec-shipped}
+
+[Version 2](../track-construction-v2/index.qmd) replaced the rule behind every
+`track_id` published up to OPDI v0.0.2 — group on `(icao24, callsign)`, cut on
+a time gap — with one that groups on `icao24` alone and cuts when the
+airframe's *last non-blank* callsign genuinely differs from the current one.
+The configuration key is `segmentation.method`, and it ships as
+`` `r SHIP$method` `` — the production alias for the arm the segmentation
+study itself calls `` `r SHIP$resolved` ``, arm A8.
+
+The break exists to separate two real flights of the same airframe once their
+callsigns diverge. It was built and measured against that question, and v2's
+own evidence — the gain from dropping callsign out of the group key, the small
+amount of new merging the break claws back — is about whether *the airframe
+splits when it should*. Nobody asked the complementary question: what happens
+when the callsign the break fires on turns out not to be a real change at all,
+but the aircraft's transponder briefly decoding it wrong and then decoding it
+right again? A8 has no way to tell the two apart. It breaks on the first
+sample that differs from the last real one it saw, and a flicker satisfies
+that test on the way out and again on the way back in — twice for one
+airframe that never changed flight.
+
+## The defect, found by elimination {#sec-defect}
+
+The evidence is two independent measurements of the same day,
+2026-06-01, agreeing with each other.
+
+**By elimination first.** `recommended`'s break fires on exactly three
+conditions: a gap over 30 minutes, a gap over 15 minutes below 5,000 ft, or a
+genuine callsign change. The two gap rules cannot produce a track boundary
+with a sub-minute gap — their thresholds are fifteen and thirty minutes — so
+every sub-minute-gap boundary that day is, by elimination, a callsign break.
+Classifying every boundary `recommended` actually draws that day by cause:
+
+```{r boundary-table}
+#| echo: false
+classes <- c("boundary_gap_gt_30min", "boundary_gap_gt_15min_low_alt",
+             "boundary_flicker_revert_leg", "boundary_flicker_excursion_leg",
+             "boundary_genuine_callsign_change")
+labels  <- c("gap > 30 min", "gap > 15 min & < 5,000 ft",
+             "flicker revert leg (Y -> X)", "flicker excursion leg (X -> Y)",
+             "genuine callsign change")
+bt <- data.frame(
+  Cause = labels,
+  Boundaries = sapply(classes, function(c) num(FLK(c))),
+  Share = sapply(classes, function(c) pct(FLK(paste0(c, "_pct")))),
+  check.names = FALSE
+)
+kable(bt, row.names = FALSE, align = "lrr",
+      col.names = c("Cause", "boundaries", "share of all boundaries"),
+      caption = paste0("Every track boundary `recommended` draws on ",
+                        "2026-06-01, by cause. ", num(FLK("n_boundaries")),
+                        " boundaries total."))
+```
+
+Of `r num(FLK("callsign_change_boundaries"))` boundaries attributed to a
+callsign change, `r num(FLK("boundary_flicker_revert_leg") + FLK("boundary_flicker_excursion_leg"))`
+(`r pct(FLK("flicker_attributed_pct"))` of *every* boundary the rule draws, not
+just of the callsign-change ones) trace to a flicker's revert or excursion
+leg. Only `r num(FLK("boundary_genuine_callsign_change"))` are a genuine
+change with nothing reverting either side of it. A flicker does not split a
+track once — it **trisects** a flight, tripping the break on the way out
+(excursion leg) and again on the way back (revert leg).
+
+`r num(FLK("n_collision"))` boundaries
+(`r pct(FLK("collision_pct"))`) match both a flicker's revert leg and the next
+flicker's excursion leg at once — an airframe garbling its callsign
+repeatedly with no stable sample in between. The two flicker buckets summing
+to the same count either way, that collision count is not, on its own, proof
+the two are counted disjointly; it is counted rather than assumed.
+
+**The raw sequence confirms it directly.** The elimination argument infers a
+flicker from a boundary's shape — sub-minute gap, no altitude signature. The
+raw callsign sequence, ignoring blanks, says so outright: a value that differs
+from both its predecessor and its successor, whose predecessor and successor
+agree with each other (X → Y → X), holds for a median
+`r num(FLK("held_p50_s"))` s — the 90th and 99th percentiles are the same
+`r num(FLK("held_p90_s"))` s, meaning essentially every flicker is a single
+sample — and the longest held only `r num(FLK("held_max_s"))` s. Nothing that
+holds for one sample and reverts is a flight changing its callsign; it is a
+transponder decoding one message wrong.
+
+## The debounce, and what it costs {#sec-debounce}
+
+`debounced` (arm A9) adds one condition to A8's break: the new callsign must
+still be in force `callsign_min_persistence_seconds` later. A flicker fails
+that test — the value has already reverted — and a genuine change passes it,
+because the new callsign is still there. At `hold = 0` it reproduces
+`recommended` exactly, which is what the first row of every table on this
+page is.
+
+```{r fragmentation-table}
+#| echo: false
+ft <- fragm
+ft$Arm <- ifelse(ft$arm == "recommended", "recommended (A8, ships)",
+                  paste0("debounced (A9), hold=", ft$hold_s, "s"))
+ft <- ft[, c("Arm", "tracks", "tracks_per_flight",
+             "tracks_2plus_raw_callsigns", "tracks_2plus_persisted_callsigns")]
+ft$tracks <- num(ft$tracks)
+ft$tracks_per_flight <- p3(ft$tracks_per_flight)
+ft$tracks_2plus_raw_callsigns <- num(ft$tracks_2plus_raw_callsigns)
+ft$tracks_2plus_persisted_callsigns <- num(ft$tracks_2plus_persisted_callsigns)
+kable(ft, row.names = FALSE, align = "lrrrr",
+      col.names = c("Arm", "tracks", "tracks / flight",
+                    "2+ raw callsigns", "2+ PERSISTED callsigns"),
+      caption = "2026-06-01, re-segmenting `osn_tracks_clean`. `2+ raw` and `2+ persisted` are per-track callsign counts, not tracks-per-flight.")
+```
+
+**Fragmentation falls.** At a 30 s hold the partition drops from
+`r num(FRG("recommended", 0, "tracks"))` to `r num(FRG("debounced", 30, "tracks"))`
+tracks, `r pct(DROP(30))` fewer — close to twice the roughly 5,100 flickers
+[the defect section](#sec-defect) counted, which is the shape a fix should
+have: each suppressed flicker removes two boundaries, not one.
+
+**`2+ raw callsigns` rises, and that is expected, not a merge.** A track that
+now swallows a flicker legitimately contains both the real callsign and the
+transient garble, so distinct-raw-callsign count rises with the hold by
+construction. It cannot, on its own, tell a suppressed flicker from a track
+that genuinely fused two flights — both look like "more than one callsign in
+this track."
+
+**`2+ PERSISTED callsigns` is the guard, and it does not rise.** Counting only
+callsigns that individually span at least the hold inside a track — a garble
+spans a sample or two, a genuinely fused second flight spans minutes —
+`debounced` stays at `r num(FRG("debounced", 15, "tracks_2plus_persisted_callsigns"))`
+to `r num(FRG("debounced", 60, "tracks_2plus_persisted_callsigns"))` across the
+three holds tested, against `recommended`'s
+`r num(FRG("recommended", 0, "tracks_2plus_persisted_callsigns"))` — the same
+order of magnitude — and it **shrinks as the hold grows**, from
+`r num(FRG("debounced", 15, "tracks_2plus_persisted_callsigns"))` at 15 s to
+`r num(FRG("debounced", 60, "tracks_2plus_persisted_callsigns"))` at 60 s. A
+rule that was wrongly fusing distinct flights would show the opposite shape —
+more persisted-callsign tracks as it gets more permissive. This one shows
+fewer, which is the signature of a debounce swallowing flicker and nothing
+else.
+
+::: {.callout-warning}
+## What this table cannot measure
+
+`track_fragmentation.py` re-segments `osn_tracks_clean` — state vectors
+already cleaned under the boundaries `recommended` produced. A candidate arm
+that would have kept a track together never gets the chance to have it
+cleaned as one track, so this is a measurement of re-segmenting
+already-split data, not of segmenting from raw. For counting tracks that is
+second order; it is not the from-raw measurement. [Against
+APDF](#sec-apdf) reports the one job that is.
+:::
+
+## Genuine-merge neutrality {#sec-genuine}
+
+The guard in [the previous section](#sec-debounce) asks whether the debounce
+*creates* new fused flights. A second, sharper question is whether it changes
+the count of fusions that were *already there* under `recommended` — the
+population `2+ persisted callsigns` cannot separate from noise on its own,
+because a dense pair of distinct callsigns each spanning minutes looks
+identical whichever arm drew the track.
+
+```{r genuine-table}
+#| echo: false
+gt <- genuine
+gt$Arm <- ifelse(gt$arm == "recommended", "recommended (hold=0)",
+                  paste0("debounced (hold=", gt$hold_s, "s)"))
+gt <- gt[, c("Arm", "refined_genuine_merges", "ratio_vs_recommended")]
+gt$refined_genuine_merges <- num(gt$refined_genuine_merges)
+gt$ratio_vs_recommended <- ratio(gt$ratio_vs_recommended)
+kable(gt, row.names = FALSE, align = "lrr",
+      col.names = c("Arm", "refined genuine two-flight fusions / day",
+                    "ratio vs. recommended"),
+      caption = "2026-06-01. A genuine fusion: two callsigns in one track, each spanning >= 300s and >= 100 samples, and string-dissimilar (Levenshtein > 2, not a prefix of each other) -- the same floor applied to both arms.")
+```
+
+`debounced` fuses `r num(GEN("debounced", "refined_genuine_merges"))` distinct
+pairs a day against `recommended`'s
+`r num(GEN("recommended", "refined_genuine_merges"))` —
+`r ratio(GEN("debounced", "refined_genuine_merges") / GEN("recommended", "refined_genuine_merges"))`
+— and the same RYR/EJU consecutive-rotation pairs appear under **both** arms.
+The debounce only changes behaviour for callsign excursions that do not
+persist; two callsigns that are each genuinely present for minutes look
+identical to A8 and A9 alike, so a rule that fuses those pairs is a property
+of the shared gap and lookback rules underneath both arms, not something this
+fix introduces. The residual is pre-existing, and it is not what this page
+was written to fix.
+
+## Against APDF, and the limits of that {#sec-apdf}
+
+**What the reference can and cannot settle.** The obvious check is whether a
+merged track's block times agree better with APDF's. It is not available.
+`AOBT` and `AIBT` are frequently rounded to the whole minute, so a difference
+of tens of seconds measures the reference's quantisation rather than the
+detector; and ADS-B presence does not share an end with the block times,
+because a transponder may stay on well past on-block or come on well before
+off-block. Neither limitation is a defect in APDF — they are what the data
+is — but together they mean a timing comparison here would produce a number
+with no interpretation.
+
+What survives both limitations is counting and naming. Movement counts per
+aerodrome are insensitive to rounding and to transponder dwell. `AP_C_RWY` is
+categorical and 100% populated at every aerodrome in the study set. Those are
+what this paper asks of APDF, and they are asked as a **guard** rather than as
+the result: merging two halves of a cruise-phase split should barely move
+either, and a large movement shift would mean the change did something other
+than intended.
+
+The improvement itself is measured internally — [fragmentation and milestone
+pairing](#sec-debounce) — because those are the quantities the defect
+actually damages.
+
+```{r movements-table}
+#| echo: false
+mt <- moves
+mt$Label <- ifelse(mt$label == "recommended",
+                    "recommended (opdi-prod, shipped)",
+                    "debounced (opdi/research/a9)")
+mt <- mt[, c("Label", "opdi_kept_dep_ratio", "opdi_kept_arr_ratio", "guard_verdict")]
+mt$opdi_kept_dep_ratio <- ratio(mt$opdi_kept_dep_ratio)
+mt$opdi_kept_arr_ratio <- ratio(mt$opdi_kept_arr_ratio)
+kable(mt, row.names = FALSE, align = "lrrl",
+      col.names = c("Warehouse", "departures, OPDI/APDF", "arrivals, OPDI/APDF",
+                    "guard"),
+      caption = "2026-06-03. Ratios use OPDI's fragments-removed movement count (`MOVEMENT_DEP`/`MOVEMENT_ARR`) against APDF's, the same definition track-construction-v2's payoff regression check uses.")
+```
+
+The debounced run lands at
+`r ratio(MOV("debounced", "opdi_kept_dep_ratio"))` departures and
+`r ratio(MOV("debounced", "opdi_kept_arr_ratio"))` arrivals against APDF, with
+`r num(MOV("debounced", "rule_dep_excluded"))` real departures and
+`r num(MOV("debounced", "rule_arr_excluded"))` real arrivals wrongly excluded
+by the movement rule, and a tighter per-aerodrome spread than the baseline
+row. **Guard passed: debouncing does not break movement counting.**
+
+**The honest caveat.** This is not a clean arm delta.
+`r MOV("recommended", "caveat")` The guard this section exists to answer —
+does debouncing *break* movement counting — is answered no either way; the
+recommended row's own departure ratio moving from the historical baseline is
+not evidence for or against the debounce, and is not claimed as any.
+
+**What was dropped.** A runway-identity check against `AP_C_RWY` was planned
+and not run: APDF's `SAM ID` cannot join the flight-list's track hash, so
+there is no key to run the comparison on. It is recorded here as a limitation
+rather than left silently absent.
+
+## `track_id` again {#sec-trackid}
+
+::: {.callout-important}
+## Not decided here
+
+`debounced` defaults **off**.
+`callsign_min_persistence_seconds` ships at `r p2(SHIP$hold_s)`, which
+`debounced()`'s own docstring states reproduces `recommended` exactly — the
+arm is present in the codebase, validated on this page, and not selected by
+any shipped configuration.
+:::
+
+[Version 2](../track-construction-v2/index.qmd#sec-continuity) already spent
+the cost of one `track_id` discontinuity: A8 hashes a different group key and
+suffixes a sample offset instead of a month, so no identifier from before that
+release joins to any identifier after it. Promoting A9 to the default would
+spend that cost a second time — not because the group key changes again
+(`debounced` groups on `icao24`, exactly as `recommended` does), but because
+`id_from_start_time` means a track's identifier is derived from its own first
+sample, and suppressing a flicker changes which sample that is for every track
+a flicker used to cut in two. The count of published identifiers surviving a
+promotion would not be zero the way v2's was, but it would not be the
+identity map either, and nothing on this page measured how far from it.
+
+That is a decision for the contract owner, weighing a real fragmentation
+defect against a second continuity break on a published contract, not a
+result this validation page can produce by itself. It is not taken here.
+
+## Limitations
+
+**One day, mostly.** The boundary-cause breakdown, the flicker
+holding-time distribution and the fragmentation table are all 2026-06-01. The
+APDF movement guard is 2026-06-03. Nothing on this page claims the day is
+representative; it is the day Tasks 1, 4 and 5 measured and the day this page
+reports.
+
+**Re-segmentation, not re-ingestion, for fragmentation.** [The debounce
+section](#sec-debounce) states this in place: `track_fragmentation.py`
+re-segments already-cleaned state vectors, whose cleaning was itself
+partitioned by `recommended`'s own boundaries. The APDF guard is the one job
+here that runs a full pipeline — `run_debounced_day.py`, steps 02 through
+04b — from raw.
+
+**The genuine-merge comparison is a hand-run follow-up, not a declared job.**
+[Genuine-merge neutrality](#sec-genuine) reads `debounced_vs_recommended_merge.py`'s
+output, which Task 4 ran once to interpret the persisted-callsign guard's
+residual. It is not wired into `regenerate_track_v3.py` — see
+[Provenance](#sec-provenance) for why and what re-declaring it would take.
+
+**Runway identity was dropped, not measured and found equal.** [Against
+APDF](#sec-apdf) states why: there is no join key between APDF's `SAM ID` and
+the flight list's track hash.
+
+**No downstream milestone comparison.** `debounced` was not scored on
+step 04 events or measurements, only on the partition itself and on the
+flight list's movement counts. Anything that consumes a track more granularly
+than "how many movements landed at this aerodrome" is untested here.
+
+## Provenance note {#sec-provenance}
+
+`flicker_2026.csv`, `fragmentation_2026.csv` and `movements_2026.csv` are
+each declared as one job in `benchmarks/regenerate_track_v3.py`
+(`flicker_2026`, `fragmentation_2026`, `movements_2026`). All three are staged
+here as **hand-transcribed committed values**, not as output of a run this
+checkout performed: Tasks 1, 4 and 5 ran `callsign_flicker.py`,
+`track_fragmentation.py` and `movement_counts.py` on the cluster at commit
+`da2dcde` (`bench: debounce validation scripts (fragmentation residual + APDF
+movement guard)`), and the numbers were recorded from those runs rather than
+regenerated by this page. `--out-name` support was added to all three scripts
+afterward, in the same change that added `regenerate_track_v3.py` itself —
+so the code fingerprint the entrypoint checks against has moved on from the
+commit that actually produced these figures, and `--check` correctly reports
+all three as stale. Re-running them is what clears that, and would write
+files this page expects to be identical to the ones committed here, because
+nothing in the classification logic changed — only the ability to write a
+CSV. This page renders with `OPDI_RENDER=skip` and reports these three
+outputs as staged rather than paying a cluster session for a number that
+would not move.
+
+`genuine_merge_2026.csv` has no declared job at all. It is
+`debounced_vs_recommended_merge.py`'s output, a follow-up Task 4 ran once, by
+hand, to interpret `fragmentation_2026.csv`'s persisted-callsign guard column
+once that guard showed a nonzero residual. The module docstring in
+`regenerate_track_v3.py` records what re-declaring it as a job would need: the
+script is read-only and writes nothing a staleness check can key on today, so
+wiring it in means giving it the same `--out-name`/`--results-dir` treatment
+the other three received, not just adding a `Job` entry.
+
+Every number in this file traces to the working notes for this fix —
+`task-6-numbers.md`, under `.superpowers/sdd/` in the `opdi` repository,
+dated 2026-09-15 — which is itself a transcription of Tasks 1, 4 and 5's
+cluster output. That file, not this one, is the record of how each number was
+actually computed; this page's job is to read it consistently, not to
+re-derive it.
