@@ -19,6 +19,40 @@ flight events versions 1–2 pre-date the change.
 
 :::: {.publication-card}
 ::: {.publication-info}
+**[ADS-C in the OPDI trajectory — version 1](adsc-fusion-v1/index.qmd)**
+&nbsp;·&nbsp; [PDF](adsc-fusion-v1/adsc-fusion-v1.pdf)
+
+Tests whether merging OpenSky's ADS-C feed into the ADS-B trajectories improves
+flight-event extraction. ADS-C is merged **before** segmentation, so `track_id`
+sees both sources, and the trajectory cleaner is made source-aware — its
+twenty-second isolated-point rule would otherwise delete a feed whose median
+cadence is several hundred seconds, and the fusion would have measured as a
+no-op for a reason unrelated to its idea. Both arms are rebuilt from the same
+state vectors and scored against APDF over the twenty aerodromes of flight
+events version 4.
+
+Reports what the feed actually is, measured over eleven days spanning 2023-09
+to 2026-10: a few thousand rows a day inside OPDI's European box, almost all
+above FL300, most of them west of 10°W, no `on_ground` flag ever true, and
+every speed, temperature, wind, selected-altitude, registration and type field
+empty on **every** day sampled. The A-CDM runway family therefore cannot move,
+and that null is reported as measured rather than omitted.
+
+Also measures what the two feeds disagree about. They agree on where the track
+is to within a few metres across track and disagree by hundreds of metres along
+it — a timing offset, not a position error — and that offset is a property of
+the individual airframe, not of the feed. One aircraft in twenty-five is
+persistently about thirteen seconds out while another is synchronised to a
+hundredth of a second, which is why no global correction is applied.
+
+**Pending its data campaign.** The page renders against
+`benchmarks/regenerate_adsc_v1.py`; where a figure is not yet staged the table
+says so in place, and the provenance chapter lists what is present.
+:::
+::::
+
+:::: {.publication-card}
+::: {.publication-info}
 **[Flight events from ADS-B — version 4](flight-events-v4/index.qmd)**
 &nbsp;·&nbsp; [PDF](flight-events-v4/flight-events-v4.pdf)
 

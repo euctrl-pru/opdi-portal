@@ -1,0 +1,62 @@
+{
+  "adsc_census.csv": {
+    "argv": [
+      "--days",
+      "2023-09-01",
+      "2024-03-01",
+      "2024-09-02",
+      "2025-03-01",
+      "2025-09-01",
+      "2026-03-22",
+      "2026-06-01",
+      "2026-06-05",
+      "2026-06-06",
+      "2026-06-07",
+      "2026-10-15",
+      "--out-name",
+      "adsc_census.csv",
+      "--local"
+    ],
+    "bytes": 3225,
+    "code_fingerprint": "12251eba5d1f97d7",
+    "code_paths": [
+      "benchmarks/adsc_census.py"
+    ],
+    "git_dirty": false,
+    "git_sha": "d60bcc2",
+    "input_tables": {},
+    "inputs": {
+      "base": "s3a://readsb-aircraft-states/topics/readsb.aircraft.adsc.avro",
+      "days": [
+        "2023-09-01",
+        "2024-03-01",
+        "2024-09-02",
+        "2025-03-01",
+        "2025-09-01",
+        "2026-03-22",
+        "2026-06-01",
+        "2026-06-05",
+        "2026-06-06",
+        "2026-06-07",
+        "2026-10-15"
+      ],
+      "hour_partitions_per_day": {
+        "2023-09-01": 10,
+        "2024-03-01": 9,
+        "2024-09-02": 9,
+        "2025-03-01": 11,
+        "2025-09-01": 24,
+        "2026-03-22": 6,
+        "2026-06-01": 24,
+        "2026-06-05": 24,
+        "2026-06-06": 24,
+        "2026-06-07": 24,
+        "2026-10-15": 24
+      }
+    },
+    "notes": "What the raw ADS-C topic contains, eleven days across the archive: rows, in-box rows, airframes, median cadence, altitude and geography bands inside the coverage box, exact duplicates, and the fill rate of every column. Reads the topic directly -- no pipeline code can change this answer, which is why it depends on none.",
+    "produced_utc": "2026-10-17T09:47:23+00:00",
+    "script": "benchmarks/adsc_census.py",
+    "sha256_16": "026cc185b24b2505"
+  }
+}

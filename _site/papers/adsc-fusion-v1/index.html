@@ -1,0 +1,1266 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.10.18">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="author" content="EUROCONTROL Performance Review Unit — Open Performance Data Initiative">
+<meta name="dcterms.date" content="2026-10-17">
+
+<title>ADS-C in the OPDI trajectory – OPDI Papers</title>
+<style>
+/* Default styles provided by pandoc.
+** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+*/
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: 1.5em;}
+div.column{flex: auto;}
+@media screen {
+div.columns{gap: min(4vw, 1.5em);}
+div.column{overflow-x: auto;}
+}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../site_libs/quarto-nav/headroom.min.js"></script>
+<script src="../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../">
+<script src="../site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="../site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="../site_libs/quarto-html/popper.min.js"></script>
+<script src="../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../site_libs/quarto-html/quarto-syntax-highlighting-64a204ab8560d761af7679ceaba22944.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../site_libs/bootstrap/bootstrap-3fc44999f41da3927fa35e4e05887fd4.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "navbar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "end",
+  "type": "overlay",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+
+
+</head>
+
+<body class="nav-fixed quarto-light">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+    <nav class="navbar navbar-expand-lg " data-bs-theme="dark">
+      <div class="navbar-container container-fluid">
+      <div class="navbar-brand-container mx-auto">
+    <a class="navbar-brand" href="../index.html">
+    <span class="navbar-title">OPDI Papers</span>
+    </a>
+  </div>
+            <div id="quarto-search" class="" title="Search"></div>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" role="menu" aria-expanded="false" aria-label="Toggle navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+  <span class="navbar-toggler-icon"></span>
+</button>
+          <div class="collapse navbar-collapse" id="navbarCollapse">
+            <ul class="navbar-nav navbar-nav-scroll me-auto">
+  <li class="nav-item">
+    <a class="nav-link" href="../index.html"> 
+<span class="menu-text">Papers</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="https://www.eurocontrol.int/opdi"> 
+<span class="menu-text">OPDI</span></a>
+  </li>  
+</ul>
+          </div> <!-- /navcollapse -->
+            <div class="quarto-navbar-tools">
+</div>
+      </div> <!-- /container-fluid -->
+    </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
+<!-- sidebar -->
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul class="collapse">
+  <li><a href="#what-the-feed-is" id="toc-what-the-feed-is" class="nav-link active" data-scroll-target="#what-the-feed-is"><span class="header-section-number">1</span> What the feed is</a></li>
+  <li><a href="#how-it-is-merged" id="toc-how-it-is-merged" class="nav-link" data-scroll-target="#how-it-is-merged"><span class="header-section-number">2</span> How it is merged</a></li>
+  <li><a href="#whether-the-two-clocks-agree" id="toc-whether-the-two-clocks-agree" class="nav-link" data-scroll-target="#whether-the-two-clocks-agree"><span class="header-section-number">3</span> Whether the two clocks agree</a></li>
+  <li><a href="#what-the-merge-did-to-the-trajectories" id="toc-what-the-merge-did-to-the-trajectories" class="nav-link" data-scroll-target="#what-the-merge-did-to-the-trajectories"><span class="header-section-number">4</span> What the merge did to the trajectories</a></li>
+  <li><a href="#what-it-did-to-the-flight-events" id="toc-what-it-did-to-the-flight-events" class="nav-link" data-scroll-target="#what-it-did-to-the-flight-events"><span class="header-section-number">5</span> What it did to the flight events</a></li>
+  <li><a href="#sec-limits" id="toc-sec-limits" class="nav-link" data-scroll-target="#sec-limits"><span class="header-section-number">6</span> What this does not measure</a></li>
+  <li><a href="#sec-reproduce" id="toc-sec-reproduce" class="nav-link" data-scroll-target="#sec-reproduce"><span class="header-section-number">7</span> Reproducing this</a></li>
+  <li><a href="#sec-provenance" id="toc-sec-provenance" class="nav-link" data-scroll-target="#sec-provenance"><span class="header-section-number">8</span> Provenance</a></li>
+  </ul>
+<div class="quarto-alternate-formats"><h2>Other Formats</h2><ul><li><a href="index.pdf"><i class="bi bi-file-pdf"></i>PDF</a></li></ul></div></nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">ADS-C in the OPDI trajectory</h1>
+<p class="subtitle lead">Version 1 — what a satellite cruise feed adds to flight-event extraction</p>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    <div>
+    <div class="quarto-title-meta-heading">Author</div>
+    <div class="quarto-title-meta-contents">
+             <p>EUROCONTROL Performance Review Unit — Open Performance Data Initiative </p>
+          </div>
+  </div>
+    
+    <div>
+    <div class="quarto-title-meta-heading">Published</div>
+    <div class="quarto-title-meta-contents">
+      <p class="date">October 17, 2026</p>
+    </div>
+  </div>
+  
+    
+  </div>
+  
+<div>
+  <div class="abstract">
+    <div class="block-title">Abstract</div>
+    <p>OPDI builds every track from ADS-B state vectors. OpenSky also publishes an ADS-C feed, and the obvious hypothesis is that merging the two improves coverage and therefore milestone extraction. This paper tests it. ADS-C is merged into the state-vector frame <em>before</em> segmentation, so <code>track_id</code> sees both sources; the trajectory cleaner is made source-aware, because its twenty-second isolated-point rule would otherwise delete a feed whose median cadence is ten minutes. Both arms — ADS-B only, and ADS-B plus ADS-C — are rebuilt from the same state vectors with the same segmentation and the same detectors, and scored against EUROCONTROL APDF over the twenty aerodromes and three days of flight events version 4.</p>
+    <p>The feed is narrow and the result is correspondingly narrow. Measured over eleven days spanning 2023-09 to 2026-10, ADS-C delivers a few thousand rows a day inside OPDI’s European box at a median of several hundred seconds between reports; almost all of those rows are above FL300 and most sit west of 10°W. It carries no <code>on_ground</code> flag and almost nothing below ten thousand feet. The A-CDM runway family therefore cannot move, and this paper reports that as a measured null rather than omitting it.</p>
+    <p>The two feeds also do not share a clock, and neither states a position age that can be used. Comparing ADS-C reports against ADS-B interpolated to the same instant separates the two candidate explanations: the feeds agree about where the track is to within a few metres across track while disagreeing by hundreds of metres along it, which is a timing offset and not a position error. That offset is a property of the individual airframe rather than of the feed, so no global correction is applied and the paper says why.</p>
+    <p>Every figure is produced by <code>benchmarks/regenerate_adsc_v1.py</code>. Where an output is not staged the table says so in place rather than being omitted.</p>
+  </div>
+</div>
+
+
+</header>
+
+
+<section id="what-the-feed-is" class="level1" data-number="1">
+<h1 data-number="1"><span class="header-section-number">1</span> What the feed is</h1>
+<p>OpenSky publishes an ADS-C topic beside the ADS-B archive: <code>s3a://readsb-aircraft-states/topics/readsb.aircraft.adsc.avro</code>, hourly partitions named <code>hour=&lt;unix seconds&gt;</code>, holding snappy <strong>parquet</strong> despite the <code>.avro</code> in the topic name — the files carry the Avro schema <code>org.opensky.avro.readsb.Aircraft</code> in their footer. Partitions run from 2023-07-07 to the current hour, 982 days with 24 gaps longer than a day, and in 2026 the feed averages 22.3 of 24 hourly partitions per day. A missing hour is routine, and the ingest tolerates it by listing before reading rather than letting <code>spark.read.parquet</code> raise <code>PATH_NOT_FOUND</code> on the first absent one.</p>
+<div class="cell">
+<div class="cell-output-display">
+<table class="caption-top table table-sm table-striped small">
+<caption>The raw ADS-C topic, by sampled day. Every band after <code>In box</code> is counted <strong>inside</strong> OPDI’s published European coverage box – that is the population the pipeline would ingest. <code>Hours read</code> matters: a day with 6 of 24 partitions present has a cadence that reflects the gap, not the feed.</caption>
+<colgroup>
+<col style="width: 8%">
+<col style="width: 8%">
+<col style="width: 4%">
+<col style="width: 5%">
+<col style="width: 12%">
+<col style="width: 14%">
+<col style="width: 6%">
+<col style="width: 9%">
+<col style="width: 9%">
+<col style="width: 7%">
+<col style="width: 12%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Day</th>
+<th style="text-align: right;">Hours read</th>
+<th style="text-align: right;">Rows</th>
+<th style="text-align: right;">In box</th>
+<th style="text-align: right;">Airframes in box</th>
+<th style="text-align: right;">Median cadence (s)</th>
+<th style="text-align: right;">&gt; FL300</th>
+<th style="text-align: right;">&lt; 10,000 ft</th>
+<th style="text-align: right;">West of 10°W</th>
+<th style="text-align: right;">On ground</th>
+<th style="text-align: right;">Exact duplicates</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">2023-09-01</td>
+<td style="text-align: right;">10</td>
+<td style="text-align: right;">1182</td>
+<td style="text-align: right;">352</td>
+<td style="text-align: right;">203</td>
+<td style="text-align: right;">832.000</td>
+<td style="text-align: right;">344</td>
+<td style="text-align: right;">3</td>
+<td style="text-align: right;">235</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">0</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">2024-03-01</td>
+<td style="text-align: right;">9</td>
+<td style="text-align: right;">409</td>
+<td style="text-align: right;">140</td>
+<td style="text-align: right;">97</td>
+<td style="text-align: right;">953.000</td>
+<td style="text-align: right;">138</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">117</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">0</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">2024-09-02</td>
+<td style="text-align: right;">9</td>
+<td style="text-align: right;">1310</td>
+<td style="text-align: right;">438</td>
+<td style="text-align: right;">242</td>
+<td style="text-align: right;">832.000</td>
+<td style="text-align: right;">432</td>
+<td style="text-align: right;">4</td>
+<td style="text-align: right;">308</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">0</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">2025-03-01</td>
+<td style="text-align: right;">11</td>
+<td style="text-align: right;">1030</td>
+<td style="text-align: right;">322</td>
+<td style="text-align: right;">203</td>
+<td style="text-align: right;">1139.000</td>
+<td style="text-align: right;">306</td>
+<td style="text-align: right;">4</td>
+<td style="text-align: right;">249</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">0</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">2025-09-01</td>
+<td style="text-align: right;">24</td>
+<td style="text-align: right;">27139</td>
+<td style="text-align: right;">3693</td>
+<td style="text-align: right;">902</td>
+<td style="text-align: right;">494.130</td>
+<td style="text-align: right;">3643</td>
+<td style="text-align: right;">15</td>
+<td style="text-align: right;">3094</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">0</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">2026-03-22</td>
+<td style="text-align: right;">6</td>
+<td style="text-align: right;">4210</td>
+<td style="text-align: right;">284</td>
+<td style="text-align: right;">74</td>
+<td style="text-align: right;">277.200</td>
+<td style="text-align: right;">268</td>
+<td style="text-align: right;">6</td>
+<td style="text-align: right;">187</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">0</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">2026-06-01</td>
+<td style="text-align: right;">24</td>
+<td style="text-align: right;">23116</td>
+<td style="text-align: right;">4973</td>
+<td style="text-align: right;">941</td>
+<td style="text-align: right;">566.000</td>
+<td style="text-align: right;">4870</td>
+<td style="text-align: right;">48</td>
+<td style="text-align: right;">3706</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">0</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">2026-06-05</td>
+<td style="text-align: right;">24</td>
+<td style="text-align: right;">27891</td>
+<td style="text-align: right;">5420</td>
+<td style="text-align: right;">994</td>
+<td style="text-align: right;">543.000</td>
+<td style="text-align: right;">5298</td>
+<td style="text-align: right;">67</td>
+<td style="text-align: right;">4134</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">0</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">2026-06-06</td>
+<td style="text-align: right;">24</td>
+<td style="text-align: right;">27098</td>
+<td style="text-align: right;">5066</td>
+<td style="text-align: right;">979</td>
+<td style="text-align: right;">568.097</td>
+<td style="text-align: right;">4963</td>
+<td style="text-align: right;">44</td>
+<td style="text-align: right;">3896</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">0</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">2026-06-07</td>
+<td style="text-align: right;">24</td>
+<td style="text-align: right;">25714</td>
+<td style="text-align: right;">4725</td>
+<td style="text-align: right;">953</td>
+<td style="text-align: right;">564.645</td>
+<td style="text-align: right;">4576</td>
+<td style="text-align: right;">63</td>
+<td style="text-align: right;">3553</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">0</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">2026-10-15</td>
+<td style="text-align: right;">24</td>
+<td style="text-align: right;">32206</td>
+<td style="text-align: right;">5314</td>
+<td style="text-align: right;">885</td>
+<td style="text-align: right;">540.341</td>
+<td style="text-align: right;">5122</td>
+<td style="text-align: right;">52</td>
+<td style="text-align: right;">3731</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">0</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<p>Reading that table across the archive: the feed delivers 409-32206 rows a day worldwide and 140-5420 inside the coverage box, from 74-994 in-box airframes. On the three study days it is 4725-5420 in-box rows from 953-994 airframes, at a median of 543-568 seconds between reports from one aircraft. <strong>Against the 5 s resolution OPDI ingests ADS-B at, that is a feed roughly two orders of magnitude sparser.</strong></p>
+<p>It is also a <em>cruise</em> feed, and that is what bounds what it can contribute. Of the in-box rows, 94.4-98.6% are above FL300 and 65.8-83.8% sit west of 10°W — the North Atlantic corner of the box. The whole box sees 1-67 rows a day below ten thousand feet, and <strong><code>on_ground</code> is true for 0 rows across every day sampled.</strong> There is also no redelivery to clean up: 0 exact duplicates in total, so the ingest’s deduplication has never had anything to remove.</p>
+<div class="cell">
+<div class="cell-output-display">
+<table class="caption-top table table-sm table-striped small">
+<caption>Every column of the feed, by the best fill rate it reached on any sampled day. A column at 0.0 here was empty on <strong>every</strong> day sampled – which is the evidence for not carrying it into the OPDI schema.</caption>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Column</th>
+<th style="text-align: right;">Best fill rate on any sampled day (%)</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">time</td>
+<td style="text-align: right;">100.0</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">hex</td>
+<td style="text-align: right;">100.0</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">lat</td>
+<td style="text-align: right;">100.0</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">lon</td>
+<td style="text-align: right;">100.0</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">alt_baro_ft</td>
+<td style="text-align: right;">100.0</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">on_ground</td>
+<td style="text-align: right;">100.0</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">track</td>
+<td style="text-align: right;">99.9</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">flight</td>
+<td style="text-align: right;">98.1</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">baro_rate</td>
+<td style="text-align: right;">82.3</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">gs</td>
+<td style="text-align: right;">82.2</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">squawk</td>
+<td style="text-align: right;">50.7</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">alt_geom</td>
+<td style="text-align: right;">0.0</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">ias</td>
+<td style="text-align: right;">0.0</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">tas</td>
+<td style="text-align: right;">0.0</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">mach</td>
+<td style="text-align: right;">0.0</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">mag_heading</td>
+<td style="text-align: right;">0.0</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">true_heading</td>
+<td style="text-align: right;">0.0</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">roll</td>
+<td style="text-align: right;">0.0</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">track_rate</td>
+<td style="text-align: right;">0.0</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">geom_rate</td>
+<td style="text-align: right;">0.0</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">oat</td>
+<td style="text-align: right;">0.0</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">tat</td>
+<td style="text-align: right;">0.0</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">wd</td>
+<td style="text-align: right;">0.0</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">ws</td>
+<td style="text-align: right;">0.0</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">nav_qnh</td>
+<td style="text-align: right;">0.0</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">nav_altitude_mcp</td>
+<td style="text-align: right;">0.0</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">nav_altitude_fms</td>
+<td style="text-align: right;">0.0</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">nav_heading</td>
+<td style="text-align: right;">0.0</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">registration</td>
+<td style="text-align: right;">0.0</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">ac_type</td>
+<td style="text-align: right;">0.0</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">ac_desc</td>
+<td style="text-align: right;">0.0</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">category</td>
+<td style="text-align: right;">0.0</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<p>That table is the reason this study carries five fields and not twenty-five. A reader would reasonably expect an ADS-C report to bring indicated airspeed, Mach, outside air temperature, wind, the selected altitude from the FMS, and the aircraft’s registration and type. The <code>readsb</code> record has a column for each of them, and <strong>every one measured 0.0% on all eleven days</strong>. They are not discarded by OPDI; they are not there. The same is true of <code>alt_geom</code>, so an ADS-C sample contributes barometric altitude and no geometric altitude at all. <code>nic</code>, <code>rc</code>, <code>seen</code>, <code>seen_pos</code> and <code>rssi</code> are present but constant — zero, zero, zero, zero and −49.5 — which makes them defaults rather than measurements, and they are not carried as if they were.</p>
+<div class="cell">
+<div class="cell-output-display">
+<table class="caption-top table table-sm table-striped small">
+<caption>Fill rate by day for the columns that are sometimes populated. The feed’s schema has <strong>grown</strong>: two step changes, neither announced anywhere.</caption>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Day</th>
+<th style="text-align: right;">track</th>
+<th style="text-align: right;">gs</th>
+<th style="text-align: right;">baro_rate</th>
+<th style="text-align: right;">flight</th>
+<th style="text-align: right;">squawk</th>
+<th style="text-align: right;">on_ground</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">2023-09-01</td>
+<td style="text-align: right;">0.0</td>
+<td style="text-align: right;">0.0</td>
+<td style="text-align: right;">0.0</td>
+<td style="text-align: right;">0.0</td>
+<td style="text-align: right;">0.0</td>
+<td style="text-align: right;">0</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">2024-03-01</td>
+<td style="text-align: right;">0.0</td>
+<td style="text-align: right;">0.0</td>
+<td style="text-align: right;">0.0</td>
+<td style="text-align: right;">0.0</td>
+<td style="text-align: right;">0.0</td>
+<td style="text-align: right;">0</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">2024-09-02</td>
+<td style="text-align: right;">0.0</td>
+<td style="text-align: right;">0.0</td>
+<td style="text-align: right;">0.0</td>
+<td style="text-align: right;">0.0</td>
+<td style="text-align: right;">0.0</td>
+<td style="text-align: right;">0</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">2025-03-01</td>
+<td style="text-align: right;">0.0</td>
+<td style="text-align: right;">0.0</td>
+<td style="text-align: right;">0.0</td>
+<td style="text-align: right;">0.0</td>
+<td style="text-align: right;">0.0</td>
+<td style="text-align: right;">0</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">2025-09-01</td>
+<td style="text-align: right;">99.9</td>
+<td style="text-align: right;">65.2</td>
+<td style="text-align: right;">65.3</td>
+<td style="text-align: right;">0.0</td>
+<td style="text-align: right;">0.0</td>
+<td style="text-align: right;">0</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">2026-03-22</td>
+<td style="text-align: right;">99.9</td>
+<td style="text-align: right;">82.2</td>
+<td style="text-align: right;">82.3</td>
+<td style="text-align: right;">0.0</td>
+<td style="text-align: right;">0.0</td>
+<td style="text-align: right;">0</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">2026-06-01</td>
+<td style="text-align: right;">99.7</td>
+<td style="text-align: right;">58.0</td>
+<td style="text-align: right;">58.0</td>
+<td style="text-align: right;">97.7</td>
+<td style="text-align: right;">44.1</td>
+<td style="text-align: right;">100</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">2026-06-05</td>
+<td style="text-align: right;">99.8</td>
+<td style="text-align: right;">61.6</td>
+<td style="text-align: right;">61.6</td>
+<td style="text-align: right;">97.0</td>
+<td style="text-align: right;">46.2</td>
+<td style="text-align: right;">100</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">2026-06-06</td>
+<td style="text-align: right;">99.8</td>
+<td style="text-align: right;">61.9</td>
+<td style="text-align: right;">61.9</td>
+<td style="text-align: right;">98.0</td>
+<td style="text-align: right;">50.7</td>
+<td style="text-align: right;">100</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">2026-06-07</td>
+<td style="text-align: right;">99.7</td>
+<td style="text-align: right;">60.7</td>
+<td style="text-align: right;">60.7</td>
+<td style="text-align: right;">97.0</td>
+<td style="text-align: right;">49.8</td>
+<td style="text-align: right;">100</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">2026-10-15</td>
+<td style="text-align: right;">99.9</td>
+<td style="text-align: right;">71.3</td>
+<td style="text-align: right;">71.3</td>
+<td style="text-align: right;">98.1</td>
+<td style="text-align: right;">37.8</td>
+<td style="text-align: right;">100</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<p>Two step changes are visible there, and neither is documented upstream. <code>track</code>, <code>gs</code> and <code>baro_rate</code> are empty until somewhere between 2025-03 and 2025-09; <code>flight</code>, <code>squawk</code> and <code>on_ground</code> until between 2026-03 and 2026-06. Before roughly 2025-09 the feed is position and barometric altitude and nothing else. For this study that is harmless — the three study days are fully populated, and the callsign is deliberately dropped in any case — but <strong>a merged arm over 2023 or 2024 would write ADS-C rows with NULL <code>velocity</code> and NULL <code>vert_rate</code></strong>, and any speed-based detector would see NULL rather than a value on those rows. If the study period ever moves back, that moves with it.</p>
+</section>
+<section id="how-it-is-merged" class="level1" data-number="2">
+<h1 data-number="2"><span class="header-section-number">2</span> How it is merged</h1>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 33%">
+<col style="width: 33%">
+<col style="width: 33%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Decision</th>
+<th>Value</th>
+<th>Where</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Merge point</td>
+<td>Before segmentation</td>
+<td><code>TrackProcessor._merge_adsc</code></td>
+</tr>
+<tr class="even">
+<td>Default</td>
+<td>Off (<code>adsc.enabled = False</code>)</td>
+<td><code>AdscConfig</code></td>
+</tr>
+<tr class="odd">
+<td>ADS-C callsign</td>
+<td><code>NULL</code></td>
+<td><code>osn_adsc.to_opdi_schema</code></td>
+</tr>
+<tr class="even">
+<td>Shadow window</td>
+<td>−60 s … +60 s</td>
+<td><code>AdscConfig.shadow_{before,after}_seconds</code></td>
+</tr>
+<tr class="odd">
+<td>Global time correction</td>
+<td>0 s (off)</td>
+<td><code>AdscConfig.time_offset_seconds</code></td>
+</tr>
+<tr class="even">
+<td>Thinning applied to ADS-C</td>
+<td>None</td>
+<td><code>AdscIngestion.ingest_from_s3</code></td>
+</tr>
+<tr class="odd">
+<td>Isolated-point rule</td>
+<td>Exempt for ADS-C</td>
+<td><code>CleaningConfig.sparse_sources</code></td>
+</tr>
+<tr class="even">
+<td>Stale-broadcast rule</td>
+<td>Exempt for ADS-C</td>
+<td><code>CleaningConfig.sparse_sources</code></td>
+</tr>
+<tr class="odd">
+<td>Dedup tie-break</td>
+<td>ADS-B wins</td>
+<td><code>drop_duplicate_statevectors</code></td>
+</tr>
+<tr class="even">
+<td>Derivative-spike filter</td>
+<td>Unchanged</td>
+<td><code>mask_derivative_spikes</code></td>
+</tr>
+<tr class="odd">
+<td>Segment split</td>
+<td>Unchanged, 300 s</td>
+<td><code>CleaningConfig.segment_gap_seconds</code></td>
+</tr>
+</tbody>
+</table>
+<p>Four of those need an argument rather than an assertion.</p>
+<p><strong>Why before segmentation.</strong> The hypothesis is about coverage and track continuity, and both are properties of <code>track_id</code> — which <code>_add_track_id</code> assigns from the frame it is handed. Merging afterwards could only attach ADS-C to tracks ADS-B had already drawn, which answers a different question: <em>which ADS-B tracks can ADS-C be attached to</em>, rather than <em>what tracks do the two feeds make together</em>. A test reads that ordering off the source of <code>process_month</code> so it cannot drift.</p>
+<p><strong>Why the callsign is dropped.</strong> The feed’s <code>flight</code> field carries the IATA commercial number — <code>LH133</code>, <code>AF805</code>, <code>AY68</code> — and ADS-B broadcasts the ICAO callsign, <code>DLH133</code>. The production segmentation arm (A9, <code>debounced</code>) breaks a track when the last non-blank callsign changes, so carrying <code>flight</code> through would trip that break at every ADS-C sample and split precisely the tracks the merge exists to join. A9 bridges NULLs by design, with <code>F.last(..., ignorenulls=True)</code>, so NULL removes a false signal rather than losing a true one. An IATA-to-ICAO mapping would recover the field; it was not attempted here.</p>
+<p><strong>Why the cleaner had to change.</strong> <code>CleaningConfig.isolated_max_gap_seconds</code> is 20 s, and <code>mask_isolated_points</code> NULLs any value whose nearest same-column neighbour is further away than that on <em>both</em> sides. At a cadence of several hundred seconds that is every ADS-C sample, in every column it touches. Left unexempted, step 02a would delete the position, altitude and speed of the entire feed it had just been handed — and the merged arm would then score identically to the baseline for a reason having nothing to do with the hypothesis. A test asserts exactly that failure with the exemption switched off, so the result cannot be quietly reintroduced.</p>
+<p><strong>Why <code>track_id</code> changes, and what that costs.</strong> Enabling the merge is a fourth <code>track_id</code> boundary after legacy → A8 → A9. Like those it is silent to a joiner — an empty join, not an error — and that is why both arms of this study live under <code>s3a://eurocontrol/opdi/research/adsc/</code> and the flag ships off. No published table moves.</p>
+</section>
+<section id="whether-the-two-clocks-agree" class="level1" data-number="3">
+<h1 data-number="3"><span class="header-section-number">3</span> Whether the two clocks agree</h1>
+<p>ADS-B and ADS-C arrive over different links and neither states a position age that can be used. ADS-B’s <code>last_pos_update</code> is real but small. ADS-C’s <code>seen</code> and <code>seen_pos</code> are constant zero — the feed <em>asserts</em> that every report is current — and the <code>readsb</code> record does not expose the ADS-C report’s own time-of-position, so there is nothing in band to correct from. The skew was therefore measured.</p>
+<p>For each ADS-C report with an ADS-B sample of the same airframe within 60 s on <strong>both</strong> sides, the ADS-B position is interpolated to the ADS-C timestamp and the offset decomposed against the direction the ADS-B pair actually moved — not against the broadcast heading, which in wind is not where the aircraft is going. <strong>Cross-track</strong> is what the two feeds disagree about that no timing explanation can absorb; <strong>along-track divided by ground speed</strong> is the implied time offset. A position error is isotropic and lands in both; a timing error lands only along track.</p>
+<div class="cell">
+<div class="cell-output cell-output-stdout">
+<pre><code>*`adsc_time_sync_2026.csv` is not staged, so this section's figures are absent rather than wrong. Run `python benchmarks/regenerate_adsc_v1.py` with cluster credentials; the [Provenance] chapter lists what is present.*</code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="cell-output cell-output-stdout">
+<pre><code>*`adsc_time_sync_pairs_2026.csv` is not staged, so this section's figures are absent rather than wrong. Run `python benchmarks/regenerate_adsc_v1.py` with cluster credentials; the [Provenance] chapter lists what is present.*</code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="cell-output cell-output-stdout">
+<pre><code>*`adsc_time_sync_2026.csv` is not staged, so this section's figures are absent rather than wrong. Run `python benchmarks/regenerate_adsc_v1.py` with cluster credentials; the [Provenance] chapter lists what is present.*</code></pre>
+</div>
+</div>
+<p><em><code>the time-sync outputs</code> is not staged, so this section’s figures are absent rather than wrong. Run <code>python benchmarks/regenerate_adsc_v1.py</code> with cluster credentials; the <a href="#sec-provenance">Provenance</a> chapter lists what is present.</em></p>
+<p>One thing the skew does <strong>not</strong> reach: the derivative-spike filter. <code>CleaningConfig.latlon_d1_max_deg_s</code> is 0.01 deg/s, about 1,100 m/s of apparent ground speed, and a few hundred metres of displacement across a several-hundred -second gap adds of the order of 0.001 deg/s. The filter is three orders of magnitude away from seeing this error, so it neither corrects it nor is damaged by it — which is also why no source guard was added there. Adding one would have been machinery for a risk that is not present.</p>
+</section>
+<section id="what-the-merge-did-to-the-trajectories" class="level1" data-number="4">
+<h1 data-number="4"><span class="header-section-number">4</span> What the merge did to the trajectories</h1>
+<div class="cell">
+<div class="cell-output cell-output-stdout">
+<pre><code>*`adsc_gain_2026.csv` is not staged, so this section's figures are absent rather than wrong. Run `python benchmarks/regenerate_adsc_v1.py` with cluster credentials; the [Provenance] chapter lists what is present.*</code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="cell-output cell-output-stdout">
+<pre><code>*`adsc_gain_2026.csv (extension row)` is not staged, so this section's figures are absent rather than wrong. Run `python benchmarks/regenerate_adsc_v1.py` with cluster credentials; the [Provenance] chapter lists what is present.*</code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="cell-output cell-output-stdout">
+<pre><code>*`adsc_holes_2026.csv` is not staged, so this section's figures are absent rather than wrong. Run `python benchmarks/regenerate_adsc_v1.py` with cluster credentials; the [Provenance] chapter lists what is present.*</code></pre>
+</div>
+</div>
+<p><em><code>adsc_gain_2026.csv</code> is not staged, so this section’s figures are absent rather than wrong. Run <code>python benchmarks/regenerate_adsc_v1.py</code> with cluster credentials; the <a href="#sec-provenance">Provenance</a> chapter lists what is present.</em></p>
+</section>
+<section id="what-it-did-to-the-flight-events" class="level1" data-number="5">
+<h1 data-number="5"><span class="header-section-number">5</span> What it did to the flight events</h1>
+<div class="cell">
+<div class="cell-output cell-output-stdout">
+<pre><code>*`adsc_events_2026.csv` is not staged, so this section's figures are absent rather than wrong. Run `python benchmarks/regenerate_adsc_v1.py` with cluster credentials; the [Provenance] chapter lists what is present.*</code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="cell-output cell-output-stdout">
+<pre><code>*`adsc_events_by_airport_2026.csv` is not staged, so this section's figures are absent rather than wrong. Run `python benchmarks/regenerate_adsc_v1.py` with cluster credentials; the [Provenance] chapter lists what is present.*</code></pre>
+</div>
+</div>
+<p>Whatever those tables show, one thing cannot be read out of them, and it is worth stating before they are read at all: <strong>the A-CDM and runway families could not have moved.</strong> ADS-C has no <code>on_ground</code> flag that is ever true, the whole coverage box sees 1-67 of its rows a day below ten thousand feet, and its cadence is several hundred seconds against detectors that interpolate a runway-threshold crossing between adjacent samples. A flat row for <code>ATOT</code>, <code>ALDT</code>, <code>AOBT</code> or <code>AIBT</code> is the expected outcome of adding this feed, not a failure of the detector or of the measurement. The families where a change is physically possible are the ones anchored at the edges of coverage — <code>first_seen</code>, <code>last_seen</code>, the flight-level crossings, and ADEP/ADES through the flight list for North Atlantic arrivals.</p>
+<p>And for any event that <em>did</em> move, the move is not automatically an improvement. Nothing in the pipeline prevents an event being interpolated between an ADS-B and an ADS-C sample, so an event derived across that boundary inherits the along-track displacement measured in the previous chapter. See the limitations below.</p>
+</section>
+<section id="sec-limits" class="level1" data-number="6">
+<h1 data-number="6"><span class="header-section-number">6</span> What this does not measure</h1>
+<p>Each of these is a measurement that was not made, not a result:</p>
+<ul>
+<li><strong>Only Europe.</strong> Scoring is inside <code>EUROPE_BBOX</code>, and most of the in-box ADS-C rows sit in its Atlantic corner. The feed is global; a worldwide arm would see far more of it, and APDF could not score it.</li>
+<li><strong>Only June 2026, three days.</strong> The flight-events-v4 period, chosen for comparability. ADS-C volumes in 2023–2024 are not scored, and the feed carried fewer columns then.</li>
+<li><strong>No shadow-window sweep.</strong> −60/+60 s is a reasoned default, not a tuned one. A wider window drops more ADS-C; a narrower one admits near-duplicate positions. At the measured skew a symmetric window already catches every duplicate pair, so the asymmetry is what makes the time base explicit rather than a fix for a present failure.</li>
+<li><strong>No per-airframe time correction, and no stability study of the skew.</strong> The time-synchronisation chapter measures the offset on three days and a few tens of airframes. Whether an airframe’s offset is stable across weeks — the precondition for correcting it — is not measured here.</li>
+<li><strong>No IATA-to-ICAO callsign recovery.</strong> The feed’s <code>flight</code> field is discarded rather than mapped, so ADS-C contributes no callsign evidence to segmentation or to the flight list.</li>
+<li><strong>Nothing stops an event being interpolated across a source boundary.</strong> <code>segment_id</code> splits at 300 s coverage holes and is read by <strong>no detector</strong> — <code>grep -rn segment_id src/opdi/pipeline/</code> finds it in two comments. An event derived between an ADS-B and an ADS-C sample therefore inherits the along-track displacement. This is pre-existing: the same detectors already interpolate across thirty-minute ADS-B holes. Making <code>segment_id</code> load-bearing would change published detector behaviour, so it is named here as a follow-up rather than changed on this branch.</li>
+<li><strong>The MLAT topic is untouched.</strong> <code>readsb.aircraft.mlat.avro</code> is a second unused OpenSky source, denser than ADS-C — of the order of 374 objects a day — but starting only at 2026-05-18. It is multilateration, not ADS-C, and is out of scope.</li>
+<li><strong>No measurement of ADS-C positional accuracy.</strong> <code>nic</code> and <code>rc</code> are constant zero in the feed, so the usual integrity containment bounds are unavailable. Nothing here establishes how accurate an ADS-C position is, only what including it changes — and the cross-track figure bounds the <em>disagreement</em>, which is not the same thing as an error.</li>
+</ul>
+</section>
+<section id="sec-reproduce" class="level1" data-number="7">
+<h1 data-number="7"><span class="header-section-number">7</span> Reproducing this</h1>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb9"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="co"># 1. The two arms. ~6 cluster-hours. Not regenerated by the entrypoint.</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="co">#    Day-major, not step-major: step 01 keeps a three-day sliding window and</span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a><span class="co">#    drops what the window has passed, so ingesting every day before</span></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a><span class="co">#    segmenting any of them would hand day 05 a window two-thirds absent.</span></span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a><span class="bu">export</span> <span class="va">PYSPARK_DRIVER_PYTHON</span><span class="op">=</span><span class="va">$PWD</span>/.venv310/bin/python</span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a><span class="bu">unset</span> <span class="va">PYSPARK_PYTHON</span> <span class="va">OPDI_WAREHOUSE</span></span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> d <span class="kw">in</span> 2026-06-05 2026-06-06 2026-06-07<span class="kw">;</span> <span class="cf">do</span></span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a>  <span class="ex">.venv310/bin/python</span> <span class="at">-u</span> benchmarks/run_adsc_day.py <span class="at">--day</span> <span class="va">$d</span> <span class="at">--arm</span> both</span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a><span class="cf">done</span></span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a><span class="co"># 2. Every figure on this page.</span></span>
+<span id="cb9-12"><a href="#cb9-12" aria-hidden="true" tabindex="-1"></a><span class="ex">.venv310/bin/python</span> <span class="at">-u</span> benchmarks/regenerate_adsc_v1.py</span>
+<span id="cb9-13"><a href="#cb9-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-14"><a href="#cb9-14" aria-hidden="true" tabindex="-1"></a><span class="co"># 3. This page.</span></span>
+<span id="cb9-15"><a href="#cb9-15" aria-hidden="true" tabindex="-1"></a><span class="bu">cd</span> ../opdi-portal/papers <span class="kw">&amp;&amp;</span> <span class="ex">quarto</span> render adsc-fusion-v1/index.qmd</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</section>
+<section id="sec-provenance" class="level1" data-number="8">
+<h1 data-number="8"><span class="header-section-number">8</span> Provenance</h1>
+<div class="cell">
+<div class="cell-output-display">
+<table class="caption-top table table-sm table-striped small">
+<caption>Each staged output, and the command that produced it. A <code>dirty</code> row was produced from uncommitted code: the number is real and cannot be reproduced from a commit.</caption>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Output</th>
+<th style="text-align: left;">Script</th>
+<th style="text-align: left;">Commit</th>
+<th style="text-align: left;">Dirty tree</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">adsc_census.csv</td>
+<td style="text-align: left;">benchmarks/adsc_census.py</td>
+<td style="text-align: left;">d60bcc2</td>
+<td style="text-align: left;">FALSE</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<p><strong>Not staged:</strong> <code>adsc_gain_2026.csv</code>, <code>adsc_holes_2026.csv</code>, <code>adsc_time_sync_2026.csv</code>, <code>adsc_time_sync_pairs_2026.csv</code>, <code>adsc_events_2026.csv</code>, <code>adsc_events_by_airport_2026.csv</code>. The chapters above say so in place; this list is the index. A draft with visible holes is honest; a draft with numbers of unknown origin is not.</p>
+
+
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp('/' + window.location.host + '/');
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+</div> <!-- /content -->
+
+
+
+
+</body></html>

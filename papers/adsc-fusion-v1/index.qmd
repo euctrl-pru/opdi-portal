@@ -1,0 +1,748 @@
+---
+title: "ADS-C in the OPDI trajectory"
+subtitle: "Version 1 — what a satellite cruise feed adds to flight-event extraction"
+author: "EUROCONTROL Performance Review Unit — Open Performance Data Initiative"
+date: last-modified
+abstract: |
+  OPDI builds every track from ADS-B state vectors. OpenSky also publishes an
+  ADS-C feed, and the obvious hypothesis is that merging the two improves
+  coverage and therefore milestone extraction. This paper tests it. ADS-C is
+  merged into the state-vector frame *before* segmentation, so `track_id` sees
+  both sources; the trajectory cleaner is made source-aware, because its
+  twenty-second isolated-point rule would otherwise delete a feed whose median
+  cadence is ten minutes. Both arms — ADS-B only, and ADS-B plus ADS-C — are
+  rebuilt from the same state vectors with the same segmentation and the same
+  detectors, and scored against EUROCONTROL APDF over the twenty aerodromes
+  and three days of flight events version 4.
+
+  The feed is narrow and the result is correspondingly narrow. Measured over
+  eleven days spanning 2023-09 to 2026-10, ADS-C delivers a few thousand rows
+  a day inside OPDI's European box at a median of several hundred seconds
+  between reports; almost all of those rows are above FL300 and most sit west
+  of 10°W. It carries no `on_ground` flag and almost nothing below ten thousand
+  feet. The A-CDM runway family therefore cannot move, and this paper reports
+  that as a measured null rather than omitting it.
+
+  The two feeds also do not share a clock, and neither states a position age
+  that can be used. Comparing ADS-C reports against ADS-B interpolated to the
+  same instant separates the two candidate explanations: the feeds agree about
+  where the track is to within a few metres across track while disagreeing by
+  hundreds of metres along it, which is a timing offset and not a position
+  error. That offset is a property of the individual airframe rather than of
+  the feed, so no global correction is applied and the paper says why.
+
+  Every figure is produced by `benchmarks/regenerate_adsc_v1.py`. Where an
+  output is not staged the table says so in place rather than being omitted.
+format:
+  html:
+    toc: true
+    toc-depth: 2
+  pdf:
+    documentclass: scrreprt
+    toc: true
+    toc-depth: 2
+---
+
+```{r regenerate}
+#| include: false
+#| cache: false
+
+# Rendering this page runs the analysis behind it.
+#
+# `regenerate_adsc_v1.py` is the executable definition of the study: each CSV
+# read below is produced by exactly one job it declares, with exactly the
+# arguments it declares. It re-runs a job when the *code that job depends on*
+# has changed since the output was written -- not when the file is old, which
+# says nothing. A render with everything current is a fast no-op; a render
+# after editing `osn_adsc.py`, `tracks.py` or `cleaning/native.py` re-runs the
+# pipeline jobs before the first table is drawn.
+#
+# OPDI_RENDER selects what happens instead:
+#
+#   run          (default) regenerate anything stale, then render
+#   check        fail fast naming every stale job, regenerate nothing
+#   allow-stale  render a draft from whatever is staged, after naming staleness
+#   skip         do not invoke the entrypoint at all
+#
+# One thing the entrypoint cannot regenerate: the two pipeline arms at
+# s3a://eurocontrol/opdi/research/adsc/{base,merged}, built by
+# benchmarks/run_adsc_day.py at roughly six cluster-hours for three days. The
+# jobs read those tables; if they have not been built, the jobs fail rather
+# than reporting a zero. See [Reproducing this].
+REPO   <- Sys.getenv("OPDI_REPO_DIR",
+                     normalizePath(file.path(getwd(), "..", "..", "..", "opdi"),
+                                   mustWork = FALSE))
+PYTHON <- Sys.getenv("OPDI_PYTHON", file.path(REPO, ".venv310", "bin", "python"))
+MODE   <- Sys.getenv("OPDI_RENDER", "run")
+
+regen <- file.path(REPO, "benchmarks", "regenerate_adsc_v1.py")
+if (!file.exists(regen) && MODE != "skip") {
+  stop("regenerate_adsc_v1.py not found under REPO=", REPO,
+       " -- set OPDI_REPO_DIR, or OPDI_RENDER=skip to render without it.")
+}
+
+if (MODE != "skip" && file.exists(regen)) {
+  flags <- switch(MODE,
+                  "run" = character(0),
+                  "check" = "--check",
+                  "allow-stale" = c("--check", "--allow-stale"),
+                  character(0))
+  status <- system2(PYTHON, c(shQuote(regen), flags), stdout = "", stderr = "")
+  if (!identical(status, 0L)) {
+    stop("regenerate_adsc_v1.py exited ", status,
+         " -- the figures below would not match the code that is checked out. ",
+         "Set OPDI_RENDER=allow-stale to render anyway.")
+  }
+}
+```
+
+```{r setup}
+#| include: false
+library(knitr)
+
+`%||%` <- function(a, b) if (is.null(a)) b else a
+
+# Read-only. Every figure and table on this page comes from a committed CSV.
+# Nothing here reads S3, a database or a Spark cluster.
+D <- function(f) {
+  p <- file.path("data", f)
+  if (!file.exists(p)) return(NULL)
+  read.csv(p, stringsAsFactors = FALSE)
+}
+
+census <- D("adsc_census.csv")                      # one row per sampled day
+gain   <- D("adsc_gain_2026.csv")                   # one row per arm + extension
+holes  <- D("adsc_holes_2026.csv")                  # one row per bridged hole
+sync   <- D("adsc_time_sync_2026.csv")              # one row per airframe + ALL
+syncp  <- D("adsc_time_sync_pairs_2026.csv")        # one row per bracketed pair
+ev     <- D("adsc_events_2026.csv")                 # one row per (arm, milestone)
+evap   <- D("adsc_events_by_airport_2026.csv")      # + per aerodrome
+
+# A missing file is reported in place, never silently skipped: a chapter whose
+# table vanished reads as a chapter with nothing to say.
+missing_note <- function(name) {
+  sprintf(paste("*`%s` is not staged, so this section's figures are absent",
+                "rather than wrong. Run `python",
+                "benchmarks/regenerate_adsc_v1.py` with cluster credentials;",
+                "the [Provenance] chapter lists what is present.*"), name)
+}
+
+# One accessor per file. Each returns a visible placeholder when the file is
+# absent -- a draft with holes is honest -- and **stops** when the file is
+# present but the row is not. Those are different failures: the first is work
+# not yet done, the second is a table that disagrees with itself, and only the
+# second may not be rendered.
+ABSENT <- "(not staged)"
+
+acc <- function(frame, label) {
+  function(where, col) {
+    if (is.null(frame)) return(ABSENT)
+    v <- frame[where(frame), col]
+    if (length(v) != 1) stop("no single ", label, " row for ", col)
+    v
+  }
+}
+
+GAIN_ <- acc(gain, "gain")
+GAIN  <- function(arm, col) GAIN_(function(d) d$arm == arm, col)
+SYNC_ <- acc(sync, "time-sync")
+SYNC  <- function(icao24, col) SYNC_(function(d) d$icao24 == icao24, col)
+CEN_  <- acc(census, "census")
+CEN   <- function(day, col) CEN_(function(d) d$day == day, col)
+
+# Formatters that survive the placeholder: a draft must not fail on sprintf.
+fmt <- function(f) function(x) if (identical(x, ABSENT)) ABSENT else sprintf(f, x)
+num    <- function(x) if (identical(x, ABSENT)) ABSENT else
+  formatC(x, format = "d", big.mark = ",")
+p1     <- fmt("%.1f")
+p2     <- fmt("%.2f")
+signed <- fmt("%+.2f")
+pct    <- fmt("%.1f%%")
+
+rng <- function(col, digits = 0) {
+  if (is.null(census)) return(ABSENT)
+  v <- census[[col]]
+  sprintf(paste0("%.", digits, "f-%.", digits, "f"), min(v), max(v))
+}
+study_rng <- function(col, digits = 0) {
+  if (is.null(census)) return(ABSENT)
+  v <- census[census$day %in% STUDY_DAYS, col]
+  sprintf(paste0("%.", digits, "f-%.", digits, "f"), min(v), max(v))
+}
+
+# Configuration, not measurement. Named here so the prose and the parameter
+# table read one source -- `AdscConfig` and `CleaningConfig` in
+# `src/opdi/config.py`, and `adsc_time_sync.py`'s default.
+SHADOW_BEFORE_S <- 60
+SHADOW_AFTER_S  <- 60
+TIME_OFFSET_S   <- 0.0
+HOLE_SECONDS    <- 300
+ISOLATED_GAP_S  <- 20
+MAX_GAP_S       <- 60
+STUDY_DAYS      <- c("2026-06-05", "2026-06-06", "2026-06-07")
+```
+
+# What the feed is
+
+OpenSky publishes an ADS-C topic beside the ADS-B archive:
+`s3a://readsb-aircraft-states/topics/readsb.aircraft.adsc.avro`, hourly
+partitions named `hour=<unix seconds>`, holding snappy **parquet** despite the
+`.avro` in the topic name — the files carry the Avro schema
+`org.opensky.avro.readsb.Aircraft` in their footer. Partitions run from
+2023-07-07 to the current hour, 982 days with 24 gaps longer than a day, and
+in 2026 the feed averages 22.3 of 24 hourly partitions per day. A missing hour
+is routine, and the ingest tolerates it by listing before reading rather than
+letting `spark.read.parquet` raise `PATH_NOT_FOUND` on the first absent one.
+
+```{r census-table}
+#| echo: false
+if (is.null(census)) {
+  cat(missing_note("adsc_census.csv"))
+} else {
+  cols <- c("day", "hour_partitions", "rows", "rows_in_box",
+            "airframes_in_box", "median_cadence_s", "in_box_above_fl300",
+            "in_box_below_10000ft", "in_box_west_of_10w", "in_box_on_ground",
+            "exact_duplicate_rows")
+  kable(census[, cols], row.names = FALSE,
+        col.names = c("Day", "Hours read", "Rows", "In box",
+                      "Airframes in box", "Median cadence (s)", "> FL300",
+                      "< 10,000 ft", "West of 10°W", "On ground",
+                      "Exact duplicates"),
+        caption = paste("The raw ADS-C topic, by sampled day. Every band after",
+                        "`In box` is counted **inside** OPDI's published",
+                        "European coverage box -- that is the population the",
+                        "pipeline would ingest. `Hours read` matters: a day",
+                        "with 6 of 24 partitions present has a cadence that",
+                        "reflects the gap, not the feed."))
+}
+```
+
+Reading that table across the archive: the feed delivers `r rng("rows")` rows a
+day worldwide and `r rng("rows_in_box")` inside the coverage box, from
+`r rng("airframes_in_box")` in-box airframes. On the three study days it is
+`r study_rng("rows_in_box")` in-box rows from `r study_rng("airframes_in_box")`
+airframes, at a median of `r study_rng("median_cadence_s", 0)` seconds between
+reports from one aircraft. **Against the 5 s resolution OPDI ingests ADS-B at,
+that is a feed roughly two orders of magnitude sparser.**
+
+It is also a *cruise* feed, and that is what bounds what it can contribute.
+Of the in-box rows, `r if (is.null(census)) ABSENT else sprintf("%.1f-%.1f%%", min(100*census$in_box_above_fl300/census$rows_in_box), max(100*census$in_box_above_fl300/census$rows_in_box))`
+are above FL300 and
+`r if (is.null(census)) ABSENT else sprintf("%.1f-%.1f%%", min(100*census$in_box_west_of_10w/census$rows_in_box), max(100*census$in_box_west_of_10w/census$rows_in_box))`
+sit west of 10°W — the North Atlantic corner of the box. The whole box sees
+`r rng("in_box_below_10000ft")` rows a day below ten thousand feet, and
+**`on_ground` is true for `r if (is.null(census)) ABSENT else sum(census$in_box_on_ground)` rows across every day sampled.**
+There is also no redelivery to clean up: `r if (is.null(census)) ABSENT else sum(census$exact_duplicate_rows)`
+exact duplicates in total, so the ingest's deduplication has never had anything
+to remove.
+
+```{r census-fill}
+#| echo: false
+if (is.null(census)) {
+  cat(missing_note("adsc_census.csv"))
+} else {
+  fill_cols <- grep("^fill_", names(census), value = TRUE)
+  worst <- data.frame(
+    column = sub("^fill_", "", fill_cols),
+    max_fill = sapply(fill_cols, function(c) max(census[[c]], na.rm = TRUE)))
+  worst <- worst[order(-worst$max_fill), ]
+  kable(worst, row.names = FALSE, digits = 1,
+        col.names = c("Column", "Best fill rate on any sampled day (%)"),
+        caption = paste("Every column of the feed, by the best fill rate it",
+                        "reached on any sampled day. A column at 0.0 here was",
+                        "empty on **every** day sampled -- which is the",
+                        "evidence for not carrying it into the OPDI schema."))
+}
+```
+
+That table is the reason this study carries five fields and not twenty-five. A
+reader would reasonably expect an ADS-C report to bring indicated airspeed,
+Mach, outside air temperature, wind, the selected altitude from the FMS, and
+the aircraft's registration and type. The `readsb` record has a column for each
+of them, and **every one measured 0.0% on all eleven days**. They are not
+discarded by OPDI; they are not there. The same is true of `alt_geom`, so an
+ADS-C sample contributes barometric altitude and no geometric altitude at all.
+`nic`, `rc`, `seen`, `seen_pos` and `rssi` are present but constant — zero,
+zero, zero, zero and −49.5 — which makes them defaults rather than
+measurements, and they are not carried as if they were.
+
+```{r census-growth}
+#| echo: false
+if (is.null(census)) {
+  cat(missing_note("adsc_census.csv"))
+} else {
+  g <- census[, c("day", "fill_track", "fill_gs", "fill_baro_rate",
+                  "fill_flight", "fill_squawk", "fill_on_ground")]
+  kable(g, row.names = FALSE, digits = 1,
+        col.names = c("Day", "track", "gs", "baro_rate", "flight", "squawk",
+                      "on_ground"),
+        caption = paste("Fill rate by day for the columns that are sometimes",
+                        "populated. The feed's schema has **grown**: two step",
+                        "changes, neither announced anywhere."))
+}
+```
+
+Two step changes are visible there, and neither is documented upstream.
+`track`, `gs` and `baro_rate` are empty until somewhere between 2025-03 and
+2025-09; `flight`, `squawk` and `on_ground` until between 2026-03 and 2026-06.
+Before roughly 2025-09 the feed is position and barometric altitude and nothing
+else. For this study that is harmless — the three study days are fully
+populated, and the callsign is deliberately dropped in any case — but **a
+merged arm over 2023 or 2024 would write ADS-C rows with NULL `velocity` and
+NULL `vert_rate`**, and any speed-based detector would see NULL rather than a
+value on those rows. If the study period ever moves back, that moves with it.
+
+# How it is merged
+
+| Decision | Value | Where |
+|---|---|---|
+| Merge point | Before segmentation | `TrackProcessor._merge_adsc` |
+| Default | Off (`adsc.enabled = False`) | `AdscConfig` |
+| ADS-C callsign | `NULL` | `osn_adsc.to_opdi_schema` |
+| Shadow window | −`r SHADOW_BEFORE_S` s … +`r SHADOW_AFTER_S` s | `AdscConfig.shadow_{before,after}_seconds` |
+| Global time correction | `r TIME_OFFSET_S` s (off) | `AdscConfig.time_offset_seconds` |
+| Thinning applied to ADS-C | None | `AdscIngestion.ingest_from_s3` |
+| Isolated-point rule | Exempt for ADS-C | `CleaningConfig.sparse_sources` |
+| Stale-broadcast rule | Exempt for ADS-C | `CleaningConfig.sparse_sources` |
+| Dedup tie-break | ADS-B wins | `drop_duplicate_statevectors` |
+| Derivative-spike filter | Unchanged | `mask_derivative_spikes` |
+| Segment split | Unchanged, `r HOLE_SECONDS` s | `CleaningConfig.segment_gap_seconds` |
+
+Four of those need an argument rather than an assertion.
+
+**Why before segmentation.** The hypothesis is about coverage and track
+continuity, and both are properties of `track_id` — which `_add_track_id`
+assigns from the frame it is handed. Merging afterwards could only attach ADS-C
+to tracks ADS-B had already drawn, which answers a different question: *which
+ADS-B tracks can ADS-C be attached to*, rather than *what tracks do the two
+feeds make together*. A test reads that ordering off the source of
+`process_month` so it cannot drift.
+
+**Why the callsign is dropped.** The feed's `flight` field carries the IATA
+commercial number — `LH133`, `AF805`, `AY68` — and ADS-B broadcasts the ICAO
+callsign, `DLH133`. The production segmentation arm (A9, `debounced`) breaks a
+track when the last non-blank callsign changes, so carrying `flight` through
+would trip that break at every ADS-C sample and split precisely the tracks the
+merge exists to join. A9 bridges NULLs by design, with
+`F.last(..., ignorenulls=True)`, so NULL removes a false signal rather than
+losing a true one. An IATA-to-ICAO mapping would recover the field; it was not
+attempted here.
+
+**Why the cleaner had to change.** `CleaningConfig.isolated_max_gap_seconds` is
+`r ISOLATED_GAP_S` s, and `mask_isolated_points` NULLs any value whose nearest
+same-column neighbour is further away than that on *both* sides. At a cadence
+of several hundred seconds that is every ADS-C sample, in every column it
+touches. Left unexempted, step 02a would delete the position, altitude and
+speed of the entire feed it had just been handed — and the merged arm would then
+score identically to the baseline for a reason having nothing to do with the
+hypothesis. A test asserts exactly that failure with the exemption switched
+off, so the result cannot be quietly reintroduced.
+
+**Why `track_id` changes, and what that costs.** Enabling the merge is a fourth
+`track_id` boundary after legacy → A8 → A9. Like those it is silent to a joiner
+— an empty join, not an error — and that is why both arms of this study live
+under `s3a://eurocontrol/opdi/research/adsc/` and the flag ships off. No
+published table moves.
+
+# Whether the two clocks agree
+
+ADS-B and ADS-C arrive over different links and neither states a position age
+that can be used. ADS-B's `last_pos_update` is real but small. ADS-C's `seen`
+and `seen_pos` are constant zero — the feed *asserts* that every report is
+current — and the `readsb` record does not expose the ADS-C report's own
+time-of-position, so there is nothing in band to correct from. The skew was
+therefore measured.
+
+For each ADS-C report with an ADS-B sample of the same airframe within
+`r MAX_GAP_S` s on **both** sides, the ADS-B position is interpolated to the
+ADS-C timestamp and the offset decomposed against the direction the ADS-B pair
+actually moved — not against the broadcast heading, which in wind is not where
+the aircraft is going. **Cross-track** is what the two feeds disagree about
+that no timing explanation can absorb; **along-track divided by ground speed**
+is the implied time offset. A position error is isotropic and lands in both; a
+timing error lands only along track.
+
+```{r sync-overall}
+#| echo: false
+if (is.null(sync)) {
+  cat(missing_note("adsc_time_sync_2026.csv"))
+} else {
+  a <- sync[sync$icao24 == "ALL", ]
+  kable(data.frame(
+    quantity = c("Bracketed pairs", "Median |cross-track|",
+                 "Median |along-track|", "Along:cross ratio",
+                 "Median implied offset", "sigma of implied offset"),
+    value = c(num(a$n), paste0(p1(a$median_abs_cross_m), " m"),
+              paste0(p1(a$median_abs_along_m), " m"),
+              paste0(p1(a$median_abs_along_m /
+                          max(a$median_abs_cross_m, 1e-9)), "x"),
+              paste0(signed(a$median_implied_dt_s), " s"),
+              paste0(p1(a$std_implied_dt_s), " s"))),
+    row.names = FALSE, col.names = c("", "Measured"),
+    caption = paste("ADS-C against interpolated ADS-B over",
+                    paste(STUDY_DAYS, collapse = ", "), "."))
+}
+```
+
+```{r sync-alternative}
+#| echo: false
+if (is.null(syncp)) {
+  cat(missing_note("adsc_time_sync_pairs_2026.csv"))
+} else {
+  # The alternative explanation, checkable rather than argued away: the OSN
+  # archive carries positions forward, which would bias the result in exactly
+  # the direction measured.
+  ok <- !is.na(syncp$adsb_pos_age_s) & !is.na(syncp$implied_dt_s)
+  kable(data.frame(
+    quantity = c("Median ADS-B position age", "Max ADS-B position age",
+                 "corr(implied offset, ADS-B position age)"),
+    value = c(paste0(p1(median(syncp$adsb_pos_age_s[ok])), " s"),
+              paste0(p1(max(syncp$adsb_pos_age_s[ok])), " s"),
+              p2(cor(syncp$implied_dt_s[ok], syncp$adsb_pos_age_s[ok])))),
+    row.names = FALSE, col.names = c("", "Measured"),
+    caption = paste("Could the offset be ADS-B's own staleness rather than",
+                    "ADS-C's skew? The archive carries positions forward, so",
+                    "the question has to be answered from the data."))
+}
+```
+
+```{r sync-per-airframe}
+#| echo: false
+if (is.null(sync)) {
+  cat(missing_note("adsc_time_sync_2026.csv"))
+} else {
+  pa <- sync[sync$icao24 != "ALL", ]
+  pa <- pa[order(pa$median_implied_dt_s), ]
+  kable(pa[, c("icao24", "n", "median_implied_dt_s", "std_implied_dt_s",
+               "median_abs_cross_m")],
+        row.names = FALSE, digits = 2,
+        col.names = c("Airframe", "Pairs", "Median implied offset (s)",
+                      "sigma (s)", "Median |cross| (m)"),
+        caption = paste("Per airframe. The question this table decides: is the",
+                        "skew a property of the feed, which one constant could",
+                        "correct, or of the individual aircraft, which it",
+                        "could not?"))
+}
+```
+
+```{r sync-prose}
+#| echo: false
+#| results: asis
+if (is.null(sync) || is.null(syncp)) {
+  cat(missing_note("the time-sync outputs"))
+} else {
+  a  <- sync[sync$icao24 == "ALL", ]
+  pa <- sync[sync$icao24 != "ALL", ]
+  ok <- !is.na(syncp$adsb_pos_age_s) & !is.na(syncp$implied_dt_s)
+  ratio <- a$median_abs_along_m / max(a$median_abs_cross_m, 1e-9)
+  v_cruise <- 240
+  cat(sprintf(paste0(
+    "Four things follow, in order.\n\n",
+    "**It is timing, not position.** The along-track disagreement is %s m ",
+    "against %s m across track, a ratio of %s. A position error is isotropic ",
+    "and would land equally in both, so a ratio of that size cannot be one. ",
+    "The two feeds agree about *where the track is* to within a few metres.\n\n",
+    "**It is not ADS-B's carry-forward.** The OSN archive carries positions ",
+    "forward, which would bias the result in exactly the direction measured, ",
+    "so the alternative has to be excluded from the data rather than argued ",
+    "away: ADS-B's own position age is %s s at the median and never exceeds ",
+    "%s s, and it correlates with the implied offset at %s. Neither is large ",
+    "enough to produce a displacement of hundreds of metres.\n\n",
+    "**It is one number per aircraft, not one number.** Within an airframe ",
+    "the implied offset holds to a standard deviation of %s-%s s; between ",
+    "airframes it runs from %s s to %s s. That is why ",
+    "`AdscConfig.time_offset_seconds` ships at zero: a single constant would ",
+    "be wrong for nearly every aircraft and would actively damage the ones ",
+    "that are already synchronised. A per-airframe offset, estimated on ",
+    "coverage-overlap data and applied where ADS-B is absent, is the real ",
+    "fix; it needs a stability study across weeks before it could be ",
+    "believed, and %s airframes over three days cannot support one. It is not ",
+    "attempted here.\n\n",
+    "**It matters less than the alternative.** At a cruise speed of about %d ",
+    "m/s the median offset is roughly %s m. The alternative to having an ",
+    "ADS-C sample at all is a straight line interpolated across a reception ",
+    "hole of several hundred seconds, whose own error is tens of kilometres. ",
+    "The skew is therefore a correction worth reporting and **not** a reason ",
+    "to withhold the merge.\n\n"),
+    p1(a$median_abs_along_m), p1(a$median_abs_cross_m), p1(ratio),
+    p1(median(syncp$adsb_pos_age_s[ok])), p1(max(syncp$adsb_pos_age_s[ok])),
+    p2(cor(syncp$implied_dt_s[ok], syncp$adsb_pos_age_s[ok])),
+    p2(min(pa$std_implied_dt_s, na.rm = TRUE)),
+    p2(max(pa$std_implied_dt_s, na.rm = TRUE)),
+    signed(min(pa$median_implied_dt_s)), signed(max(pa$median_implied_dt_s)),
+    nrow(pa), v_cruise,
+    p1(abs(a$median_implied_dt_s) * v_cruise)))
+}
+```
+
+One thing the skew does **not** reach: the derivative-spike filter.
+`CleaningConfig.latlon_d1_max_deg_s` is 0.01 deg/s, about 1,100 m/s of apparent
+ground speed, and a few hundred metres of displacement across a several-hundred
+-second gap adds of the order of 0.001 deg/s. The filter is three orders of
+magnitude away from seeing this error, so it neither corrects it nor is damaged
+by it — which is also why no source guard was added there. Adding one would
+have been machinery for a risk that is not present.
+
+# What the merge did to the trajectories
+
+```{r gain-table}
+#| echo: false
+if (is.null(gain)) {
+  cat(missing_note("adsc_gain_2026.csv"))
+} else {
+  arms <- gain[gain$arm %in% c("base", "merged"), ]
+  cols <- c("arm", "rows", "rows_adsc", "tracks", "tracks_with_adsc",
+            "segments", "track_hours", "median_samples_per_track",
+            "tracks_with_two_callsigns")
+  kable(arms[, cols], row.names = FALSE, digits = 1,
+        col.names = c("Arm", "Rows", "ADS-C rows", "Tracks",
+                      "Tracks with ADS-C", "Segments", "Track hours",
+                      "Median samples/track", "Two-callsign tracks"),
+        caption = paste("Both arms over", paste(STUDY_DAYS, collapse = ", "),
+                        "after cleaning (`osn_tracks_clean`)."))
+}
+```
+
+```{r extension-table}
+#| echo: false
+if (is.null(gain) || !("extension" %in% gain$arm)) {
+  cat(missing_note("adsc_gain_2026.csv (extension row)"))
+} else {
+  e <- gain[gain$arm == "extension", ]
+  kable(e[, c("airframe_days", "first_shift_median_s", "last_shift_median_s",
+              "seen_earlier", "seen_later")],
+        row.names = FALSE, digits = 1,
+        col.names = c("Airframe-days matched", "Median first-sample shift (s)",
+                      "Median last-sample shift (s)", "Seen earlier",
+                      "Seen later"),
+        caption = paste("Track ends, merged against baseline, keyed on",
+                        "`icao24` and the day -- `track_id` cannot be the key",
+                        "because the merge changes it, which is the point of",
+                        "merging before segmentation."))
+}
+```
+
+```{r holes-table}
+#| echo: false
+if (is.null(holes)) {
+  cat(missing_note("adsc_holes_2026.csv"))
+} else if (nrow(holes) == 0) {
+  cat(paste("**No reception hole was closed.** Every surviving ADS-C sample",
+            "sat within", HOLE_SECONDS, "s of an ADS-B sample on at least one",
+            "side, so none of them added coverage the ADS-B feed did not",
+            "already have. This is a result, not a missing table."))
+} else {
+  g <- pmin(holes$gap_before_s, holes$gap_after_s) / 60
+  br <- c(0, 5, 10, 20, 60, Inf)
+  tab <- table(cut(g, breaks = br, right = FALSE))
+  kable(data.frame(band = names(tab), holes = as.integer(tab)),
+        row.names = FALSE,
+        col.names = c("Smaller side of the hole (minutes)", "ADS-C samples"),
+        caption = paste(num(nrow(holes)), "ADS-C samples sat more than",
+                        HOLE_SECONDS, "s from an ADS-B sample on **both**",
+                        "sides. An infinite side means the sample extended the",
+                        "track past its last ADS-B report, which is the",
+                        "clearest case of added coverage."))
+}
+```
+
+```{r gain-prose}
+#| echo: false
+#| results: asis
+if (is.null(gain)) {
+  cat(missing_note("adsc_gain_2026.csv"))
+} else {
+  b <- gain[gain$arm == "base", ]
+  m <- gain[gain$arm == "merged", ]
+  d_tracks <- m$tracks - b$tracks
+  verdict <- if (d_tracks < 0)
+    "fell, which is what gap bridging looks like: the same flights described by fewer, longer tracks" else
+    if (d_tracks == 0) "did not move at all" else
+    paste("**rose**, which gap bridging cannot cause -- a sample inside a gap",
+          "can only join tracks or leave them alone. A higher count means the",
+          "ADS-C timestamps or the NULL callsign are splitting tracks, and",
+          "nothing below should be read as a coverage gain until that is",
+          "explained")
+  cat(sprintf(paste0(
+    "Reading those tables in order. **Something arrived**: %s ADS-C rows ",
+    "survived cleaning, %s%% of all rows in the merged arm, reaching %s of ",
+    "%s tracks (%s%%). **The track count %s** -- %s against %s. ",
+    "**%s ADS-C samples closed a reception hole**, counted strictly: more ",
+    "than %d s from an ADS-B sample on *both* sides, so a sample sitting ",
+    "inside a dense stretch and seen as isolated from one direction does not ",
+    "qualify. **The merge-neutrality guard** reads %s two-callsign tracks in ",
+    "the merged arm against %s in the baseline.\n\n"),
+    num(m$rows_adsc), p1(100 * m$rows_adsc / m$rows),
+    num(m$tracks_with_adsc), num(m$tracks),
+    p1(100 * m$tracks_with_adsc / m$tracks),
+    verdict, num(m$tracks), num(b$tracks),
+    if (is.null(holes)) ABSENT else num(nrow(holes)), HOLE_SECONDS,
+    num(m$tracks_with_two_callsigns), num(b$tracks_with_two_callsigns)))
+}
+```
+
+# What it did to the flight events
+
+```{r events-table}
+#| echo: false
+if (is.null(ev)) {
+  cat(missing_note("adsc_events_2026.csv"))
+} else {
+  wide <- merge(
+    ev[ev$arm == "base", c("milestone", "n_truth", "n_detected", "bias_s",
+                           "mad_s")],
+    ev[ev$arm == "merged", c("milestone", "n_detected", "bias_s", "mad_s")],
+    by = "milestone", suffixes = c("_base", "_merged"))
+  wide$delta_detected <- wide$n_detected_merged - wide$n_detected_base
+  kable(wide, row.names = FALSE, digits = 1, caption = paste(
+    "Both arms against APDF 202606, the twenty flight-events-v4 study",
+    "aerodromes,", paste(STUDY_DAYS, collapse = ", "),
+    ". `n_truth` is shared: one truth frame scores both arms, so a difference",
+    "in `n_detected` is a difference in the pipeline and not in the",
+    "reference."))
+}
+```
+
+```{r events-by-airport}
+#| echo: false
+if (is.null(evap)) {
+  cat(missing_note("adsc_events_by_airport_2026.csv"))
+} else {
+  b <- evap[evap$arm == "base", ]
+  m <- evap[evap$arm == "merged", ]
+  j <- merge(b, m, by = c("airport", "milestone"), suffixes = c("_b", "_m"))
+  j$delta <- j$n_detected_m - j$n_detected_b
+  moved <- j[j$delta != 0, c("airport", "milestone", "n_detected_b",
+                             "n_detected_m", "delta")]
+  if (nrow(moved) == 0) {
+    cat(paste("**No (aerodrome, milestone) cell changed.** Across twenty",
+              "aerodromes and every scored milestone, the two arms detected",
+              "the same movements. Read this beside the trajectory chapter:",
+              "it is a null result about *milestones*, not about coverage."))
+  } else {
+    kable(moved[order(-abs(moved$delta)), ], row.names = FALSE,
+          col.names = c("Aerodrome", "Milestone", "Base", "Merged", "Delta"),
+          caption = "Every (aerodrome, milestone) cell where the arms differ.")
+  }
+}
+```
+
+Whatever those tables show, one thing cannot be read out of them, and it is
+worth stating before they are read at all: **the A-CDM and runway families
+could not have moved.** ADS-C has no `on_ground` flag that is ever true, the
+whole coverage box sees `r rng("in_box_below_10000ft")` of its rows a day below
+ten thousand feet, and its cadence is several hundred seconds against detectors
+that interpolate a runway-threshold crossing between adjacent samples. A flat
+row for `ATOT`, `ALDT`, `AOBT` or `AIBT` is the expected outcome of adding this
+feed, not a failure of the detector or of the measurement. The families where a
+change is physically possible are the ones anchored at the edges of coverage —
+`first_seen`, `last_seen`, the flight-level crossings, and ADEP/ADES through the
+flight list for North Atlantic arrivals.
+
+And for any event that *did* move, the move is not automatically an
+improvement. Nothing in the pipeline prevents an event being interpolated
+between an ADS-B and an ADS-C sample, so an event derived across that boundary
+inherits the along-track displacement measured in the previous chapter. See the
+limitations below.
+
+# What this does not measure {#sec-limits}
+
+Each of these is a measurement that was not made, not a result:
+
+- **Only Europe.** Scoring is inside `EUROPE_BBOX`, and most of the in-box
+  ADS-C rows sit in its Atlantic corner. The feed is global; a worldwide arm
+  would see far more of it, and APDF could not score it.
+- **Only June 2026, three days.** The flight-events-v4 period, chosen for
+  comparability. ADS-C volumes in 2023–2024 are not scored, and the feed
+  carried fewer columns then.
+- **No shadow-window sweep.** −`r SHADOW_BEFORE_S`/+`r SHADOW_AFTER_S` s is a
+  reasoned default, not a tuned one. A wider window drops more ADS-C; a
+  narrower one admits near-duplicate positions. At the measured skew a
+  symmetric window already catches every duplicate pair, so the asymmetry is
+  what makes the time base explicit rather than a fix for a present failure.
+- **No per-airframe time correction, and no stability study of the skew.** The
+  time-synchronisation chapter measures the offset on three days and a few
+  tens of airframes. Whether an airframe's offset is stable across weeks — the
+  precondition for correcting it — is not measured here.
+- **No IATA-to-ICAO callsign recovery.** The feed's `flight` field is discarded
+  rather than mapped, so ADS-C contributes no callsign evidence to segmentation
+  or to the flight list.
+- **Nothing stops an event being interpolated across a source boundary.**
+  `segment_id` splits at `r HOLE_SECONDS` s coverage holes and is read by **no
+  detector** — `grep -rn segment_id src/opdi/pipeline/` finds it in two
+  comments. An event derived between an ADS-B and an ADS-C sample therefore
+  inherits the along-track displacement. This is pre-existing: the same
+  detectors already interpolate across thirty-minute ADS-B holes. Making
+  `segment_id` load-bearing would change published detector behaviour, so it is
+  named here as a follow-up rather than changed on this branch.
+- **The MLAT topic is untouched.** `readsb.aircraft.mlat.avro` is a second
+  unused OpenSky source, denser than ADS-C — of the order of 374 objects a day
+  — but starting only at 2026-05-18. It is multilateration, not ADS-C, and is
+  out of scope.
+- **No measurement of ADS-C positional accuracy.** `nic` and `rc` are constant
+  zero in the feed, so the usual integrity containment bounds are unavailable.
+  Nothing here establishes how accurate an ADS-C position is, only what
+  including it changes — and the cross-track figure bounds the *disagreement*,
+  which is not the same thing as an error.
+
+# Reproducing this {#sec-reproduce}
+
+```bash
+# 1. The two arms. ~6 cluster-hours. Not regenerated by the entrypoint.
+#    Day-major, not step-major: step 01 keeps a three-day sliding window and
+#    drops what the window has passed, so ingesting every day before
+#    segmenting any of them would hand day 05 a window two-thirds absent.
+export PYSPARK_DRIVER_PYTHON=$PWD/.venv310/bin/python
+unset PYSPARK_PYTHON OPDI_WAREHOUSE
+for d in 2026-06-05 2026-06-06 2026-06-07; do
+  .venv310/bin/python -u benchmarks/run_adsc_day.py --day $d --arm both
+done
+
+# 2. Every figure on this page.
+.venv310/bin/python -u benchmarks/regenerate_adsc_v1.py
+
+# 3. This page.
+cd ../opdi-portal/papers && quarto render adsc-fusion-v1/index.qmd
+```
+
+# Provenance {#sec-provenance}
+
+```{r provenance}
+#| echo: false
+mf <- file.path("data", "_manifest.json")
+if (!file.exists(mf)) {
+  cat(paste("**No manifest.** Every figure on this page is unverified:",
+            "nothing records which script, arguments or commit produced it."))
+} else {
+  j <- jsonlite::fromJSON(mf, simplifyVector = FALSE)
+  rows <- do.call(rbind, lapply(names(j), function(k) data.frame(
+    output = k,
+    script = j[[k]]$script %||% "",
+    sha = j[[k]]$git_sha %||% "",
+    dirty = isTRUE(j[[k]]$git_dirty),
+    stringsAsFactors = FALSE)))
+  kable(rows, row.names = FALSE,
+        col.names = c("Output", "Script", "Commit", "Dirty tree"),
+        caption = paste("Each staged output, and the command that produced",
+                        "it. A `dirty` row was produced from uncommitted",
+                        "code: the number is real and cannot be reproduced",
+                        "from a commit."))
+}
+```
+
+```{r provenance-missing}
+#| echo: false
+#| results: asis
+expected <- c("adsc_census.csv", "adsc_gain_2026.csv", "adsc_holes_2026.csv",
+              "adsc_time_sync_2026.csv", "adsc_time_sync_pairs_2026.csv",
+              "adsc_events_2026.csv", "adsc_events_by_airport_2026.csv")
+absent <- expected[!file.exists(file.path("data", expected))]
+if (length(absent)) {
+  cat(paste0("**Not staged:** `", paste(absent, collapse = "`, `"), "`. ",
+             "The chapters above say so in place; this list is the index. ",
+             "A draft with visible holes is honest; a draft with numbers of ",
+             "unknown origin is not."))
+} else {
+  cat("All seven expected outputs are staged.")
+}
+```
