@@ -442,15 +442,25 @@ if (is.null(sync) || is.null(syncp)) {
     "against %s m across track, a ratio of %s. A position error is isotropic ",
     "and would land equally in both, so a ratio of that size cannot be one. ",
     "The two feeds agree about *where the track is* to within a few metres.\n\n",
-    "**It is not ADS-B's carry-forward.** The OSN archive carries positions ",
-    "forward, which would bias the result in exactly the direction measured, ",
-    "so the alternative has to be excluded from the data rather than argued ",
-    "away: ADS-B's own position age is %s s at the median and never exceeds ",
-    "%s s, and it correlates with the implied offset at %s. Neither is large ",
-    "enough to produce a displacement of hundreds of metres.\n\n",
-    "**It is one number per aircraft, not one number.** Within an airframe ",
-    "the implied offset holds to a standard deviation of %s-%s s; between ",
-    "airframes it runs from %s s to %s s. That is why ",
+    "**ADS-B carry-forward explains the tail, not the centre.** The OSN ",
+    "archive carries positions forward, which biases this measurement in ",
+    "exactly the direction observed, so the alternative has to be settled ",
+    "from the data rather than argued away. ADS-B's own position age is %s s ",
+    "at the median -- about %s m at cruise, far too little to account for a ",
+    "%s m along-track displacement -- and it correlates with the implied ",
+    "offset at only %s, so it is not driving the central tendency. But it ",
+    "reaches **%s s** at the extreme, which is %s km at cruise, and that is ",
+    "more than enough to produce the largest offsets in the per-airframe ",
+    "table below. The honest division: the median is ADS-C skew, and the ",
+    "tail is at least partly a stale reference. The prototype behind this ",
+    "study saw a maximum age of 0.92 s and concluded carry-forward was ",
+    "excluded outright; at %sx more pairs that conclusion does not survive ",
+    "and is narrowed here.\n\n",
+    "**It is one number per aircraft, not one number -- and a noisy one.** ",
+    "Within-airframe standard deviations span %s-%s s, so some airframes are ",
+    "stable and others are not; between airframes the median offset runs from ",
+    "%s s to %s s. The spread *between* aircraft dwarfs anything a single ",
+    "value could track, which is why ",
     "`AdscConfig.time_offset_seconds` ships at zero: a single constant would ",
     "be wrong for nearly every aircraft and would actively damage the ones ",
     "that are already synchronised. A per-airframe offset, estimated on ",
@@ -465,8 +475,13 @@ if (is.null(sync) || is.null(syncp)) {
     "The skew is therefore a correction worth reporting and **not** a reason ",
     "to withhold the merge.\n\n"),
     p1(a$median_abs_along_m), p1(a$median_abs_cross_m), p1(ratio),
-    p1(median(syncp$adsb_pos_age_s[ok])), p1(max(syncp$adsb_pos_age_s[ok])),
+    p2(median(syncp$adsb_pos_age_s[ok])),
+    p1(median(syncp$adsb_pos_age_s[ok]) * v_cruise),
+    p1(a$median_abs_along_m),
     p2(cor(syncp$implied_dt_s[ok], syncp$adsb_pos_age_s[ok])),
+    p1(max(syncp$adsb_pos_age_s[ok])),
+    p1(max(syncp$adsb_pos_age_s[ok]) * v_cruise / 1000),
+    sprintf("%.0f", a$n / 46),
     p2(min(pa$std_implied_dt_s, na.rm = TRUE)),
     p2(max(pa$std_implied_dt_s, na.rm = TRUE)),
     signed(min(pa$median_implied_dt_s)), signed(max(pa$median_implied_dt_s)),
@@ -492,12 +507,14 @@ if (is.null(gain)) {
 } else {
   arms <- gain[gain$arm %in% c("base", "merged"), ]
   cols <- c("arm", "rows", "rows_adsc", "tracks", "tracks_with_adsc",
-            "segments", "track_hours", "median_samples_per_track",
+            "tracks_all_adsc", "segments", "track_hours",
             "tracks_with_two_callsigns")
+  cols <- cols[cols %in% names(arms)]
   kable(arms[, cols], row.names = FALSE, digits = 1,
         col.names = c("Arm", "Rows", "ADS-C rows", "Tracks",
-                      "Tracks with ADS-C", "Segments", "Track hours",
-                      "Median samples/track", "Two-callsign tracks"),
+                      "Tracks with ADS-C", "ADS-C-only tracks", "Segments",
+                      "Track hours", "Two-callsign tracks")[
+                        seq_along(cols)],
         caption = paste("Both arms over", paste(STUDY_DAYS, collapse = ", "),
                         "after cleaning (`osn_tracks_clean`)."))
 }
@@ -555,27 +572,55 @@ if (is.null(gain)) {
   b <- gain[gain$arm == "base", ]
   m <- gain[gain$arm == "merged", ]
   d_tracks <- m$tracks - b$tracks
-  verdict <- if (d_tracks < 0)
-    "fell, which is what gap bridging looks like: the same flights described by fewer, longer tracks" else
-    if (d_tracks == 0) "did not move at all" else
-    paste("**rose**, which gap bridging cannot cause -- a sample inside a gap",
-          "can only join tracks or leave them alone. A higher count means the",
-          "ADS-C timestamps or the NULL callsign are splitting tracks, and",
-          "nothing below should be read as a coverage gain until that is",
-          "explained")
+  new_only <- if ("tracks_all_adsc" %in% names(m)) m$tracks_all_adsc else NA
+  # The count alone cannot be read. Three mechanisms move it and they do not
+  # point the same way: bridging joins tracks (down), an airframe heard only
+  # by ADS-C gains a track that had no baseline counterpart (up), and
+  # splitting an existing track would also push it up (up, and harm). The
+  # first reading of this study treated any rise as splitting, which was
+  # wrong. `tracks_all_adsc` is what separates them.
+  shared <- if (is.na(new_only)) NA else d_tracks - new_only
+  verdict <- if (is.na(new_only)) {
+    "cannot be attributed: `tracks_all_adsc` is not in this table"
+  } else if (shared < 0) {
+    sprintf(paste("decomposes into **%s new tracks** for airframes ADS-B never",
+                  "heard in the window -- trajectories that had no baseline",
+                  "counterpart at all -- against a **net %s** among the tracks",
+                  "both arms share. The population they have in common got",
+                  "*smaller*, which is what bridging does; the headline rise is",
+                  "new coverage, not fragmentation"),
+            num(new_only), num(shared))
+  } else {
+    sprintf(paste("decomposes into **%s new tracks** for airframes ADS-B never",
+                  "heard against a net **%s** among shared tracks. A positive",
+                  "figure there cannot come from bridging, which only joins:",
+                  "it means tracks are being split, and nothing below should be",
+                  "read as a coverage gain until that is explained"),
+            num(new_only), num(shared))
+  }
   cat(sprintf(paste0(
     "Reading those tables in order. **Something arrived**: %s ADS-C rows ",
-    "survived cleaning, %s%% of all rows in the merged arm, reaching %s of ",
-    "%s tracks (%s%%). **The track count %s** -- %s against %s. ",
-    "**%s ADS-C samples closed a reception hole**, counted strictly: more ",
+    "survived cleaning -- %s%% of all rows in the merged arm, about one in ",
+    "twelve thousand -- reaching %s of ",
+    "%s tracks (%s%%). **The track count moved %s** -- %s against %s -- and ",
+    "%s. **%s ADS-C samples closed a reception hole**, counted strictly: more ",
     "than %d s from an ADS-B sample on *both* sides, so a sample sitting ",
     "inside a dense stretch and seen as isolated from one direction does not ",
     "qualify. **The merge-neutrality guard** reads %s two-callsign tracks in ",
-    "the merged arm against %s in the baseline.\n\n"),
-    num(m$rows_adsc), p1(100 * m$rows_adsc / m$rows),
+    "the merged arm against %s in the baseline -- a track holding two distinct ",
+    "real callsigns is two flights fused into one, the way this change could ",
+    "do real harm.\n\n",
+    "One limit on that last pair of numbers, and on the net figure above: ",
+    "both are aggregates. A net change of zero among shared tracks is ",
+    "consistent with no change at all and equally with equal numbers of joins ",
+    "and splits, so these rule out a dominant effect rather than an absent ",
+    "one.\n\n"),
+    num(m$rows_adsc), sprintf("%.4f", 100 * m$rows_adsc / m$rows),
     num(m$tracks_with_adsc), num(m$tracks),
     p1(100 * m$tracks_with_adsc / m$tracks),
-    verdict, num(m$tracks), num(b$tracks),
+    if (d_tracks > 0) sprintf("up %s", num(d_tracks)) else
+      if (d_tracks < 0) sprintf("down %s", num(abs(d_tracks))) else "not at all",
+    num(m$tracks), num(b$tracks), verdict,
     if (is.null(holes)) ABSENT else num(nrow(holes)), HOLE_SECONDS,
     num(m$tracks_with_two_callsigns), num(b$tracks_with_two_callsigns)))
 }
@@ -608,22 +653,58 @@ if (is.null(ev)) {
 if (is.null(evap)) {
   cat(missing_note("adsc_events_by_airport_2026.csv"))
 } else {
+  # `gt_airport`, not `airport`: `score_by_airport` names the column after the
+  # side it came from, because the aerodrome is the *reference's* opinion --
+  # the detector's own runway/stand naming is scored separately. Merging on the
+  # wrong key fails in R with "Error in fix.by()", which names neither column.
+  key <- c("gt_airport", "milestone")
   b <- evap[evap$arm == "base", ]
   m <- evap[evap$arm == "merged", ]
-  j <- merge(b, m, by = c("airport", "milestone"), suffixes = c("_b", "_m"))
+  j <- merge(b, m, by = key, suffixes = c("_b", "_m"))
   j$delta <- j$n_detected_m - j$n_detected_b
-  moved <- j[j$delta != 0, c("airport", "milestone", "n_detected_b",
-                             "n_detected_m", "delta")]
+  j$d_bias <- round(j$bias_s_m - j$bias_s_b, 3)
+  moved <- j[j$delta != 0 | abs(j$d_bias) > 0.001,
+             c("gt_airport", "milestone", "n_truth_b", "n_detected_b",
+               "n_detected_m", "delta", "d_bias")]
   if (nrow(moved) == 0) {
-    cat(paste("**No (aerodrome, milestone) cell changed.** Across twenty",
-              "aerodromes and every scored milestone, the two arms detected",
-              "the same movements. Read this beside the trajectory chapter:",
-              "it is a null result about *milestones*, not about coverage."))
+    cat(sprintf(paste("**No (aerodrome, milestone) cell changed.** Across %d",
+                      "cells -- %d aerodromes by %d scored milestones -- the",
+                      "two arms detected the same movements with the same bias.",
+                      "Read this beside the trajectory chapter: it is a null",
+                      "result about *milestones*, not about coverage."),
+                nrow(j), length(unique(j$gt_airport)),
+                length(unique(j$milestone))))
   } else {
     kable(moved[order(-abs(moved$delta)), ], row.names = FALSE,
-          col.names = c("Aerodrome", "Milestone", "Base", "Merged", "Delta"),
-          caption = "Every (aerodrome, milestone) cell where the arms differ.")
+          col.names = c("Aerodrome", "Milestone", "Truth", "Base", "Merged",
+                        "Delta", "Bias delta (s)"),
+          caption = sprintf(paste("Every (aerodrome, milestone) cell where the",
+                                  "arms differ -- %d of %d."),
+                            nrow(moved), nrow(j)))
   }
+}
+```
+
+```{r events-scope}
+#| echo: false
+#| results: asis
+if (!is.null(ev)) {
+  ms <- sort(unique(ev$milestone))
+  cat(sprintf(paste0(
+    "**Read what this table scores before reading what it says.** APDF can ",
+    "score %d milestones -- %s -- and every one of them belongs to the A-CDM ",
+    "and runway family. The families where ADS-C could physically contribute ",
+    "(`first_seen`, `last_seen`, the flight-level crossings, and ADEP/ADES ",
+    "through the flight list) are **not in the reference's vocabulary at ",
+    "all**: APDF records aerodrome movements, not the moment an oceanic track ",
+    "begins.\n\n",
+    "So this chapter can confirm the predicted null and it **cannot detect ",
+    "the gain**. That is a property of the reference, not a result. The ",
+    "coverage ADS-C adds is measured in the previous chapter -- new tracks, ",
+    "closed holes, track-hours -- and nothing APDF holds can corroborate or ",
+    "contradict it. A reader who takes a flat table here as 'ADS-C adds ",
+    "nothing' has drawn a conclusion the instrument cannot support.\n\n"),
+    length(ms), paste0("`", paste(ms, collapse = "`, `"), "`")))
 }
 ```
 
@@ -649,6 +730,15 @@ limitations below.
 
 Each of these is a measurement that was not made, not a result:
 
+- **The reference cannot score the families ADS-C can reach.** APDF holds
+  aerodrome movements: `ATOT`, `AOBT`, `AIBT`, `ALDT`. `first_seen`,
+  `last_seen`, the flight-level crossings and ADEP/ADES are outside its
+  vocabulary, so the milestone chapter confirms the predicted null on the
+  A-CDM family and is *structurally incapable* of detecting a gain at the
+  coverage edge. The trajectory chapter is the only evidence for that gain,
+  and it has no independent reference to be checked against. Closing this
+  would need a different reference -- Network Manager flight plans for the
+  oceanic entry fixes, say -- not more days of APDF.
 - **Only Europe.** Scoring is inside `EUROPE_BBOX`, and most of the in-box
   ADS-C rows sit in its Atlantic corner. The feed is global; a worldwide arm
   would see far more of it, and APDF could not score it.

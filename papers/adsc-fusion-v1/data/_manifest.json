@@ -58,5 +58,283 @@
     "produced_utc": "2026-10-17T09:47:23+00:00",
     "script": "benchmarks/adsc_census.py",
     "sha256_16": "026cc185b24b2505"
+  },
+  "adsc_events_2026.csv": {
+    "argv": [
+      "--out-name",
+      "adsc_events_2026.csv",
+      "--by-airport-name",
+      "adsc_events_by_airport_2026.csv"
+    ],
+    "bytes": 1181,
+    "code_fingerprint": "0c1f89c2a8f72906",
+    "code_paths": [
+      "benchmarks/adsc_events_compare.py",
+      "benchmarks/event_bench.py",
+      "benchmarks/events_gt.py",
+      "benchmarks/events_score.py",
+      "src/opdi/cleaning/native.py",
+      "src/opdi/ingestion/osn_adsc.py",
+      "src/opdi/pipeline/events.py",
+      "src/opdi/pipeline/tracks.py"
+    ],
+    "git_dirty": false,
+    "git_sha": "bde5b0b",
+    "input_tables": {
+      "s3a://eurocontrol/opdi/research/adsc/base/opdi_flight_events": {
+        "bytes": 451169217,
+        "newest": "2026-10-20T00:51:25.758000+00:00",
+        "objects": 64
+      },
+      "s3a://eurocontrol/opdi/research/adsc/merged/opdi_flight_events": {
+        "bytes": 452067676,
+        "newest": "2026-10-20T01:41:13.570000+00:00",
+        "objects": 64
+      }
+    },
+    "inputs": {
+      "airports": "study",
+      "arms": [
+        "base",
+        "merged"
+      ],
+      "period": "2026"
+    },
+    "notes": "Both arms against APDF 202606 over the twenty V4 study aerodromes, through one truth frame: per milestone and per aerodrome.",
+    "produced_utc": "2026-10-20T02:21:25+00:00",
+    "script": "benchmarks/adsc_events_compare.py",
+    "sha256_16": "bdf2935b74bc0fb1"
+  },
+  "adsc_events_by_airport_2026.csv": {
+    "argv": [
+      "--out-name",
+      "adsc_events_2026.csv",
+      "--by-airport-name",
+      "adsc_events_by_airport_2026.csv"
+    ],
+    "bytes": 18598,
+    "code_fingerprint": "0c1f89c2a8f72906",
+    "code_paths": [
+      "benchmarks/adsc_events_compare.py",
+      "benchmarks/event_bench.py",
+      "benchmarks/events_gt.py",
+      "benchmarks/events_score.py",
+      "src/opdi/cleaning/native.py",
+      "src/opdi/ingestion/osn_adsc.py",
+      "src/opdi/pipeline/events.py",
+      "src/opdi/pipeline/tracks.py"
+    ],
+    "git_dirty": false,
+    "git_sha": "bde5b0b",
+    "input_tables": {
+      "s3a://eurocontrol/opdi/research/adsc/base/opdi_flight_events": {
+        "bytes": 451169217,
+        "newest": "2026-10-20T00:51:25.758000+00:00",
+        "objects": 64
+      },
+      "s3a://eurocontrol/opdi/research/adsc/merged/opdi_flight_events": {
+        "bytes": 452067676,
+        "newest": "2026-10-20T01:41:13.570000+00:00",
+        "objects": 64
+      }
+    },
+    "inputs": {
+      "airports": "study",
+      "arms": [
+        "base",
+        "merged"
+      ],
+      "period": "2026"
+    },
+    "notes": "Both arms against APDF 202606 over the twenty V4 study aerodromes, through one truth frame: per milestone and per aerodrome.",
+    "produced_utc": "2026-10-20T02:21:25+00:00",
+    "script": "benchmarks/adsc_events_compare.py",
+    "sha256_16": "79da1e9a282ccff3"
+  },
+  "adsc_gain_2026.csv": {
+    "argv": [
+      "--days",
+      "2026-06-05",
+      "2026-06-06",
+      "2026-06-07",
+      "--gain-name",
+      "adsc_gain_2026.csv",
+      "--holes-name",
+      "adsc_holes_2026.csv"
+    ],
+    "bytes": 508,
+    "code_fingerprint": "ab693ab867f90b8c",
+    "code_paths": [
+      "benchmarks/adsc_coverage_gain.py",
+      "src/opdi/cleaning/native.py",
+      "src/opdi/ingestion/osn_adsc.py",
+      "src/opdi/pipeline/tracks.py"
+    ],
+    "git_dirty": false,
+    "git_sha": "bde5b0b",
+    "input_tables": {
+      "s3a://eurocontrol/opdi/research/adsc/base/osn_tracks_clean": {
+        "bytes": 10755287790,
+        "newest": "2026-10-20T00:33:15.098000+00:00",
+        "objects": 601
+      },
+      "s3a://eurocontrol/opdi/research/adsc/merged/osn_tracks_clean": {
+        "bytes": 10756808313,
+        "newest": "2026-10-20T01:20:30.203000+00:00",
+        "objects": 601
+      }
+    },
+    "inputs": {
+      "days": [
+        "2026-06-05",
+        "2026-06-06",
+        "2026-06-07"
+      ],
+      "hole_seconds": 300
+    },
+    "notes": "Rows, tracks, track-hours and segments per arm; the reception holes ADS-C closed; the two-callsign merge-neutrality guard. Reads both arms at research/adsc/{base,merged}, built by run_adsc_day.py.",
+    "produced_utc": "2026-10-20T02:19:26+00:00",
+    "script": "benchmarks/adsc_coverage_gain.py",
+    "sha256_16": "e63448da5538346f"
+  },
+  "adsc_holes_2026.csv": {
+    "argv": [
+      "--days",
+      "2026-06-05",
+      "2026-06-06",
+      "2026-06-07",
+      "--gain-name",
+      "adsc_gain_2026.csv",
+      "--holes-name",
+      "adsc_holes_2026.csv"
+    ],
+    "bytes": 960616,
+    "code_fingerprint": "ab693ab867f90b8c",
+    "code_paths": [
+      "benchmarks/adsc_coverage_gain.py",
+      "src/opdi/cleaning/native.py",
+      "src/opdi/ingestion/osn_adsc.py",
+      "src/opdi/pipeline/tracks.py"
+    ],
+    "git_dirty": false,
+    "git_sha": "bde5b0b",
+    "input_tables": {
+      "s3a://eurocontrol/opdi/research/adsc/base/osn_tracks_clean": {
+        "bytes": 10755287790,
+        "newest": "2026-10-20T00:33:15.098000+00:00",
+        "objects": 601
+      },
+      "s3a://eurocontrol/opdi/research/adsc/merged/osn_tracks_clean": {
+        "bytes": 10756808313,
+        "newest": "2026-10-20T01:20:30.203000+00:00",
+        "objects": 601
+      }
+    },
+    "inputs": {
+      "days": [
+        "2026-06-05",
+        "2026-06-06",
+        "2026-06-07"
+      ],
+      "hole_seconds": 300
+    },
+    "notes": "Rows, tracks, track-hours and segments per arm; the reception holes ADS-C closed; the two-callsign merge-neutrality guard. Reads both arms at research/adsc/{base,merged}, built by run_adsc_day.py.",
+    "produced_utc": "2026-10-20T02:19:27+00:00",
+    "script": "benchmarks/adsc_coverage_gain.py",
+    "sha256_16": "d492d60b48c9b73b"
+  },
+  "adsc_time_sync_2026.csv": {
+    "argv": [
+      "--days",
+      "2026-06-05",
+      "2026-06-06",
+      "2026-06-07",
+      "--pairs-name",
+      "adsc_time_sync_pairs_2026.csv",
+      "--out-name",
+      "adsc_time_sync_2026.csv"
+    ],
+    "bytes": 22253,
+    "code_fingerprint": "0e7eec5675175b10",
+    "code_paths": [
+      "benchmarks/adsc_time_sync.py",
+      "src/opdi/cleaning/native.py",
+      "src/opdi/ingestion/osn_adsc.py",
+      "src/opdi/pipeline/tracks.py"
+    ],
+    "git_dirty": false,
+    "git_sha": "f39c8d6",
+    "input_tables": {
+      "s3a://eurocontrol/opdi/research/adsc/input/osn_adsc_statevectors": {
+        "bytes": 1201136,
+        "newest": "2026-10-20T00:56:35.956000+00:00",
+        "objects": 6
+      },
+      "s3a://eurocontrol/opdi/research/adsc/input/osn_statevectors_v2": {
+        "bytes": 10760178130,
+        "newest": "2026-10-20T00:11:05.181000+00:00",
+        "objects": 601
+      }
+    },
+    "inputs": {
+      "days": [
+        "2026-06-05",
+        "2026-06-06",
+        "2026-06-07"
+      ],
+      "max_gap_s": 60,
+      "min_speed_ms": 50.0
+    },
+    "notes": "Along/cross decomposition of each ADS-C report against ADS-B interpolated to the same instant, per airframe. Reads the shared inputs at research/adsc/input, so it does not depend on either arm having been built.",
+    "produced_utc": "2026-10-20T02:02:13+00:00",
+    "script": "benchmarks/adsc_time_sync.py",
+    "sha256_16": "cd82c6f2cb40c0e3"
+  },
+  "adsc_time_sync_pairs_2026.csv": {
+    "argv": [
+      "--days",
+      "2026-06-05",
+      "2026-06-06",
+      "2026-06-07",
+      "--pairs-name",
+      "adsc_time_sync_pairs_2026.csv",
+      "--out-name",
+      "adsc_time_sync_2026.csv"
+    ],
+    "bytes": 110483,
+    "code_fingerprint": "0e7eec5675175b10",
+    "code_paths": [
+      "benchmarks/adsc_time_sync.py",
+      "src/opdi/cleaning/native.py",
+      "src/opdi/ingestion/osn_adsc.py",
+      "src/opdi/pipeline/tracks.py"
+    ],
+    "git_dirty": false,
+    "git_sha": "f39c8d6",
+    "input_tables": {
+      "s3a://eurocontrol/opdi/research/adsc/input/osn_adsc_statevectors": {
+        "bytes": 1201136,
+        "newest": "2026-10-20T00:56:35.956000+00:00",
+        "objects": 6
+      },
+      "s3a://eurocontrol/opdi/research/adsc/input/osn_statevectors_v2": {
+        "bytes": 10760178130,
+        "newest": "2026-10-20T00:11:05.181000+00:00",
+        "objects": 601
+      }
+    },
+    "inputs": {
+      "days": [
+        "2026-06-05",
+        "2026-06-06",
+        "2026-06-07"
+      ],
+      "max_gap_s": 60,
+      "min_speed_ms": 50.0
+    },
+    "notes": "Along/cross decomposition of each ADS-C report against ADS-B interpolated to the same instant, per airframe. Reads the shared inputs at research/adsc/input, so it does not depend on either arm having been built.",
+    "produced_utc": "2026-10-20T02:02:12+00:00",
+    "script": "benchmarks/adsc_time_sync.py",
+    "sha256_16": "3ed1b71fce5d2626"
   }
 }

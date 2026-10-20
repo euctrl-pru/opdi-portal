@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 <meta name="author" content="EUROCONTROL Performance Review Unit — Open Performance Data Initiative">
-<meta name="dcterms.date" content="2026-10-17">
+<meta name="dcterms.date" content="2026-10-20">
 
 <title>ADS-C in the OPDI trajectory – OPDI Papers</title>
 <style>
@@ -189,7 +189,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     <div>
     <div class="quarto-title-meta-heading">Published</div>
     <div class="quarto-title-meta-contents">
-      <p class="date">October 17, 2026</p>
+      <p class="date">October 20, 2026</p>
     </div>
   </div>
   
@@ -744,54 +744,2400 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <p>ADS-B and ADS-C arrive over different links and neither states a position age that can be used. ADS-B’s <code>last_pos_update</code> is real but small. ADS-C’s <code>seen</code> and <code>seen_pos</code> are constant zero — the feed <em>asserts</em> that every report is current — and the <code>readsb</code> record does not expose the ADS-C report’s own time-of-position, so there is nothing in band to correct from. The skew was therefore measured.</p>
 <p>For each ADS-C report with an ADS-B sample of the same airframe within 60 s on <strong>both</strong> sides, the ADS-B position is interpolated to the ADS-C timestamp and the offset decomposed against the direction the ADS-B pair actually moved — not against the broadcast heading, which in wind is not where the aircraft is going. <strong>Cross-track</strong> is what the two feeds disagree about that no timing explanation can absorb; <strong>along-track divided by ground speed</strong> is the implied time offset. A position error is isotropic and lands in both; a timing error lands only along track.</p>
 <div class="cell">
-<div class="cell-output cell-output-stdout">
-<pre><code>*`adsc_time_sync_2026.csv` is not staged, so this section's figures are absent rather than wrong. Run `python benchmarks/regenerate_adsc_v1.py` with cluster credentials; the [Provenance] chapter lists what is present.*</code></pre>
+<div class="cell-output-display">
+<table class="caption-top table table-sm table-striped small">
+<caption>ADS-C against interpolated ADS-B over 2026-06-05, 2026-06-06, 2026-06-07 .</caption>
+<thead>
+<tr class="header">
+<th style="text-align: left;"></th>
+<th style="text-align: left;">Measured</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">Bracketed pairs</td>
+<td style="text-align: left;">764</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Median |cross-track|</td>
+<td style="text-align: left;">8.7 m</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Median |along-track|</td>
+<td style="text-align: left;">415.4 m</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Along:cross ratio</td>
+<td style="text-align: left;">47.6x</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Median implied offset</td>
+<td style="text-align: left;">+1.41 s</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">sigma of implied offset</td>
+<td style="text-align: left;">14.4 s</td>
+</tr>
+</tbody>
+</table>
 </div>
 </div>
 <div class="cell">
-<div class="cell-output cell-output-stdout">
-<pre><code>*`adsc_time_sync_pairs_2026.csv` is not staged, so this section's figures are absent rather than wrong. Run `python benchmarks/regenerate_adsc_v1.py` with cluster credentials; the [Provenance] chapter lists what is present.*</code></pre>
+<div class="cell-output-display">
+<table class="caption-top table table-sm table-striped small">
+<caption>Could the offset be ADS-B’s own staleness rather than ADS-C’s skew? The archive carries positions forward, so the question has to be answered from the data.</caption>
+<thead>
+<tr class="header">
+<th style="text-align: left;"></th>
+<th style="text-align: left;">Measured</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">Median ADS-B position age</td>
+<td style="text-align: left;">0.3 s</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Max ADS-B position age</td>
+<td style="text-align: left;">152.3 s</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">corr(implied offset, ADS-B position age)</td>
+<td style="text-align: left;">0.21</td>
+</tr>
+</tbody>
+</table>
 </div>
 </div>
 <div class="cell">
-<div class="cell-output cell-output-stdout">
-<pre><code>*`adsc_time_sync_2026.csv` is not staged, so this section's figures are absent rather than wrong. Run `python benchmarks/regenerate_adsc_v1.py` with cluster credentials; the [Provenance] chapter lists what is present.*</code></pre>
+<div class="cell-output-display">
+<table class="caption-top table table-sm table-striped small">
+<caption>Per airframe. The question this table decides: is the skew a property of the feed, which one constant could correct, or of the individual aircraft, which it could not?</caption>
+<colgroup>
+<col style="width: 11%">
+<col style="width: 7%">
+<col style="width: 32%">
+<col style="width: 12%">
+<col style="width: 36%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Airframe</th>
+<th style="text-align: right;">Pairs</th>
+<th style="text-align: right;">Median implied offset (s)</th>
+<th style="text-align: right;">sigma (s)</th>
+<th style="text-align: right;">Median |cross| (m)</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">3c4a21</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">-184.60</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">216097.73</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">c01074</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">-142.09</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">264.82</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">0d11ed</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">-140.95</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">84.97</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">80073d</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">-116.84</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">2735.94</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">aaf0c6</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">-115.83</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">98.74</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">4ca5c7</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">-74.29</td>
+<td style="text-align: right;">0.95</td>
+<td style="text-align: right;">8.87</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">34520e</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">-69.53</td>
+<td style="text-align: right;">42.23</td>
+<td style="text-align: right;">0.84</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">478f47</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">-65.65</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">28.92</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">06a2de</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">-60.29</td>
+<td style="text-align: right;">38.39</td>
+<td style="text-align: right;">7.33</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">e4904c</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">-35.10</td>
+<td style="text-align: right;">20.51</td>
+<td style="text-align: right;">5.96</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">a0da7a</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">-32.72</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">27.78</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">c078c2</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">-30.72</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">16.06</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">343147</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">-30.50</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">76.89</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">a2a2e6</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">-27.18</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">3.72</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">344305</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">-19.58</td>
+<td style="text-align: right;">5.36</td>
+<td style="text-align: right;">20.86</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">495066</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">-14.36</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">2.92</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">345353</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">-13.93</td>
+<td style="text-align: right;">6.08</td>
+<td style="text-align: right;">6.48</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">477ff3</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">-12.93</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">3.78</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">a95169</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">-12.90</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">4.24</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">3451cd</td>
+<td style="text-align: right;">7</td>
+<td style="text-align: right;">-12.71</td>
+<td style="text-align: right;">3.66</td>
+<td style="text-align: right;">8.34</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">344502</td>
+<td style="text-align: right;">5</td>
+<td style="text-align: right;">-12.42</td>
+<td style="text-align: right;">5.40</td>
+<td style="text-align: right;">10.04</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">344345</td>
+<td style="text-align: right;">3</td>
+<td style="text-align: right;">-12.29</td>
+<td style="text-align: right;">1.26</td>
+<td style="text-align: right;">12.07</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">345318</td>
+<td style="text-align: right;">3</td>
+<td style="text-align: right;">-12.04</td>
+<td style="text-align: right;">0.66</td>
+<td style="text-align: right;">26.98</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">aa9bb7</td>
+<td style="text-align: right;">3</td>
+<td style="text-align: right;">-11.66</td>
+<td style="text-align: right;">8.49</td>
+<td style="text-align: right;">30.98</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">3c5b31</td>
+<td style="text-align: right;">3</td>
+<td style="text-align: right;">-10.62</td>
+<td style="text-align: right;">11.43</td>
+<td style="text-align: right;">13.17</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">3455d5</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">-9.96</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">4.38</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">a560f3</td>
+<td style="text-align: right;">4</td>
+<td style="text-align: right;">-9.44</td>
+<td style="text-align: right;">2.86</td>
+<td style="text-align: right;">5.94</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">34718d</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">-9.17</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">39.41</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">06a081</td>
+<td style="text-align: right;">10</td>
+<td style="text-align: right;">-6.46</td>
+<td style="text-align: right;">13.77</td>
+<td style="text-align: right;">8.08</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">0d08d1</td>
+<td style="text-align: right;">5</td>
+<td style="text-align: right;">-6.32</td>
+<td style="text-align: right;">4.27</td>
+<td style="text-align: right;">11.24</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">47c1c2</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">-6.00</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">20.69</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">06a2e2</td>
+<td style="text-align: right;">19</td>
+<td style="text-align: right;">-5.95</td>
+<td style="text-align: right;">1.81</td>
+<td style="text-align: right;">7.73</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">3c4587</td>
+<td style="text-align: right;">5</td>
+<td style="text-align: right;">-5.58</td>
+<td style="text-align: right;">0.39</td>
+<td style="text-align: right;">1.93</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">407cd2</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">-5.53</td>
+<td style="text-align: right;">0.29</td>
+<td style="text-align: right;">2.33</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">478f5c</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">-5.12</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">8.08</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">44ccca</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">-5.04</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">5.27</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">c0799e</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">-4.35</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">14.88</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">896196</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">-0.68</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">546.81</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">8964bd</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">-0.43</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">11.03</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">738c06</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">-0.35</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">64.50</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">4bb153</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">-0.31</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">324.63</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">06a0af</td>
+<td style="text-align: right;">3</td>
+<td style="text-align: right;">-0.07</td>
+<td style="text-align: right;">0.36</td>
+<td style="text-align: right;">3.28</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">896489</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">-0.03</td>
+<td style="text-align: right;">0.12</td>
+<td style="text-align: right;">5.44</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">801859</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">0.06</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">2.81</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">47b1dc</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">0.12</td>
+<td style="text-align: right;">1.22</td>
+<td style="text-align: right;">5.64</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">4074e2</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">0.15</td>
+<td style="text-align: right;">0.76</td>
+<td style="text-align: right;">9.37</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">3949e4</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">0.20</td>
+<td style="text-align: right;">0.68</td>
+<td style="text-align: right;">2.86</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">3c4ada</td>
+<td style="text-align: right;">3</td>
+<td style="text-align: right;">0.22</td>
+<td style="text-align: right;">0.69</td>
+<td style="text-align: right;">36.48</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">485b43</td>
+<td style="text-align: right;">9</td>
+<td style="text-align: right;">0.28</td>
+<td style="text-align: right;">0.49</td>
+<td style="text-align: right;">9.22</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">4074e4</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">0.31</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">16.49</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">40731c</td>
+<td style="text-align: right;">3</td>
+<td style="text-align: right;">0.34</td>
+<td style="text-align: right;">3.48</td>
+<td style="text-align: right;">3.63</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">39c426</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">0.37</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">1.75</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">39c420</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">0.40</td>
+<td style="text-align: right;">3.08</td>
+<td style="text-align: right;">9.46</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">347349</td>
+<td style="text-align: right;">7</td>
+<td style="text-align: right;">0.40</td>
+<td style="text-align: right;">7.44</td>
+<td style="text-align: right;">14.61</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">347604</td>
+<td style="text-align: right;">4</td>
+<td style="text-align: right;">0.41</td>
+<td style="text-align: right;">3.53</td>
+<td style="text-align: right;">6.99</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">47b0e7</td>
+<td style="text-align: right;">7</td>
+<td style="text-align: right;">0.49</td>
+<td style="text-align: right;">0.44</td>
+<td style="text-align: right;">10.24</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">a8320e</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">0.49</td>
+<td style="text-align: right;">1.02</td>
+<td style="text-align: right;">6.34</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">406a35</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">0.49</td>
+<td style="text-align: right;">1.94</td>
+<td style="text-align: right;">2.06</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">06a2e5</td>
+<td style="text-align: right;">9</td>
+<td style="text-align: right;">0.50</td>
+<td style="text-align: right;">0.18</td>
+<td style="text-align: right;">11.79</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">a64342</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">0.51</td>
+<td style="text-align: right;">23.86</td>
+<td style="text-align: right;">1.34</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">485e2e</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">0.52</td>
+<td style="text-align: right;">0.84</td>
+<td style="text-align: right;">7.04</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">47c98d</td>
+<td style="text-align: right;">4</td>
+<td style="text-align: right;">0.54</td>
+<td style="text-align: right;">6.08</td>
+<td style="text-align: right;">12.88</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">4074e3</td>
+<td style="text-align: right;">7</td>
+<td style="text-align: right;">0.54</td>
+<td style="text-align: right;">0.72</td>
+<td style="text-align: right;">14.89</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">346310</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">0.61</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">18.85</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">345352</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">0.67</td>
+<td style="text-align: right;">0.41</td>
+<td style="text-align: right;">6.43</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">347691</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">0.70</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">19.23</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">06a10e</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">0.72</td>
+<td style="text-align: right;">1.52</td>
+<td style="text-align: right;">5.46</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">40688e</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">0.73</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">34.13</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">8017f7</td>
+<td style="text-align: right;">3</td>
+<td style="text-align: right;">0.73</td>
+<td style="text-align: right;">0.68</td>
+<td style="text-align: right;">11.65</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">486071</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">0.75</td>
+<td style="text-align: right;">0.16</td>
+<td style="text-align: right;">0.92</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">06a2b5</td>
+<td style="text-align: right;">8</td>
+<td style="text-align: right;">0.75</td>
+<td style="text-align: right;">0.22</td>
+<td style="text-align: right;">3.21</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">507c50</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">0.75</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">7.99</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">347605</td>
+<td style="text-align: right;">5</td>
+<td style="text-align: right;">0.75</td>
+<td style="text-align: right;">0.33</td>
+<td style="text-align: right;">15.53</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">a63bd4</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">0.76</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">2.66</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">8966f0</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">0.77</td>
+<td style="text-align: right;">0.28</td>
+<td style="text-align: right;">0.65</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">3c4a15</td>
+<td style="text-align: right;">3</td>
+<td style="text-align: right;">0.77</td>
+<td style="text-align: right;">0.05</td>
+<td style="text-align: right;">104.28</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">448466</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">0.78</td>
+<td style="text-align: right;">0.06</td>
+<td style="text-align: right;">3.71</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">86eb14</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">0.79</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">9.78</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">06a2b7</td>
+<td style="text-align: right;">13</td>
+<td style="text-align: right;">0.80</td>
+<td style="text-align: right;">0.44</td>
+<td style="text-align: right;">7.58</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">44019a</td>
+<td style="text-align: right;">3</td>
+<td style="text-align: right;">0.83</td>
+<td style="text-align: right;">0.32</td>
+<td style="text-align: right;">14.34</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">406d77</td>
+<td style="text-align: right;">3</td>
+<td style="text-align: right;">0.83</td>
+<td style="text-align: right;">0.14</td>
+<td style="text-align: right;">9.03</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">a5530b</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">0.86</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">11.26</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">47b121</td>
+<td style="text-align: right;">7</td>
+<td style="text-align: right;">0.86</td>
+<td style="text-align: right;">0.18</td>
+<td style="text-align: right;">16.76</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">76cd49</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">0.86</td>
+<td style="text-align: right;">0.19</td>
+<td style="text-align: right;">7.49</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">a48fcf</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">0.86</td>
+<td style="text-align: right;">0.25</td>
+<td style="text-align: right;">2.78</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">4080b6</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">0.87</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">2.49</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">a82aa0</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">0.87</td>
+<td style="text-align: right;">0.09</td>
+<td style="text-align: right;">3.91</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">8964c2</td>
+<td style="text-align: right;">6</td>
+<td style="text-align: right;">0.91</td>
+<td style="text-align: right;">0.10</td>
+<td style="text-align: right;">7.64</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">06a3b6</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">0.91</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">3.94</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">896409</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">0.91</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">13.26</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">aac33e</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">0.91</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">8.06</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">3949e5</td>
+<td style="text-align: right;">5</td>
+<td style="text-align: right;">0.92</td>
+<td style="text-align: right;">0.63</td>
+<td style="text-align: right;">3.87</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">86d266</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">0.95</td>
+<td style="text-align: right;">0.12</td>
+<td style="text-align: right;">7.73</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">3451cf</td>
+<td style="text-align: right;">3</td>
+<td style="text-align: right;">0.96</td>
+<td style="text-align: right;">0.29</td>
+<td style="text-align: right;">10.81</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">406ec7</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">0.96</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">13.18</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">4bb18b</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">0.99</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">4.20</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">8963e5</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">0.99</td>
+<td style="text-align: right;">0.52</td>
+<td style="text-align: right;">2.98</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">3c4a01</td>
+<td style="text-align: right;">5</td>
+<td style="text-align: right;">1.01</td>
+<td style="text-align: right;">0.08</td>
+<td style="text-align: right;">8.47</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">406f78</td>
+<td style="text-align: right;">4</td>
+<td style="text-align: right;">1.03</td>
+<td style="text-align: right;">0.52</td>
+<td style="text-align: right;">2.21</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">8015a8</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">1.05</td>
+<td style="text-align: right;">0.15</td>
+<td style="text-align: right;">1.71</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">44ccc5</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">1.08</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">3.70</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">06a2b0</td>
+<td style="text-align: right;">3</td>
+<td style="text-align: right;">1.09</td>
+<td style="text-align: right;">0.05</td>
+<td style="text-align: right;">3.01</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">4007ed</td>
+<td style="text-align: right;">6</td>
+<td style="text-align: right;">1.09</td>
+<td style="text-align: right;">10.81</td>
+<td style="text-align: right;">6.15</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">484561</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">1.09</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">9.66</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">3475c7</td>
+<td style="text-align: right;">4</td>
+<td style="text-align: right;">1.09</td>
+<td style="text-align: right;">2.09</td>
+<td style="text-align: right;">2.37</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">406b05</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">1.10</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">6.99</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">88517a</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">1.10</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">3.24</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">800c3e</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">1.12</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">6.14</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">4bb0f3</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">1.12</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">30.72</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">ab7fe6</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">1.12</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">3.34</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">396448</td>
+<td style="text-align: right;">7</td>
+<td style="text-align: right;">1.13</td>
+<td style="text-align: right;">0.29</td>
+<td style="text-align: right;">17.22</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">8963f2</td>
+<td style="text-align: right;">5</td>
+<td style="text-align: right;">1.13</td>
+<td style="text-align: right;">0.71</td>
+<td style="text-align: right;">19.43</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">4b1886</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">1.13</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">30.51</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">347555</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">1.13</td>
+<td style="text-align: right;">0.17</td>
+<td style="text-align: right;">3.29</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">8963d4</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">1.13</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">2.89</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">ac1076</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">1.14</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">16.33</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">4007fb</td>
+<td style="text-align: right;">11</td>
+<td style="text-align: right;">1.14</td>
+<td style="text-align: right;">0.39</td>
+<td style="text-align: right;">3.96</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">4b1921</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">1.14</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">6.10</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">406a9f</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">1.15</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">68.36</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">76cef9</td>
+<td style="text-align: right;">10</td>
+<td style="text-align: right;">1.18</td>
+<td style="text-align: right;">0.41</td>
+<td style="text-align: right;">2.09</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">8963d9</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">1.21</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">7.53</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">406f72</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">1.22</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">7.04</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">4b1887</td>
+<td style="text-align: right;">3</td>
+<td style="text-align: right;">1.22</td>
+<td style="text-align: right;">1.15</td>
+<td style="text-align: right;">15.84</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">406f74</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">1.24</td>
+<td style="text-align: right;">0.55</td>
+<td style="text-align: right;">18.72</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">4007ec</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">1.24</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">10.24</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">0a00cd</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">1.25</td>
+<td style="text-align: right;">0.37</td>
+<td style="text-align: right;">27.33</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">4952a1</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">1.26</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">9.90</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">34764a</td>
+<td style="text-align: right;">4</td>
+<td style="text-align: right;">1.27</td>
+<td style="text-align: right;">2.15</td>
+<td style="text-align: right;">11.71</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">484cba</td>
+<td style="text-align: right;">3</td>
+<td style="text-align: right;">1.29</td>
+<td style="text-align: right;">0.14</td>
+<td style="text-align: right;">3.02</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">c00d6c</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">1.29</td>
+<td style="text-align: right;">1.04</td>
+<td style="text-align: right;">4.05</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">3c6517</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">1.30</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">11.25</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">3c4591</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">1.30</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">9.47</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">461f06</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">1.31</td>
+<td style="text-align: right;">0.42</td>
+<td style="text-align: right;">16.96</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">461f55</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">1.34</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">16.62</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">80159e</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">1.34</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">0.20</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">3c4597</td>
+<td style="text-align: right;">11</td>
+<td style="text-align: right;">1.36</td>
+<td style="text-align: right;">0.88</td>
+<td style="text-align: right;">5.22</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">3465c5</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">1.36</td>
+<td style="text-align: right;">2.32</td>
+<td style="text-align: right;">7.17</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">406b48</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">1.36</td>
+<td style="text-align: right;">0.00</td>
+<td style="text-align: right;">6.66</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">e48cbd</td>
+<td style="text-align: right;">3</td>
+<td style="text-align: right;">1.37</td>
+<td style="text-align: right;">0.64</td>
+<td style="text-align: right;">6.21</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">0900f1</td>
+<td style="text-align: right;">5</td>
+<td style="text-align: right;">1.38</td>
+<td style="text-align: right;">0.21</td>
+<td style="text-align: right;">6.16</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">06a2c6</td>
+<td style="text-align: right;">4</td>
+<td style="text-align: right;">1.38</td>
+<td style="text-align: right;">0.78</td>
+<td style="text-align: right;">11.61</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">394a12</td>
+<td style="text-align: right;">3</td>
+<td style="text-align: right;">1.38</td>
+<td style="text-align: right;">0.92</td>
+<td style="text-align: right;">0.37</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">76cd47</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">1.39</td>
+<td style="text-align: right;">0.86</td>
+<td style="text-align: right;">6.61</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">02013e</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">1.39</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">14.27</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">478f43</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">1.39</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">8.63</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">39cf0b</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">1.40</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">15.75</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">4b187a</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">1.40</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">16.67</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">06a2b3</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">1.40</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">0.46</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">896482</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">1.42</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">4.05</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">3c6566</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">1.42</td>
+<td style="text-align: right;">0.56</td>
+<td style="text-align: right;">6.21</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">4aca67</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">1.42</td>
+<td style="text-align: right;">3.30</td>
+<td style="text-align: right;">1.43</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">4bb103</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">1.42</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">11.51</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">3c6708</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">1.44</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">363.91</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">3c6715</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">1.47</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">0.27</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">3c65ab</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">1.48</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">0.81</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">06a0e4</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">1.48</td>
+<td style="text-align: right;">0.50</td>
+<td style="text-align: right;">5.47</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">896618</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">1.48</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">2.72</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">801665</td>
+<td style="text-align: right;">9</td>
+<td style="text-align: right;">1.49</td>
+<td style="text-align: right;">0.34</td>
+<td style="text-align: right;">107.85</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">4078b8</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">1.50</td>
+<td style="text-align: right;">0.02</td>
+<td style="text-align: right;">0.85</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">4ca8fb</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">1.50</td>
+<td style="text-align: right;">0.13</td>
+<td style="text-align: right;">10.31</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">3c4594</td>
+<td style="text-align: right;">7</td>
+<td style="text-align: right;">1.51</td>
+<td style="text-align: right;">0.61</td>
+<td style="text-align: right;">1.91</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">48436f</td>
+<td style="text-align: right;">21</td>
+<td style="text-align: right;">1.51</td>
+<td style="text-align: right;">0.77</td>
+<td style="text-align: right;">4.05</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">407799</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">1.51</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">13.82</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">8966ed</td>
+<td style="text-align: right;">3</td>
+<td style="text-align: right;">1.54</td>
+<td style="text-align: right;">0.37</td>
+<td style="text-align: right;">8.56</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">347386</td>
+<td style="text-align: right;">6</td>
+<td style="text-align: right;">1.56</td>
+<td style="text-align: right;">0.42</td>
+<td style="text-align: right;">12.12</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">44ccc3</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">1.56</td>
+<td style="text-align: right;">0.09</td>
+<td style="text-align: right;">1.81</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">a9d286</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">1.56</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">7.25</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">3c6564</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">1.59</td>
+<td style="text-align: right;">0.52</td>
+<td style="text-align: right;">31.74</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">406b0a</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">1.59</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">1.02</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">39ab12</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">1.60</td>
+<td style="text-align: right;">0.14</td>
+<td style="text-align: right;">1.75</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">3483c9</td>
+<td style="text-align: right;">10</td>
+<td style="text-align: right;">1.60</td>
+<td style="text-align: right;">0.80</td>
+<td style="text-align: right;">14.48</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">461f54</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">1.61</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">0.31</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">4952af</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">1.61</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">0.22</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">4841c5</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">1.63</td>
+<td style="text-align: right;">0.03</td>
+<td style="text-align: right;">2.73</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">34754d</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">1.64</td>
+<td style="text-align: right;">1.85</td>
+<td style="text-align: right;">7.86</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">39cf0f</td>
+<td style="text-align: right;">5</td>
+<td style="text-align: right;">1.64</td>
+<td style="text-align: right;">0.50</td>
+<td style="text-align: right;">9.86</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">4952b3</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">1.66</td>
+<td style="text-align: right;">1.03</td>
+<td style="text-align: right;">13.71</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">3c6519</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">1.67</td>
+<td style="text-align: right;">0.10</td>
+<td style="text-align: right;">9.86</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">76cd6e</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">1.69</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">11.49</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">76cda2</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">1.69</td>
+<td style="text-align: right;">0.61</td>
+<td style="text-align: right;">5.34</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">3c6571</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">1.69</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">38.98</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">4952ab</td>
+<td style="text-align: right;">4</td>
+<td style="text-align: right;">1.70</td>
+<td style="text-align: right;">1.30</td>
+<td style="text-align: right;">1.15</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">80159f</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">1.71</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">1.20</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">4bb0e2</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">1.71</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">4.53</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">76cce7</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">1.73</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">6.04</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">4951ef</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">1.75</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">5.55</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">3c15be</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">1.75</td>
+<td style="text-align: right;">0.06</td>
+<td style="text-align: right;">15.81</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">461f48</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">1.75</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">14.81</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">8966ef</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">1.77</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">6.28</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">4b18fe</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">1.77</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">22.05</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">4aca65</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">1.77</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">9.44</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">346456</td>
+<td style="text-align: right;">6</td>
+<td style="text-align: right;">1.78</td>
+<td style="text-align: right;">10.86</td>
+<td style="text-align: right;">8.14</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">a9cecf</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">1.78</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">0.77</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">896614</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">1.82</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">0.09</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">347659</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">1.85</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">7.55</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">39c912</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">1.86</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">4.46</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">89639f</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">1.87</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">10.80</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">346146</td>
+<td style="text-align: right;">5</td>
+<td style="text-align: right;">1.87</td>
+<td style="text-align: right;">1.51</td>
+<td style="text-align: right;">12.68</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">8964b6</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">1.88</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">14.07</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">a3739b</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">1.89</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">2.68</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">4cad48</td>
+<td style="text-align: right;">3</td>
+<td style="text-align: right;">1.89</td>
+<td style="text-align: right;">0.03</td>
+<td style="text-align: right;">12.07</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">44ccc4</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">1.89</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">5.11</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">39cf01</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">1.90</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">11.08</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">3c4a8c</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">1.91</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">13.44</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">76cd45</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">1.92</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">12.68</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">70c0fe</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">1.93</td>
+<td style="text-align: right;">0.37</td>
+<td style="text-align: right;">7.37</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">76cdb3</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">1.93</td>
+<td style="text-align: right;">0.11</td>
+<td style="text-align: right;">17.92</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">76cce5</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">1.93</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">8.03</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">346390</td>
+<td style="text-align: right;">5</td>
+<td style="text-align: right;">1.94</td>
+<td style="text-align: right;">0.37</td>
+<td style="text-align: right;">6.86</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">a120fe</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">1.94</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">14.60</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">896327</td>
+<td style="text-align: right;">21</td>
+<td style="text-align: right;">1.94</td>
+<td style="text-align: right;">1.02</td>
+<td style="text-align: right;">4.77</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">e80444</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">1.96</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">15.85</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">40779a</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">1.98</td>
+<td style="text-align: right;">0.86</td>
+<td style="text-align: right;">3.73</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">06a0f4</td>
+<td style="text-align: right;">10</td>
+<td style="text-align: right;">1.99</td>
+<td style="text-align: right;">1.25</td>
+<td style="text-align: right;">10.45</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">3c4acd</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">2.00</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">10.74</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">39d2a2</td>
+<td style="text-align: right;">4</td>
+<td style="text-align: right;">2.01</td>
+<td style="text-align: right;">0.66</td>
+<td style="text-align: right;">27.97</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">406b21</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">2.02</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">11.70</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">34628d</td>
+<td style="text-align: right;">6</td>
+<td style="text-align: right;">2.03</td>
+<td style="text-align: right;">0.77</td>
+<td style="text-align: right;">14.39</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">3c4b23</td>
+<td style="text-align: right;">5</td>
+<td style="text-align: right;">2.04</td>
+<td style="text-align: right;">0.11</td>
+<td style="text-align: right;">9.29</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">3c670e</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">2.05</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">8.71</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">34604e</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">2.06</td>
+<td style="text-align: right;">0.06</td>
+<td style="text-align: right;">15.17</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">76cdb6</td>
+<td style="text-align: right;">3</td>
+<td style="text-align: right;">2.07</td>
+<td style="text-align: right;">3.58</td>
+<td style="text-align: right;">17.09</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">3c6573</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">2.07</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">24.82</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">a12fda</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">2.08</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">1.60</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">485788</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">2.08</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">0.34</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">461f0c</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">2.10</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">4.01</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">a0007f</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">2.10</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">6.81</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">4aca63</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">2.11</td>
+<td style="text-align: right;">7.66</td>
+<td style="text-align: right;">8.09</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">4aca64</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">2.11</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">7.61</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">8966ee</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">2.13</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">3.00</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">4078dd</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">2.15</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">4.95</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">399e86</td>
+<td style="text-align: right;">30</td>
+<td style="text-align: right;">2.15</td>
+<td style="text-align: right;">0.58</td>
+<td style="text-align: right;">9.40</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">39ce24</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">2.15</td>
+<td style="text-align: right;">0.38</td>
+<td style="text-align: right;">14.57</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">76cdac</td>
+<td style="text-align: right;">3</td>
+<td style="text-align: right;">2.16</td>
+<td style="text-align: right;">0.33</td>
+<td style="text-align: right;">12.83</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">76cda4</td>
+<td style="text-align: right;">3</td>
+<td style="text-align: right;">2.17</td>
+<td style="text-align: right;">1.26</td>
+<td style="text-align: right;">16.90</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">346386</td>
+<td style="text-align: right;">5</td>
+<td style="text-align: right;">2.17</td>
+<td style="text-align: right;">0.77</td>
+<td style="text-align: right;">13.83</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">3461cb</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">2.18</td>
+<td style="text-align: right;">0.52</td>
+<td style="text-align: right;">8.59</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">4076e8</td>
+<td style="text-align: right;">4</td>
+<td style="text-align: right;">2.19</td>
+<td style="text-align: right;">0.46</td>
+<td style="text-align: right;">5.47</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">4bb0e4</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">2.21</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">9.92</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">3c651a</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">2.23</td>
+<td style="text-align: right;">44.76</td>
+<td style="text-align: right;">11.86</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">a6abea</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">2.25</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">24.28</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">39cdce</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">2.27</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">6.67</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">4bb0e7</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">2.29</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">8.95</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">76cdab</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">2.30</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">9.90</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">40688b</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">2.30</td>
+<td style="text-align: right;">0.10</td>
+<td style="text-align: right;">7.00</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">02013c</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">2.30</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">3.95</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">76cdb2</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">2.32</td>
+<td style="text-align: right;">2.04</td>
+<td style="text-align: right;">7.52</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">34740f</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">2.32</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">1.13</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">76cda5</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">2.33</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">14.38</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">3c71a4</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">2.34</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">6.30</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">39644c</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">2.35</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">8.70</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">461f08</td>
+<td style="text-align: right;">7</td>
+<td style="text-align: right;">2.35</td>
+<td style="text-align: right;">0.27</td>
+<td style="text-align: right;">11.23</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">347206</td>
+<td style="text-align: right;">3</td>
+<td style="text-align: right;">2.41</td>
+<td style="text-align: right;">0.30</td>
+<td style="text-align: right;">4.32</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">896617</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">2.43</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">7.57</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">461f0d</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">2.43</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">2.97</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">346114</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">2.48</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">17.40</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">347343</td>
+<td style="text-align: right;">5</td>
+<td style="text-align: right;">2.49</td>
+<td style="text-align: right;">2.51</td>
+<td style="text-align: right;">8.07</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">3c656b</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">2.52</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">11.11</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">4b1a00</td>
+<td style="text-align: right;">10</td>
+<td style="text-align: right;">2.63</td>
+<td style="text-align: right;">0.79</td>
+<td style="text-align: right;">3.07</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">06a125</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">2.69</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">14.25</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">39d2a7</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">2.74</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">21.88</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">780abc</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">2.81</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">26.88</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">4952b1</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">2.81</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">1.96</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">4ba94a</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">2.81</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">2.76</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">394a00</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">2.82</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">4.46</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">3c670f</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">2.90</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">7.56</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">406b22</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">2.90</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">20.86</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">39644e</td>
+<td style="text-align: right;">3</td>
+<td style="text-align: right;">2.98</td>
+<td style="text-align: right;">1.30</td>
+<td style="text-align: right;">9.10</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">a8c88f</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">3.04</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">1.23</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">a80321</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">3.09</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">4.72</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">4bb104</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">3.28</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">37.66</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">347245</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">3.39</td>
+<td style="text-align: right;">0.94</td>
+<td style="text-align: right;">0.65</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">896475</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">3.44</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">2.54</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">461f09</td>
+<td style="text-align: right;">3</td>
+<td style="text-align: right;">3.76</td>
+<td style="text-align: right;">1.24</td>
+<td style="text-align: right;">13.69</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">34659a</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">4.11</td>
+<td style="text-align: right;">1.79</td>
+<td style="text-align: right;">0.07</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">4b191c</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">4.14</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">12.15</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">34640e</td>
+<td style="text-align: right;">3</td>
+<td style="text-align: right;">4.26</td>
+<td style="text-align: right;">1.66</td>
+<td style="text-align: right;">4.25</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">405bfb</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">4.29</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">4.58</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">507c59</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">4.55</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">4.04</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">76cdb4</td>
+<td style="text-align: right;">3</td>
+<td style="text-align: right;">5.49</td>
+<td style="text-align: right;">5.82</td>
+<td style="text-align: right;">9.39</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">a7df1a</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">6.21</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">12.40</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">4007ef</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">7.20</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">3.14</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">394a11</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">7.22</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">4.97</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">3c6704</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">8.55</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">2.65</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">4aca68</td>
+<td style="text-align: right;">3</td>
+<td style="text-align: right;">10.42</td>
+<td style="text-align: right;">5.19</td>
+<td style="text-align: right;">20.48</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">34635a</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">10.94</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">23.79</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">4851f5</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">12.36</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">2.42</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">89653d</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">13.78</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">4553.12</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">8960f6</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">16.38</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">871.34</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">3455c1</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">22.69</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">9.24</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">a36588</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">23.03</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">2.02</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">4952a8</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">32.43</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">6.07</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">76cdaa</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">58.69</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">105.07</td>
+</tr>
+</tbody>
+</table>
 </div>
 </div>
-<p><em><code>the time-sync outputs</code> is not staged, so this section’s figures are absent rather than wrong. Run <code>python benchmarks/regenerate_adsc_v1.py</code> with cluster credentials; the <a href="#sec-provenance">Provenance</a> chapter lists what is present.</em></p>
+<p>Four things follow, in order.</p>
+<p><strong>It is timing, not position.</strong> The along-track disagreement is 415.4 m against 8.7 m across track, a ratio of 47.6. A position error is isotropic and would land equally in both, so a ratio of that size cannot be one. The two feeds agree about <em>where the track is</em> to within a few metres.</p>
+<p><strong>ADS-B carry-forward explains the tail, not the centre.</strong> The OSN archive carries positions forward, which biases this measurement in exactly the direction observed, so the alternative has to be settled from the data rather than argued away. ADS-B’s own position age is 0.34 s at the median – about 82.3 m at cruise, far too little to account for a 415.4 m along-track displacement – and it correlates with the implied offset at only 0.21, so it is not driving the central tendency. But it reaches <strong>152.3 s</strong> at the extreme, which is 36.6 km at cruise, and that is more than enough to produce the largest offsets in the per-airframe table below. The honest division: the median is ADS-C skew, and the tail is at least partly a stale reference. The prototype behind this study saw a maximum age of 0.92 s and concluded carry-forward was excluded outright; at 17x more pairs that conclusion does not survive and is narrowed here.</p>
+<p><strong>It is one number per aircraft, not one number – and a noisy one.</strong> Within-airframe standard deviations span 0.00-44.76 s, so some airframes are stable and others are not; between airframes the median offset runs from -184.60 s to +58.69 s. The spread <em>between</em> aircraft dwarfs anything a single value could track, which is why <code>AdscConfig.time_offset_seconds</code> ships at zero: a single constant would be wrong for nearly every aircraft and would actively damage the ones that are already synchronised. A per-airframe offset, estimated on coverage-overlap data and applied where ADS-B is absent, is the real fix; it needs a stability study across weeks before it could be believed, and 293 airframes over three days cannot support one. It is not attempted here.</p>
+<p><strong>It matters less than the alternative.</strong> At a cruise speed of about 240 m/s the median offset is roughly 338.7 m. The alternative to having an ADS-C sample at all is a straight line interpolated across a reception hole of several hundred seconds, whose own error is tens of kilometres. The skew is therefore a correction worth reporting and <strong>not</strong> a reason to withhold the merge.</p>
 <p>One thing the skew does <strong>not</strong> reach: the derivative-spike filter. <code>CleaningConfig.latlon_d1_max_deg_s</code> is 0.01 deg/s, about 1,100 m/s of apparent ground speed, and a few hundred metres of displacement across a several-hundred -second gap adds of the order of 0.001 deg/s. The filter is three orders of magnitude away from seeing this error, so it neither corrects it nor is damaged by it — which is also why no source guard was added there. Adding one would have been machinery for a risk that is not present.</p>
 </section>
 <section id="what-the-merge-did-to-the-trajectories" class="level1" data-number="4">
 <h1 data-number="4"><span class="header-section-number">4</span> What the merge did to the trajectories</h1>
 <div class="cell">
-<div class="cell-output cell-output-stdout">
-<pre><code>*`adsc_gain_2026.csv` is not staged, so this section's figures are absent rather than wrong. Run `python benchmarks/regenerate_adsc_v1.py` with cluster credentials; the [Provenance] chapter lists what is present.*</code></pre>
+<div class="cell-output-display">
+<table class="caption-top table table-sm table-striped small">
+<caption>Both arms over 2026-06-05, 2026-06-06, 2026-06-07 after cleaning (<code>osn_tracks_clean</code>).</caption>
+<colgroup>
+<col style="width: 6%">
+<col style="width: 8%">
+<col style="width: 9%">
+<col style="width: 6%">
+<col style="width: 16%">
+<col style="width: 16%">
+<col style="width: 8%">
+<col style="width: 10%">
+<col style="width: 17%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Arm</th>
+<th style="text-align: right;">Rows</th>
+<th style="text-align: right;">ADS-C rows</th>
+<th style="text-align: right;">Tracks</th>
+<th style="text-align: right;">Tracks with ADS-C</th>
+<th style="text-align: right;">ADS-C-only tracks</th>
+<th style="text-align: right;">Segments</th>
+<th style="text-align: right;">Track hours</th>
+<th style="text-align: right;">Two-callsign tracks</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">base</td>
+<td style="text-align: right;">152071295</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">140437</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">159803</td>
+<td style="text-align: right;">216208.0</td>
+<td style="text-align: right;">9244</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">merged</td>
+<td style="text-align: right;">152082840</td>
+<td style="text-align: right;">12941</td>
+<td style="text-align: right;">141232</td>
+<td style="text-align: right;">3832</td>
+<td style="text-align: right;">905</td>
+<td style="text-align: right;">168799</td>
+<td style="text-align: right;">218228.1</td>
+<td style="text-align: right;">9244</td>
+</tr>
+</tbody>
+</table>
 </div>
 </div>
 <div class="cell">
-<div class="cell-output cell-output-stdout">
-<pre><code>*`adsc_gain_2026.csv (extension row)` is not staged, so this section's figures are absent rather than wrong. Run `python benchmarks/regenerate_adsc_v1.py` with cluster credentials; the [Provenance] chapter lists what is present.*</code></pre>
+<div class="cell-output-display">
+<table class="caption-top table table-sm table-striped small">
+<caption>Track ends, merged against baseline, keyed on <code>icao24</code> and the day – <code>track_id</code> cannot be the key because the merge changes it, which is the point of merging before segmentation.</caption>
+<colgroup>
+<col style="width: 20%">
+<col style="width: 28%">
+<col style="width: 27%">
+<col style="width: 12%">
+<col style="width: 10%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: right;">Airframe-days matched</th>
+<th style="text-align: right;">Median first-sample shift (s)</th>
+<th style="text-align: right;">Median last-sample shift (s)</th>
+<th style="text-align: right;">Seen earlier</th>
+<th style="text-align: right;">Seen later</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: right;">41710</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">1951</td>
+<td style="text-align: right;">1258</td>
+</tr>
+</tbody>
+</table>
 </div>
 </div>
 <div class="cell">
-<div class="cell-output cell-output-stdout">
-<pre><code>*`adsc_holes_2026.csv` is not staged, so this section's figures are absent rather than wrong. Run `python benchmarks/regenerate_adsc_v1.py` with cluster credentials; the [Provenance] chapter lists what is present.*</code></pre>
+<div class="cell-output-display">
+<table class="caption-top table table-sm table-striped small">
+<caption>12,498 ADS-C samples sat more than 300 s from an ADS-B sample on <strong>both</strong> sides. An infinite side means the sample extended the track past its last ADS-B report, which is the clearest case of added coverage.</caption>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Smaller side of the hole (minutes)</th>
+<th style="text-align: right;">ADS-C samples</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">[0,5)</td>
+<td style="text-align: right;">0</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">[5,10)</td>
+<td style="text-align: right;">635</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">[10,20)</td>
+<td style="text-align: right;">2079</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">[20,60)</td>
+<td style="text-align: right;">6829</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">[60,Inf)</td>
+<td style="text-align: right;">2955</td>
+</tr>
+</tbody>
+</table>
 </div>
 </div>
-<p><em><code>adsc_gain_2026.csv</code> is not staged, so this section’s figures are absent rather than wrong. Run <code>python benchmarks/regenerate_adsc_v1.py</code> with cluster credentials; the <a href="#sec-provenance">Provenance</a> chapter lists what is present.</em></p>
+<p>Reading those tables in order. <strong>Something arrived</strong>: 12,941 ADS-C rows survived cleaning – 0.0085% of all rows in the merged arm, about one in twelve thousand – reaching 3,832 of 141,232 tracks (2.7%). <strong>The track count moved up 795</strong> – 141,232 against 140,437 – and decomposes into <strong>905 new tracks</strong> for airframes ADS-B never heard in the window – trajectories that had no baseline counterpart at all – against a <strong>net -110</strong> among the tracks both arms share. The population they have in common got <em>smaller</em>, which is what bridging does; the headline rise is new coverage, not fragmentation. <strong>12,498 ADS-C samples closed a reception hole</strong>, counted strictly: more than 300 s from an ADS-B sample on <em>both</em> sides, so a sample sitting inside a dense stretch and seen as isolated from one direction does not qualify. <strong>The merge-neutrality guard</strong> reads 9,244 two-callsign tracks in the merged arm against 9,244 in the baseline – a track holding two distinct real callsigns is two flights fused into one, the way this change could do real harm.</p>
+<p>One limit on that last pair of numbers, and on the net figure above: both are aggregates. A net change of zero among shared tracks is consistent with no change at all and equally with equal numbers of joins and splits, so these rule out a dominant effect rather than an absent one.</p>
 </section>
 <section id="what-it-did-to-the-flight-events" class="level1" data-number="5">
 <h1 data-number="5"><span class="header-section-number">5</span> What it did to the flight events</h1>
 <div class="cell">
-<div class="cell-output cell-output-stdout">
-<pre><code>*`adsc_events_2026.csv` is not staged, so this section's figures are absent rather than wrong. Run `python benchmarks/regenerate_adsc_v1.py` with cluster credentials; the [Provenance] chapter lists what is present.*</code></pre>
+<div class="cell-output-display">
+<table class="caption-top table table-sm table-striped small">
+<caption>Both arms against APDF 202606, the twenty flight-events-v4 study aerodromes, 2026-06-05, 2026-06-06, 2026-06-07 . <code>n_truth</code> is shared: one truth frame scores both arms, so a difference in <code>n_detected</code> is a difference in the pipeline and not in the reference.</caption>
+<colgroup>
+<col style="width: 8%">
+<col style="width: 6%">
+<col style="width: 13%">
+<col style="width: 10%">
+<col style="width: 9%">
+<col style="width: 15%">
+<col style="width: 11%">
+<col style="width: 11%">
+<col style="width: 12%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;">milestone</th>
+<th style="text-align: right;">n_truth</th>
+<th style="text-align: right;">n_detected_base</th>
+<th style="text-align: right;">bias_s_base</th>
+<th style="text-align: right;">mad_s_base</th>
+<th style="text-align: right;">n_detected_merged</th>
+<th style="text-align: right;">bias_s_merged</th>
+<th style="text-align: right;">mad_s_merged</th>
+<th style="text-align: right;">delta_detected</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">AIBT</td>
+<td style="text-align: right;">11657</td>
+<td style="text-align: right;">10113</td>
+<td style="text-align: right;">-64.0</td>
+<td style="text-align: right;">71.0</td>
+<td style="text-align: right;">10111</td>
+<td style="text-align: right;">-64.0</td>
+<td style="text-align: right;">71.0</td>
+<td style="text-align: right;">-2</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">ALDT</td>
+<td style="text-align: right;">11657</td>
+<td style="text-align: right;">11087</td>
+<td style="text-align: right;">-2.4</td>
+<td style="text-align: right;">18.1</td>
+<td style="text-align: right;">11085</td>
+<td style="text-align: right;">-2.4</td>
+<td style="text-align: right;">18.1</td>
+<td style="text-align: right;">-2</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">AOBT</td>
+<td style="text-align: right;">11674</td>
+<td style="text-align: right;">10521</td>
+<td style="text-align: right;">62.0</td>
+<td style="text-align: right;">69.0</td>
+<td style="text-align: right;">10521</td>
+<td style="text-align: right;">62.0</td>
+<td style="text-align: right;">69.0</td>
+<td style="text-align: right;">0</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">ATOT</td>
+<td style="text-align: right;">11675</td>
+<td style="text-align: right;">11235</td>
+<td style="text-align: right;">24.9</td>
+<td style="text-align: right;">25.5</td>
+<td style="text-align: right;">11235</td>
+<td style="text-align: right;">24.9</td>
+<td style="text-align: right;">25.5</td>
+<td style="text-align: right;">0</td>
+</tr>
+</tbody>
+</table>
 </div>
 </div>
 <div class="cell">
-<div class="cell-output cell-output-stdout">
-<pre><code>*`adsc_events_by_airport_2026.csv` is not staged, so this section's figures are absent rather than wrong. Run `python benchmarks/regenerate_adsc_v1.py` with cluster credentials; the [Provenance] chapter lists what is present.*</code></pre>
+<div class="cell-output-display">
+<table class="caption-top table table-sm table-striped small">
+<caption>Every (aerodrome, milestone) cell where the arms differ – 2 of 80.</caption>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Aerodrome</th>
+<th style="text-align: left;">Milestone</th>
+<th style="text-align: right;">Truth</th>
+<th style="text-align: right;">Base</th>
+<th style="text-align: right;">Merged</th>
+<th style="text-align: right;">Delta</th>
+<th style="text-align: right;">Bias delta (s)</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">EGCC</td>
+<td style="text-align: left;">AIBT</td>
+<td style="text-align: right;">979</td>
+<td style="text-align: right;">663</td>
+<td style="text-align: right;">661</td>
+<td style="text-align: right;">-2</td>
+<td style="text-align: right;">0</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">EGCC</td>
+<td style="text-align: left;">ALDT</td>
+<td style="text-align: right;">981</td>
+<td style="text-align: right;">871</td>
+<td style="text-align: right;">869</td>
+<td style="text-align: right;">-2</td>
+<td style="text-align: right;">0</td>
+</tr>
+</tbody>
+</table>
 </div>
 </div>
+<p><strong>Read what this table scores before reading what it says.</strong> APDF can score 4 milestones – <code>AIBT</code>, <code>ALDT</code>, <code>AOBT</code>, <code>ATOT</code> – and every one of them belongs to the A-CDM and runway family. The families where ADS-C could physically contribute (<code>first_seen</code>, <code>last_seen</code>, the flight-level crossings, and ADEP/ADES through the flight list) are <strong>not in the reference’s vocabulary at all</strong>: APDF records aerodrome movements, not the moment an oceanic track begins.</p>
+<p>So this chapter can confirm the predicted null and it <strong>cannot detect the gain</strong>. That is a property of the reference, not a result. The coverage ADS-C adds is measured in the previous chapter – new tracks, closed holes, track-hours – and nothing APDF holds can corroborate or contradict it. A reader who takes a flat table here as ‘ADS-C adds nothing’ has drawn a conclusion the instrument cannot support.</p>
 <p>Whatever those tables show, one thing cannot be read out of them, and it is worth stating before they are read at all: <strong>the A-CDM and runway families could not have moved.</strong> ADS-C has no <code>on_ground</code> flag that is ever true, the whole coverage box sees 1-67 of its rows a day below ten thousand feet, and its cadence is several hundred seconds against detectors that interpolate a runway-threshold crossing between adjacent samples. A flat row for <code>ATOT</code>, <code>ALDT</code>, <code>AOBT</code> or <code>AIBT</code> is the expected outcome of adding this feed, not a failure of the detector or of the measurement. The families where a change is physically possible are the ones anchored at the edges of coverage — <code>first_seen</code>, <code>last_seen</code>, the flight-level crossings, and ADEP/ADES through the flight list for North Atlantic arrivals.</p>
 <p>And for any event that <em>did</em> move, the move is not automatically an improvement. Nothing in the pipeline prevents an event being interpolated between an ADS-B and an ADS-C sample, so an event derived across that boundary inherits the along-track displacement measured in the previous chapter. See the limitations below.</p>
 </section>
@@ -799,6 +3145,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <h1 data-number="6"><span class="header-section-number">6</span> What this does not measure</h1>
 <p>Each of these is a measurement that was not made, not a result:</p>
 <ul>
+<li><strong>The reference cannot score the families ADS-C can reach.</strong> APDF holds aerodrome movements: <code>ATOT</code>, <code>AOBT</code>, <code>AIBT</code>, <code>ALDT</code>. <code>first_seen</code>, <code>last_seen</code>, the flight-level crossings and ADEP/ADES are outside its vocabulary, so the milestone chapter confirms the predicted null on the A-CDM family and is <em>structurally incapable</em> of detecting a gain at the coverage edge. The trajectory chapter is the only evidence for that gain, and it has no independent reference to be checked against. Closing this would need a different reference – Network Manager flight plans for the oceanic entry fixes, say – not more days of APDF.</li>
 <li><strong>Only Europe.</strong> Scoring is inside <code>EUROPE_BBOX</code>, and most of the in-box ADS-C rows sit in its Atlantic corner. The feed is global; a worldwide arm would see far more of it, and APDF could not score it.</li>
 <li><strong>Only June 2026, three days.</strong> The flight-events-v4 period, chosen for comparability. ADS-C volumes in 2023–2024 are not scored, and the feed carried fewer columns then.</li>
 <li><strong>No shadow-window sweep.</strong> −60/+60 s is a reasoned default, not a tuned one. A wider window drops more ADS-C; a narrower one admits near-duplicate positions. At the measured skew a symmetric window already catches every duplicate pair, so the asymmetry is what makes the time base explicit rather than a fix for a present failure.</li>
@@ -811,21 +3158,21 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </section>
 <section id="sec-reproduce" class="level1" data-number="7">
 <h1 data-number="7"><span class="header-section-number">7</span> Reproducing this</h1>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb9"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="co"># 1. The two arms. ~6 cluster-hours. Not regenerated by the entrypoint.</span></span>
-<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="co">#    Day-major, not step-major: step 01 keeps a three-day sliding window and</span></span>
-<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a><span class="co">#    drops what the window has passed, so ingesting every day before</span></span>
-<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a><span class="co">#    segmenting any of them would hand day 05 a window two-thirds absent.</span></span>
-<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a><span class="bu">export</span> <span class="va">PYSPARK_DRIVER_PYTHON</span><span class="op">=</span><span class="va">$PWD</span>/.venv310/bin/python</span>
-<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a><span class="bu">unset</span> <span class="va">PYSPARK_PYTHON</span> <span class="va">OPDI_WAREHOUSE</span></span>
-<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> d <span class="kw">in</span> 2026-06-05 2026-06-06 2026-06-07<span class="kw">;</span> <span class="cf">do</span></span>
-<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a>  <span class="ex">.venv310/bin/python</span> <span class="at">-u</span> benchmarks/run_adsc_day.py <span class="at">--day</span> <span class="va">$d</span> <span class="at">--arm</span> both</span>
-<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a><span class="cf">done</span></span>
-<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a><span class="co"># 2. Every figure on this page.</span></span>
-<span id="cb9-12"><a href="#cb9-12" aria-hidden="true" tabindex="-1"></a><span class="ex">.venv310/bin/python</span> <span class="at">-u</span> benchmarks/regenerate_adsc_v1.py</span>
-<span id="cb9-13"><a href="#cb9-13" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb9-14"><a href="#cb9-14" aria-hidden="true" tabindex="-1"></a><span class="co"># 3. This page.</span></span>
-<span id="cb9-15"><a href="#cb9-15" aria-hidden="true" tabindex="-1"></a><span class="bu">cd</span> ../opdi-portal/papers <span class="kw">&amp;&amp;</span> <span class="ex">quarto</span> render adsc-fusion-v1/index.qmd</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co"># 1. The two arms. ~6 cluster-hours. Not regenerated by the entrypoint.</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="co">#    Day-major, not step-major: step 01 keeps a three-day sliding window and</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="co">#    drops what the window has passed, so ingesting every day before</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="co">#    segmenting any of them would hand day 05 a window two-thirds absent.</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="bu">export</span> <span class="va">PYSPARK_DRIVER_PYTHON</span><span class="op">=</span><span class="va">$PWD</span>/.venv310/bin/python</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="bu">unset</span> <span class="va">PYSPARK_PYTHON</span> <span class="va">OPDI_WAREHOUSE</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> d <span class="kw">in</span> 2026-06-05 2026-06-06 2026-06-07<span class="kw">;</span> <span class="cf">do</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>  <span class="ex">.venv310/bin/python</span> <span class="at">-u</span> benchmarks/run_adsc_day.py <span class="at">--day</span> <span class="va">$d</span> <span class="at">--arm</span> both</span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="cf">done</span></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a><span class="co"># 2. Every figure on this page.</span></span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a><span class="ex">.venv310/bin/python</span> <span class="at">-u</span> benchmarks/regenerate_adsc_v1.py</span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a><span class="co"># 3. This page.</span></span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a><span class="bu">cd</span> ../opdi-portal/papers <span class="kw">&amp;&amp;</span> <span class="ex">quarto</span> render adsc-fusion-v1/index.qmd</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </section>
 <section id="sec-provenance" class="level1" data-number="8">
 <h1 data-number="8"><span class="header-section-number">8</span> Provenance</h1>
@@ -833,6 +3180,12 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <div class="cell-output-display">
 <table class="caption-top table table-sm table-striped small">
 <caption>Each staged output, and the command that produced it. A <code>dirty</code> row was produced from uncommitted code: the number is real and cannot be reproduced from a commit.</caption>
+<colgroup>
+<col style="width: 37%">
+<col style="width: 40%">
+<col style="width: 9%">
+<col style="width: 12%">
+</colgroup>
 <thead>
 <tr class="header">
 <th style="text-align: left;">Output</th>
@@ -848,11 +3201,47 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <td style="text-align: left;">d60bcc2</td>
 <td style="text-align: left;">FALSE</td>
 </tr>
+<tr class="even">
+<td style="text-align: left;">adsc_events_2026.csv</td>
+<td style="text-align: left;">benchmarks/adsc_events_compare.py</td>
+<td style="text-align: left;">bde5b0b</td>
+<td style="text-align: left;">FALSE</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">adsc_events_by_airport_2026.csv</td>
+<td style="text-align: left;">benchmarks/adsc_events_compare.py</td>
+<td style="text-align: left;">bde5b0b</td>
+<td style="text-align: left;">FALSE</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">adsc_gain_2026.csv</td>
+<td style="text-align: left;">benchmarks/adsc_coverage_gain.py</td>
+<td style="text-align: left;">bde5b0b</td>
+<td style="text-align: left;">FALSE</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">adsc_holes_2026.csv</td>
+<td style="text-align: left;">benchmarks/adsc_coverage_gain.py</td>
+<td style="text-align: left;">bde5b0b</td>
+<td style="text-align: left;">FALSE</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">adsc_time_sync_2026.csv</td>
+<td style="text-align: left;">benchmarks/adsc_time_sync.py</td>
+<td style="text-align: left;">f39c8d6</td>
+<td style="text-align: left;">FALSE</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">adsc_time_sync_pairs_2026.csv</td>
+<td style="text-align: left;">benchmarks/adsc_time_sync.py</td>
+<td style="text-align: left;">f39c8d6</td>
+<td style="text-align: left;">FALSE</td>
+</tr>
 </tbody>
 </table>
 </div>
 </div>
-<p><strong>Not staged:</strong> <code>adsc_gain_2026.csv</code>, <code>adsc_holes_2026.csv</code>, <code>adsc_time_sync_2026.csv</code>, <code>adsc_time_sync_pairs_2026.csv</code>, <code>adsc_events_2026.csv</code>, <code>adsc_events_by_airport_2026.csv</code>. The chapters above say so in place; this list is the index. A draft with visible holes is honest; a draft with numbers of unknown origin is not.</p>
+<p>All seven expected outputs are staged.</p>
 
 
 </section>
