@@ -1,0 +1,970 @@
+{
+  "link_both_ends.csv": {
+    "argv": [
+      "--day",
+      "2026-06-14",
+      "--results-dir",
+      "/home/jupyter/work/opdi-workspace/opdi-portal/.claude/worktrees/track-construction-v4/papers/track-construction-v4/data/stage2",
+      "--executors",
+      "8"
+    ],
+    "bytes": 552,
+    "code_fingerprint": "9f3c37a463ca81f8",
+    "code_paths": [
+      "benchmarks/adsc_flight_list_truth.py",
+      "benchmarks/event_bench.py",
+      "benchmarks/events_gt.py",
+      "benchmarks/events_score.py",
+      "benchmarks/run_track_link_day.py",
+      "benchmarks/track_link_controls.py",
+      "benchmarks/track_link_grid.py",
+      "benchmarks/track_link_pipeline_score.py",
+      "src/opdi/pipeline/events.py",
+      "src/opdi/pipeline/flights.py",
+      "src/opdi/pipeline/segmentation/__init__.py",
+      "src/opdi/pipeline/segmentation/base.py",
+      "src/opdi/pipeline/segmentation/methods.py"
+    ],
+    "git_dirty": false,
+    "git_sha": "d583e3c",
+    "input_tables": {
+      "s3a://eurocontrol/opdi-world/oa_airports": {
+        "bytes": 5938517,
+        "newest": "2026-09-21T09:58:32.898000+00:00",
+        "objects": 27
+      },
+      "s3a://eurocontrol/opdi-world/research/a10/cruise_linked/opdi_flight_events": {
+        "bytes": 50706534,
+        "newest": "2026-11-04T11:24:48.718000+00:00",
+        "objects": 20
+      },
+      "s3a://eurocontrol/opdi-world/research/a10/cruise_linked/opdi_flight_list": {
+        "bytes": 2336920,
+        "newest": "2026-11-04T11:27:28.876000+00:00",
+        "objects": 4
+      },
+      "s3a://eurocontrol/opdi-world/research/a10/cruise_linked/opdi_measurements": {
+        "bytes": 89582379,
+        "newest": "2026-11-04T11:26:45.472000+00:00",
+        "objects": 3
+      },
+      "s3a://eurocontrol/opdi-world/research/a10/cruise_linked/osn_tracks_clean": {
+        "bytes": 924960985,
+        "newest": "2026-11-04T11:07:11.454000+00:00",
+        "objects": 37
+      },
+      "s3a://eurocontrol/opdi-world/research/a10/debounced/opdi_flight_events": {
+        "bytes": 51265934,
+        "newest": "2026-11-04T10:54:14.226000+00:00",
+        "objects": 21
+      },
+      "s3a://eurocontrol/opdi-world/research/a10/debounced/opdi_flight_list": {
+        "bytes": 2357195,
+        "newest": "2026-11-04T10:56:47.606000+00:00",
+        "objects": 4
+      },
+      "s3a://eurocontrol/opdi-world/research/a10/debounced/opdi_measurements": {
+        "bytes": 90184985,
+        "newest": "2026-11-04T10:56:13.227000+00:00",
+        "objects": 3
+      },
+      "s3a://eurocontrol/opdi-world/research/a10/debounced/osn_tracks_clean": {
+        "bytes": 925131802,
+        "newest": "2026-11-04T10:37:28.036000+00:00",
+        "objects": 37
+      },
+      "s3a://eurocontrol/opdi-world/research/a10/input/osn_statevectors_v2": {
+        "bytes": 3053502392,
+        "newest": "2026-11-04T10:28:54.287000+00:00",
+        "objects": 601
+      },
+      "s3a://eurocontrol/opdi/research/reference/apdf_202606.parquet": {
+        "bytes": 0,
+        "newest": "",
+        "objects": 0
+      },
+      "s3a://eurocontrol/opdi/research/reference/apdf_full_202606.parquet": {
+        "bytes": 0,
+        "newest": "",
+        "objects": 0
+      },
+      "s3a://eurocontrol/opdi/research/reference/flights_202606.parquet": {
+        "bytes": 0,
+        "newest": "",
+        "objects": 0
+      }
+    },
+    "inputs": {
+      "day": "2026-06-14",
+      "link_params": null,
+      "link_settings": {
+        "link_callsign_lookahead_minutes": 10.0,
+        "link_callsign_lookback_minutes": 60.0,
+        "link_cruise_floor_ft": 18000.0,
+        "link_directional_edges": false,
+        "link_edge_position_minutes": 5.0,
+        "link_edge_vert_rate_fpm": 500.0,
+        "link_max_gap_minutes": 600.0,
+        "link_max_implied_speed_kt": 750.0,
+        "link_min_implied_speed_kt": 400.0,
+        "link_min_speed_ratio": 0.0,
+        "link_min_stop_minutes": 0.0,
+        "link_vfast_kt": 650.0
+      },
+      "truth": "/home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v4/reference/flights_202606.parquet",
+      "truth_flights": 2963,
+      "truth_sha256_16": "830f8174874f743d"
+    },
+    "notes": "One day through the real pipeline, one airframe in ten. Flights that take off and land on the day; Network Manager and APDF truth, European.",
+    "produced_utc": "2026-11-04T13:40:52+00:00",
+    "script": "benchmarks/track_link_pipeline_score.py",
+    "sha256_16": "8b5bea2c40d82bb4"
+  },
+  "link_distance_across_hole.csv": {
+    "argv": [
+      "--day",
+      "2026-06-14",
+      "--results-dir",
+      "/home/jupyter/work/opdi-workspace/opdi-portal/.claude/worktrees/track-construction-v4/papers/track-construction-v4/data/stage2",
+      "--executors",
+      "8"
+    ],
+    "bytes": 386,
+    "code_fingerprint": "9f3c37a463ca81f8",
+    "code_paths": [
+      "benchmarks/adsc_flight_list_truth.py",
+      "benchmarks/event_bench.py",
+      "benchmarks/events_gt.py",
+      "benchmarks/events_score.py",
+      "benchmarks/run_track_link_day.py",
+      "benchmarks/track_link_controls.py",
+      "benchmarks/track_link_grid.py",
+      "benchmarks/track_link_pipeline_score.py",
+      "src/opdi/pipeline/events.py",
+      "src/opdi/pipeline/flights.py",
+      "src/opdi/pipeline/segmentation/__init__.py",
+      "src/opdi/pipeline/segmentation/base.py",
+      "src/opdi/pipeline/segmentation/methods.py"
+    ],
+    "git_dirty": false,
+    "git_sha": "d583e3c",
+    "input_tables": {
+      "s3a://eurocontrol/opdi-world/oa_airports": {
+        "bytes": 5938517,
+        "newest": "2026-09-21T09:58:32.898000+00:00",
+        "objects": 27
+      },
+      "s3a://eurocontrol/opdi-world/research/a10/cruise_linked/opdi_flight_events": {
+        "bytes": 50706534,
+        "newest": "2026-11-04T11:24:48.718000+00:00",
+        "objects": 20
+      },
+      "s3a://eurocontrol/opdi-world/research/a10/cruise_linked/opdi_flight_list": {
+        "bytes": 2336920,
+        "newest": "2026-11-04T11:27:28.876000+00:00",
+        "objects": 4
+      },
+      "s3a://eurocontrol/opdi-world/research/a10/cruise_linked/opdi_measurements": {
+        "bytes": 89582379,
+        "newest": "2026-11-04T11:26:45.472000+00:00",
+        "objects": 3
+      },
+      "s3a://eurocontrol/opdi-world/research/a10/cruise_linked/osn_tracks_clean": {
+        "bytes": 924960985,
+        "newest": "2026-11-04T11:07:11.454000+00:00",
+        "objects": 37
+      },
+      "s3a://eurocontrol/opdi-world/research/a10/debounced/opdi_flight_events": {
+        "bytes": 51265934,
+        "newest": "2026-11-04T10:54:14.226000+00:00",
+        "objects": 21
+      },
+      "s3a://eurocontrol/opdi-world/research/a10/debounced/opdi_flight_list": {
+        "bytes": 2357195,
+        "newest": "2026-11-04T10:56:47.606000+00:00",
+        "objects": 4
+      },
+      "s3a://eurocontrol/opdi-world/research/a10/debounced/opdi_measurements": {
+        "bytes": 90184985,
+        "newest": "2026-11-04T10:56:13.227000+00:00",
+        "objects": 3
+      },
+      "s3a://eurocontrol/opdi-world/research/a10/debounced/osn_tracks_clean": {
+        "bytes": 925131802,
+        "newest": "2026-11-04T10:37:28.036000+00:00",
+        "objects": 37
+      },
+      "s3a://eurocontrol/opdi-world/research/a10/input/osn_statevectors_v2": {
+        "bytes": 3053502392,
+        "newest": "2026-11-04T10:28:54.287000+00:00",
+        "objects": 601
+      },
+      "s3a://eurocontrol/opdi/research/reference/apdf_202606.parquet": {
+        "bytes": 0,
+        "newest": "",
+        "objects": 0
+      },
+      "s3a://eurocontrol/opdi/research/reference/apdf_full_202606.parquet": {
+        "bytes": 0,
+        "newest": "",
+        "objects": 0
+      },
+      "s3a://eurocontrol/opdi/research/reference/flights_202606.parquet": {
+        "bytes": 0,
+        "newest": "",
+        "objects": 0
+      }
+    },
+    "inputs": {
+      "day": "2026-06-14",
+      "link_params": null,
+      "link_settings": {
+        "link_callsign_lookahead_minutes": 10.0,
+        "link_callsign_lookback_minutes": 60.0,
+        "link_cruise_floor_ft": 18000.0,
+        "link_directional_edges": false,
+        "link_edge_position_minutes": 5.0,
+        "link_edge_vert_rate_fpm": 500.0,
+        "link_max_gap_minutes": 600.0,
+        "link_max_implied_speed_kt": 750.0,
+        "link_min_implied_speed_kt": 400.0,
+        "link_min_speed_ratio": 0.0,
+        "link_min_stop_minutes": 0.0,
+        "link_vfast_kt": 650.0
+      },
+      "truth": "/home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v4/reference/flights_202606.parquet",
+      "truth_flights": 2963,
+      "truth_sha256_16": "830f8174874f743d"
+    },
+    "notes": "One day through the real pipeline, one airframe in ten. Flights that take off and land on the day; Network Manager and APDF truth, European.",
+    "produced_utc": "2026-11-04T13:41:30+00:00",
+    "script": "benchmarks/track_link_pipeline_score.py",
+    "sha256_16": "355b5f662821418c"
+  },
+  "link_events.csv": {
+    "argv": [
+      "--day",
+      "2026-06-14",
+      "--results-dir",
+      "/home/jupyter/work/opdi-workspace/opdi-portal/.claude/worktrees/track-construction-v4/papers/track-construction-v4/data/stage2",
+      "--executors",
+      "8"
+    ],
+    "bytes": 940,
+    "code_fingerprint": "9f3c37a463ca81f8",
+    "code_paths": [
+      "benchmarks/adsc_flight_list_truth.py",
+      "benchmarks/event_bench.py",
+      "benchmarks/events_gt.py",
+      "benchmarks/events_score.py",
+      "benchmarks/run_track_link_day.py",
+      "benchmarks/track_link_controls.py",
+      "benchmarks/track_link_grid.py",
+      "benchmarks/track_link_pipeline_score.py",
+      "src/opdi/pipeline/events.py",
+      "src/opdi/pipeline/flights.py",
+      "src/opdi/pipeline/segmentation/__init__.py",
+      "src/opdi/pipeline/segmentation/base.py",
+      "src/opdi/pipeline/segmentation/methods.py"
+    ],
+    "git_dirty": false,
+    "git_sha": "d583e3c",
+    "input_tables": {
+      "s3a://eurocontrol/opdi-world/oa_airports": {
+        "bytes": 5938517,
+        "newest": "2026-09-21T09:58:32.898000+00:00",
+        "objects": 27
+      },
+      "s3a://eurocontrol/opdi-world/research/a10/cruise_linked/opdi_flight_events": {
+        "bytes": 50706534,
+        "newest": "2026-11-04T11:24:48.718000+00:00",
+        "objects": 20
+      },
+      "s3a://eurocontrol/opdi-world/research/a10/cruise_linked/opdi_flight_list": {
+        "bytes": 2336920,
+        "newest": "2026-11-04T11:27:28.876000+00:00",
+        "objects": 4
+      },
+      "s3a://eurocontrol/opdi-world/research/a10/cruise_linked/opdi_measurements": {
+        "bytes": 89582379,
+        "newest": "2026-11-04T11:26:45.472000+00:00",
+        "objects": 3
+      },
+      "s3a://eurocontrol/opdi-world/research/a10/cruise_linked/osn_tracks_clean": {
+        "bytes": 924960985,
+        "newest": "2026-11-04T11:07:11.454000+00:00",
+        "objects": 37
+      },
+      "s3a://eurocontrol/opdi-world/research/a10/debounced/opdi_flight_events": {
+        "bytes": 51265934,
+        "newest": "2026-11-04T10:54:14.226000+00:00",
+        "objects": 21
+      },
+      "s3a://eurocontrol/opdi-world/research/a10/debounced/opdi_flight_list": {
+        "bytes": 2357195,
+        "newest": "2026-11-04T10:56:47.606000+00:00",
+        "objects": 4
+      },
+      "s3a://eurocontrol/opdi-world/research/a10/debounced/opdi_measurements": {
+        "bytes": 90184985,
+        "newest": "2026-11-04T10:56:13.227000+00:00",
+        "objects": 3
+      },
+      "s3a://eurocontrol/opdi-world/research/a10/debounced/osn_tracks_clean": {
+        "bytes": 925131802,
+        "newest": "2026-11-04T10:37:28.036000+00:00",
+        "objects": 37
+      },
+      "s3a://eurocontrol/opdi-world/research/a10/input/osn_statevectors_v2": {
+        "bytes": 3053502392,
+        "newest": "2026-11-04T10:28:54.287000+00:00",
+        "objects": 601
+      },
+      "s3a://eurocontrol/opdi/research/reference/apdf_202606.parquet": {
+        "bytes": 0,
+        "newest": "",
+        "objects": 0
+      },
+      "s3a://eurocontrol/opdi/research/reference/apdf_full_202606.parquet": {
+        "bytes": 0,
+        "newest": "",
+        "objects": 0
+      },
+      "s3a://eurocontrol/opdi/research/reference/flights_202606.parquet": {
+        "bytes": 0,
+        "newest": "",
+        "objects": 0
+      }
+    },
+    "inputs": {
+      "day": "2026-06-14",
+      "link_params": null,
+      "link_settings": {
+        "link_callsign_lookahead_minutes": 10.0,
+        "link_callsign_lookback_minutes": 60.0,
+        "link_cruise_floor_ft": 18000.0,
+        "link_directional_edges": false,
+        "link_edge_position_minutes": 5.0,
+        "link_edge_vert_rate_fpm": 500.0,
+        "link_max_gap_minutes": 600.0,
+        "link_max_implied_speed_kt": 750.0,
+        "link_min_implied_speed_kt": 400.0,
+        "link_min_speed_ratio": 0.0,
+        "link_min_stop_minutes": 0.0,
+        "link_vfast_kt": 650.0
+      },
+      "truth": "/home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v4/reference/flights_202606.parquet",
+      "truth_flights": 2963,
+      "truth_sha256_16": "830f8174874f743d"
+    },
+    "notes": "One day through the real pipeline, one airframe in ten. Flights that take off and land on the day; Network Manager and APDF truth, European.",
+    "produced_utc": "2026-11-04T13:41:04+00:00",
+    "script": "benchmarks/track_link_pipeline_score.py",
+    "sha256_16": "1a3874d8ff56e01a"
+  },
+  "link_flight_list.csv": {
+    "argv": [
+      "--day",
+      "2026-06-14",
+      "--results-dir",
+      "/home/jupyter/work/opdi-workspace/opdi-portal/.claude/worktrees/track-construction-v4/papers/track-construction-v4/data/stage2",
+      "--executors",
+      "8"
+    ],
+    "bytes": 1389,
+    "code_fingerprint": "9f3c37a463ca81f8",
+    "code_paths": [
+      "benchmarks/adsc_flight_list_truth.py",
+      "benchmarks/event_bench.py",
+      "benchmarks/events_gt.py",
+      "benchmarks/events_score.py",
+      "benchmarks/run_track_link_day.py",
+      "benchmarks/track_link_controls.py",
+      "benchmarks/track_link_grid.py",
+      "benchmarks/track_link_pipeline_score.py",
+      "src/opdi/pipeline/events.py",
+      "src/opdi/pipeline/flights.py",
+      "src/opdi/pipeline/segmentation/__init__.py",
+      "src/opdi/pipeline/segmentation/base.py",
+      "src/opdi/pipeline/segmentation/methods.py"
+    ],
+    "git_dirty": false,
+    "git_sha": "d583e3c",
+    "input_tables": {
+      "s3a://eurocontrol/opdi-world/oa_airports": {
+        "bytes": 5938517,
+        "newest": "2026-09-21T09:58:32.898000+00:00",
+        "objects": 27
+      },
+      "s3a://eurocontrol/opdi-world/research/a10/cruise_linked/opdi_flight_events": {
+        "bytes": 50706534,
+        "newest": "2026-11-04T11:24:48.718000+00:00",
+        "objects": 20
+      },
+      "s3a://eurocontrol/opdi-world/research/a10/cruise_linked/opdi_flight_list": {
+        "bytes": 2336920,
+        "newest": "2026-11-04T11:27:28.876000+00:00",
+        "objects": 4
+      },
+      "s3a://eurocontrol/opdi-world/research/a10/cruise_linked/opdi_measurements": {
+        "bytes": 89582379,
+        "newest": "2026-11-04T11:26:45.472000+00:00",
+        "objects": 3
+      },
+      "s3a://eurocontrol/opdi-world/research/a10/cruise_linked/osn_tracks_clean": {
+        "bytes": 924960985,
+        "newest": "2026-11-04T11:07:11.454000+00:00",
+        "objects": 37
+      },
+      "s3a://eurocontrol/opdi-world/research/a10/debounced/opdi_flight_events": {
+        "bytes": 51265934,
+        "newest": "2026-11-04T10:54:14.226000+00:00",
+        "objects": 21
+      },
+      "s3a://eurocontrol/opdi-world/research/a10/debounced/opdi_flight_list": {
+        "bytes": 2357195,
+        "newest": "2026-11-04T10:56:47.606000+00:00",
+        "objects": 4
+      },
+      "s3a://eurocontrol/opdi-world/research/a10/debounced/opdi_measurements": {
+        "bytes": 90184985,
+        "newest": "2026-11-04T10:56:13.227000+00:00",
+        "objects": 3
+      },
+      "s3a://eurocontrol/opdi-world/research/a10/debounced/osn_tracks_clean": {
+        "bytes": 925131802,
+        "newest": "2026-11-04T10:37:28.036000+00:00",
+        "objects": 37
+      },
+      "s3a://eurocontrol/opdi-world/research/a10/input/osn_statevectors_v2": {
+        "bytes": 3053502392,
+        "newest": "2026-11-04T10:28:54.287000+00:00",
+        "objects": 601
+      },
+      "s3a://eurocontrol/opdi/research/reference/apdf_202606.parquet": {
+        "bytes": 0,
+        "newest": "",
+        "objects": 0
+      },
+      "s3a://eurocontrol/opdi/research/reference/apdf_full_202606.parquet": {
+        "bytes": 0,
+        "newest": "",
+        "objects": 0
+      },
+      "s3a://eurocontrol/opdi/research/reference/flights_202606.parquet": {
+        "bytes": 0,
+        "newest": "",
+        "objects": 0
+      }
+    },
+    "inputs": {
+      "day": "2026-06-14",
+      "link_params": null,
+      "link_settings": {
+        "link_callsign_lookahead_minutes": 10.0,
+        "link_callsign_lookback_minutes": 60.0,
+        "link_cruise_floor_ft": 18000.0,
+        "link_directional_edges": false,
+        "link_edge_position_minutes": 5.0,
+        "link_edge_vert_rate_fpm": 500.0,
+        "link_max_gap_minutes": 600.0,
+        "link_max_implied_speed_kt": 750.0,
+        "link_min_implied_speed_kt": 400.0,
+        "link_min_speed_ratio": 0.0,
+        "link_min_stop_minutes": 0.0,
+        "link_vfast_kt": 650.0
+      },
+      "truth": "/home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v4/reference/flights_202606.parquet",
+      "truth_flights": 2963,
+      "truth_sha256_16": "830f8174874f743d"
+    },
+    "notes": "One day through the real pipeline, one airframe in ten. Flights that take off and land on the day; Network Manager and APDF truth, European.",
+    "produced_utc": "2026-11-04T13:40:49+00:00",
+    "script": "benchmarks/track_link_pipeline_score.py",
+    "sha256_16": "a932a283afc9a3e8"
+  },
+  "link_level_across_hole.csv": {
+    "argv": [
+      "--day",
+      "2026-06-14",
+      "--results-dir",
+      "/home/jupyter/work/opdi-workspace/opdi-portal/.claude/worktrees/track-construction-v4/papers/track-construction-v4/data/stage2",
+      "--executors",
+      "8"
+    ],
+    "bytes": 317,
+    "code_fingerprint": "9f3c37a463ca81f8",
+    "code_paths": [
+      "benchmarks/adsc_flight_list_truth.py",
+      "benchmarks/event_bench.py",
+      "benchmarks/events_gt.py",
+      "benchmarks/events_score.py",
+      "benchmarks/run_track_link_day.py",
+      "benchmarks/track_link_controls.py",
+      "benchmarks/track_link_grid.py",
+      "benchmarks/track_link_pipeline_score.py",
+      "src/opdi/pipeline/events.py",
+      "src/opdi/pipeline/flights.py",
+      "src/opdi/pipeline/segmentation/__init__.py",
+      "src/opdi/pipeline/segmentation/base.py",
+      "src/opdi/pipeline/segmentation/methods.py"
+    ],
+    "git_dirty": false,
+    "git_sha": "d583e3c",
+    "input_tables": {
+      "s3a://eurocontrol/opdi-world/oa_airports": {
+        "bytes": 5938517,
+        "newest": "2026-09-21T09:58:32.898000+00:00",
+        "objects": 27
+      },
+      "s3a://eurocontrol/opdi-world/research/a10/cruise_linked/opdi_flight_events": {
+        "bytes": 50706534,
+        "newest": "2026-11-04T11:24:48.718000+00:00",
+        "objects": 20
+      },
+      "s3a://eurocontrol/opdi-world/research/a10/cruise_linked/opdi_flight_list": {
+        "bytes": 2336920,
+        "newest": "2026-11-04T11:27:28.876000+00:00",
+        "objects": 4
+      },
+      "s3a://eurocontrol/opdi-world/research/a10/cruise_linked/opdi_measurements": {
+        "bytes": 89582379,
+        "newest": "2026-11-04T11:26:45.472000+00:00",
+        "objects": 3
+      },
+      "s3a://eurocontrol/opdi-world/research/a10/cruise_linked/osn_tracks_clean": {
+        "bytes": 924960985,
+        "newest": "2026-11-04T11:07:11.454000+00:00",
+        "objects": 37
+      },
+      "s3a://eurocontrol/opdi-world/research/a10/debounced/opdi_flight_events": {
+        "bytes": 51265934,
+        "newest": "2026-11-04T10:54:14.226000+00:00",
+        "objects": 21
+      },
+      "s3a://eurocontrol/opdi-world/research/a10/debounced/opdi_flight_list": {
+        "bytes": 2357195,
+        "newest": "2026-11-04T10:56:47.606000+00:00",
+        "objects": 4
+      },
+      "s3a://eurocontrol/opdi-world/research/a10/debounced/opdi_measurements": {
+        "bytes": 90184985,
+        "newest": "2026-11-04T10:56:13.227000+00:00",
+        "objects": 3
+      },
+      "s3a://eurocontrol/opdi-world/research/a10/debounced/osn_tracks_clean": {
+        "bytes": 925131802,
+        "newest": "2026-11-04T10:37:28.036000+00:00",
+        "objects": 37
+      },
+      "s3a://eurocontrol/opdi-world/research/a10/input/osn_statevectors_v2": {
+        "bytes": 3053502392,
+        "newest": "2026-11-04T10:28:54.287000+00:00",
+        "objects": 601
+      },
+      "s3a://eurocontrol/opdi/research/reference/apdf_202606.parquet": {
+        "bytes": 0,
+        "newest": "",
+        "objects": 0
+      },
+      "s3a://eurocontrol/opdi/research/reference/apdf_full_202606.parquet": {
+        "bytes": 0,
+        "newest": "",
+        "objects": 0
+      },
+      "s3a://eurocontrol/opdi/research/reference/flights_202606.parquet": {
+        "bytes": 0,
+        "newest": "",
+        "objects": 0
+      }
+    },
+    "inputs": {
+      "day": "2026-06-14",
+      "link_params": null,
+      "link_settings": {
+        "link_callsign_lookahead_minutes": 10.0,
+        "link_callsign_lookback_minutes": 60.0,
+        "link_cruise_floor_ft": 18000.0,
+        "link_directional_edges": false,
+        "link_edge_position_minutes": 5.0,
+        "link_edge_vert_rate_fpm": 500.0,
+        "link_max_gap_minutes": 600.0,
+        "link_max_implied_speed_kt": 750.0,
+        "link_min_implied_speed_kt": 400.0,
+        "link_min_speed_ratio": 0.0,
+        "link_min_stop_minutes": 0.0,
+        "link_vfast_kt": 650.0
+      },
+      "truth": "/home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v4/reference/flights_202606.parquet",
+      "truth_flights": 2963,
+      "truth_sha256_16": "830f8174874f743d"
+    },
+    "notes": "One day through the real pipeline, one airframe in ten. Flights that take off and land on the day; Network Manager and APDF truth, European.",
+    "produced_utc": "2026-11-04T13:41:08+00:00",
+    "script": "benchmarks/track_link_pipeline_score.py",
+    "sha256_16": "32445d2cfc8771ab"
+  },
+  "link_movements.csv": {
+    "argv": [
+      "--day",
+      "2026-06-14",
+      "--results-dir",
+      "/home/jupyter/work/opdi-workspace/opdi-portal/.claude/worktrees/track-construction-v4/papers/track-construction-v4/data/stage2",
+      "--executors",
+      "8"
+    ],
+    "bytes": 207,
+    "code_fingerprint": "9f3c37a463ca81f8",
+    "code_paths": [
+      "benchmarks/adsc_flight_list_truth.py",
+      "benchmarks/event_bench.py",
+      "benchmarks/events_gt.py",
+      "benchmarks/events_score.py",
+      "benchmarks/run_track_link_day.py",
+      "benchmarks/track_link_controls.py",
+      "benchmarks/track_link_grid.py",
+      "benchmarks/track_link_pipeline_score.py",
+      "src/opdi/pipeline/events.py",
+      "src/opdi/pipeline/flights.py",
+      "src/opdi/pipeline/segmentation/__init__.py",
+      "src/opdi/pipeline/segmentation/base.py",
+      "src/opdi/pipeline/segmentation/methods.py"
+    ],
+    "git_dirty": false,
+    "git_sha": "d583e3c",
+    "input_tables": {
+      "s3a://eurocontrol/opdi-world/oa_airports": {
+        "bytes": 5938517,
+        "newest": "2026-09-21T09:58:32.898000+00:00",
+        "objects": 27
+      },
+      "s3a://eurocontrol/opdi-world/research/a10/cruise_linked/opdi_flight_events": {
+        "bytes": 50706534,
+        "newest": "2026-11-04T11:24:48.718000+00:00",
+        "objects": 20
+      },
+      "s3a://eurocontrol/opdi-world/research/a10/cruise_linked/opdi_flight_list": {
+        "bytes": 2336920,
+        "newest": "2026-11-04T11:27:28.876000+00:00",
+        "objects": 4
+      },
+      "s3a://eurocontrol/opdi-world/research/a10/cruise_linked/opdi_measurements": {
+        "bytes": 89582379,
+        "newest": "2026-11-04T11:26:45.472000+00:00",
+        "objects": 3
+      },
+      "s3a://eurocontrol/opdi-world/research/a10/cruise_linked/osn_tracks_clean": {
+        "bytes": 924960985,
+        "newest": "2026-11-04T11:07:11.454000+00:00",
+        "objects": 37
+      },
+      "s3a://eurocontrol/opdi-world/research/a10/debounced/opdi_flight_events": {
+        "bytes": 51265934,
+        "newest": "2026-11-04T10:54:14.226000+00:00",
+        "objects": 21
+      },
+      "s3a://eurocontrol/opdi-world/research/a10/debounced/opdi_flight_list": {
+        "bytes": 2357195,
+        "newest": "2026-11-04T10:56:47.606000+00:00",
+        "objects": 4
+      },
+      "s3a://eurocontrol/opdi-world/research/a10/debounced/opdi_measurements": {
+        "bytes": 90184985,
+        "newest": "2026-11-04T10:56:13.227000+00:00",
+        "objects": 3
+      },
+      "s3a://eurocontrol/opdi-world/research/a10/debounced/osn_tracks_clean": {
+        "bytes": 925131802,
+        "newest": "2026-11-04T10:37:28.036000+00:00",
+        "objects": 37
+      },
+      "s3a://eurocontrol/opdi-world/research/a10/input/osn_statevectors_v2": {
+        "bytes": 3053502392,
+        "newest": "2026-11-04T10:28:54.287000+00:00",
+        "objects": 601
+      },
+      "s3a://eurocontrol/opdi/research/reference/apdf_202606.parquet": {
+        "bytes": 0,
+        "newest": "",
+        "objects": 0
+      },
+      "s3a://eurocontrol/opdi/research/reference/apdf_full_202606.parquet": {
+        "bytes": 0,
+        "newest": "",
+        "objects": 0
+      },
+      "s3a://eurocontrol/opdi/research/reference/flights_202606.parquet": {
+        "bytes": 0,
+        "newest": "",
+        "objects": 0
+      }
+    },
+    "inputs": {
+      "day": "2026-06-14",
+      "link_params": null,
+      "link_settings": {
+        "link_callsign_lookahead_minutes": 10.0,
+        "link_callsign_lookback_minutes": 60.0,
+        "link_cruise_floor_ft": 18000.0,
+        "link_directional_edges": false,
+        "link_edge_position_minutes": 5.0,
+        "link_edge_vert_rate_fpm": 500.0,
+        "link_max_gap_minutes": 600.0,
+        "link_max_implied_speed_kt": 750.0,
+        "link_min_implied_speed_kt": 400.0,
+        "link_min_speed_ratio": 0.0,
+        "link_min_stop_minutes": 0.0,
+        "link_vfast_kt": 650.0
+      },
+      "truth": "/home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v4/reference/flights_202606.parquet",
+      "truth_flights": 2963,
+      "truth_sha256_16": "830f8174874f743d"
+    },
+    "notes": "One day through the real pipeline, one airframe in ten. Flights that take off and land on the day; Network Manager and APDF truth, European.",
+    "produced_utc": "2026-11-04T13:42:11+00:00",
+    "script": "benchmarks/track_link_pipeline_score.py",
+    "sha256_16": "9317337c5b970ab5"
+  },
+  "link_partition_check.csv": {
+    "argv": [
+      "--day",
+      "2026-06-14",
+      "--results-dir",
+      "/home/jupyter/work/opdi-workspace/opdi-portal/.claude/worktrees/track-construction-v4/papers/track-construction-v4/data/stage2",
+      "--executors",
+      "8"
+    ],
+    "bytes": 266,
+    "code_fingerprint": "9f3c37a463ca81f8",
+    "code_paths": [
+      "benchmarks/adsc_flight_list_truth.py",
+      "benchmarks/event_bench.py",
+      "benchmarks/events_gt.py",
+      "benchmarks/events_score.py",
+      "benchmarks/run_track_link_day.py",
+      "benchmarks/track_link_controls.py",
+      "benchmarks/track_link_grid.py",
+      "benchmarks/track_link_pipeline_score.py",
+      "src/opdi/pipeline/events.py",
+      "src/opdi/pipeline/flights.py",
+      "src/opdi/pipeline/segmentation/__init__.py",
+      "src/opdi/pipeline/segmentation/base.py",
+      "src/opdi/pipeline/segmentation/methods.py"
+    ],
+    "git_dirty": false,
+    "git_sha": "d583e3c",
+    "input_tables": {
+      "s3a://eurocontrol/opdi-world/oa_airports": {
+        "bytes": 5938517,
+        "newest": "2026-09-21T09:58:32.898000+00:00",
+        "objects": 27
+      },
+      "s3a://eurocontrol/opdi-world/research/a10/cruise_linked/opdi_flight_events": {
+        "bytes": 50706534,
+        "newest": "2026-11-04T11:24:48.718000+00:00",
+        "objects": 20
+      },
+      "s3a://eurocontrol/opdi-world/research/a10/cruise_linked/opdi_flight_list": {
+        "bytes": 2336920,
+        "newest": "2026-11-04T11:27:28.876000+00:00",
+        "objects": 4
+      },
+      "s3a://eurocontrol/opdi-world/research/a10/cruise_linked/opdi_measurements": {
+        "bytes": 89582379,
+        "newest": "2026-11-04T11:26:45.472000+00:00",
+        "objects": 3
+      },
+      "s3a://eurocontrol/opdi-world/research/a10/cruise_linked/osn_tracks_clean": {
+        "bytes": 924960985,
+        "newest": "2026-11-04T11:07:11.454000+00:00",
+        "objects": 37
+      },
+      "s3a://eurocontrol/opdi-world/research/a10/debounced/opdi_flight_events": {
+        "bytes": 51265934,
+        "newest": "2026-11-04T10:54:14.226000+00:00",
+        "objects": 21
+      },
+      "s3a://eurocontrol/opdi-world/research/a10/debounced/opdi_flight_list": {
+        "bytes": 2357195,
+        "newest": "2026-11-04T10:56:47.606000+00:00",
+        "objects": 4
+      },
+      "s3a://eurocontrol/opdi-world/research/a10/debounced/opdi_measurements": {
+        "bytes": 90184985,
+        "newest": "2026-11-04T10:56:13.227000+00:00",
+        "objects": 3
+      },
+      "s3a://eurocontrol/opdi-world/research/a10/debounced/osn_tracks_clean": {
+        "bytes": 925131802,
+        "newest": "2026-11-04T10:37:28.036000+00:00",
+        "objects": 37
+      },
+      "s3a://eurocontrol/opdi-world/research/a10/input/osn_statevectors_v2": {
+        "bytes": 3053502392,
+        "newest": "2026-11-04T10:28:54.287000+00:00",
+        "objects": 601
+      },
+      "s3a://eurocontrol/opdi/research/reference/apdf_202606.parquet": {
+        "bytes": 0,
+        "newest": "",
+        "objects": 0
+      },
+      "s3a://eurocontrol/opdi/research/reference/apdf_full_202606.parquet": {
+        "bytes": 0,
+        "newest": "",
+        "objects": 0
+      },
+      "s3a://eurocontrol/opdi/research/reference/flights_202606.parquet": {
+        "bytes": 0,
+        "newest": "",
+        "objects": 0
+      }
+    },
+    "inputs": {
+      "day": "2026-06-14",
+      "link_params": null,
+      "link_settings": {
+        "link_callsign_lookahead_minutes": 10.0,
+        "link_callsign_lookback_minutes": 60.0,
+        "link_cruise_floor_ft": 18000.0,
+        "link_directional_edges": false,
+        "link_edge_position_minutes": 5.0,
+        "link_edge_vert_rate_fpm": 500.0,
+        "link_max_gap_minutes": 600.0,
+        "link_max_implied_speed_kt": 750.0,
+        "link_min_implied_speed_kt": 400.0,
+        "link_min_speed_ratio": 0.0,
+        "link_min_stop_minutes": 0.0,
+        "link_vfast_kt": 650.0
+      },
+      "truth": "/home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v4/reference/flights_202606.parquet",
+      "truth_flights": 2963,
+      "truth_sha256_16": "830f8174874f743d"
+    },
+    "notes": "One day through the real pipeline, one airframe in ten. Flights that take off and land on the day; Network Manager and APDF truth, European.",
+    "produced_utc": "2026-11-04T13:40:42+00:00",
+    "script": "benchmarks/track_link_pipeline_score.py",
+    "sha256_16": "c1d3cceb82a4f294"
+  },
+  "link_truth_all_flights.csv": {
+    "argv": [
+      "--day",
+      "2026-06-14",
+      "--results-dir",
+      "/home/jupyter/work/opdi-workspace/opdi-portal/.claude/worktrees/track-construction-v4/papers/track-construction-v4/data/stage2",
+      "--executors",
+      "8"
+    ],
+    "bytes": 149,
+    "code_fingerprint": "9f3c37a463ca81f8",
+    "code_paths": [
+      "benchmarks/adsc_flight_list_truth.py",
+      "benchmarks/event_bench.py",
+      "benchmarks/events_gt.py",
+      "benchmarks/events_score.py",
+      "benchmarks/run_track_link_day.py",
+      "benchmarks/track_link_controls.py",
+      "benchmarks/track_link_grid.py",
+      "benchmarks/track_link_pipeline_score.py",
+      "src/opdi/pipeline/events.py",
+      "src/opdi/pipeline/flights.py",
+      "src/opdi/pipeline/segmentation/__init__.py",
+      "src/opdi/pipeline/segmentation/base.py",
+      "src/opdi/pipeline/segmentation/methods.py"
+    ],
+    "git_dirty": false,
+    "git_sha": "d583e3c",
+    "input_tables": {
+      "s3a://eurocontrol/opdi-world/oa_airports": {
+        "bytes": 5938517,
+        "newest": "2026-09-21T09:58:32.898000+00:00",
+        "objects": 27
+      },
+      "s3a://eurocontrol/opdi-world/research/a10/cruise_linked/opdi_flight_events": {
+        "bytes": 50706534,
+        "newest": "2026-11-04T11:24:48.718000+00:00",
+        "objects": 20
+      },
+      "s3a://eurocontrol/opdi-world/research/a10/cruise_linked/opdi_flight_list": {
+        "bytes": 2336920,
+        "newest": "2026-11-04T11:27:28.876000+00:00",
+        "objects": 4
+      },
+      "s3a://eurocontrol/opdi-world/research/a10/cruise_linked/opdi_measurements": {
+        "bytes": 89582379,
+        "newest": "2026-11-04T11:26:45.472000+00:00",
+        "objects": 3
+      },
+      "s3a://eurocontrol/opdi-world/research/a10/cruise_linked/osn_tracks_clean": {
+        "bytes": 924960985,
+        "newest": "2026-11-04T11:07:11.454000+00:00",
+        "objects": 37
+      },
+      "s3a://eurocontrol/opdi-world/research/a10/debounced/opdi_flight_events": {
+        "bytes": 51265934,
+        "newest": "2026-11-04T10:54:14.226000+00:00",
+        "objects": 21
+      },
+      "s3a://eurocontrol/opdi-world/research/a10/debounced/opdi_flight_list": {
+        "bytes": 2357195,
+        "newest": "2026-11-04T10:56:47.606000+00:00",
+        "objects": 4
+      },
+      "s3a://eurocontrol/opdi-world/research/a10/debounced/opdi_measurements": {
+        "bytes": 90184985,
+        "newest": "2026-11-04T10:56:13.227000+00:00",
+        "objects": 3
+      },
+      "s3a://eurocontrol/opdi-world/research/a10/debounced/osn_tracks_clean": {
+        "bytes": 925131802,
+        "newest": "2026-11-04T10:37:28.036000+00:00",
+        "objects": 37
+      },
+      "s3a://eurocontrol/opdi-world/research/a10/input/osn_statevectors_v2": {
+        "bytes": 3053502392,
+        "newest": "2026-11-04T10:28:54.287000+00:00",
+        "objects": 601
+      },
+      "s3a://eurocontrol/opdi/research/reference/apdf_202606.parquet": {
+        "bytes": 0,
+        "newest": "",
+        "objects": 0
+      },
+      "s3a://eurocontrol/opdi/research/reference/apdf_full_202606.parquet": {
+        "bytes": 0,
+        "newest": "",
+        "objects": 0
+      },
+      "s3a://eurocontrol/opdi/research/reference/flights_202606.parquet": {
+        "bytes": 0,
+        "newest": "",
+        "objects": 0
+      }
+    },
+    "inputs": {
+      "day": "2026-06-14",
+      "link_params": null,
+      "link_settings": {
+        "link_callsign_lookahead_minutes": 10.0,
+        "link_callsign_lookback_minutes": 60.0,
+        "link_cruise_floor_ft": 18000.0,
+        "link_directional_edges": false,
+        "link_edge_position_minutes": 5.0,
+        "link_edge_vert_rate_fpm": 500.0,
+        "link_max_gap_minutes": 600.0,
+        "link_max_implied_speed_kt": 750.0,
+        "link_min_implied_speed_kt": 400.0,
+        "link_min_speed_ratio": 0.0,
+        "link_min_stop_minutes": 0.0,
+        "link_vfast_kt": 650.0
+      },
+      "truth": "/home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/track-construction-v4/reference/flights_202606.parquet",
+      "truth_flights": 2963,
+      "truth_sha256_16": "830f8174874f743d"
+    },
+    "notes": "One day through the real pipeline, one airframe in ten. Flights that take off and land on the day; Network Manager and APDF truth, European.",
+    "produced_utc": "2026-11-04T13:41:38+00:00",
+    "script": "benchmarks/track_link_pipeline_score.py",
+    "sha256_16": "41c97f5bdbd47a18"
+  }
+}
