@@ -30,8 +30,8 @@ A hole stays inside one track only if all of these hold. If a value needed for a
 | Check | Setting | Why |
 |---|---|---|
 | Hole not too long | at most {{ max_gap_min }} min | Longer holes leave too much room for anything to have happened. |
-| At cruise before the hole | lowest altitude of the last 5 samples at or above {{ floor_ft }} ft | An aircraft at altitude is not about to land. |
-| At cruise after the hole | lowest altitude of the first 5 samples at or above {{ floor_ft }} ft | The same at the other side. |
+| At cruise before the hole | lowest altitude of the last 5 samples, among those within {{ edge_position_min }} min of the edge, at or above {{ floor_ft }} ft | An aircraft at altitude is not about to land. |
+| At cruise after the hole | lowest altitude of the first 5 samples, among those within {{ edge_position_min }} min of the edge, at or above {{ floor_ft }} ft | The same at the other side. |
 | No descent then climb | not both descending faster than {{ vert_rate_fpm }} ft/min before and climbing faster than that after; a blank vertical rate does not count against it | That is what a stop in the hole looks like. |
 | Callsign agrees | the last callsign before (at most {{ lookback_min }} min old) and the first after (within {{ lookahead_min }} min) are not both present and different; blank counts as agreeing | A different callsign is a different flight. A blank says nothing. |
 | Implied speed not too slow | at least {{ min_speed_kt }} kt: straight-line distance between the edges over the time between them | A stop uses up time, which lowers this speed. |
@@ -42,7 +42,7 @@ Edge positions are read past blank samples: the last position within {{ edge_pos
 
 Everything else stays as it is. A callsign change and a short gap at low altitude still split. No sample is invented: the hole stays empty and only the identity changes. In the code this is `cruise_linked`, also called A10: the current rule, A9 `debounced`, with this one change. A day's run must read {{ read_back_hours }} hours back rather than 3, or a track across midnight would publish samples twice, and the code enforces that.
 
-**What others do.** Nobody publishes a tested method, as far as our literature review (`docs/superpowers/research/linking-fragmented-flight-trajectories.md` in the workspace) could find. Public practice splits on a time gap of 10 to 30 minutes and mostly stops there. OpenSky's 2021 dataset paper rejoins pieces when a straight extrapolation fits within 0.5 degrees, and GAIA publishes rules for splitting; neither reports how often it links wrongly. We found no study that tests linking against real landings hidden in withheld data, which may be a gap in our search rather than proof that none exists. So this study measures its own error rate.
+**What others do.** Nobody publishes a tested method, as far as our literature review, "Link flight pieces only where stops cannot fit", could find. Public practice splits on a time gap of 10 to 30 minutes and mostly stops there. OpenSky's 2021 dataset paper rejoins pieces when a straight extrapolation fits within 0.5 degrees, and GAIA publishes rules for splitting; neither reports how often it links wrongly. We found no study that tests linking against real landings hidden in withheld data, which may be a gap in our search rather than proof that none exists. So this study measures its own error rate.
 
 ## How we tested it
 
@@ -76,7 +76,7 @@ The counts include {{ flights_no_track }} flights with no track at all, which re
 | The same, callsign check removed | {{ no_callsign_joined }} of {{ limit_controls }} joined | At most {{ no_callsign_upper }}. So the safety does not rest on the callsign check alone. |
 | Hidden landing, shallow cuts | {{ shallow_joined }} of {{ shallow_controls }} joined | Easy cases, near an airport. Reported, not counted toward the limit. |
 
-We also ran {{ low_edge_tests }} hidden-landing tests with an edge below the floor. With the chosen settings they fail the altitude check by construction, so they say nothing here and are left out above.
+We also ran {{ low_edge_tests }} hidden-landing tests with an edge below the floor and a hole within the longest allowed. With the chosen settings they fail the altitude check by construction, so they say nothing here and are left out above.
 
 **How settings trade off.** All of these have the speed ratio and time-for-a-stop checks off, which the Choices section covers. The chosen setting is the first row.
 
@@ -96,12 +96,12 @@ Each row explains a final choice. The comparisons come from earlier runs of the 
 
 | What we found | What it did | What we chose |
 |---|---|---|
-| A position is often blank right at a hole's edge, and the first version split those holes because it could not compute a speed. A one-day check, not staged as a CSV, found {{ blank_edge_holes }} of {{ cruise_holes }} cruise holes ({{ blank_edge_share }}). | At {{ floor_high_ft }} ft, {{ min_speed_kt }} kt and {{ gap_short_min }} min, crossing flights in one track went from {{ before_blank_crossing }} to {{ after_blank_crossing }}, and linked holes from {{ before_blank_linked }} to {{ after_blank_linked }}. | Read positions past blank samples. |
+| A position is often blank right at a hole's edge, and the first version split those holes because it could not compute a speed. In the final data, {{ blank_edge_holes }} of all {{ real_holes }} holes ({{ blank_edge_share }}) use a position read past a blank. | At {{ floor_high_ft }} ft, {{ min_speed_kt }} kt and {{ gap_short_min }} min, crossing flights in one track went from {{ before_blank_crossing }} to {{ after_blank_crossing }}, and linked holes from {{ before_blank_linked }} to {{ after_blank_linked }}. | Read positions past blank samples. |
 | All flights moved little ({{ all_base }} to {{ before_blank_all }}) because short European flights dominate, while crossing flights went only from {{ crossing_base }} to {{ before_blank_crossing }}. | The headline hid the flights this is for. | Choose settings by crossing flights first. |
 | Lower floors and longer holes let more through. | At {{ min_speed_kt }} kt and {{ max_gap_min }} min: {{ high_floor_long_crossing }} at {{ floor_high_ft }} ft, {{ crossing_new }} at {{ floor_ft }} ft, {{ low_floor_crossing }} at {{ floor_low_ft }} ft. | {{ floor_ft }} ft and {{ max_gap_min }} min. See Choices below. |
 | Allowing an edge below the floor when its direction fits one flight (old edge climbing, new edge descending). | Crossing flights {{ crossing_new }} to {{ dir_crossing }}. But {{ dir_false }} false joins among {{ dir_labelled }} checkable holes linked this way ({{ dir_rate }}), and overall {{ dir_all_false }} of {{ dir_all_labelled }} ({{ dir_all_rate }}), just over the 0.1% limit. {{ dir_tests_joined }} of {{ dir_tests }} hidden landings joined, {{ dir_same_joined }} of them among the {{ dir_same_tests }} with the same or a blank callsign. The {{ dir_labelled }} is under the 300 the study wanted for a firm figure, so the overall rate is what fails. | Rejected by its own limits. It stays in the code, off. |
 
-One number here does not sit comfortably. In the final data {{ final_blank_linked }} of {{ linked_holes }} linked holes ({{ final_blank_share }}) use a position read past a blank, far above the {{ blank_edge_share }} from the one-day check. The two count different populations, and the large jump in linked holes fits the higher figure, but we have not reconciled them. Of the {{ false_joins }} false joins, {{ false_joins_blank_edge }} used such a position.
+Two counts say how often a position is read past a blank, and they answer different questions. {{ blank_edge_holes }} of all {{ real_holes }} holes ({{ blank_edge_share }}) is how common it is among holes, whatever the rule decides, at every length and altitude. {{ final_blank_linked }} of {{ linked_holes }} linked holes ({{ final_blank_share }}) is how often a link rests on such a position, among the holes the chosen settings keep. Both count a hole when either edge reads past a blank, and neither counts a hole with no position within {{ edge_position_min }} min, which cannot link. Of the {{ false_joins }} false joins, {{ false_joins_blank_edge }} used such a position.
 
 ## Real pipeline day
 
@@ -186,7 +186,5 @@ python benchmarks/build_track_v4_paper.py            # fills this report; no clu
 **Data.** All in `papers/track-construction-v4/data/`. `final_grid/` has the settings search and the headline, `final_direction/` the direction-aware comparison, `stage2/` the pipeline day. `round1`, `round2`, `round3_fl250`, `round3_fl180`, `round3_fl100` and `round4_fl180` are earlier runs, kept to explain the method. They came from earlier code and are not regenerated. The {{ floor_ft }} ft run among them matches the final one on the chosen settings, which is why floors are compared across them.
 
 **Provenance.** Each file's script, arguments and commit are in the `_manifest.json` beside it. The final files record commits {{ manifest_shas }}. `regenerate_track_v4.py --check` currently reports all three jobs as stale, because the files came from running the scripts directly, with different recorded arguments. A `--force` run is still owed once the code is final. Until then, treat these as the run's figures, not as checked against the latest commit.
-
-**A figure not from a CSV.** One: the {{ blank_edge_share }} one-day check of blank edges, flagged where it appears and recorded in the study's ledger.
 
 **Render.** `index.qmd` holds this text with literal numbers and the regeneration step, but has not been rendered, because Quarto and R are not available on the machine that built it. There is no PDF. `index.html` is built from the same text and CSVs by `benchmarks/build_track_v4_paper.py`.
