@@ -68,12 +68,14 @@ if (MODE != "skip") {
 
 Today a reception gap of over 30 minutes ends a track. A flight crossing the Atlantic therefore becomes two tracks and two rows in the flight list, and neither row has both airports. The new rule keeps one `track_id` across such a gap when the evidence at its two edges fits one continuous flight.
 
-- **Flights crossing the European box in one track: 25.3% under the current rule, 68.8% under the new one** (6,450 flights over two days). "Crossing" means exactly one of the two airports lies inside the box.
-- All flights in one track: 87.6% to 93.4%.
-- **Wrong joins are rare where we can check them:** 2 of 4,670 checkable linked gaps (0.04%), and 0 of 40,975 artificial gaps hiding a real landing. But 74.1% of linked gaps cannot be checked at all, because our truth covers Europe only.
-- In a real pipeline run on one airframe in ten, crossing flights with both airports right on one row went from 0 to 80, of 285.
+- **Flights crossing the European box in one track: 25.3% under the current rule, 80.7% under the new one** (6,450 flights over two days). "Crossing" means exactly one of the two airports lies inside the box.
+- All flights in one track: 87.6% to 95.0%.
+- **Two things took crossing flights from 68.8% to 80.7%.** Reading altitude, vertical rate and speed at a gap's edge past blank samples gives 79.1%. Letting a flight lost while still climbing link gives 80.7%. A flight that reappears descending stays split, because that case failed its own limit.
+- **Wrong joins are rare where we can check them:** 3 of 5,773 checkable linked gaps (0.05%), and 6 of 123,949 artificial gaps hiding a real landing. But 74.9% of linked gaps cannot be checked at all, because our truth covers Europe only.
+- **The climb part is provisional.** Gaps linked only because the flight was climbing show 0 false joins in 185 checkable cases, under the 300 we wanted. All 6 artificial gaps that joined have a climbing edge and the same or a blank callsign.
+- In a real pipeline run on one airframe in ten, crossing flights with both airports right on one row went from 0 to 105, of 285.
 
-**We do not recommend making it the default yet.** Two things computed along a track break across a gap, and neither is fixed. A level segment spans a gap on 88.8% of the linked tracks checked (143 of 161). Cumulative distance comes up short across a gap, by a median of 1,482 NM. Switching would also create another silent `track_id` boundary. The rule is in the code, and it is off.
+**We do not recommend making it the default yet.** Two things computed along a track break across a gap, and neither is fixed. A level segment spans a gap on 88.0% of the linked tracks checked (169 of 192). Cumulative distance comes up short across a gap, by a median of 1,508 NM. Switching would also create another silent `track_id` boundary. The rule is in the code, and it is not the default. Its settings are provisional for climbing edges.
 
 ## The problem
 
@@ -96,15 +98,15 @@ A hole stays inside one track only if all of these hold. If a value needed for a
 | Check | Setting | Why |
 |---|---|---|
 | Hole not too long | at most 600 min | Longer holes leave too much room for anything to have happened. |
-| At cruise before the hole | lowest altitude of the last 5 samples, among those within 5 min of the edge, at or above 18,000 ft | An aircraft at altitude is not about to land. |
-| At cruise after the hole | lowest altitude of the first 5 samples, among those within 5 min of the edge, at or above 18,000 ft | The same at the other side. |
+| At cruise or climbing before the hole | lowest of the nearest 5 altitudes within 5 min before the hole at or above 18,000 ft; or, below that, climbing: the mean of the nearest 5 vertical rates above 500 ft/min, resting on at least 3 rates | An aircraft at altitude is not about to land, and one still climbing has just left. A blank rate does not count as climbing. |
+| At cruise after the hole | lowest of the nearest 5 altitudes within 5 min after the hole at or above 18,000 ft | The same at the other side. A descending aircraft below the floor does not pass: see Results. |
 | No descent then climb | not both descending faster than 500 ft/min before and climbing faster than that after; a blank vertical rate does not count against it | That is what a stop in the hole looks like. |
 | Callsign agrees | the last callsign before (at most 60 min old) and the first after (within 10 min) are not both present and different; blank counts as agreeing | A different callsign is a different flight. A blank says nothing. |
-| Implied speed not too slow | at least 400 kt: straight-line distance between the edges over the time between them | A stop uses up time, which lowers this speed. |
+| Implied speed not too slow | at least 400 kt: straight-line distance between the edge positions over the time between them | A stop uses up time, which lowers this speed. |
 | Implied speed not impossible | at most 750 kt | Faster than this is two aircraft sharing an address, not wind. |
 | Real address | `icao24` not `000000`, `000001` or `ffffff` | These placeholders are shared by many aircraft. |
 
-Edge positions are read past blank samples: the last position within 5 min before the hole and the first within 5 min after it, since a position often arrives in a later message than altitude and speed.
+**Every edge value is read past blank samples, within 5 min of the hole.** ADS-B sends position and altitude separately from speed and vertical rate, so the sample right at an edge often lacks one or the other. So position uses the last value within 5 min before the hole and the first within 5 min after it. Altitude, vertical rate and speed each use their own nearest 5 values within the same 5 min. With no altitude in that span the check fails. With no vertical rate, the descent-then-climb check passes, and the climbing alternative does not.
 
 Everything else stays as it is. A callsign change and a short gap at low altitude still split. No sample is invented: the hole stays empty and only the identity changes. In the code this is `cruise_linked`, also called A10: the current rule, A9 `debounced`, with this one change. A day's run must read 11 hours back rather than 3, or a track across midnight would publish samples twice, and the code enforces that.
 
@@ -118,20 +120,22 @@ The days are 2026-06-14 and 2025-06-14, the only worldwide full days with the ta
 
 | Test | What it does | What should happen | Size |
 |---|---|---|---|
-| Real holes | Each linked hole against Network Manager, matched on airframe and time and never on callsign, since that would score the callsign check against itself. True link: the hole lies inside one flight. False join: a landing or take-off of that airframe falls inside the hole. Otherwise unknown. | No false joins | 18,065 linked, of 228,655 holes |
-| Hidden landing | Two consecutive flights of one airframe. Delete from a cruise point in the first to a cruise point in the second, so a real landing sits inside an artificial hole. The cuts that count sit 30 min or more into cruise, where speed alone cannot give it away. | No joins | 40,975 |
+| Real holes | Each linked hole against Network Manager, matched on airframe and time and never on callsign, since that would score the callsign check against itself. True link: the hole lies inside one flight. False join: a landing or take-off of that airframe falls inside the hole. Otherwise unknown. | No false joins | 22,985 linked, of 228,655 holes |
+| Hidden landing | Two consecutive flights of one airframe. Delete from a cruise point in the first to a cruise point in the second, so a real landing sits inside an artificial hole. A second kind starts the cut at the first flight's last climbing sample below the floor. The cruise side of the cuts that count sits 30 min or more into cruise, where speed alone cannot give it away. | No joins | 123,949: 40,975 between cruise edges, 82,974 from a climbing edge |
 | Cut flight | Delete the middle of one continuous flight, for 60 to 360 min. | Rejoined | 49,518 |
 | Real pipeline day | 2026-06-14, one airframe in ten, through the real pipeline under both rules, to the flight list and events. | More flights right, nothing else moved | 285 crossing flights |
 
 A setting had to meet three limits, pooled over the two days: false joins at most 0.1% of checkable real holes; at most 1% of hidden landings joined, read as a 95% upper bound; and at most 5% where the two flights have the same or a blank callsign, the case the callsign check cannot reject. Among settings within those limits, we took the most crossing flights in one track.
 
+An edge allowed below the floor also has to pass the same three on its own, so a good result elsewhere cannot hide a bad one: at most 1% of the hidden landings of that kind, at most 5% of those with the same or a blank callsign, and at most 0.1% false joins among checkable holes linked only that way. A rate over a limit fails however small the sample. A rate within it, on under 300 checkable holes, passes only provisionally.
+
 ## Results
 
 | Flights | Number | In one track, current rule | In one track, new rule | Tracks per flight, current | Tracks per flight, new |
 |---|---|---|---|---|---|
-| Crossing the European box | 6,450 | 1,633 (25.3%) | 4,439 (68.8%) | 1.92 | 1.31 |
-| All others | 51,986 | 49,546 (95.3%) | 50,115 (96.4%) | 1.03 | 1.01 |
-| All | 58,436 | 51,179 (87.6%) | 54,554 (93.4%) | 1.12 | 1.04 |
+| Crossing the European box | 6,450 | 1,633 (25.3%) | 5,203 (80.7%) | 1.92 | 1.18 |
+| All others | 51,986 | 49,546 (95.3%) | 50,311 (96.8%) | 1.03 | 1.01 |
+| All | 58,436 | 51,179 (87.6%) | 55,514 (95.0%) | 1.12 | 1.03 |
 
 The counts include 931 flights with no track at all, which read as not in one track. "In one track" says the flight is not split. It does not say the track holds nothing else: the false-join tests below answer that.
 
@@ -139,54 +143,78 @@ The counts include 931 flights with no track at all, which read as not in one tr
 
 | Evidence | Result | Reading |
 |---|---|---|
-| Real holes that can be checked | 2 false joins of 4,670 (0.04%) | Within the 0.1% limit. 2 on 2025-06-14, 0 on 2026-06-14; 0 had the event within 5 min of an edge, where a timing error could explain it. |
-| Real holes that cannot be checked | 13,395 of 18,065 (74.1%) | No evidence either way. |
-| Hidden landing, cuts deep in cruise | 0 of 40,975 joined | At most 0.007%, at 95% confidence. |
-| The same, same or blank callsign only | 0 of 906 joined | At most 0.33%. |
-| The same, callsign check removed | 2 of 40,975 joined | At most 0.015%. So the safety does not rest on the callsign check alone. |
+| Real holes that can be checked | 3 false joins of 5,773 (0.05%) | Within the 0.1% limit. 2 on 2025-06-14, 1 on 2026-06-14; 0 had the event within 5 min of an edge, where a timing error could explain it. |
+| Real holes that cannot be checked | 17,212 of 22,985 (74.9%) | No evidence either way. |
+| Real holes linked only because the old edge was climbing | 0 false joins of 185 checkable, among 1,101 linked | Under the 300 wanted, so provisional. Zero of 185 still allows up to 1.6% at 95% confidence, well above the 0.1% limit, and 83.2% of these holes cannot be checked. |
+| Hidden landing, cuts deep in cruise | 6 of 123,949 joined, from 5 flight pairs | At most 0.010%, at 95% confidence. |
+| The same, same or blank callsign only | 6 of 3,820 joined | At most 0.31%. Every join is in this group. |
+| The same, callsign check removed | 13 of 123,949 joined | At most 0.017%. So the safety does not rest on the callsign check alone. |
 | Hidden landing, shallow cuts | 0 of 38,623 joined | Easy cases, near an airport. Reported, not counted toward the limit. |
 
-We also ran 193,469 hidden-landing tests with an edge below the floor and a hole within the longest allowed. With the chosen settings they fail the altitude check by construction, so they say nothing here and are left out above.
+**Hidden landings by kind of edge.** The chosen rule allows the first two kinds. We also ran 110,495 tests of the last two. With the chosen settings a descending edge fails the altitude check by construction, so those are not counted above, and they appear here as what turning descent on would face.
 
-**How settings trade off.** All of these have the speed ratio and time-for-a-stop checks off, which the Choices section covers. The chosen setting is the first row.
+| Edges either side of the cut | Tests | Joined | At most, 95% | Same or blank callsign: tests | Joined | At most, 95% | In the chosen rule |
+|---|---|---|---|---|---|---|---|
+| Cruise, then cruise | 40,975 | 0 | 0.007% | 906 | 0 | 0.33% | yes |
+| Climb, then cruise | 82,974 | 6 | 0.014% | 2,914 | 6 | 0.41% | yes |
+| Cruise, then descent | 79,343 | 0 | 0.004% | 2,291 | 0 | 0.13% | no |
+| Climb, then descent | 31,152 | 0 | 0.010% | 1,092 | 0 | 0.27% | no |
+
+**Climbing and descending edges, decided separately.** All four combinations, at the chosen settings otherwise.
+
+| Edges below the floor allowed | Crossing flights in one track | All flights in one track | Real false joins among holes linked only that way, of checkable | Real false joins overall, of checkable | Hidden landings joined | Within limits |
+|---|---|---|---|---|---|---|
+| Neither | 79.1% | 94.7% | none | 3 of 5,588 (0.054%) | 0 of 40,975 | yes |
+| **Old edge climbing (chosen)** | 80.7% | 95.0% | 0 of 185 | 3 of 5,773 (0.052%) | 6 of 123,949 | yes, provisional |
+| New edge descending | 79.9% | 94.9% | 3 of 119 | 6 of 5,707 (0.105%) | 0 of 120,318 | no |
+| Both | 81.5% | 95.2% | 3 of 305 | 6 of 5,893 (0.102%) | 6 of 234,444 | no |
+
+**The two kinds of low edge do not behave alike, and we do not know why.** On real holes, climbing is clean, with 0 of 185, and descending is not, with 3 of 119 (2.5%). On hidden landings the order reverses: 6 of 82,974 joined with a climbing edge and 0 of 79,343 with a descending one. This is an observation, not an explanation. Timing may explain part of it: 2 of the 3 descent false joins have the landing or take-off within 5 min of an edge, where an error in the truth time could produce a false join by itself. In the chosen rule, 0 of the 3 are that close. We have not checked those cases one by one.
+
+**A descending edge failing is not a fundamental result.** It rests on 3 of 119. With so few checkable holes, a single false join would already read as 0.84%, over the limit, so one or two cases decide it. It says descending edges have not passed, not that they cannot. Turning them on as well would give 81.5% of crossing flights, 53 flights more, with 6 false joins of 5,893 (0.102%) overall. Climbing passing rests on an equally small sample, which is why it is provisional.
+
+**How settings trade off.** All of these have the speed ratio and time-for-a-stop checks off, which the Choices section covers. The chosen setting is the first row. All of them have climbing edges on, so "yes" here carries the same provisional status.
 
 | Speed floor | Longest hole | Crossing flights in one track | All flights in one track | Real false joins, of checkable | Hidden landings joined | Cut flights not rejoined | Within limits |
 |---|---|---|---|---|---|---|---|
-| 400 kt | 600 min | 68.8% | 93.4% | 2 of 4,670 (0.04%) | 0 of 40,975 | 20.9% | yes |
-| 400 kt | 480 min | 68.4% | 93.3% | 2 of 4,633 (0.04%) | 0 of 40,665 | 20.9% | yes |
-| 400 kt | 360 min | 65.1% | 92.9% | 1 of 4,382 (0.02%) | 0 of 38,379 | 20.9% | yes |
-| 315 kt | 600 min | 69.2% | 93.4% | 12 of 4,717 (0.25%) | 4 of 40,975 | 9.2% | no |
-| 315 kt | 480 min | 68.8% | 93.4% | 4 of 4,672 (0.09%) | 2 of 40,665 | 9.2% | yes |
-| 315 kt | 360 min | 65.5% | 93.0% | 2 of 4,420 (0.05%) | 0 of 38,379 | 9.2% | yes |
+| 400 kt | 600 min | 80.7% | 95.0% | 3 of 5,773 (0.05%) | 6 of 123,949 | 20.4% | yes |
+| 400 kt | 480 min | 80.1% | 94.9% | 3 of 5,732 (0.05%) | 1 of 121,918 | 20.4% | yes |
+| 400 kt | 360 min | 75.6% | 94.4% | 2 of 5,410 (0.04%) | 0 of 112,029 | 20.4% | yes |
+| 315 kt | 600 min | 81.1% | 95.1% | 15 of 5,829 (0.26%) | 39 of 123,949 | 8.5% | no |
+| 315 kt | 480 min | 80.6% | 95.0% | 6 of 5,779 (0.10%) | 19 of 121,918 | 8.5% | no |
+| 315 kt | 360 min | 76.0% | 94.5% | 4 of 5,456 (0.07%) | 10 of 112,029 | 8.5% | yes |
 
-Hidden-landing counts differ because only holes the setting allows are counted. The longest hole allowed matters for coverage. The speed floor hardly does on real flights, but it matters for false joins and for cut flights.
+Hidden-landing counts differ because only holes the setting allows are counted. The longest hole allowed matters for coverage, and also for hidden landings: at 400 kt they go from 6 joined at 600 min to 1 at 480 min and 0 at 360 min. The speed floor hardly matters on real flights, but it matters for false joins and for cut flights.
 
-**What keeps the remaining holes split.** These are holes inside the flights scored. On crossing flights, 3,921 are linked and 2,061 stay split. Each is listed under the first check it fails, in the order the code applies them.
+**What keeps the remaining holes split.** These are holes inside the flights scored. On crossing flights, 4,809 are linked and 1,173 stay split. Each is listed under the first check it fails, in the order the code applies them.
 
 | First test failed | Crossing flights: holes | of which failed nothing else | Other flights: holes | of which failed nothing else |
 |---|---|---|---|---|
-| Below the floor after the hole | 1,288 | 856 | 544 | 244 |
-| Below the floor before the hole | 442 | 113 | 357 | 51 |
-| Implied speed too slow, or no position to compute it | 315 | 31 | 131 | 7 |
-| Hole too long | 8 | 7 | 5 | 2 |
-| Callsign differs | 5 | 4 | 3 | 3 |
-| Implied speed impossible | 3 | 3 | 0 | 0 |
-| **All holes left split** | **2,061** |  | **1,040** |  |
+| Below the floor after the hole | 428 | 94 | 352 | 94 |
+| Implied speed too slow, or no position to compute it | 425 | 33 | 192 | 14 |
+| Below the floor before the hole | 302 | 16 | 274 | 3 |
+| Hole too long | 8 | 8 | 5 | 2 |
+| Callsign differs | 6 | 5 | 3 | 3 |
+| Implied speed impossible | 4 | 4 | 0 | 0 |
+| **All holes left split** | **1,173** |  | **826** |  |
 
-The largest cause is an aircraft that reappears below 18,000 ft: 1,288 holes on crossing flights, 62.5% of those left split, and for 856 of them nothing else fails. Our reading, not measured, is that these flights reappear on approach to their destination. Length is not the problem: 8 holes on crossing flights are too long.
+No one cause dominates on crossing flights. 428 holes (36.5% of those left split) fail below the floor after the hole, 425 (36.2%) on implied speed, and 302 (25.7%) below the floor before it. Most of them would fail another check too: nothing else fails for only 94 of the 428 and 33 of the 425. Length is not the problem: 8 holes are too long.
+
+"Below the floor" here also includes an edge with no altitude at all within 5 min, and these files do not separate the two. **This corrects the earlier version of this report,** which read this group as aircraft reappearing on approach. That was a guess and it was wrong: most of that group then were simply blank altitudes, now read past. Turning on descending edges adds only 53 crossing flights in one track.
 
 ## How the method got here
 
-Each row explains a final choice. The comparisons come from earlier runs of the study.
+Each row explains a final choice. The comparisons come from earlier runs of the study, except the last row, and the second figure in each comparison of the row before it, which are final.
 
 | What we found | What it did | What we chose |
 |---|---|---|
 | A position is often blank right at a hole's edge, and the first version split those holes because it could not compute a speed. In the final data, 82,212 of all 228,655 holes (36.0%) use a position read past a blank. | At 25,000 ft, 400 kt and 360 min, crossing flights in one track went from 40.1% to 64.4%, and linked holes from 7,745 to 15,951. | Read positions past blank samples. |
 | All flights moved little (87.6% to 89.6%) because short European flights dominate, while crossing flights went only from 25.3% to 40.1%. | The headline hid the flights this is for. | Choose settings by crossing flights first. |
-| Lower floors and longer holes let more through. | At 400 kt and 600 min: 67.7% at 25,000 ft, 68.8% at 18,000 ft, 69.9% at 10,000 ft. | 18,000 ft and 600 min. See Choices below. |
-| Allowing an edge below the floor when its direction fits one flight (old edge climbing, new edge descending). | Crossing flights 68.8% to 70.5%. But 3 false joins among 251 checkable holes linked this way (1.2%), and overall 5 of 4,921 (0.102%), just over the 0.1% limit. 6 of 193,469 hidden landings joined, 6 of them among the 6,297 with the same or a blank callsign. The 251 is under the 300 the study wanted for a firm figure, so the overall rate is what fails. | Rejected by its own limits. It stays in the code, off. |
+| Lower floors and longer holes let more through, but floors made little difference. | Before altitude was read past blanks, at 400 kt and 600 min: 67.7% at 25,000 ft, 68.8% at 18,000 ft, 69.9% at 10,000 ft. | 18,000 ft and 600 min. See Choices below. |
+| Altitude is often blank right after a hole, as position is, and a blank altitude failed the check at any floor. | Reading altitude, vertical rate and speed past blanks, at the same settings: crossing flights 68.8% to 79.1%, linked holes 18,064 to 21,884, false joins 2 of 4,670 to 3 of 5,588. | Read them past blanks. We treat it as a bug fix, and it stayed within the limits. Its cost is under Limits of the evidence. |
+| An edge below the floor may still fit one flight if its direction does: an old edge climbing or a new edge descending. | Climbing: crossing flights 79.1% to 80.7%, 1.6 points, with 0 false joins of 185 checkable and 6 of 2,914 hard hidden landings joined. Descending: 79.1% to 79.9%, 0.8 points, with 3 of 119. | Climbing on, provisional, since 185 is under 300. Descending off, since 2.5% is over its 0.1% limit. Each is one setting. |
 
-Two counts say how often a position is read past a blank, and they answer different questions. 82,212 of all 228,655 holes (36.0%) is how common it is among holes, whatever the rule decides, at every length and altitude. 9,232 of 18,065 linked holes (51.1%) is how often a link rests on such a position, among the holes the chosen settings keep. Both count a hole when either edge reads past a blank, and neither counts a hole with no position within 5 min, which cannot link. Of the 2 false joins, 0 used such a position.
+Two counts say how often a position is read past a blank, and they answer different questions. 82,212 of all 228,655 holes (36.0%) is how common it is among holes, whatever the rule decides, at every length and altitude. 13,669 of 22,985 linked holes (59.5%) is how often a link rests on such a position, among the holes the chosen settings keep. Both count a hole when either edge reads past a blank, and neither counts a hole with no position within 5 min, which cannot link. Of the 3 false joins, 1 used such a position. Altitude is counted in Limits of the evidence below.
 
 ## Real pipeline day
 
@@ -194,68 +222,78 @@ Two counts say how often a position is read past a blank, and they answer differ
 
 | Flights | Number | Rows per flight, current | Rows per flight, new | On one row, current | On one row, new | Both airports right on one row, current | Both airports right on one row, new |
 |---|---|---|---|---|---|---|---|
-| Crossing the European box | 285 | 1.80 | 1.29 | 88 | 204 | 0 | 80 |
-| of which Europe to outside | 156 | 1.82 | 1.33 | 48 | 107 | 0 | 45 |
-| of which outside to Europe | 129 | 1.77 | 1.25 | 40 | 97 | 0 | 35 |
-| Inside Europe | 2,672 | 1.05 | 1.05 | 2,533 | 2,547 | 1,945 | 1,952 |
+| Crossing the European box | 285 | 1.81 | 1.27 | 86 | 210 | 0 | 105 |
+| of which Europe to outside | 156 | 1.83 | 1.32 | 47 | 108 | 0 | 63 |
+| of which outside to Europe | 129 | 1.78 | 1.20 | 39 | 102 | 0 | 42 |
+| Inside Europe | 2,672 | 1.06 | 1.05 | 2,531 | 2,547 | 1,945 | 1,952 |
 
-Crossing flights on one row went from 30.9% to 71.6%. Both airports right on one row went from 0 to 80, which is 28.1% of them. The rule finds no new airports: across every row of the comparison, 0 answers went from none to right. It puts answers on one row that were already on two. The ceiling is detection: 149 of 285 crossing flights (52.3%) have no row naming the airport outside the box, matching flights by callsign. 0 crossing flight gained a row, which we did not look into.
+Crossing flights on one row went from 30.2% to 73.7%. Both airports right on one row went from 0 to 105, which is 36.8% of them. The rule finds no new airports: across every row of the comparison, 0 answers went from none to right. It puts answers on one row that were already on two. The ceiling is detection: 149 of 285 crossing flights (52.3%) have no row naming the airport outside the box, matching flights by callsign. On crossing flights, a destination went from right to wrong on 1 and from wrong to right on 1. 1 crossing flight gained a row, which we did not look into.
 
-**A small loss inside Europe.** Of 2,672 flights inside Europe, 15 gained both airports right and 8 lost them. Destination went from right to wrong on 8 and from wrong to right on 8. We do not know why, as these CSVs cannot say. Those 8 flights should be looked at one by one before any promotion.
+**A small loss inside Europe.** Of 2,672 flights inside Europe, 14 gained both airports right and 7 lost them. Destination went from right to wrong on 8 and from wrong to right on 7. We do not know why, as these CSVs cannot say. Those 7 flights should be looked at one by one before any promotion.
 
-**Nothing else moved.** Re-segmenting the sample under both rules, over the whole window a day's run reads, gives 38,383 track boundaries under the current rule and 35,993 under the new one. All 2,390 removed sit at holes the rule links (2,390 there, 0 elsewhere), and 0 were added. The pipeline's 16,481 tracks for the day are exactly those re-segmented tracks. Of 3,493 airport take-offs and landings in APDF, the detector finds 2,913 under the current rule and 2,914 under the new one.
+**Track boundaries moved only where they should.** Re-segmenting the sample under both rules, over the whole window a day's run reads, gives 38,383 track boundaries under the current rule and 35,349 under the new one. All 3,034 removed sit at holes the rule links (3,034 there, 0 elsewhere), and 0 were added. The pipeline's 16,194 tracks for the day are exactly those re-segmented tracks. Of 3,493 airport take-offs and landings in APDF, the detector finds 2,913 under the current rule and 2,914 under the new one.
 
 **Events that changed**, on airframes with a linked track, inside the flights scored:
 
 | Event type | Current rule | New rule | Change |
 |---|---|---|---|
-| `first_seen` | 476 | 293 | -183 |
-| `last_seen` | 464 | 281 | -183 |
-| `top-of-climb` | 473 | 290 | -183 |
-| `top-of-descent` | 473 | 290 | -183 |
-| `level-end` | 1,185 | 1,021 | -164 |
-| `level-start` | 1,185 | 1,021 | -164 |
-| `AIBT` | 117 | 105 | -12 |
-| `AOBT` | 122 | 110 | -12 |
-| `ALDT` | 172 | 173 | +1 |
-| `level-off-descent-end` | 584 | 585 | +1 |
-| `level-off-descent-start` | 585 | 586 | +1 |
-| `xing-fl50` | 394 | 395 | +1 |
-| `xing-fl100` | 396 | 399 | +3 |
-| `xing-fl245` | 407 | 421 | +14 |
+| `first_seen` | 545 | 313 | -232 |
+| `last_seen` | 530 | 298 | -232 |
+| `top-of-climb` | 540 | 308 | -232 |
+| `top-of-descent` | 540 | 308 | -232 |
+| `level-end` | 1,334 | 1,128 | -206 |
+| `level-start` | 1,335 | 1,129 | -206 |
+| `entry-taxiway` | 2,239 | 2,222 | -17 |
+| `exit-taxiway` | 2,237 | 2,222 | -15 |
+| `AIBT` | 130 | 116 | -14 |
+| `AOBT` | 136 | 122 | -14 |
+| `entry-apron` | 147 | 146 | -1 |
+| `entry-parking_position` | 325 | 324 | -1 |
+| `exit-apron` | 147 | 146 | -1 |
+| `exit-parking_position` | 330 | 329 | -1 |
+| `level-off-descent-end` | 644 | 643 | -1 |
+| `level-off-descent-start` | 646 | 645 | -1 |
+| `runway-vacated` | 102 | 101 | -1 |
+| `xing-fl50` | 450 | 451 | +1 |
+| `xing-fl100` | 455 | 459 | +4 |
+| `xing-fl245` | 471 | 487 | +16 |
 
-Most of this is arithmetic. `first_seen`, `last_seen`, `top-of-climb` and `top-of-descent` each fall by one per joined hole, 183 of them inside the flights scored, out of 980 linked holes in the sample. The level events fall by 164, one per hole inside a level segment, covered in the next section. `xing-fl245` changes by +14. Our reading, not measured, is that a floor below FL245 lets one edge sit below it and the other above, so the hole itself reads as a crossing. The change of +3 at FL100 is not explained that way, as neither edge of a linked hole is that low.
+Most of this is arithmetic. `first_seen`, `last_seen`, `top-of-climb` and `top-of-descent` each fall by one per joined hole, 232 of them inside the flights scored, out of 1,273 linked holes in the sample. The level events fall by 206, one per hole inside a level segment, covered in the next section. `level-off-descent-start` and `level-off-descent-end` change by -1 and -1. `xing-fl245` changes by +16, `xing-fl100` by +4 and `xing-fl50` by +1. Our reading, not measured, is that when one edge sits below a level and the other above, the hole itself reads as a crossing: the floor allows that at FL245, and a climbing old edge, which can be at any altitude, allows it lower down.
 
-**`AOBT` and `AIBT` change by -12 and -12. This is not evidence of glued flights.** The block detector gives a track at most one of each, the first off-block and the last on-block, so two pieces that each had one now have one between them. That is the detector's logic; we did not trace each of these individually. Could an on-block on the older piece and an off-block on the newer one mean the aircraft parked in the hole? To check, all 980 linked holes in the sample were labelled against every Network Manager flight of the airframe, whatever its day. The labels use Network Manager times only. Detected events are counted beside them and never decide a label.
+**Airport surface events are not arithmetic, and we have not traced them.** `entry-taxiway` changes by -17, `exit-taxiway` by -15, `entry-apron` by -1, `exit-apron` by -1, `entry-parking_position` by -1, `exit-parking_position` by -1 and `runway-vacated` by -1. These events are only matched at airports named on the track's flight-list row, so a row whose airports change can lose them. That is our reading from the code, not a measurement. They should be looked at alongside the 7 flights above.
+
+**`AOBT` and `AIBT` change by -14 and -14. This is not evidence of glued flights.** The block detector gives a track at most one of each, the first off-block and the last on-block, so two pieces that each had one now have one between them. That is the detector's logic; we did not trace each of these individually. Could an on-block on the older piece and an off-block on the newer one mean the aircraft parked in the hole? To check, all 1,273 linked holes in the sample were labelled against every Network Manager flight of the airframe, whatever its day. The labels use Network Manager times only. Detected events are counted beside them and never decide a label.
 
 | Label | Holes | With a landing or on-block event on the older piece | With a take-off or off-block event on the newer piece | With both |
 |---|---|---|---|---|
-| True link | 302 | 62 | 42 | 10 |
+| True link | 376 | 76 | 55 | 10 |
 | False join | 0 | 0 | 0 | 0 |
-| Unknown | 218 | 23 | 24 | 3 |
-| Airframe not in Network Manager | 460 | 82 | 58 | 18 |
+| Unknown | 293 | 33 | 31 | 5 |
+| Airframe not in Network Manager | 604 | 103 | 79 | 21 |
 
-0 holes are false joins. Such events on both sides of a hole occur on checked true links too (10 of 302), so block events there are not proof of a stop. The event columns are lower bounds: a later piece that starts after midnight is absent because the next day was not built, and an event is counted anywhere on a piece rather than near the hole, so they support nothing beyond that sentence. The 218 unknown and 460 not-in-truth holes stay unchecked, the same limit as in the two-day figures.
+0 holes are false joins. Such events on both sides of a hole occur on checked true links too (10 of 376), so block events there are not proof of a stop. The event columns are lower bounds: a later piece that starts after midnight is absent because the next day was not built, and an event is counted anywhere on a piece rather than near the hole, so they support nothing beyond that sentence. The 293 unknown and 604 not-in-truth holes stay unchecked, the same limit as in the two-day figures.
 
 ## What this breaks, and is not fixed
 
-**Level segments span holes.** On 143 of 161 linked tracks inside the flights scored (88.8%), a level start before a hole pairs with a level end after it: 148 segments containing 164 holes. A user computing level time, or how much of a flight is flown level, gets hours of "level flight" during which nothing was received. We set the condition before measuring that damage on most linked tracks withdraws the recommendation, and this meets it.
+**Level segments span holes.** On 169 of 192 linked tracks inside the flights scored (88.0%), a level start before a hole pairs with a level end after it: 176 segments containing 206 holes. A user computing level time, or how much of a flight is flown level, gets hours of "level flight" during which nothing was received. We set the condition before measuring that damage on most linked tracks withdraws the recommendation, and this meets it.
 
-**Cumulative distance is short across holes.** On 182 of the 182 holes compared, the distance added differs from the straight-line distance between the edges by over 1 NM. The median shortfall is 1,482 NM, and 95% of holes are short by at least 305 NM. All 182 have a blank position on a sample next to the hole, and the distance function reads a blank as zero distance, so the hole adds next to nothing. The stored measurement agrees with this calculation on 161 tracks checked, with 0 off, so this is what would be published. A user reading distance flown from a linked track, or comparing it with a route, sees a long-haul flight far too short, with no warning.
+**Cumulative distance is short across holes.** On 231 of the 231 holes compared, the distance added differs from the straight-line distance between the edges by over 1 NM. The median shortfall is 1,508 NM, and 95% of holes are short by at least 310 NM. All 231 have a blank position on a sample next to the hole, and the distance function reads a blank as zero distance, so the hole adds next to nothing. The stored measurement agrees with this calculation on 192 tracks checked, with 0 off, so this is what would be published. A user reading distance flown from a linked track, or comparing it with a route, sees a long-haul flight far too short, with no warning.
 
 The detectors were not changed in this work, and any fix gets its own `version`.
 
 ## Limits of the evidence
 
-- **Truth is European, and most linked holes cannot be checked.** 74.1% are unknown. A stop outside Network Manager's area is invisible, so how the rule performs elsewhere is unmeasured.
-- **Two days.** 2 false joins, 0 on one day and 2 on the other, are too few to say anything about variation.
+- **Truth is European, and most linked holes cannot be checked.** 74.9% are unknown. A stop outside Network Manager's area is invisible, so how the rule performs elsewhere is unmeasured.
+- **Two days.** 3 false joins, 1 on one day and 2 on the other, are too few to say anything about variation.
 - **The two-day measurements re-segment existing tracks, not raw data.** They take `opdi-world/osn_tracks` as given. Only the pipeline day starts from the state vectors.
-- **The pipeline day is a 10% sample with few crossing flights,** 285 of them. Its one-row share under the current rule is 30.9%, against 25.3% in the two-day data, which shows how far a sample this size can sit from the larger figure.
+- **The pipeline day is a 10% sample with few crossing flights,** 285 of them. Its one-row share under the current rule is 30.2%, against 25.3% in the two-day data, which shows how far a sample this size can sit from the larger figure.
 - **Flights inside one day only.** Eastbound crossings leaving before midnight UTC drop out, so the sample leans westbound. A flight whose first part belongs to a track of the day before reads as fewer tracks than it has.
 - **A flight that never reaches the floor is untested.** It cannot link, and no test covers it.
-- **Hard same-callsign cases are few.** There are 906, so the bound is 0.33% overall and much weaker in places: the smallest group (holes of 30-120 min) has 14 tests and a bound of 19%. The 40,975 tests come from at most 38,734 flight pairs, and cuts of one pair are not independent, so the bounds are somewhat too tight.
+- **Climb evidence is thin.** 185 checkable holes, under the 300 wanted, and 83.2% of holes linked this way cannot be checked. The 6 hidden landings it let through all fall in the 2,914 tests with a climbing edge that the callsign check cannot reject. No cut-flight test measures climbing alone: the low-edge cut removes a flight's whole cruise, so it needs climbing and descending together, and rejoins 0 of 35,804 under the chosen rule against 26,377 with both on.
+- **A reading can be up to 5 min old.** An edge's altitude may come from a sample 5 min from the hole, so an aircraft could really be below the floor at the edge itself. 12,370 linked holes (53.8%) read the new edge's altitude past a blank, with 1 false join among them, and 46 (0.2%) read the old edge's, with 0. These count every hole with no altitude in the edge's own second, not only those the fix newly lets through. We have no measure of how far the aircraft moved in those minutes.
+- **Hard same-callsign cases are few.** There are 3,820, so the bound is 0.31% overall and much weaker in places: the smallest group (a climbing edge, holes of 120-240 min, cut 120 min into cruise) has 11 tests and a bound of 24%. The 123,949 tests come from at most 38,734 flight pairs, and cuts of one pair are not independent, so the bounds are somewhat too tight.
 - **Artificial holes are cleaner than real ones,** and cut flights lean to well-covered flights.
-- **Cut flights are often not rejoined: 20.9% at 400 kt, against 9.2% at 315 kt.** Implied speed is the first failed check on 8,155 of the 10,373 misses (78.6%). This barely shows on real flights: going from 315 to 400 kt loses 12.9% of rejoined cut flights but 1.8% of linked real holes. We can only partly explain it. Cut-flight tests are not split by flight type, and 89.0% of flights do not cross the box, so most tests are on shorter flights, where a cut can sit in slower flying or on a less direct path. Tests of 360 min, which only long flights can host, miss 6.7%, which fits. But misses first rise with length, 19.2% at 60 min, 24.3% at 120 and 30.6% at 180, which does not. That explanation is ours and not measured, and the pattern remains unexplained.
+- **Cut flights are often not rejoined: 20.4% at 400 kt, against 8.5% at 315 kt.** Implied speed is the first failed check on 8,293 of the 10,109 misses (82.0%). This barely shows on real flights: going from 315 to 400 kt loses 13.0% of rejoined cut flights but 1.8% of linked real holes. We can only partly explain it. Cut-flight tests are not split by flight type, and 89.0% of flights do not cross the box, so most tests are on shorter flights, where a cut can sit in slower flying or on a less direct path. Tests of 360 min, which only long flights can host, miss 6.4%, which fits. But misses first rise with length, 18.8% at 60 min, 23.6% at 120 and 29.6% at 180, which does not. That explanation is ours and not measured, and the pattern remains unexplained.
 
 ## Choices made, and what they cost
 
@@ -263,13 +301,14 @@ These are judgement calls, and someone could reasonably go the other way.
 
 | Choice | What it costs, and the alternative |
 |---|---|
-| **Real-hole limit tightened from 1% to 0.1%, after seeing results.** The first limit could not separate settings, and we want a wrong join to be rare. | Set after the fact, so it is not an independent test. At 1%, 315 kt and 600 min would pass, with 69.2% of crossing flights and 12 false joins (0.25%). |
-| **Floor 18,000 ft, chosen by judgement, not by the selection rule.** Applied across floors, the rule would pick 10,000 ft. | At 10,000 ft and 400 kt, staying within the limits also needs a speed ratio check of 0.85: 69.5% of crossing flights, 4 false joins of 4,773 (0.08%). We gave that up for half the false joins and, in our judgement, edges further from busy airspace near airports. Without that check, 10,000 ft gives 69.9% but 6 of 4,817 (0.12%), over the limit. |
-| **400 kt and 600 min.** The selection rule's pick, and a near tie. | 315 kt and 480 min gives 4,436 crossing flights against 4,439, a difference of 3. It has 4 real false joins against 2 and 2 hidden landings joined against 0, but misses 9.2% of cut flights against 20.9%. We preferred fewer false joins. |
-| **Time-for-a-stop check off.** It asks whether the time left over at a fast ground speed is too short for a stop. A larger allowance is looser. | At 35 min, crossing flights fall to 38.3%, and at 20 min to 31.1%. The safety gain is real but small: false joins 2 to 0, hidden landings unchanged at 0. |
-| **Speed ratio check off.** It compares implied speed with the aircraft's own speed at the edge. | At 0.85, crossing flights 68.4% and false joins 1, against 68.8% and 2. A small trade either way, and we kept the simpler rule. |
-| **Direction-aware edges off.** | Gives up 70.5% for 68.8% of crossing flights. See How the method got here. |
-| **A blank callsign counted with same callsign** in the hard case. | 108 of 906 tests (11.9%) are blank. The check cannot reject them, so this is the cautious way, but the group is not purely same-callsign flights. |
+| **Real-hole limit tightened from 1% to 0.1%, after seeing results.** The first limit could not separate settings, and we want a wrong join to be rare. | Set after the fact, so it is not an independent test. At 1%, 315 kt and 600 min would pass, with 81.1% of crossing flights and 15 false joins of 5,829 (0.26%). |
+| **Floor 18,000 ft, chosen by judgement, not by the selection rule.** Applied across floors in the earlier runs, the rule would have picked 10,000 ft. | **These floor figures predate reading altitude past blanks.** Lower floors barely helped then, and the reason was the same blanks: a blank altitude fails at every floor. In those runs, 10,000 ft and 400 kt stayed within the limits only with a speed ratio check of 0.85: 69.5% of crossing flights, 4 false joins of 4,773 (0.08%), against 68.8% and 2 of 4,670 at 18,000 ft. Without that check it gave 69.9% but 6 of 4,817 (0.12%), over the limit. We gave that up for half the false joins and, in our judgement, edges further from busy airspace near airports. 10,000 ft has not been run again since the fix, so what it would give now is unknown. |
+| **400 kt and 600 min.** The selection rule's pick. | 315 kt and 480 min comes within 5 flights, 5,198 crossing flights against 5,203, but with 6 false joins of 5,779 (0.104%) it is just over the limit, and it joins 19 hidden landings against 6. Within the limits the nearest is 315 kt and 600 min with a speed ratio check of 0.85: 5,188 crossing flights, 3 false joins, 36 hidden landings joined, and 10.3% of cut flights missed against 20.4%. |
+| **Time-for-a-stop check off.** It asks whether the time left over at a fast ground speed is too short for a stop. A larger allowance is looser. | At 35 min, crossing flights fall to 42.1%, and at 20 min to 32.7%. The safety gain is real: false joins 3 to 1 and hidden landings 6 to 0. The coverage loss is far larger, which is why it stays off. |
+| **Speed ratio check off.** It compares implied speed with the aircraft's own speed at the edge. | At 0.85, crossing flights 80.1% and false joins 2, against 80.7% and 3. A small trade either way, and we kept the simpler rule. |
+| **Climbing edges on, on evidence short of what we wanted.** | Gains 1.6 points of crossing flights, and adds a way for a hidden landing to get through: 6 of 82,974. Off gives 79.1% and 0 of 40,975 joined. |
+| **Descending edges off.** | Gives up 81.5% for 80.7% of crossing flights. They fail their own limit, on a small sample. See Results. |
+| **A blank callsign counted with same callsign** in the hard case. | 868 of 3,820 tests (22.7%) are blank. The check cannot reject them, so this is the cautious way, but the group is not purely same-callsign flights. |
 | **Any landing or take-off in a hole counts as a false join.** | Overstates false joins, if anything. |
 
 ## What is not decided
@@ -277,6 +316,9 @@ These are judgement calls, and someone could reasonably go the other way.
 - **Making it the default.** Not recommended now. The rule ships off and `standard` still points to `debounced`.
 - **A new silent `track_id` boundary.** Promotion would add one after those at A8 and A9. A join across it returns nothing rather than an error, and nothing in the published data says which rule produced a row, as `osn_tracks` has no version column. Consumers would have to be told.
 - **The two fixes needed first.** Level detection must not pair a start and an end across a hole. Cumulative distance must carry across one. Both are detector changes with their own `version`, and neither is designed yet. After them, the event comparison should be run again.
+- **Whether climbing edges stay on.** More checkable holes would firm up or remove the provisional status. Holes from more days are the way to get them.
+- **Whether descending edges should be tried again** on a larger sample, once the timing of the near-edge cases is understood.
+- **What a lower floor gives now.** 10,000 ft has not been run with altitude read past blanks.
 - **Whether to add an airport test,** asking if any airport the aircraft could have stopped at fits inside the hole. Not built here, because it needs a join outside the rule's current form. Our literature review calls it the most promising and least proven idea. Whether it is needed depends on the unknown holes above.
 
 ## Reproducing this
@@ -289,12 +331,12 @@ unset PYSPARK_PYTHON
 python benchmarks/run_track_link_day.py --day 2026-06-14 --arm debounced --steps 01 02 02a 03 04 04b
 python benchmarks/run_track_link_day.py --day 2026-06-14 --arm cruise_linked --steps 02 02a 03 04 04b
 python benchmarks/regenerate_track_v4.py --check     # what is stale; no cluster needed
-python benchmarks/regenerate_track_v4.py --force     # the two-day runs and the pipeline scoring
+python benchmarks/regenerate_track_v4.py --force     # final_grid and final_edges over two days, and the pipeline scoring
 python benchmarks/build_track_v4_paper.py            # fills this report; no cluster needed
 ```
 
-**Data.** All in `papers/track-construction-v4/data/`. `final_grid/` has the settings search and the headline, `final_direction/` the direction-aware comparison, `stage2/` the pipeline day. `round1`, `round2`, `round3_fl250`, `round3_fl180`, `round3_fl100` and `round4_fl180` are earlier runs, kept to explain the method. They came from earlier code and are not regenerated. The 18,000 ft run among them matches the final one on the chosen settings, which is why floors are compared across them.
+**Data.** All in `papers/track-construction-v4/data/`. `final_grid/` has the settings search and the headline, `final_edges/` the four combinations of climbing and descending edges at the chosen settings, `stage2/` the pipeline day. `round1`, `round2`, `round3_fl250`, `round3_fl180`, `round3_fl100` and `round4_fl180` are earlier runs, kept to explain the method. They came from earlier code and are not regenerated, and all of them predate reading altitude past blanks, so they are not comparable with the final figures except where this report says so.
 
-**Provenance.** Each file's script, arguments and commit are in the `_manifest.json` beside it. The final files record commit `1da61a5`. They came from `regenerate_track_v4.py --force` on that commit, and `regenerate_track_v4.py --check` reports all three jobs as current. The pipeline day's temporary tables (state vectors and raw tracks under `research/a10`) were deleted afterwards to return bucket space, so re-scoring the pipeline day needs `run_track_link_day.py` run again first.
+**Provenance.** Each file's script, arguments and commit are in the `_manifest.json` beside it. The final files record commit `4e4ceeb`. They came from `regenerate_track_v4.py --force` on that commit, and `regenerate_track_v4.py --check` reports all three jobs as current. The pipeline day's temporary tables (state vectors and raw tracks under `research/a10`) were deleted afterwards to return bucket space, so re-scoring the pipeline day needs `run_track_link_day.py` run again first.
 
 **Render.** `index.qmd` holds this text with literal numbers and the regeneration step, but has not been rendered, because Quarto and R are not available on the machine that built it. `index.html` and `track-construction-v4.pdf` are built from the same text and CSVs by `benchmarks/build_track_v4_paper.py` (the PDF with `--pdf`, using reportlab), not through Quarto.
