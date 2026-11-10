@@ -125,6 +125,28 @@ Superseded. Kept as the record of what was published first.
 
 :::: {.publication-card}
 ::: {.publication-info}
+**[Turning ADS-B state vectors into flight tracks — version 5](track-construction-v5/index.qmd)**
+&nbsp;·&nbsp; [PDF](track-construction-v5/track-construction-v5.pdf)
+
+Makes `cruise_linked` the default track rule. A flight that loses reception for
+over 30 minutes keeps one `track_id` when the data either side of the gap fits one
+continuous flight: flights crossing the edge of the European box come out in one
+track 81.5% of the time against 25.3% before, with 1 false join in 5,888
+checkable linked gaps. Fixes what version 4 left open: level segments and
+flight-level crossings no longer span a gap, cumulative distance reads the last
+known position (a defect that had left every track 14% short), and the flight
+list names the aerodrome it actually ranked first. An independent audit found the
+linking decisions sound and one read-window defect in the callsign guard, fixed.
+A descending new edge now links too: the three false joins that kept it off were
+estimated arrival times outside Europe, and the study's truth no longer counts
+those. One pipeline day shows nothing else moved: 15,032 tracks identical under
+both rules give identical airports and events. The page and PDF are built from
+the CSVs, not yet rendered with Quarto.
+:::
+::::
+
+:::: {.publication-card}
+::: {.publication-info}
 **[Turning ADS-B state vectors into flight tracks — version 4](track-construction-v4/index.qmd)**
 &nbsp;·&nbsp; [PDF](track-construction-v4/track-construction-v4.pdf)
 
@@ -139,8 +161,8 @@ on 185 checkable holes; a new edge descending stays split. About three in four
 linked holes cannot be checked, because truth is European. Does not recommend
 making it the default yet: level segments span a hole on most linked tracks,
 cumulative distance runs short across one, and promotion would add another silent
-`track_id` boundary. The rule ships in the code and is not the default. The page
-and PDF are built from the CSVs, not yet rendered with Quarto.
+`track_id` boundary. Superseded by version 5, which fixes both, audits the rule
+and makes it the default; frozen as the record of the proposal.
 :::
 ::::
 
