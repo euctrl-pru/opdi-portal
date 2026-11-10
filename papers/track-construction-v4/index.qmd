@@ -23,15 +23,17 @@ date: last-modified
 #
 # OPDI_RENDER selects what happens instead:
 #
-#   run          (default) regenerate anything stale, then render
+#   run          regenerate anything stale, then render
 #   check        fail fast naming every stale job, regenerate nothing
 #   allow-stale  render a draft from whatever is staged, after naming staleness
 #   skip         do not invoke the entrypoint at all
+#
+# Unset, it is "skip".
 REPO   <- Sys.getenv("OPDI_REPO_DIR",
                      normalizePath(file.path(getwd(), "..", "..", "..", "opdi"),
                                    mustWork = FALSE))
 PYTHON <- Sys.getenv("OPDI_PYTHON", file.path(REPO, ".venv310", "bin", "python"))
-MODE   <- Sys.getenv("OPDI_RENDER", "run")
+MODE   <- Sys.getenv("OPDI_RENDER", "skip")
 
 # A missing entrypoint must not read as "nothing to regenerate". Skipping it
 # silently is how a page ends up publishing numbers no command can account for.
@@ -63,6 +65,8 @@ if (MODE != "skip") {
   }
 }
 ```
+
+**Superseded by [the next version](../track-construction-v5/index.qmd).** This version proposed the rule and measured it, and recommended against making it the default until two detectors were fixed. The next version fixes them, audits the rule, re-measures on the final code and makes it the default. The numbers below are those this version published; its pipeline-day figures for the new rule were later found to rest on a stale candidate table, and the next version replaces them. This page is frozen: rendering it no longer re-runs the analysis.
 
 ## What we found
 
