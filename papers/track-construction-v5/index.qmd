@@ -187,7 +187,9 @@ A condition qualifies if, on the holes it keeps, there is no false join among th
 | C2 and C3 | 1,375 | 51 | 110 | 0 | 0 of 1,839 | 0.16% | yes |
 | C1 and C2 and C3 | 867 | 28 | 42 | 0 | 0 of 1,811 | 0.17% | limits only |
 
-**Adopted: the descending edge as defined, with no extra condition.** With the labels corrected, the descending edge as defined meets every limit on its own: 0 false joins among 117 checkable holes, 0 of 77,911 hidden landings joined (at most 0.00% at 95% confidence; the straight-line speed check rejects them before the edge is asked), and 1,437 holes linked, 58 of them on flights crossing the box. Each extra condition only removed true links. With it, flights crossing the box in one track go from 80.7% to 81.5%. Like the climbing edge, it rests on about a hundred checkable cases and is provisional.
+**Adopted: the descending edge as defined, with no extra condition.** With the labels corrected, the descending edge as defined meets every limit on its own: 0 false joins among 117 checkable holes, 0 of 77,911 hidden landings joined (at most 0.00% at 95% confidence; the straight-line speed check rejects them before the edge is asked), and 1,437 holes linked, 58 of them on flights crossing the box. Each extra condition only removed true links. With it, flights crossing the box in one track go from 80.7% to 81.5%.
+
+Two cautions belong next to this. The labelling change was decided *after* seeing these three holes, and it is what removed them; that is why it is applied to every hole and stated here rather than made quietly. And zero of 117 still allows a false-join rate of up to 2.53% at 95% confidence, while 91.9% of the holes linked only by descent cannot be checked at all. Like the climbing edge, it rests on about a hundred checkable cases and is provisional.
 
 ### 6.3 One day through the whole pipeline
 
@@ -204,10 +206,11 @@ A condition qualifies if, on the holes it keeps, there is no false join among th
 | Cumulative distance across a hole, difference from the straight line between the edges | — | median -0.0 NM; 0 of 233 holes off by over 1 NM |
 | Flight-list rows without a track | 0 | 0 |
 | Flight-list rows naming an airport that is also in their own list of alternatives | 0 | 0 |
-| Tracks identical under both rules: 15,032. Of those, with different airports / different events | — | 0 / 0 |
-| Running time, steps 02 to 04b | 30 min | 35 min |
+| Tracks identical under both rules: 15,032. Of those, with different airports / different events (type and time) | — | 0 / 0 |
+| Of those, with the same events but a difference inside an event's `info` | — | 4,126 |
+| Running time, steps 02 to 04b | 39 min | 35 min |
 
-Everything that is not a hole came out the same under both rules, which is the point of the last rows: version 4 could not say this. Of the previous rule's 38,383 track boundaries, the new rule removed 3,201: 3,200 at a linked hole, and 1 removed and 1 added because the new rule forgets a callsign not heard for ten hours where the previous rule never forgets one (section 7). None moved for any other reason.
+Everything that is not a hole came out the same under both rules, which is the point of the last rows: version 4 could not say this. The one exception is inside `info`: on 4,126 identical tracks an event's details differ between the two runs while its type and time do not. Traced, these are two order-dependent details that predate this work: when a sample lies on several overlapping taxiway or stand polygons at one instant, which element is named depends on row order, and two flight-level crossings in the same second can swap their sequence numbers. The level-off distances, the figure the new distance method changes, agree on every identical track. Of the previous rule's 38,383 track boundaries, the new rule removed 3,201: 3,200 at a linked hole, and 1 removed and 1 added because the new rule forgets a callsign not heard for ten hours where the previous rule never forgets one (section 7). None moved for any other reason.
 
 | Event type (on aircraft with a linked hole) | Previous rule | New rule | Change |
 |---|---|---|---|
@@ -234,7 +237,7 @@ Everything that is not a hole came out the same under both rules, which is the p
 
 **Detectors stop at a hole.** The event detectors that pair or interpolate samples, level segments and flight-level and ring crossings, now work per piece. A level segment can no longer begin before a hole and end after it, and a crossing cannot be placed at an instant inside one. Detectors that read a whole track, such as first and last seen, tops of climb and descent and the runway and block milestones, are unchanged. A track without a hole gives exactly the events it gave before, and a test holds that.
 
-**Cumulative distance reads the last known position.** The released measurement (`distance_v0.0.2`) measured each sample against the row before it, so a sample whose position cleaning had blanked contributed nothing, and neither did the sample after it. On 2026-06-14, 13.9% of the distance flown was missing from tracks that have no hole at all: 13,536 of 17,455 tracks were over 1 NM short, by a median of 9.9 NM. The new measurement (`distance_v0.0.3`) reads from the last position that was known, and across a hole it adds the straight line between the hole's edges, a lower bound on what was flown and the only figure the data supports. Reprocessing a released month with the legacy configuration still gives `distance_v0.0.2`.
+**Cumulative distance reads the last known position.** The released measurement (`distance_v0.0.2`) measured each sample against the row before it, so a sample whose position cleaning had blanked contributed nothing, and neither did the sample after it. On 2026-06-14, 13.9% of the distance flown was missing from tracks that have no hole at all: 13,536 of 17,455 tracks were over 1 NM short, by a median of 9.9 NM. The new measurement (`distance_v0.0.3`) reads from the last position that was known, and across a hole it adds the straight line between the hole's edges, a lower bound on what was flown and the only figure the data supports. Reprocessing a released month with the legacy configuration still gives `distance_v0.0.2`. One consequence reaches the events: a level-off's `distance_nm`, carried in the event's `info`, is a difference of the cumulative distance and changes with it on every track with a blanked position. Event types and times do not move; the figure inside `info` does.
 
 **The flight list names the aerodrome it ranked first.** After ranking the candidate aerodromes, the code took the first row of each group with Spark's `first()`, which returns whichever row the aggregation meets first, not the row ranked first. That is usually the same row, but not once a task holds enough groups for Spark to fall back to a sort-based aggregation; the test that reproduces it fails on exactly the 128th flight in a task. About 1% of named airports were in fact one of the alternatives, and the named airport then also appeared in its own list of alternatives. Version 4 saw this as airports changing between the two rules on tracks the rules had not touched. Exact ties between two candidates, an aerodrome listed under two identifiers, are now settled by the identifier.
 
@@ -253,7 +256,7 @@ Everything that is not a hole came out the same under both rules, which is the p
 - **A track can hold a hole.** Consumers who compute along a track, as the detectors did, should not interpolate across a silence of more than 30 minutes. The `cumulative_distance_nm` measurement adds the straight line across one.
 - **`distance_v0.0.3`** is the version string of the corrected distance; `distance_v0.0.2` is the released one, reproducible under the legacy configuration.
 - **The previous rule is still there.** `config.segmentation.method = "debounced"` gives the previous ids (A9); `"recommended"` gives A8; `"legacy"` the rule before 2026-08-27.
-- **Each day's run takes longer.** It reads 11 hours of the previous day instead of 3, and the segmentation step reads up to 60 samples around every sample. On the pipeline day, steps 02 to 04b took 35 min under the new rule against 30 min under the previous one.
+- **Each day's run takes longer.** It reads 11 hours of the previous day instead of 3, and the segmentation step reads up to 60 samples around every sample. On the pipeline day, steps 02 to 04b took 35 min under the new rule against 39 min under the previous one.
 
 ## 9. Limits
 
@@ -265,4 +268,4 @@ Everything that is not a hole came out the same under both rules, which is the p
 
 ## 10. Reproducing this report
 
-Every number above comes from a CSV under `data/`, produced by exactly one job in `benchmarks/regenerate_track_v5.py` with the arguments it declares, and stamped with the code it was produced by (`data/*/_manifest.json`: `8d8b061` (dirty), `988ae19`, `988ae19` (dirty), `d2f21ba`). `python benchmarks/regenerate_track_v5.py --check` says what is stale; without `--check` it re-runs only that, on the cluster. The pipeline day needs `benchmarks/run_track_link_day.py` to have built both arms first. The prose is filled from the CSVs by `benchmarks/build_track_v5_paper.py`, which refuses to build with a number missing.
+Every number above comes from a CSV under `data/`, produced by exactly one job in `benchmarks/regenerate_track_v5.py` with the arguments it declares, and stamped with the code it was produced by (`data/*/_manifest.json`: `122101c`, `988ae19`, `988ae19` (dirty), `f3badb8`). `python benchmarks/regenerate_track_v5.py --check` says what is stale; without `--check` it re-runs only that, on the cluster. The pipeline day needs `benchmarks/run_track_link_day.py` to have built both arms first. The prose is filled from the CSVs by `benchmarks/build_track_v5_paper.py`, which refuses to build with a number missing.
