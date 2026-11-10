@@ -1,0 +1,268 @@
+---
+title: "One flight, one track across a reception gap"
+subtitle: "Version 5: the rule becomes the default -- what was fixed, what was audited, and what it measures now"
+author: "EUROCONTROL Performance Review Unit"
+date: last-modified
+---
+
+```{r regenerate}
+#| include: false
+#| cache: false
+
+# Rendering this page runs the analysis behind it.
+#
+# `regenerate_track_v5.py` is the executable definition of the study: each CSV
+# behind this page is produced by exactly one job it declares, with exactly the
+# arguments it declares. It re-runs a job when the *code that job depends on*
+# has changed since the output was written, not when the file is old.
+#
+# The prose below holds literal numbers, filled in by
+# `benchmarks/build_track_v5_paper.py`, so regenerating alone would leave them
+# behind. The second call therefore fails the render if this file is no longer
+# what the CSVs give: run the builder, then render again.
+#
+# OPDI_RENDER selects what happens instead:
+#
+#   run          regenerate anything stale, then render
+#   check        fail fast naming every stale job, regenerate nothing
+#   allow-stale  render a draft from whatever is staged, after naming staleness
+#   skip         do not invoke the entrypoint at all
+#
+# Unset, it is "run".
+REPO   <- Sys.getenv("OPDI_REPO_DIR",
+                     normalizePath(file.path(getwd(), "..", "..", "..", "opdi"),
+                                   mustWork = FALSE))
+PYTHON <- Sys.getenv("OPDI_PYTHON", file.path(REPO, ".venv310", "bin", "python"))
+MODE   <- Sys.getenv("OPDI_RENDER", "run")
+
+# A missing entrypoint must not read as "nothing to regenerate". Skipping it
+# silently is how a page ends up publishing numbers no command can account for.
+regen <- file.path(REPO, "benchmarks", "regenerate_track_v5.py")
+build <- file.path(REPO, "benchmarks", "build_track_v5_paper.py")
+if (!file.exists(regen) && MODE != "skip") {
+  stop("regenerate_track_v5.py not found under REPO=", REPO,
+       " -- set OPDI_REPO_DIR, or OPDI_RENDER=skip to render without it.")
+}
+
+# `skip` short-circuits before system2, so no Python process starts and no Spark
+# session is created. Every other mode reaches the entrypoint.
+if (MODE != "skip") {
+  flags <- switch(MODE,
+                  "run" = character(0),
+                  "check" = "--check",
+                  "allow-stale" = c("--check", "--allow-stale"),
+                  character(0))
+  status <- system2(PYTHON, c(shQuote(regen), flags), stdout = "", stderr = "")
+  if (!identical(status, 0L)) {
+    stop("regenerate_track_v5.py exited ", status,
+         " -- the figures below would not match the code that is checked out. ",
+         "Set OPDI_RENDER=allow-stale to render anyway.")
+  }
+  if (MODE != "allow-stale" &&
+      !identical(system2(PYTHON, c(shQuote(build), "--paper-dir", shQuote(getwd()), "--check"),
+                         stdout = "", stderr = ""), 0L)) {
+    stop("index.qmd no longer matches the CSVs: run build_track_v5_paper.py and render again.")
+  }
+}
+```
+
+## 1. Summary
+
+A flight that loses ADS-B reception for more than 30 minutes used to come out of OPDI as two tracks, and so as two rows in the flight list, neither with both airports. Version 4 of this study proposed a rule, `cruise_linked`, that keeps one `track_id` across such a gap when the data on both sides fits one continuous flight, and measured it. It also found two things that broke across the gap and recommended against making the rule the default until they were fixed.
+
+This version fixes them, traces the side effects version 4 could not explain, has the rule audited independently, re-measures everything on the final code, and makes `cruise_linked` the default. In short:
+
+- **Flights crossing the edge of the European box come out in one track 81.5% of the time, against 25.3% under the previous rule** (6,450 such flights over two days). All flights: 87.6% to 95.2%.
+- **Wrong joins stay rare.** 1 false join among 5,888 checkable linked gaps (0.02%); 6 of 234,444 artificial gaps hiding a real landing were joined.
+- **In a full pipeline run on one airframe in ten**, flights crossing the box with both airports right on one row went from 0 to 108 of 285. Take-off and landing detections did not fall (no change).
+- **Reappearing on descent:** a hole can now also link when the aircraft reappears descending below the cruise floor. The three false joins that kept this off in version 4 were estimated truth times (section 6.2).
+- **Nothing is computed across a gap any more.** Level segments spanning a gap: 0 of 194 linked tracks checked (version 4: most of them). Cumulative distance across a gap is within 1 NM of the straight line on 100.0% of gaps checked.
+- **A distance bug that affected every track is fixed.** Cumulative distance skipped every sample whose position cleaning had blanked, which left tracks 13.9% short in total on the day measured. That had nothing to do with gaps and had gone unnoticed.
+- **The flight list named the wrong airport about 1% of the time**, through a Spark aggregation that does not return the row it was meant to. Fixed; this is what version 4 saw as airports "moving" on tracks the rule had not touched.
+
+Making this the default changes `track_id` for everything produced from now on. Section 8 says what that means for anyone using the data and how to get the previous rule back.
+
+## 2. The problem
+
+Take a flight from New York to Frankfurt. Receivers hear it leave New York, lose it over the ocean, and hear it again near Ireland hours later. The previous rule sees a silence of over 30 minutes and starts a new track, so the flight list says this (an illustration, not a record from the data):
+
+| Rule and row | Track | ADEP | ADES |
+|---|---|---|---|
+| Previous rule, first row | first piece | KJFK | none |
+| Previous rule, second row | second piece | none | EDDF |
+| New rule, the only row | one track | KJFK | EDDF |
+
+Anyone counting flights from New York to Frankfurt counts none under the previous rule. Over the two days studied, the 6,450 flights crossing the edge of the European box made 12,403 tracks, 1.92 per flight.
+
+## 3. Words used in this report
+
+- A **track** is one `track_id`: the samples OPDI treats as one flight. Tracks are built per aircraft (per `icao24` address) by deciding, sample by sample, whether a new track starts.
+- A **hole** is a silence of more than 30 minutes between two consecutive samples of one track. Under the previous rule no track had one, because every such silence started a new track. Under the new rule a track can hold one or more.
+- The **edges** of a hole are the samples just before and just after it. The rule reads its evidence there: altitude, vertical rate, speed, position and callsign.
+- A **piece** is the run of samples between two holes (or between a hole and the end of the track). A track without a hole is one piece.
+- A **linked hole** is a hole the rule decided to keep inside one track rather than split at.
+- A **false join** is a linked hole whose two sides belong to two different flights of the same aircraft: the aircraft landed and took off again inside the hole, unseen. The landing and the take-off vanish from the data, and the flight list pairs an airport from one flight with an airport from the other. A split, by contrast, is visible and leaves two truthful pieces, so a false join is treated as the worse mistake throughout.
+
+## 4. The rule
+
+A hole stays inside one track only if all of these hold. If a value a check needs is missing, the check fails and the hole splits, except where the table says otherwise.
+
+| Check | Setting | Why |
+|---|---|---|
+| Hole not too long | at most 600 min | Longer silences leave too much room for anything to have happened. |
+| At cruise or climbing before the hole | lowest of the nearest 5 altitudes within 5 min before the hole at or above 18,000 ft; or, below that, climbing: mean of the nearest 5 vertical rates above 500 ft/min, resting on at least 3 of them | An aircraft lost at cruise, or still climbing out, is en route. |
+| At cruise or descending after the hole | lowest of the nearest 5 altitudes within 5 min after the hole at or above 18,000 ft; or, below that but at or above 5,000 ft, descending: mean of the nearest 5 vertical rates below −500 ft/min, resting on at least 3 of them | The same at the other side; an aircraft reappearing on its descent is arriving (section 6.2). |
+| No descent then climb | not both descending faster than 500 ft/min before and climbing faster than that after; a blank vertical rate does not count against it | That is what a stop inside the hole looks like. |
+| Callsign agrees | the last callsign before the hole (at most 60 min old) and the first after it (within 10 min) are not both present and different; blank counts as agreeing | A different callsign is a different flight. A blank says nothing. |
+| Straight-line speed not too slow | at least 400 kt: distance between the edge positions divided by the time between them | A stop uses up time, which lowers this speed. |
+| Straight-line speed not impossible | at most 750 kt | Faster than this is two aircraft sharing an address, not wind. |
+| Real address | `icao24` not `000000`, `000001` or `ffffff` | These placeholders are shared by many aircraft. |
+
+Every edge value is read past blank samples, within 5 min of the hole, because ADS-B sends position and altitude in separate messages and the sample right at an edge often lacks one of them. Everything else stays as under the previous rule: a callsign change, and a short silence at low altitude, still split. No sample is invented; the hole stays empty and only the identity changes.
+
+One consequence for how OPDI runs: because a track can now reach back across a hole of up to 600 min, each day's run reads 11 hours of the previous day instead of 3, so that both days see the same evidence and decide a hole near midnight the same way.
+
+## 5. How it was tested
+
+Truth is Network Manager's European flight data for 2026-06-14 and 2025-06-14, the two worldwide days with every table needed. Four tests:
+
+| Test | What it does | What should happen |
+|---|---|---|
+| Real holes | Each linked hole checked against the truth, matched on aircraft and time (never on callsign, which the rule itself uses). True link: the hole lies inside one flight. False join: a landing or take-off of that aircraft falls inside the hole. Otherwise unknown. | No false joins |
+| Hidden landing | Two consecutive flights of one aircraft. Delete from a cruise point in the first to a cruise point in the second, so a real landing sits inside an artificial hole. | Not joined |
+| Cut flight | Delete the middle of one continuous flight, for 60 to 360 min. | Rejoined |
+| Full pipeline day | 2026-06-14, one airframe in ten, through the whole pipeline under both rules, from state vectors to the flight list, events and measurements. | More flights right, nothing else changed |
+
+The limits a setting had to meet are version 4's: false joins at most 0.1% of checkable real holes; at most 1% of hidden landings joined, read as a 95% upper bound; at most 5% where the two flights share a callsign or one is blank, the case the callsign check cannot catch. The settings were chosen in version 4 and are not re-tuned here; this version measures them again on the final code.
+
+In addition, the rule's code was audited by a reviewer who had not written it. The reviewer wrote a plain-Python copy of the rule from its documentation and ran it against the real Spark rule on 691,524 decisions over randomly generated aircraft crowding every threshold: the two agreed on every one. The audit also compared two day-runs of the same data and found no linking decision that differed. What it did find is in section 7.
+
+## 6. Results
+
+### 6.1 Two days against Network Manager
+
+| Flights | Number | In one track, previous rule | In one track, new rule | Tracks per flight, previous | Tracks per flight, new |
+|---|---|---|---|---|---|
+| Crossing the edge of the European box | 6,450 | 1,633 (25.3%) | 5,256 (81.5%) | 1.92 | 1.17 |
+| All others | 51,986 | 49,546 (95.3%) | 50,368 (96.9%) | 1.03 | 1.01 |
+| All | 58,436 | 51,179 (87.6%) | 55,624 (95.2%) | 1.12 | 1.02 |
+
+"In one track" says the flight is not split. It does not say the track holds nothing else; the false-join tests answer that. The counts include 931 flights with no track at all, which read as not in one track.
+
+| Evidence | Result | Reading |
+|---|---|---|
+| Real holes that can be checked | 1 false join of 5,888 (0.02%) | Within the 0.1% limit. |
+| Real holes that cannot be checked | 18,534 of 24,422 (75.9%) | No evidence either way: the truth covers Europe only. |
+| Real holes linked only because the aircraft was climbing before the hole | 0 false joins of 186 checkable | Still provisional: fewer than the 300 cases version 4 wanted. Zero of 186 still allows up to 1.6% at 95% confidence. |
+| Hidden landing | 6 of 234,444 joined | At most 0.005%, at 95% confidence. |
+| Hidden landing, same or blank callsign only | 6 of 7,203 joined | At most 0.16%. |
+| Cut flight | 40,121 of 49,518 rejoined (81.0%) | |
+
+With the climbing-edge allowance switched off, crossing flights in one track would be 79.9% instead of 81.5%; the allowance stays on, as version 4 decided.
+
+### 6.2 Reappearing on descent
+
+Version 4 let an aircraft lost while still *climbing* link, but not one that reappears *descending* below the cruise floor: holes linked only that way showed 3 false joins in 119 checkable cases, over the 0.1% limit. With so few cases that applied the limit without explaining anything. This version looked at those holes.
+
+A hole "linked only by descent" has every other check passing and a new edge below 18,000 ft, at or above 5,000 ft, descending faster than 500 ft/min on at least 3 vertical-rate samples. The danger is specific: an aircraft that landed and took off again inside the hole reappears descending towards the *next* flight's destination, and "descending" alone cannot tell the two apart.
+
+**The three false joins were not false joins.** Each is a flight from Europe to Seoul whose Network Manager arrival time, an estimate because Seoul lies outside its area, falls one to six minutes *before* an ADS-B sample showing the aircraft still airborne and descending, with the same callsign on both sides. The holes are 46 to 57 minutes long and were crossed at 480 to 561 kt in a straight line, which leaves no time for a landing. The study's labelling now takes an event at an aerodrome outside the European box as no evidence either way, for every hole, not only these; on the two days that changes the label of 3 holes linked only by descent and 2 other linked holes, so the false joins among all checkable linked holes go from 3 in version 4 to 1 here.
+
+Three extra conditions had also been fixed in advance and were tried, alone and combined, on every hole linked only by descent over the two days (3,596 holes with a descending new edge, 81,112 hidden-landing tests of the same shape):
+
+- **C1 floor:** the new edge is still at or above 10,000 ft, so the aircraft is further from any airport.
+- **C2 callsign:** a callsign is present on both sides of the hole and equal. A blank says nothing, and every hidden landing that got through in version 4 had a blank or equal callsign.
+- **C3 shorter hole:** the hole is at most 360 min.
+
+A condition qualifies if, on the holes it keeps, there is no false join among those that can be checked, at most 1% of hidden landings are joined (as a 95% upper bound), at most 5% of those with the same or a blank callsign, at least 50 holes can be checked, and at least 20 of the holes it keeps lie on flights crossing the box.
+
+| Condition | Holes kept | On crossing flights | Checkable | False joins | Hidden landings joined | Upper bound, 95% | Qualifies |
+|---|---|---|---|---|---|---|---|
+| no extra condition | 1,437 | 58 | 117 | 0 | 0 of 77,911 | 0.00% | yes |
+| C1 | 895 | 34 | 48 | 0 | 0 of 75,699 | 0.00% | limits only |
+| C2 | 1,394 | 54 | 113 | 0 | 0 of 2,108 | 0.14% | yes |
+| C3 | 1,416 | 55 | 114 | 0 | 0 of 67,803 | 0.00% | yes |
+| C1 and C2 | 870 | 30 | 44 | 0 | 0 of 2,071 | 0.14% | limits only |
+| C1 and C3 | 892 | 32 | 46 | 0 | 0 of 65,948 | 0.00% | limits only |
+| C2 and C3 | 1,375 | 51 | 110 | 0 | 0 of 1,839 | 0.16% | yes |
+| C1 and C2 and C3 | 867 | 28 | 42 | 0 | 0 of 1,811 | 0.17% | limits only |
+
+**Adopted: the descending edge as defined, with no extra condition.** With the labels corrected, the descending edge as defined meets every limit on its own: 0 false joins among 117 checkable holes, 0 of 77,911 hidden landings joined (at most 0.00% at 95% confidence; the straight-line speed check rejects them before the edge is asked), and 1,437 holes linked, 58 of them on flights crossing the box. Each extra condition only removed true links. With it, flights crossing the box in one track go from 80.7% to 81.5%. Like the climbing edge, it rests on about a hundred checkable cases and is provisional.
+
+### 6.3 One day through the whole pipeline
+
+2026-06-14, one airframe in ten, both rules run through every step. "Previous rule" is `debounced`; "new rule" is `cruise_linked`.
+
+| What | Previous rule | New rule |
+|---|---|---|
+| Flights crossing the box with both airports right on one row (of 285) | 0 | 108 |
+| Rows in the flight list per crossing flight | 1.78 | 1.15 |
+| All flights with both airports right on one row (of 2,963) | 1,951 | 2,069 |
+| Take-offs and landings detected, against 3,493 in the truth | 2,921 | 2,921 (no change) |
+| Linked holes in the day | — | 1,349 on 1,087 tracks |
+| Level segments spanning a hole | — | 0 of 194 tracks checked |
+| Cumulative distance across a hole, difference from the straight line between the edges | — | median -0.0 NM; 0 of 233 holes off by over 1 NM |
+| Flight-list rows without a track | 0 | 0 |
+| Flight-list rows naming an airport that is also in their own list of alternatives | 0 | 0 |
+| Tracks identical under both rules: 15,032. Of those, with different airports / different events | — | 0 / 0 |
+| Running time, steps 02 to 04b | 30 min | 35 min |
+
+Everything that is not a hole came out the same under both rules, which is the point of the last rows: version 4 could not say this. Of the previous rule's 38,383 track boundaries, the new rule removed 3,201: 3,200 at a linked hole, and 1 removed and 1 added because the new rule forgets a callsign not heard for ten hours where the previous rule never forgets one (section 7). None moved for any other reason.
+
+| Event type (on aircraft with a linked hole) | Previous rule | New rule | Change |
+|---|---|---|---|
+| `first_seen` | 545 | 311 | -234 |
+| `last_seen` | 530 | 296 | -234 |
+| `top-of-climb` | 540 | 306 | -234 |
+| `top-of-descent` | 540 | 306 | -234 |
+| `AIBT` | 130 | 117 | -13 |
+| `AOBT` | 136 | 123 | -13 |
+| `level-end` | 1,334 | 1,333 | -1 |
+| `level-start` | 1,335 | 1,334 | -1 |
+| `xing-60nm` | 423 | 424 | +1 |
+| `xing-fl50` | 450 | 451 | +1 |
+| `xing-fl100` | 455 | 459 | +4 |
+| `level-off-descent-end` | 644 | 649 | +5 |
+| `level-off-descent-start` | 646 | 651 | +5 |
+| `level-off-climb-end` | 201 | 210 | +9 |
+| `level-off-climb-start` | 201 | 210 | +9 |
+| `xing-fl245` | 471 | 487 | +16 |
+
+`first_seen`, `last_seen` and the tops of climb and descent each fall by 234, the number of linked holes inside the flights scored: each is one per track, and two pieces are now one track. `AOBT` and `AIBT` (off-block and on-block) fall by 13 and 13 for the same reason: the block detector gives a track at most one of each, the first off-block and the last on-block. This is not evidence of glued flights: all 1,349 linked holes of the sample were labelled against every Network Manager flight of the aircraft, whatever its day, and 0 are false joins (378 are true links, 306 unknown, 665 on aircraft Network Manager does not know). Block events on both sides of a hole occur on 10 of the 378 true links too, so they are not proof of a stop. The small rises in level-off and flight-level crossings come from pieces that now carry their track's cumulative measures across the hole.
+
+## 7. What changed since version 4
+
+**Detectors stop at a hole.** The event detectors that pair or interpolate samples, level segments and flight-level and ring crossings, now work per piece. A level segment can no longer begin before a hole and end after it, and a crossing cannot be placed at an instant inside one. Detectors that read a whole track, such as first and last seen, tops of climb and descent and the runway and block milestones, are unchanged. A track without a hole gives exactly the events it gave before, and a test holds that.
+
+**Cumulative distance reads the last known position.** The released measurement (`distance_v0.0.2`) measured each sample against the row before it, so a sample whose position cleaning had blanked contributed nothing, and neither did the sample after it. On 2026-06-14, 13.9% of the distance flown was missing from tracks that have no hole at all: 13,536 of 17,455 tracks were over 1 NM short, by a median of 9.9 NM. The new measurement (`distance_v0.0.3`) reads from the last position that was known, and across a hole it adds the straight line between the hole's edges, a lower bound on what was flown and the only figure the data supports. Reprocessing a released month with the legacy configuration still gives `distance_v0.0.2`.
+
+**The flight list names the aerodrome it ranked first.** After ranking the candidate aerodromes, the code took the first row of each group with Spark's `first()`, which returns whichever row the aggregation meets first, not the row ranked first. That is usually the same row, but not once a task holds enough groups for Spark to fall back to a sort-based aggregation; the test that reproduces it fails on exactly the 128th flight in a task. About 1% of named airports were in fact one of the alternatives, and the named airport then also appeared in its own list of alternatives. Version 4 saw this as airports changing between the two rules on tracks the rules had not touched. Exact ties between two candidates, an aerodrome listed under two identifiers, are now settled by the identifier.
+
+**A day run rebuilds its endpoint candidates.** The table of candidate aerodromes for each track's two ends is a cache. Version 4's pipeline day re-used one built from an earlier set of tracks, and 279 of its flight-list rows had no track. Its numbers for the new rule were therefore wrong; those in section 6.3 replace them. The scorer now stops if any row has no track.
+
+**A descending new edge can link.** Section 6.2: the three cases that kept it off were estimated truth times, and on corrected labels it meets the limits on its own. `link_new_edge_descent=False` reproduces the version-4 rule.
+
+**Truth events outside Europe no longer count.** Network Manager's take-off and landing times at aerodromes outside the European box are estimates. The labelling that scores every linked hole now treats such an event as no evidence; a hole with nothing else reads unknown. Over the two days 5 linked holes had such an event: the three descent cases and 2 of the three false joins version 4 reported on cruise edges, which were the same kind of estimate.
+
+**Audit of the rule.** The independent audit found the linking decisions correct and found one real defect, in the callsign guard the rule shares with the previous rule: a callsign is a *flicker* (one or two garbled samples that revert) only relative to the callsign seen before, and the guard remembered that earlier callsign without limit. One day's run can still hold a callsign the next day's run starts after, and the two then judged a flicker after a hole differently, so a piece could be written twice or by neither day. The new rule now forgets a callsign not heard for longer than the longest hole it can link (600 min), which every day's run holds. The previous rule, selectable by name, keeps its published behaviour, where the same disagreement needs three hours without a callsign and is rare. Three smaller items: samples inside one second are now taken in time order (only possible with ADS-C merged); a `NaN` coordinate is read past like a blank one; and two expressions were simplified without changing a decision.
+
+## 8. What changes for users of the data
+
+- **`track_id` changes for everything produced from now on.** A flight that crossed a reception hole now has one id where it had two. This is the fourth such boundary (after the moves to A8 on 2026-08-27, to A9, and this one); nothing in the published tables says which rule produced a row, so anyone comparing across the boundary has to be told. A join across it returns nothing rather than an error.
+- **The flight list has fewer rows and more of them carry both airports.** Rows per crossing flight fall from 1.78 to 1.15.
+- **A track can hold a hole.** Consumers who compute along a track, as the detectors did, should not interpolate across a silence of more than 30 minutes. The `cumulative_distance_nm` measurement adds the straight line across one.
+- **`distance_v0.0.3`** is the version string of the corrected distance; `distance_v0.0.2` is the released one, reproducible under the legacy configuration.
+- **The previous rule is still there.** `config.segmentation.method = "debounced"` gives the previous ids (A9); `"recommended"` gives A8; `"legacy"` the rule before 2026-08-27.
+- **Each day's run takes longer.** It reads 11 hours of the previous day instead of 3, and the segmentation step reads up to 60 samples around every sample. On the pipeline day, steps 02 to 04b took 35 min under the new rule against 30 min under the previous one.
+
+## 9. Limits
+
+- About 75.9% of linked holes cannot be checked, because the truth covers Europe only. The false-join rate is measured on the rest.
+- The climbing-edge allowance rests on 186 checkable holes, fewer than wanted. The descending-edge allowance rests on 117.
+- The callsign check reads 60 minutes back, longer than the 30 minutes that start a new track, so it can read a callsign from the previous flight of the same aircraft and split a hole that should link. It errs towards splitting and both days' runs agree on it.
+- A decision in the last ten minutes of a day's read, or a hole straddling its end, sees less than the next day's read does. The run warns about tracks still alive there; under the new rule the warning fires more often and names tracks that may simply be long.
+- Two days of truth. Both are in June.
+
+## 10. Reproducing this report
+
+Every number above comes from a CSV under `data/`, produced by exactly one job in `benchmarks/regenerate_track_v5.py` with the arguments it declares, and stamped with the code it was produced by (`data/*/_manifest.json`: `8d8b061` (dirty), `988ae19`, `988ae19` (dirty), `d2f21ba`). `python benchmarks/regenerate_track_v5.py --check` says what is stale; without `--check` it re-runs only that, on the cluster. The pipeline day needs `benchmarks/run_track_link_day.py` to have built both arms first. The prose is filled from the CSVs by `benchmarks/build_track_v5_paper.py`, which refuses to build with a number missing.
