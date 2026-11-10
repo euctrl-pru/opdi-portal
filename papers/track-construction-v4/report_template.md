@@ -1,3 +1,5 @@
+**Superseded by [the next version](../track-construction-v5/index.qmd).** This version proposed the rule and measured it, and recommended against making it the default until two detectors were fixed. The next version fixes them, audits the rule, re-measures on the final code and makes it the default. The numbers below are those this version published; its pipeline-day figures for the new rule were later found to rest on a stale candidate table, and the next version replaces them. This page is frozen: rendering it no longer re-runs the analysis.
+
 ## What we found
 
 Today a reception gap of over 30 minutes ends a track. A flight crossing the Atlantic therefore becomes two tracks and two rows in the flight list, and neither row has both airports. The new rule keeps one `track_id` across such a gap when the evidence at its two edges fits one continuous flight.
