@@ -114,6 +114,8 @@ FORBIDDEN_WORDS = (
     (r"\bleverag(e|es|ed|ing)\b", "'leverage': say 'use'"),
     (r"\bdelv(e|es|ed|ing)\b", "'delve': say 'look at'"),
     (r"\bseamless(ly)?\b", "'seamless': remove or say what it means"),
+    (r"\bcrucial(ly)?\b", "'crucial': say why it matters"),
+    (r"\bcomprehensive(ly)?\b", "'comprehensive': say what is covered"),
     (r"\bA(8|9|10)\b", "internal method name: describe the method instead"),
 )
 

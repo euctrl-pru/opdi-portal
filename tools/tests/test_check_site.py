@@ -134,6 +134,16 @@ def test_forbidden_word_rung_fails(site):
     assert "vocabulary" in kinds(site)
 
 
+@pytest.mark.parametrize("sentence", [
+    "This step is crucial for the result.",
+    "A comprehensive list of events.",
+])
+def test_vague_words_fail(site, sentence):
+    page = site / "content" / "about.qmd"
+    page.write_text(page.read_text() + "\n" + sentence + "\n")
+    assert "vocabulary" in kinds(site)
+
+
 def test_link_to_community_page_fails(site):
     page = site / "index.qmd"
     page.write_text(page.read_text() + "\n[Meet the community](content/community.qmd)\n")
