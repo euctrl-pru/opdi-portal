@@ -1,0 +1,186 @@
+---
+title: "Limitations"
+description: "When the OPDI data are missing or wrong: limits that apply to the whole dataset, and a summary of the limits of each method with links to the details."
+---
+
+This page says where the OPDI data should not be trusted, or should be used
+with care. The first part covers limits that apply to the whole dataset. The
+second part gives one short summary per method, with a link to the full list
+on its methods page.
+
+## Limits of the whole dataset
+
+### ADS-B reception {#ads-b-reception}
+
+Everything in OPDI comes from **ADS-B** (Automatic Dependent
+Surveillance–Broadcast) messages: radio messages in which an aircraft
+broadcasts its position, altitude and speed. They are heard only by a
+receiver within radio range, which is a few hundred kilometres at cruise
+altitude and much less near the ground. The OpenSky Network's receivers are
+run by volunteers and institutions, and they are not spread evenly.
+
+- Where no receiver is near, there are no data. This is often the case over
+  the oceans, over large areas with few receivers, and on the ground at many
+  airports.
+- An event that needs reception on the ground (block times, runway events,
+  airport surface events) is missing wherever the airport surface is not
+  heard. Its absence does not mean that the event did not happen.
+- Aircraft without ADS-B, or that do not broadcast it, are not in the data.
+- Counts made from OPDI (flights per airport, movements per runway) are
+  therefore lower bounds, not totals. How much of an airport's traffic OPDI
+  sees varies from one airport to another and from one day to the next: see
+  [OPDI Sensors: where next](../sensors-expansion.qmd) for a measurement over
+  European airports in 2025.
+
+### No flight plan data
+
+OPDI uses no flight plans. A **flight** in OPDI is a **track**: the position
+reports of one aircraft that belong together (see
+[Track identity](../methods/track-identity.qmd)). It starts where reception
+starts and ends where reception ends.
+
+- The departure and destination airports are found from the track. They are
+  empty when the track begins or ends away from an airport (see
+  [Departure and destination airports](../methods/airports.qmd)).
+- Nothing about the planned route, the planned times or the airline schedule
+  is known. Delays against a schedule cannot be computed from OPDI alone.
+- A flight that is split into two tracks gives two rows in the flight list.
+
+### Day of a flight
+
+A flight belongs to the day on which it was first seen, in UTC, and all its
+events are in the files of that day (see
+[Data](index.qmd#which-day-a-flight-belongs-to)). As a result:
+
+- The events of one file can happen on the next day.
+- To count the events or landings that **happened** on one day, read that
+  day's files and the files of the day before, and filter on `event_time`.
+- A flight first seen just before midnight UTC belongs to the earlier day,
+  even if it took off after midnight.
+
+### One AIRAC cycle for the airspace
+
+The flight information regions used for `xing-fir` are those of one AIRAC
+cycle, 524 (valid 2024-11-28 to 2024-12-26), for every day. An **AIRAC
+cycle** is the 28-day period in which changes to aeronautical data such as
+airspace boundaries take effect. Where a boundary has moved since that cycle,
+the crossings follow the old boundary. See
+[FIR crossings](../methods/fir-crossings.qmd#limitations).
+
+### Accuracy measured on European airports
+
+Most methods were checked against EUROCONTROL Network Manager data, which
+cover flights in the European area. The airports used for the checks are
+mostly those with the best reception. Elsewhere in the world, and at airports
+with less reception, the accuracy has not been measured and is likely to be
+lower. Several items have not been compared with any reference at all: the
+[Validation summary](../methods/validation-summary.qmd) marks them "Not
+validated".
+
+### Open reference data
+
+Airports and runways come from OurAirports, airport layouts and stand names
+from OpenStreetMap, and aircraft details from the OpenSky aircraft database.
+An error or a gap in these open sources carries over into OPDI: a runway
+missing from OurAirports gives no runway events, and an unmapped stand gives
+no block time.
+
+## Limits of each method
+
+### Track identity
+
+A track can hold reception gaps of up to 10 hours; never interpolate across a
+silence of more than 30 minutes. A flight can still be split into several
+tracks, and, rarely, two flights of one aircraft can be joined. `flight_id`
+values of different releases do not match.
+[All limitations](../methods/track-identity.qmd#limitations).
+
+### Trajectory cleaning
+
+Cleaning empties values that cannot be trusted; it does not repair them, so
+many positions, altitudes and speeds are missing. Jamming of satellite
+navigation is not removed.
+[All limitations](../methods/trajectory-cleaning.qmd#limitations).
+
+### Departure and destination airports
+
+About one departure in five and one arrival in three get no airport. Small
+airfields and heliports are never named. The method was checked in the
+European area only.
+[All limitations](../methods/airports.qmd#limitations).
+
+### Take-off and landing
+
+The published take-off and landing times mix two methods with different
+shifts; the field `method` in `info` tells them apart. Most reference times
+are rounded to the minute, so differences under about 30 s could only be
+judged at three airports. A track keeps at most one take-off and one landing.
+[All limitations](../methods/takeoff-landing.qmd#limitations).
+
+### Block times
+
+Off-block times tend to be late and in-block times early, by about a minute,
+so taxi times computed from them are too short. The events need reception at
+the stand and stands mapped in OpenStreetMap.
+[All limitations](../methods/block-times.qmd#limitations).
+
+### Runway milestones
+
+Line-up, runway vacated, runway crossings and go-arounds have not been
+compared with reference data. They need reception on the runway, and their
+times can be off by up to 5 s.
+[All limitations](../methods/runway-milestones.qmd#limitations).
+
+### Airport surface events
+
+Not compared with reference data. The events depend on ground reception and
+on OpenStreetMap; areas overlap, so one movement can give several events at
+the same time, and passing over a stand is not parking there.
+[All limitations](../methods/surface-events.qmd#limitations).
+
+### Vertical events
+
+Not compared with reference data. `level-start` and `level-end` fit
+turboprops and light aircraft poorly; for vertical efficiency indicators, use
+the level-offs. A track that starts in the air can have its top of climb at
+its first position.
+[All limitations](../methods/vertical-events.qmd#limitations).
+
+### Distance rings
+
+Only arrival crossings of the 40 NM and 100 NM rings were checked. Rings are
+drawn only around the airports the flight list names, so a wrong airport gives
+crossings around the wrong airport.
+[All limitations](../methods/distance-rings.qmd#limitations).
+
+### Holding
+
+Checked on one day at two airports in Western Europe. Short holds, and holds
+flown low or slowly, are not reported.
+[All limitations](../methods/holding.qmd#limitations).
+
+### Point merge
+
+Checked by eye at one airport on one day. Only the airports in OPDI's table of
+merge points are examined.
+[All limitations](../methods/point-merge.qmd#limitations).
+
+### FIR crossings
+
+Compared with the exact boundaries of the regions, not with Network Manager
+records. One AIRAC cycle is used for every day, and a visit of less than
+60 seconds gives no crossing.
+[All limitations](../methods/fir-crossings.qmd#limitations).
+
+### Measurements
+
+The distance flown follows the received positions and a straight line across
+gaps, so it is shorter than the path really flown. Both measurements count
+from the start of the track, not from off-block or take-off.
+[All limitations](../methods/measurements.qmd#limitations).
+
+### First seen and last seen
+
+These are the first and last position received, not the off-block and
+in-block times. The position of the last report is often a few minutes old.
+[All limitations](../methods/first-last-seen.qmd#limitations).

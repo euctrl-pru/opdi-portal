@@ -1,5 +1,5 @@
 # Central place to update release metadata and coverage dates for the portal.
-# Update this file for each monthly refresh; the QMD files pull values from here.
+# Update this file for each data refresh; the QMD files pull values from here.
 
 # Load .env if present. Pages source this file from both the project root
 # (index.qmd) and content/, so resolve the path from this script's location
@@ -101,7 +101,54 @@ update_sensor_pages_cache <- list(
 )
 
 portal_cfg <- list(
-  version = "v0.0.2",
+  # ---------------------------------------------------------------------------
+  # Releases
+  # ---------------------------------------------------------------------------
+  # The release the Data and Methods sections describe.
+  release = "v2.0.0",
+
+  # The release the site presents as the one to use. It stays "v0.0.2" until
+  # the files of release v2.0.0 have been produced for the whole first period
+  # and can be reached; then set it to "v2.0.0". The home page, the Data
+  # section and the Roadmap change their wording with it.
+  current_release = "v0.0.2",
+
+  # The previous release. Its monthly files stay available for download.
+  previous_release = "v0.0.2",
+
+  # Days covered by release v2.0.0. `start` is the first day of the first
+  # production run. Set `end` to the last published day when switching
+  # `current_release`; while it is NA the pages say "to the latest published
+  # day".
+  release_coverage = list(
+    start = as.Date("2025-01-01"),
+    end   = as.Date(NA)
+  ),
+
+  # Access to the files of release v2.0.0.
+  access = list(
+    # The OpenSky Network Trino instance. The catalog and schema names below
+    # are the placeholders used in the pipeline's table definitions
+    # (src/opdi/sql/trino/tables.sql in the opdi repository). Replace them by
+    # the names used on the instance.
+    trino_catalog = "minio",
+    trino_schema = "opdi",
+    # Address of the Trino file browser. Leave empty while it is not known:
+    # the pages then say "to be announced".
+    browser_url = "",
+    # Public address of the published folder (the folder that holds
+    # flight_list/ and flight_events/). Leave empty while it is not known.
+    download_url = "",
+    # Where researchers ask the OpenSky Network for access to its historical
+    # database, the Trino instance.
+    opensky_access_url = "https://opensky-network.org/data/impala"
+  ),
+
+  # ---------------------------------------------------------------------------
+  # Release v0.0.2 (monthly and ten-day files)
+  # ---------------------------------------------------------------------------
+  # Month of the latest refresh of the v0.0.2 files, the period they cover and
+  # their size. Update these for each refresh of release v0.0.2.
   refresh_label = "October 2026",
   coverage = list(
     start = as.Date("2022-01-01"),
@@ -202,6 +249,34 @@ portal_cfg <- list(
       stringsAsFactors = FALSE
     )
   )
+)
+
+# Helpers for the release switch. `cfg` is portal_cfg.
+portal_release <- list(
+  # TRUE once release v2.0.0 is the one presented as current.
+  is_current = function(cfg) identical(cfg$current_release, cfg$release),
+  # A value from the access block, or "to be announced" while it is empty.
+  value_or_tba = function(value) {
+    if (is.null(value) || !nzchar(value)) "to be announced" else value
+  },
+  # A Markdown link, or "to be announced" while the address is empty.
+  link_or_tba = function(url, text = url) {
+    if (is.null(url) || !nzchar(url)) "to be announced" else paste0("[", text, "](", url, ")")
+  },
+  # A date in words, for example "1 January 2025".
+  day_text = function(d) sub("^0", "", format(d, "%d %B %Y")),
+  # The days covered by release v2.0.0, in words.
+  coverage_text = function(cfg) {
+    day_text <- function(d) sub("^0", "", format(d, "%d %B %Y"))
+    start <- day_text(cfg$release_coverage$start)
+    end <- cfg$release_coverage$end
+    if (is.na(end)) paste("from", start, "to the latest published day")
+    else paste("from", start, "to", day_text(end))
+  },
+  # The Trino catalog and schema, as written before a table name.
+  trino_prefix = function(cfg) {
+    paste0(cfg$access$trino_catalog, ".", cfg$access$trino_schema)
+  }
 )
 
 # Helper accessors for formatted labels

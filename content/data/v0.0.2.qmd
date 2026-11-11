@@ -1,0 +1,355 @@
+---
+title: "Previous release v0.0.2"
+description: "The monthly flight list and the ten-day flight events and measurements files of OPDI release v0.0.2, how to download them, and how they were computed."
+aliases:
+  - /flight-list-data.html
+  - /flight-event-data.html
+  - /measurement-data.html
+  - /content/flight-list-data.html
+  - /content/flight-event-data.html
+  - /content/measurement-data.html
+---
+
+```{r setup}
+#| include: false
+library(lubridate)
+source("../../R/portal_config.R")
+cfg <- portal_cfg
+rel <- portal_release
+labs <- portal_labels
+v2_current <- rel$is_current(cfg)
+version <- cfg$previous_release
+start_date <- as.Date(cfg$coverage$start)
+end_date <- as.Date(cfg$coverage$end)
+base_url <- "https://www.eurocontrol.int/performance/data/download/OPDI/v002"
+
+# The download scripts are kept as text files beside this page; the dates of
+# the release are filled in here.
+fill_dates <- function(path) {
+  text <- paste(readLines(path, warn = FALSE), collapse = "\n")
+  text <- gsub("@FIRST_MONTH@", format(start_date, "%Y%m"), text, fixed = TRUE)
+  text <- gsub("@LAST_MONTH@", format(end_date, "%Y%m"), text, fixed = TRUE)
+  text <- gsub("@FIRST_DAY_COMPACT@", format(start_date, "%Y%m%d"), text, fixed = TRUE)
+  text <- gsub("@LAST_DAY_COMPACT@", format(end_date, "%Y%m%d"), text, fixed = TRUE)
+  gsub("@FIRST_DAY@", rel$day_text(start_date), text, fixed = TRUE)
+}
+```
+
+This page holds the files of release `r version` of the OPDI data, the
+release that came before `r cfg$release`. It explains how the files are
+organised, lists every file for download, and describes how the data were
+computed.
+
+```{r status}
+#| results: asis
+#| echo: false
+if (v2_current) {
+  cat("::: {.callout-note appearance=\"simple\"}\n",
+      "Release ", version, " is the **previous** release. It is no longer extended. ",
+      "For new work, use release ", cfg$release, ": see [Data](index.qmd) and ",
+      "[Releases](releases.qmd#moving-from-v0.0.2), which explains how to move code from ",
+      "one to the other.\n:::\n", sep = "")
+} else {
+  cat("::: {.callout-note appearance=\"simple\"}\n",
+      "Release ", version, " is the release available today. Release ", cfg$release,
+      ", described in the rest of the Data section, is being produced and will replace it. ",
+      "[Releases](releases.qmd) explains what changes.\n:::\n", sep = "")
+}
+```
+
+::: {.callout-note appearance="simple"}
+**Coverage:** `r labs$month_range(start_date, end_date)`, a box around Europe | **Last refresh:** `r cfg$refresh_label` | **Version:** `r version`
+:::
+
+## What release v0.0.2 contains
+
+Release `r version` has three tables, each split into files of several days:
+
+| Table | One row per | One file per | Download |
+|---|---|---|---|
+| Flight list | flight | month | [Flight list files](#flight-list-files) |
+| Flight events | event | ten days | [Flight events files](#flight-events-files) |
+| Measurements | measured value | ten days | [Measurements files](#measurements-files) |
+
+Two tables of open reference data, used to name airports and runways, can be
+downloaded from [OurAirports](https://ourairports.com/):
+[airports (CSV)](https://davidmegginson.github.io/ourairports-data/airports.csv)
+and [runways (CSV)](https://davidmegginson.github.io/ourairports-data/runways.csv).
+
+The files are in Parquet, a file format that stores data by column and that
+most data tools read. The ten-day files are named after their first day and
+the day after their last day: `flight_events_20220101_20220111.parquet` holds
+1 to 10 January 2022.
+
+### How the tables relate
+
+```{mermaid}
+%%| label: fig-er-diagram
+%%| fig-cap: "The tables of release v0.0.2 and how they relate. An event belongs to one flight; a measurement belongs to one event. The trajectory is not published by OPDI: it is the OpenSky Network's own position reports of the flight."
+
+erDiagram
+    FLIGHT {
+        string ID PK
+        string ICAO24
+        string FLT_ID
+        date DOF
+        string ADEP FK
+        string ADES FK
+        string ADEP_P
+        string ADES_P
+        string REGISTRATION
+        string MODEL
+        string TYPECODE
+        string ICAO_AIRCRAFT_CLASS
+        string ICAO_OPERATOR
+        timestamp FIRST_SEEN
+        timestamp LAST_SEEN
+        string VERSION
+    }
+    EVENT {
+        string id PK
+        string flight_id FK
+        string type
+        timestamp event_time
+        double longitude
+        double latitude
+        double altitude
+        string source
+        string version
+        string info
+    }
+    MEASUREMENT {
+        string id PK
+        string event_id FK
+        string type
+        double value
+        string version
+    }
+    AIRPORT {
+        int id PK
+        string ident
+        string type
+        string name
+        double latitude_deg
+        double longitude_deg
+        int elevation_ft
+        string iso_country
+        string gps_code
+        string iata_code
+    }
+    RUNWAY {
+        int id PK
+        int airport_ref FK
+        string airport_ident
+        int length_ft
+        int width_ft
+        string le_ident
+        double le_heading_degT
+        string he_ident
+        double he_heading_degT
+    }
+
+    FLIGHT ||--o{ EVENT : has
+    EVENT ||--o{ MEASUREMENT : has
+    AIRPORT ||--o{ FLIGHT : "departure or destination of"
+    AIRPORT ||--|{ RUNWAY : has
+    FLIGHT ||--|| TRAJECTORY : "is built from"
+```
+
+- The **flight list** gives, for each flight, the aircraft address
+  (`ICAO24`), the call sign (`FLT_ID`), the date of flight (`DOF`), the
+  departure and destination airports (`ADEP`, `ADES`), other possible airports
+  (`ADEP_P`, `ADES_P`), data on the aircraft and the first and last time it was
+  seen.
+- An **event** is a moment in a flight, with a time, a position and an
+  altitude in feet. `flight_id` links it to the flight list's `ID`.
+- A **measurement** is a value attached to an event: the distance flown
+  (`type` = `Distance flown (NM)`) or the time passed (`type` =
+  `Time Passed (s)`) since the start of the flight. `event_id` links it to the
+  event's `id`.
+- The airport and runway tables shown are a selection of the OurAirports
+  columns.
+
+The position reports of a flight can be fetched from the OpenSky Network's
+historical database with `ICAO24`, the call sign and the time from
+`FIRST_SEEN` to `LAST_SEEN`, for example with the tools on the OpenSky
+Network's [data tools page](https://opensky-network.org/data/data-tools).
+
+## Download scripts
+
+Each file has its own web address. The patterns are:
+
+```
+https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_list/flight_list_{YYYYMM}.parquet
+https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/flight_events_{YYYYMMDD}_{YYYYMMDD}.parquet
+https://www.eurocontrol.int/performance/data/download/OPDI/v002/measurements/measurements_{YYYYMMDD}_{YYYYMMDD}.parquet
+```
+
+`YYYYMM` is the year and month. For the ten-day files, the first date is the
+first day of the period and the second date the day after its last day. The
+periods start on `r rel$day_text(start_date)` and follow each other every ten
+days.
+
+The two scripts below download every file of the release into a folder
+`data/`. Change the dates in `periods` to download less.
+
+::: {.callout-tip collapse="true"}
+
+## Python download script
+
+```{r v002-python-script}
+#| results: asis
+#| echo: false
+cat("```python\n", fill_dates("_v002_download_py.txt"), "\n```\n", sep = "")
+```
+
+:::
+
+::: {.callout-tip collapse="true"}
+
+## R download script
+
+```{r v002-r-script}
+#| results: asis
+#| echo: false
+cat("```r\n", fill_dates("_v002_download_r.txt"), "\n```\n", sep = "")
+```
+
+:::
+
+## Flight list files {#flight-list-files}
+
+One file per month, from `r format(start_date, "%B %Y")` to
+`r format(end_date, "%B %Y")`.
+
+```{r flight-list-files}
+#| echo: false
+flight_list_entries <- local({
+  entries <- c()
+  current <- floor_date(start_date, "month")
+  while (current <= end_date) {
+    name <- paste0("flight_list_", format(current, "%Y%m"), ".parquet")
+    entries <- c(entries, paste0(
+      "- **", format(current, "%B %Y"), "**: [", name, "](", base_url, "/flight_list/", name, ")"
+    ))
+    current <- current %m+% months(1)
+  }
+  paste(entries, collapse = "\n")
+})
+```
+
+::: {.callout-note appearance="simple" collapse="true"}
+
+## Show the flight list files
+
+`r flight_list_entries`
+
+:::
+
+## Flight events files {#flight-events-files}
+
+One file per ten days, from `r rel$day_text(start_date)`.
+
+```{r ten-day-entries}
+#| echo: false
+ten_day_entries <- function(table) {
+  entries <- c()
+  current <- start_date
+  while (current < end_date) {
+    following <- current + 10
+    name <- paste0(table, "_", format(current, "%Y%m%d"), "_", format(following, "%Y%m%d"), ".parquet")
+    entries <- c(entries, paste0(
+      "- **", rel$day_text(current), " to ", rel$day_text(following - 1), "**: [",
+      name, "](", base_url, "/", table, "/", name, ")"
+    ))
+    current <- following
+  }
+  paste(entries, collapse = "\n")
+}
+flight_events_entries <- ten_day_entries("flight_events")
+measurements_entries <- ten_day_entries("measurements")
+```
+
+::: {.callout-note appearance="simple" collapse="true"}
+
+## Show the flight events files
+
+`r flight_events_entries`
+
+:::
+
+## Measurements files {#measurements-files}
+
+One file per ten days, over the same periods as the flight events.
+
+::: {.callout-note appearance="simple" collapse="true"}
+
+## Show the measurements files
+
+`r measurements_entries`
+
+:::
+
+## How release v0.0.2 was computed
+
+Release `r version` was produced by an earlier version of the OPDI software.
+Its methods differ from those described in [Methods](../methods/index.qmd),
+which apply to release `r cfg$release`. They are described here so that the
+data can be understood.
+
+### Flights and their identifiers
+
+The position reports of the OpenSky Network (state vectors) were grouped by
+aircraft address (`icao24`) and call sign. A group was split into separate
+flights where two consecutive reports were more than 30 minutes apart, or
+more than 10 minutes apart while the aircraft was below 1 km. Each flight got
+an identifier made of the SHA-256 hash of the address and call sign, a
+sequence number, and the year and month.
+
+### Departure and destination airports
+
+Around every airport, a circle of 30 NM radius was filled with H3 cells of
+resolution 7. H3 is a system that divides the Earth into hexagonal cells;
+cells of resolution 7 cover about 5 km² each. Only the reports below
+4,000 ft were kept. Each report was matched to the airports whose circle
+contains its cell. The airport nearest to the first (or last) matching report
+became the departure (or destination) airport; the other candidates were
+written in `ADEP_P` (or `ADES_P`).
+
+### Flight events
+
+| Event type | Meaning |
+|---|---|
+| `level-start`, `level-end` | Start and end of a level segment. |
+| `top-of-climb` | First report of the first cruise phase. |
+| `top-of-descent` | Last report of the last cruise phase. |
+| `take-off` | First report of the climb phase after a ground phase. |
+| `landing` | First report of the ground phase after a descent phase. |
+| `first-xing-fl50`, `first-xing-fl70`, `first-xing-fl100`, `first-xing-fl245` | First crossing of flight level 50, 70, 100 or 245. |
+| `last-xing-fl50`, `last-xing-fl70`, `last-xing-fl100`, `last-xing-fl245` | Last crossing of that flight level. |
+| `entry-runway`, `exit-runway` | Entry into and exit from a runway. |
+| `entry-taxiway`, `exit-taxiway` | Entry into and exit from a taxiway. |
+| `entry-parking_position`, `exit-parking_position` | Entry into and exit from a parking position (stand). |
+
+The **flight phases** (ground, climb, cruise, level, descent) were found
+with the fuzzy logic of OpenAP, an open aircraft performance model by Junzi
+Sun of TU Delft. For the flight-level crossings, a smoothed flight level was
+computed for each report and compared between consecutive reports. The
+airport areas (runways, taxiways, parking positions) came from OpenStreetMap,
+filled with H3 cells of resolution 12, and each report was matched to them.
+The `info` field of the airport events holds the OpenStreetMap details of the
+area, as JSON text.
+
+### Measurements
+
+- **Distance flown (NM)**: the great-circle distance between consecutive
+  reports, added up from the first report of the flight, in nautical miles.
+- **Time Passed (s)**: the time since the first report of the flight, in
+  seconds.
+
+Each event got the two values of the report it was taken from.
+
+---
+
+For questions about these files, contact
+[pru-support@eurocontrol.int](mailto:pru-support@eurocontrol.int).

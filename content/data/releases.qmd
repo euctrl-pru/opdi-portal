@@ -1,0 +1,173 @@
+---
+title: "Releases"
+description: "What changed in OPDI release v2.0.0 compared with release v0.0.2, and how to move code from the old files and names to the new ones."
+---
+
+```{r setup}
+#| include: false
+source("../../R/portal_config.R")
+cfg <- portal_cfg
+rel <- portal_release
+v2_current <- rel$is_current(cfg)
+```
+
+This page compares the two releases of OPDI data: release
+`r cfg$release` and the previous release, `r cfg$previous_release`. It says
+what is new for a user of the data, and it gives a table to move code written
+for the old files to the new ones.
+
+```{r status}
+#| results: asis
+#| echo: false
+if (v2_current) {
+  cat("Release ", cfg$release, " is the current release. It covers the days ",
+      rel$coverage_text(cfg), ". Release ", cfg$previous_release,
+      " stays available but is no longer extended.\n", sep = "")
+} else {
+  cat("Release ", cfg$release, " is the upcoming release; its files are being produced. ",
+      "Until they are available, release ", cfg$current_release, " is the one to use. ",
+      "It covers ", portal_labels$month_range(cfg$coverage$start, cfg$coverage$end),
+      " and will not be extended.\n", sep = "")
+}
+```
+
+A **release** is a set of files produced by one version of the OPDI software,
+with one set of names and meanings. Every row of release `r cfg$release` says
+which release it belongs to, in its column `release`. Older releases are
+listed on the [Roadmap](../roadmap.qmd#past-releases).
+
+## What is new in release v2.0.0
+
+### One file per day, and events with their measurements
+
+Release v0.0.2 had three kinds of files: a flight list per month, and flight
+events and measurements in separate files of ten days each. Release v2.0.0
+has two files per day:
+
+- the **flight list**, one row per flight, and
+- the **flight events**, one row per event. Each row carries the event's
+  measurements as columns, and the columns of its flight.
+
+A measurement no longer needs a join to its event, and an event no longer
+needs a join to its flight. The separate measurements files are no longer
+produced. A day's files hold the flights first seen that day, with all their
+events, also those after midnight (see [Data](index.qmd#which-day-a-flight-belongs-to)).
+
+### Worldwide coverage
+
+Release v0.0.2 covered a box around Europe. Release v2.0.0 covers every
+flight that the OpenSky Network received, anywhere in the world.
+
+### More event types
+
+Release v2.0.0 adds these event families (all listed on the
+[Data dictionary](dictionary.qmd#event-types)):
+
+- **Runway milestones**: the start of the take-off roll, the take-off time
+  (`ATOT`), the passage over the runway threshold (`landing`), the touchdown
+  (`ALDT`), the line-up, the runway vacated, runway crossings and go-arounds.
+- **Block times**: off-block (`AOBT`) and in-block (`AIBT`), when the aircraft
+  leaves and reaches its parking position.
+- **Distance rings**: crossings of circles of 40 to 120 NM around the
+  departure and destination airports.
+- **Level-offs**: periods of level flight during the climb and the descent.
+- **Holding**: the start and end of each holding pattern, with its duration,
+  distance and number of loops.
+- **Point merge**: the legs of point merge arrival procedures, with their time
+  and distance.
+- **FIR crossings**: each passage from one flight information region to the
+  next.
+
+### A richer flight list
+
+The flight list now holds the main times of each flight, copied from its
+events: take-off and landing times, off-block and in-block times, the runways
+and stands used, and the times of crossing the distance rings. It also says
+how each airport was decided (`adep_source`, `ades_source`) and whether a row
+counts as a departure or an arrival (`movement_dep`, `movement_arr`). Column
+names are now in lower case.
+
+### One flight across a reception gap
+
+When an aircraft is out of range of every receiver for more than 30 minutes,
+for example over an ocean, release v0.0.2 started a new flight after the gap.
+Release v2.0.0 keeps one flight when the data on both sides of the gap fit one
+continuous flight (see [Track identity](../methods/track-identity.qmd)). Long
+flights are therefore more often one row, with both airports.
+
+### Cleaner positions
+
+Repeated, impossible and isolated values in the position reports are removed
+before any event is detected (see
+[Trajectory cleaning](../methods/trajectory-cleaning.qmd)).
+
+### Documented and checked methods
+
+Each method has a page in [Methods](../methods/index.qmd) that explains how it
+works, what it was compared with, how accurate it is and where it fails. The
+[Validation summary](../methods/validation-summary.qmd) gives the accuracy of
+every item on one page.
+
+### Access through Trino
+
+The files can be queried with SQL on the OpenSky Network's Trino instance,
+without downloading them (see [Access](access.qmd)).
+
+## Changes in meaning
+
+Some names stay the same but their meaning or method changed. Code that used
+them needs a check.
+
+| Name | In release v0.0.2 | In release v2.0.0 |
+|---|---|---|
+| `landing` | The first position on the ground after the descent. | The passage over the runway threshold, a few seconds before touchdown. The touchdown is `ALDT`. |
+| `top-of-climb`, `top-of-descent` | The start and end of the cruise, from flight phases. | The method of EUROCONTROL's vertical flight efficiency indicators (see [Vertical events](../methods/vertical-events.qmd)). |
+| `flight_id` (`ID`) | Built from the address, the call sign and the month. | Built from the address and the time of the first position (see [Dictionary](dictionary.qmd#identifiers)). The identifiers of the two releases do not match. |
+| `adep`, `ades` | Nearest airport within 30 NM, from positions below 4,000 ft. | A new method that can also leave an airport undecided (see [Departure and destination airports](../methods/airports.qmd)). |
+
+## Moving from v0.0.2 {#moving-from-v0.0.2}
+
+The table lists each file, column or event type of release v0.0.2 and what
+replaces it in release v2.0.0.
+
+| Release v0.0.2 | Release v2.0.0 |
+|---|---|
+| `flight_list/flight_list_YYYYMM.parquet`, one file per month | `flight_list/flight_list_YYYYMMDD.parquet`, one file per day |
+| `flight_events/flight_events_YYYYMMDD_YYYYMMDD.parquet`, one file per ten days | `flight_events/flight_events_YYYYMMDD.parquet`, one file per day |
+| `measurements/measurements_YYYYMMDD_YYYYMMDD.parquet`, one file per ten days | No file. The measurements are columns of the flight events file. |
+| Flight list `ID` | `flight_id` |
+| Flight list `ICAO24`, `FLT_ID`, `DOF`, `ADEP`, `ADES`, `ADEP_P`, `ADES_P`, `REGISTRATION`, `MODEL`, `TYPECODE`, `ICAO_AIRCRAFT_CLASS`, `ICAO_OPERATOR`, `FIRST_SEEN`, `LAST_SEEN`, `VERSION` | The same names in lower case: `icao24`, `flt_id`, `dof`, and so on |
+| Events `id` | `event_id` |
+| Events `altitude` (feet) | `altitude_ft` (feet) |
+| Events `flight_id`, `type`, `event_time`, `longitude`, `latitude`, `source`, `version`, `info` | The same names |
+| Measurements with `type` = `Distance flown (NM)` | Column `distance_flown_nm` |
+| Measurements with `type` = `Time Passed (s)` | Column `time_passed_s` |
+| Measurements `id`, `event_id`, `value`, `version` | Rebuilt by the `measurements` view: `id` is the `event_id` followed by `_d` (distance) or `_t` (time) |
+| Event `take-off` | `ATOT` |
+| Event `landing` (first position on the ground) | `ALDT` (touchdown). The name `landing` now means the passage over the threshold. |
+| Events `first-xing-fl{level}` and `last-xing-fl{level}` | `xing-fl{level}` for every crossing. The first crossing has `crossing_seq` 1 in `info`; the last has the highest `crossing_seq` of that level on the flight. `direction` in `info` says `up` or `down`. |
+| Events `entry-runway` and `exit-runway` | `line-up`, `runway-vacated`, `runway-crossing-entry` and `runway-crossing-vacated`, which say what the aircraft did on the runway |
+| Events `entry-taxiway`, `exit-taxiway`, `entry-parking_position`, `exit-parking_position` | The same names |
+| Area covered: a box around Europe | The whole world. To keep the old area, filter on the airports or on the event positions. |
+
+### Getting the old shapes
+
+Ready-made views give the data the shape of release v0.0.2, for code written
+for that release:
+
+| Old shape | Trino view | Python reader | DuckDB view |
+|---|---|---|---|
+| Flight list (upper-case names, 16 columns) | `flight_list_v0` | `published.as_flight_list_v0(flights)` | none |
+| Flight events (without measurements) | `events` | `published.as_events(events)` | `opdi_flight_events` |
+| Measurements (one row per value) | `measurements` | `published.as_measurements(events)` | `opdi_measurements` |
+
+[Access](access.qmd) shows how to use them. The views change the shape, not
+the content: the rows follow the methods of release v2.0.0, and the
+identifiers do not match those of release v0.0.2. The old flight list view
+leaves out the columns that release v0.0.2 did not have.
+
+## Where release v0.0.2 is
+
+Its files stay available for download on
+[Previous release v0.0.2](v0.0.2.qmd), which also describes how it was
+computed.

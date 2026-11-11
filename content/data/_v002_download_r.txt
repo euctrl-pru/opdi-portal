@@ -1,0 +1,60 @@
+library(httr)
+library(lubridate)
+library(fs)
+
+base <- "https://www.eurocontrol.int/performance/data/download/OPDI/v002"
+
+# Addresses of the files of one kind between two dates.
+# data_type: "flight_list" (monthly files, dates as YYYYMM), or
+# "flight_events" or "measurements" (ten-day files, dates as YYYYMMDD).
+# The ten-day files start on @FIRST_DAY@ and every ten days after it.
+generate_urls <- function(data_type, start, end) {
+  urls <- character(0)
+  if (data_type == "flight_list") {
+    current <- ymd(paste0(start, "01"))
+    last <- ymd(paste0(end, "01"))
+    while (current <= last) {
+      urls <- c(urls, sprintf("%s/%s/%s_%s.parquet", base, data_type, data_type,
+                              format(current, "%Y%m")))
+      current <- current %m+% months(1)
+    }
+  } else {
+    current <- ymd(start)
+    last <- ymd(end)
+    while (current < last) {
+      following <- current + days(10)
+      urls <- c(urls, sprintf("%s/%s/%s_%s_%s.parquet", base, data_type, data_type,
+                              format(current, "%Y%m%d"), format(following, "%Y%m%d")))
+      current <- following
+    }
+  }
+  urls
+}
+
+# Download the files into a folder, skipping files already there.
+download_files <- function(urls, folder) {
+  dir_create(folder)
+  for (url in urls) {
+    path <- file.path(folder, basename(url))
+    if (file_exists(path)) {
+      message("Skipping ", path, ", already there.")
+      next
+    }
+    message("Downloading ", url, " ...")
+    response <- tryCatch(GET(url, write_disk(path, overwrite = TRUE)),
+                         error = function(e) NULL)
+    if (is.null(response) || http_error(response)) {
+      warning("Failed to download ", url)
+    }
+  }
+}
+
+periods <- list(
+  flight_list   = c("@FIRST_MONTH@", "@LAST_MONTH@"),
+  flight_events = c("@FIRST_DAY_COMPACT@", "@LAST_DAY_COMPACT@"),
+  measurements  = c("@FIRST_DAY_COMPACT@", "@LAST_DAY_COMPACT@")
+)
+for (data_type in names(periods)) {
+  dates <- periods[[data_type]]
+  download_files(generate_urls(data_type, dates[1], dates[2]), file.path("data", data_type))
+}

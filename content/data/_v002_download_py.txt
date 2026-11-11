@@ -1,0 +1,60 @@
+import os
+from datetime import datetime, timedelta
+
+import requests
+from dateutil.relativedelta import relativedelta
+
+BASE = "https://www.eurocontrol.int/performance/data/download/OPDI/v002"
+
+
+def generate_urls(data_type: str, start: str, end: str) -> list:
+    """Addresses of the files of one kind between two dates.
+
+    data_type: "flight_list" (monthly files, dates as YYYYMM), or
+    "flight_events" or "measurements" (ten-day files, dates as YYYYMMDD).
+    The ten-day files start on @FIRST_DAY@ and every ten days after it.
+    """
+    urls = []
+    if data_type == "flight_list":
+        current = datetime.strptime(start, "%Y%m")
+        last = datetime.strptime(end, "%Y%m")
+        while current <= last:
+            urls.append(f"{BASE}/{data_type}/{data_type}_{current:%Y%m}.parquet")
+            current += relativedelta(months=1)
+    else:
+        current = datetime.strptime(start, "%Y%m%d")
+        last = datetime.strptime(end, "%Y%m%d")
+        while current < last:
+            following = current + timedelta(days=10)
+            urls.append(f"{BASE}/{data_type}/{data_type}_{current:%Y%m%d}_{following:%Y%m%d}.parquet")
+            current = following
+    return urls
+
+
+def download_files(urls: list, folder: str) -> None:
+    """Download the files into a folder, skipping files already there."""
+    os.makedirs(folder, exist_ok=True)
+    for url in urls:
+        path = os.path.join(folder, url.split("/")[-1])
+        if os.path.exists(path):
+            print(f"Skipping {path}, already there.")
+            continue
+        print(f"Downloading {url} ...")
+        try:
+            response = requests.get(url, stream=True)
+            response.raise_for_status()
+            with open(path, "wb") as handle:
+                for chunk in response.iter_content(chunk_size=1024 * 1024):
+                    handle.write(chunk)
+        except requests.exceptions.RequestException as error:
+            print(f"Failed to download {url}: {error}")
+
+
+if __name__ == "__main__":
+    periods = {
+        "flight_list": ("@FIRST_MONTH@", "@LAST_MONTH@"),
+        "flight_events": ("@FIRST_DAY_COMPACT@", "@LAST_DAY_COMPACT@"),
+        "measurements": ("@FIRST_DAY_COMPACT@", "@LAST_DAY_COMPACT@"),
+    }
+    for data_type, (start, end) in periods.items():
+        download_files(generate_urls(data_type, start, end), f"./data/{data_type}")

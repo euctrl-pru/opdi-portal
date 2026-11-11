@@ -1,0 +1,143 @@
+---
+title: "Data"
+description: "What OPDI publishes: a flight list and a file of flight events for every day, worldwide, with the measurements of each event."
+aliases:
+  - /data.html
+  - /content/data.html
+---
+
+```{r setup}
+#| include: false
+source("../../R/portal_config.R")
+cfg <- portal_cfg
+rel <- portal_release
+v2_current <- rel$is_current(cfg)
+```
+
+This page explains what the Open Performance Data Initiative (OPDI) publishes,
+how the data are organised in files, and which release to use. The pages
+below it explain how to read the data, what every column means, what changed
+between releases and where the data have limits.
+
+```{r status}
+#| results: asis
+#| echo: false
+if (v2_current) {
+  cat(
+    "::: {.callout-note appearance=\"simple\"}\n",
+    "**Current release: ", cfg$release, ".** It covers the days ",
+    rel$coverage_text(cfg), ". The previous release, ", cfg$previous_release,
+    ", stays available: see [Previous release ", cfg$previous_release, "](v0.0.2.qmd).\n",
+    ":::\n", sep = "")
+} else {
+  cat(
+    "::: {.callout-note appearance=\"simple\"}\n",
+    "**Release ", cfg$release, " is the upcoming release.** This section describes it. ",
+    "Its files are being produced, starting with the days from ",
+    rel$day_text(cfg$release_coverage$start), " onwards. Until they are available, use ",
+    "release ", cfg$current_release, ", which covers ",
+    portal_labels$month_range(cfg$coverage$start, cfg$coverage$end),
+    ": see [Previous release ", cfg$previous_release, "](v0.0.2.qmd).\n",
+    ":::\n", sep = "")
+}
+```
+
+## What is published
+
+OPDI starts from the position reports that aircraft broadcast by radio. The
+reports are received by the [OpenSky Network](https://opensky-network.org/), a
+network of ground receivers run by volunteers, universities and other
+organisations. OPDI groups the reports of one aircraft into flights and
+describes each flight in two ways.
+
+- The **flight list** has one row per flight. A row gives the aircraft, its
+  call sign, the departure and destination airports, the first and last time
+  the flight was seen, and the main times of the flight, such as the take-off
+  and landing times and the runways used.
+- The **flight events** have one row per event. An **event** is a moment in a
+  flight with a time and a position, for example the take-off, the top of
+  climb, the crossing of a flight level or the entry into a holding pattern.
+  Each row also carries the **measurements** taken at that event, for example
+  the distance flown since the start of the flight, and the columns of its
+  flight, so that one row can be used on its own.
+
+A list of every column is on the [Data dictionary](dictionary.qmd) page. How
+each column and event is computed is explained in [Methods](../methods/index.qmd).
+
+## The daily files
+
+Release `r cfg$release` has two files for each day:
+
+| File | One row per | Size of one day |
+|---|---|---|
+| `flight_list/flight_list_YYYYMMDD.parquet` | flight | about 7 MB |
+| `flight_events/flight_events_YYYYMMDD.parquet` | event | about 410 MB |
+
+`YYYYMMDD` is the date, for example `20260614` for 14 June 2026. The sizes
+were measured on that day, which has 175,615 flights and 6,773,617 events
+worldwide.
+
+The files are in **Parquet**, a file format that stores data by column and
+that most data tools read: Python (pandas, pyarrow, polars), R (arrow),
+DuckDB, Spark and Trino. A program that reads only some columns, or only some
+rows, reads only part of the file.
+
+Two small files help to find data:
+
+- a **flight index** per month, `index/flight_index_YYYYMM.parquet`, with one
+  row per flight of the month and the name of the daily file that holds it;
+- a **catalogue**, `catalogue.parquet`, with one row per published day: the
+  number of flights and events, the time of the first and last event, the
+  file sizes and the versions of the methods used.
+
+Their columns are listed on the [Data dictionary](dictionary.qmd#flight-index-and-catalogue)
+page.
+
+## Which day a flight belongs to
+
+A flight belongs to the day on which it was **first seen**, in UTC. That date
+is the column `dof` (date of flight). The two files of a day hold the flights
+first seen that day and **all** their events, also the events after midnight.
+A flight that takes off at 23:30 UTC and lands at 02:00 UTC the next day is
+therefore in the files of the day it took off, with its landing.
+
+A small number of events belong to a track that has no row in the flight list
+(3,442 of 6,773,617 events, or 0.05%, on 14 June 2026). They are published in
+the file of the day their track started, with empty flight columns.
+
+## Coverage
+
+Release `r cfg$release` covers the whole world: every flight that the OpenSky
+Network received. Release `r cfg$previous_release` covered a box around Europe
+only. Reception is not the same everywhere: it depends on where receivers
+are, and it is thin over the oceans and near the ground at many airports. [Limitations](limitations.qmd#ads-b-reception)
+explains what this means for the data.
+
+## How to get the data
+
+- **Through Trino.** Trino is a database engine that runs SQL queries
+  directly on files. The OPDI files are available as tables on the OpenSky
+  Network's Trino instance. This is the quickest way to select a few flights
+  or to count over many days without downloading anything.
+- **As files.** The daily files can be downloaded and read with Python, R,
+  DuckDB or any other tool that reads Parquet.
+
+[Access](access.qmd) gives the names of the tables, the addresses of the files
+and example queries for both.
+
+## The pages of this section
+
+| Page | What it answers |
+|---|---|
+| [Access](access.qmd) | Where the data are, and how to query or read them in SQL, Python, R and DuckDB. |
+| [Data dictionary](dictionary.qmd) | What every column, event type and `info` field means, and how the tables join. |
+| [Releases](releases.qmd) | What changed in release `r cfg$release` compared with release `r cfg$previous_release`, and how to move from one to the other. |
+| [Limitations](limitations.qmd) | When the data are missing or wrong, for the whole dataset and for each method. |
+| [Previous release v0.0.2](v0.0.2.qmd) | The monthly and ten-day files of the previous release, and how it was computed. |
+| [Data preview](../data-preview.qmd) | Charts made from the data. |
+
+## Contact
+
+The data are open and free to use. For questions, or to report an error in
+the data, write to
+[pru-support@eurocontrol.int](mailto:pru-support@eurocontrol.int).
