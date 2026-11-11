@@ -137,6 +137,11 @@ function's rows in `validation_measures.csv`. The page shows the chart under
 ![Caption in one sentence.](../../assets/validation/<page>_<figure>.svg){#fig-<figure>}
 ```
 
+A number that has no chart is recorded the same way, by a function registered
+with `@measure_set("<page>")` instead of `@figure`. It reads the study files and
+returns `measure(...)` rows but draws nothing; `--only <page>_numbers` runs it.
+`measurements_numbers` is an example.
+
 ## Data dictionary
 
 `gen_data_dictionary.py --opdi ../opdi/src` reads `src/opdi/output/schema.py`
