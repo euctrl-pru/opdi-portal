@@ -1,0 +1,135 @@
+---
+title: "Methods"
+description: "How each item of the OPDI data is computed from aircraft position reports, how it was checked, how accurate it is, and what its limits are."
+---
+
+The Open Performance Data Initiative (OPDI) turns aircraft position reports
+into open data about flights. The reports come from the
+[OpenSky Network](https://opensky-network.org/), a network of ground receivers
+run by volunteers and research institutions. OPDI publishes, for each day, a
+list of the flights and a list of events along those flights, with
+measurements attached to the events.
+
+This section explains, for each item of the data, how it is computed, what it
+was compared with, how accurate it is and when it should not be used. It
+describes release v2.0.0 and the default settings of the code that produced
+it. The code is open: [euctrl-pru/opdi on GitHub](https://github.com/euctrl-pru/opdi).
+
+## From position reports to flights
+
+Aircraft send their position about once per second in **ADS-B** messages
+(Automatic Dependent Surveillance–Broadcast). Each message identifies the
+aircraft by its **ICAO 24-bit address**, a six-character code set in its
+transponder, and usually by its **call sign**, the radio name of the flight
+(for example `DLH123`). The OpenSky Network stores what it receives as
+**state vectors**: one row per aircraft and second, with position, altitude,
+speed, heading and vertical rate.
+
+OPDI groups the state vectors of one aircraft into **tracks**. A track is the
+run of state vectors that OPDI treats as one flight. Everything else is
+computed per track. [Processing steps](pipeline.qmd) shows the whole chain.
+
+## The data model
+
+OPDI describes a flight with three kinds of information.
+
+**Flight.** One row of the flight list per track. It gives the flight's
+identifier (`flight_id`), the aircraft address and call sign, the date of
+flight, the departure and destination airports, data about the aircraft from
+the OpenSky aircraft database, and the main milestones of the flight, such as
+the take-off and landing times and runways. A milestone column is empty when
+the event behind it was not detected.
+
+**Event.** A moment in a flight, such as the take-off, the top of climb or the
+crossing of a flight level. Every event has:
+
+- the flight it belongs to (`flight_id`);
+- a position: longitude and latitude in degrees (WGS 84), and an altitude in
+  feet;
+- a time (`event_time`, in UTC);
+- a **type**, for example `top-of-climb` or `xing-fir`;
+- a **source**, the origin of the position data (`OSN` for the OpenSky
+  Network);
+- a **version**, which names the method that produced that event type. A
+  method that changes gets a new version, so released data stay reproducible;
+- **info**: extra details as JSON text, for example the runway of a take-off
+  or the two regions of a FIR crossing.
+
+Some things are not instants but periods, for example a level flight segment
+or a holding pattern. They are published as a **pair of events**, one at the
+start and one at the end (`level-start` and `level-end`, `holding-start` and
+`holding-end`).
+
+**Measurement.** A number attached to an event, published as a column of the
+event's row. Two are given for nearly every event: the distance flown since
+the start of the track (`distance_flown_nm`, in nautical miles) and the time
+passed since then (`time_passed_s`, in seconds). Some event families add
+their own, for example the time spent in a holding pattern. Because the
+measurements are cumulative, subtracting the values of two events of one
+flight gives the distance and time between them.
+
+Units follow aviation use: altitudes in feet (ft), distances in nautical miles
+(NM, 1 NM = 1,852 m), speeds in knots (kt, nautical miles per hour), vertical
+rates in feet per minute and times in UTC.
+
+## The methods pages
+
+| Page | What it covers |
+|---|---|
+| [Processing steps](pipeline.qmd) | The steps from raw position reports to the published files, and what each step reads and writes. |
+| [Track identity](track-identity.qmd) | Which position reports belong to one flight, and the flight identifier. |
+| [Trajectory cleaning](trajectory-cleaning.qmd) | How repeated and implausible values are removed before any event is detected. |
+| [Departure and destination airports](airports.qmd) | How the departure and destination airport of each flight are named. |
+| Take-off and landing <!-- part 2: link takeoff-landing.qmd --> | The moments the aircraft leaves and reaches the runway. |
+| Block times <!-- part 2: link block-times.qmd --> | Off-block and on-block: when the aircraft leaves and reaches its parking position. |
+| Runway milestones <!-- part 2: link runway-milestones.qmd --> | Line-up, start of the take-off roll, runway vacated, runway crossings and go-arounds. |
+| Airport surface events <!-- part 2: link surface-events.qmd --> | Entries into and exits from taxiways, aprons, stands and de-icing pads. |
+| Vertical events <!-- part 2: link vertical-events.qmd --> | Level segments, top of climb and top of descent, flight-level crossings and level-offs. |
+| Distance rings <!-- part 2: link distance-rings.qmd --> | Crossings of circles of fixed radius around the departure and destination airports. |
+| [Holding](holding.qmd) | Holding patterns flown while waiting to land. |
+| [Point merge](point-merge.qmd) | Sequencing legs of point merge arrival procedures. |
+| [FIR crossings](fir-crossings.qmd) | Passages from one flight information region to the next. |
+| [Measurements](measurements.qmd) | Distance flown and time passed at each event. |
+| [First seen and last seen](first-last-seen.qmd) | The first and last position report of each track. |
+| Validation summary <!-- part 2: link validation-summary.qmd --> | One table with the headline accuracy of every item. |
+
+## How to read a methods page
+
+Every page about one item has the same nine sections, in the same order, so
+that items can be compared.
+
+| Section | What it says |
+|---|---|
+| What it is | The item in plain words, and where it appears in the data. |
+| How it is computed | The method with the default settings of release v2.0.0, step by step, with every threshold and its unit. |
+| Reference data | What the item was compared with, and for which days and places. |
+| Validation method | How the comparison was made and which measures were used. |
+| Results | The numbers the comparison gave. |
+| Error distribution | A chart of how the errors are spread, where the study data allow one. |
+| Headline accuracy | The single number to remember, with the number of cases behind it. |
+| Limitations | When the item is missing, when it is wrong, and what not to conclude from it. |
+| Full study | Links to the study reports with all details. |
+
+An item that has not been validated keeps all nine sections and says "Not
+validated" under them, with what would be needed to validate it.
+
+Every number under Results and Headline accuracy comes from a file of results
+committed with a study under `papers/`, and every chart is drawn from such
+files. The table of all those numbers, with the file and column each comes
+from, is [`assets/validation/validation_measures.csv`](../../assets/validation/validation_measures.csv).
+
+## Measures used on these pages
+
+- **Reference data** (or ground truth): an independent record of the same
+  flights, used to check OPDI's answers. Most often this is EUROCONTROL
+  Network Manager data, which cover flights in the European area.
+- **Coverage**: of the reference cases, the share for which OPDI gives an
+  answer.
+- **Accuracy**: of the answers OPDI gives, the share that are right.
+- **Precision**: of what OPDI reports, the share that the reference confirms.
+- **Recall**: of what the reference holds, the share that OPDI finds.
+- **F1 score**: one number that balances precision and recall (their harmonic
+  mean); 1 is perfect.
+- **Median** and **percentile**: half of the values are below the median;
+  90% of the values are below the 90th percentile.
+- **n**: the number of cases a result is computed over.

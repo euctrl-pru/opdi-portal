@@ -1,0 +1,160 @@
+---
+title: "Processing steps"
+description: "The steps that turn OpenSky Network position reports into the published OPDI files, and what each step reads and writes."
+---
+
+OPDI is a chain of numbered steps. Each step reads the tables written by the
+steps before it and writes its own. The chain runs once per day of data. This
+page describes the steps of release v2.0.0 with their default settings. The
+pages listed in [Methods](index.qmd) describe each algorithm in detail.
+
+## Overview
+
+```{mermaid}
+%%| label: fig-pipeline
+%%| fig-cap: "From the OpenSky Network archive to the published files. Rectangles are steps; cylinders are the tables they write."
+flowchart TD
+    OSN[(OpenSky Network archive<br/>state vectors, one per second)]
+    REF["<b>00</b> Reference data<br/>airports, runways, airport layouts,<br/>FIR volumes, aircraft database"]
+    R0[(Reference tables)]
+    S1["<b>01</b> Read state vectors<br/>thin to one per 5 seconds"]
+    T1[(State vectors)]
+    S2["<b>02</b> Build tracks<br/>one track per flight"]
+    T2[(Tracks)]
+    S2a["<b>02a</b> Clean tracks<br/>empty implausible values"]
+    T2a[(Cleaned tracks)]
+    S3["<b>03</b> Flight list<br/>departure and destination airports"]
+    T3[(Flight list)]
+    S4["<b>04</b> Events and measurements"]
+    T4[(Events)]
+    S4b["<b>04b</b> Milestones into the flight list"]
+    S9["<b>09</b> Publish"]
+    PUB[(Published files<br/>flight list and flight events, per day)]
+
+    OSN --> S1 --> T1 --> S2 --> T2 --> S2a --> T2a --> S3 --> T3
+    REF --> R0
+    R0 --> S3
+    R0 --> S4
+    T2a --> S4
+    T3 --> S4 --> T4 --> S4b --> T3
+    T3 --> S9
+    T4 --> S9 --> PUB
+```
+
+## 00 Reference data
+
+**Reads** open reference sources. **Writes** reference tables used by later
+steps.
+
+- **Airports and runways** from OurAirports, an open database of the world's
+  airports: position, elevation, type (large, medium, small, heliport),
+  scheduled service, and the ends of each runway.
+- **Aircraft** from the OpenSky aircraft database: registration, model, ICAO
+  type code and operator for each ICAO 24-bit address.
+- **Airport detection zones**: for each large and medium airport, the H3 cells
+  around it. H3 is a system that divides the Earth into hexagonal cells at
+  several sizes; resolution 7 cells cover about 5 km² each. The zones let step
+  03 find the airports near a position quickly.
+- **Airport layouts**: the runways, runway thresholds, taxiways, aprons,
+  stands, hangars and de-icing pads of each airport from OpenStreetMap, filled with H3 cells of
+  resolution 12 (about 300 m² each).
+- **Runway and approach grid**: H3 cells along each runway and its approach,
+  used by the runway events.
+- **Airspace**: the flight information regions (FIRs) of the EUROCONTROL
+  Network Manager airspace model, AIRAC cycle 524, filled with H3 cells.
+- **Point merge systems**: a table of merge points and their leg distances.
+
+## 01 Read state vectors
+
+**Reads** the OpenSky Network archive of state vectors: one row per aircraft
+and second, with position, barometric and geometric altitude, ground speed,
+heading, vertical rate, call sign and on-ground flag. **Writes** the state
+vectors OPDI keeps.
+
+The whole world is read by default. For each aircraft, one state vector is
+kept per 5-second window: the newest. See
+[Trajectory cleaning](trajectory-cleaning.qmd#how-it-is-computed).
+
+## 02 Build tracks
+
+**Reads** the state vectors of step 01. **Writes** the tracks: the same state
+vectors with a track identifier.
+
+The state vectors of each aircraft are split into tracks, one per flight, and
+each track gets its identifier (published as `flight_id`). See
+[Track identity](track-identity.qmd). The step also adds, for each state
+vector, its H3 cells at resolutions 7 and 12, and empties altitudes that change
+faster than 200 ft/s from the previous sample.
+
+A day's run reads 11 hours before the day and 24 hours after it, and keeps
+the tracks whose first state vector falls on that day. A flight that crosses
+midnight therefore belongs, whole, to the day it started.
+
+## 02a Clean tracks
+
+**Reads** the tracks. **Writes** the cleaned tracks: the same rows, with
+duplicate rows removed and repeated, impossible or isolated values emptied.
+See [Trajectory cleaning](trajectory-cleaning.qmd).
+
+## 03 Flight list
+
+**Reads** the cleaned tracks, the airport detection zones and the aircraft
+database. **Writes** the flight list: one row per track.
+
+Each row gets the departure and destination airports (see
+[Departure and destination airports](airports.qmd)), the first and last time
+the flight was seen, and the aircraft data.
+
+## 04 Events and measurements
+
+**Reads** the cleaned tracks, the flight list and the reference tables.
+**Writes** the events, each with its measurements.
+
+All event families run here: take-off and landing, runway and block times,
+airport surface events, vertical events, distance rings, holding, point merge,
+FIR crossings, and first and last seen. Each event gets the distance flown and
+time passed since the start of its track (see
+[Measurements](measurements.qmd)). Events that compare neighbouring samples
+work separately on each stretch of a track between two reception gaps.
+
+## 04b Milestones into the flight list
+
+**Reads** the events and the flight list. **Writes** the flight list again,
+with more columns.
+
+The main milestones are copied from the events into the flight list, so that
+one row holds the whole flight: actual take-off and landing times
+(`atot`, `aldt`), off-block and in-block times (`aobt`, `aibt`), runways,
+stands, and the times of crossing circles of 40, 50, 60, 100, 110 and 120 NM
+around the airports. This step detects nothing new; a column is empty when the event
+behind it is missing.
+
+It also adds quality columns: `track_duration_min`, `superseded_dep` and
+`superseded_arr` (a row that is a piece of a movement already counted on
+another row) and `movement_dep` and `movement_arr` (whether the row counts as
+a departure or an arrival).
+
+## 09 Publish
+
+**Reads** the flight list and the events. **Writes** the published files.
+
+For each day:
+
+- `flight_list/flight_list_YYYYMMDD.parquet`: one row per flight that started
+  that day.
+- `flight_events/flight_events_YYYYMMDD.parquet`: one row per event of those
+  flights, with the event's measurements and the columns of its flight. A
+  flight keeps all its events in the file of the day it started, also those
+  after midnight.
+
+Two small files help to find data: a monthly flight index
+(`index/flight_index_YYYYMM.parquet`), which says which file holds a flight,
+and a catalogue (`catalogue.parquet`) with one row per published day.
+
+The files are Parquet, a column-based file format that most data tools read.
+Rows are sorted (the flight list by departure airport and first-seen time, the
+events by flight and time) so that a reader can skip the parts it does not
+need.
+
+Steps 05 to 08 produce other export formats and monitoring statistics. They
+are not needed for the published files and are not described here.
