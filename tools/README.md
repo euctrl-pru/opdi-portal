@@ -163,3 +163,61 @@ python -m pytest tools/tests
 
 The tests build small websites in a temporary folder; they do not touch the
 real site.
+
+## The community page
+
+The page `content/community.qmd` is kept in the repository but is hidden: it
+is not in the sidebar, the home page has no card for it, and no page links to
+it. `check_site.py` reports any reference to it (kind `community`). To show
+the page again, first remove the line `"community": check_community,` from
+`CHECKS` in `check_site.py`, then make these three edits:
+
+1. In `_quarto.yml`, under the sidebar entry `- href: content/resources.qmd`
+   (with its line `text: Resources`), put back:
+
+   ```yaml
+         - href: content/community.qmd
+           text: Community
+   ```
+
+   A commented copy of these lines is at that place in `_quarto.yml`.
+
+2. In `index.qmd`, put this card back between the OPDI Sensors card and the
+   Resources card. The member and country counts come from `community` in
+   `R/portal_config.R`, which is kept.
+
+   ````markdown
+   ::: {.pillar-card .pillar-community}
+
+   ### {{< iconify fa6-solid handshake >}} OPDI Community
+
+   Working with research institutions, air navigation service providers, and open-data enthusiasts to advance open aviation performance data.
+
+   ::: {layout-ncol=3}
+   ```{r}
+   bslib::value_box(
+     title = "Members",
+     value = cfg$community$members,
+     showcase = bs_icon("building"),
+     theme = value_box_theme(bg = "#6a3d9a")
+   )
+   ```
+
+   ```{r}
+   bslib::value_box(
+     title = "Countries",
+     value = cfg$community$countries,
+     showcase = bs_icon("globe2"),
+     theme = value_box_theme(bg = "#6a3d9a")
+   )
+   ```
+   :::
+
+   [Meet the community &rarr;](content/community.qmd){.btn .btn-sm style="background-color:#6a3d9a;color:white;border:none;"}
+
+   :::
+
+   ````
+
+3. Link the page from other pages where it helps the reader, for example from
+   `content/about.qmd`.
