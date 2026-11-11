@@ -146,32 +146,123 @@ Rscript R/airport_capture.R 2024             # a different year
 Rscript R/airport_capture_daily.R 2026 1 5   # year, first month, last month
 ```
 
-## Monthly data refresh
+## Release settings
 
-0. `git checkout -b YYYYMM-release`
-1. Update **only** `R/portal_config.R` with the new:
-   - coverage start/end dates (site, flight list, flight events, measurements, snapshot),
-   - dataset version tag and refresh label,
-   - headline counts (flights / events / measurements).
-2. `quarto render` to regenerate `_site/`.
-3. Spot-check the rendered pages — `index.qmd`, `content/data*.qmd`,
-   `content/data-preview.qmd` — to confirm the new values flow through.
+Every value that changes with a data release is in `R/portal_config.R`; the
+pages read it from there.
 
-The sensor caches are independent of this cycle; refresh them when the sensor
-network changes, not every month.
+| Setting | Meaning |
+|---|---|
+| `release` | The release the Data and Methods sections describe (`v2.0.0`). |
+| `current_release` | The release presented as the one to use. `"v0.0.2"` until the files of release v2.0.0 are produced and reachable; then `"v2.0.0"`. |
+| `previous_release` | The earlier release whose files stay available (`v0.0.2`). |
+| `release_coverage` | First and last day of release v2.0.0 (`end` empty means "to the latest published day"). |
+| `release_date`, `release_counts$flights` | Shown on the Roadmap and the home page once `current_release` is `"v2.0.0"`; empty values show as "to be announced". |
+| `access` | Trino catalog and schema, the Trino file browser address, the public download address and the OpenSky access page. Empty addresses show as "to be announced". |
+| `refresh_label`, `coverage`, `counts` | The last refresh of release v0.0.2: its month, the period covered and the headline counts. |
 
-## Publishing
+### Switching the current release
 
-From the repo root, after the refresh and checks:
+When the files of release v2.0.0 have been produced for the first period and
+can be reached through Trino:
+
+1. In `R/portal_config.R`, set `current_release = "v2.0.0"`, set
+   `release_coverage$end` (or leave it `NA`), `release_date` and
+   `release_counts$flights`.
+2. Render and check the home page, `content/data/index.qmd`,
+   `content/data/access.qmd`, `content/data/releases.qmd`,
+   `content/data/v0.0.2.qmd` and `content/roadmap.qmd`: each says which
+   release is current, and the wording changes with this one setting.
+
+The pages are written so that both values read correctly. To check the
+other wording before the switch, render once with the other value and do not
+commit it.
+
+## Rendering and publishing
+
+### Prerequisites
+
+- Quarto, R with the packages the pages load (among them `bslib`, `bsicons`,
+  `lubridate`, `tidyverse`, `arrow`, `plotly`), and the `acronyms` extension
+  (`quarto add rchaput/acronyms@master`).
+- Python 3 for the scripts under `tools/` (no packages needed for the checks;
+  pandas and matplotlib for `draw_validation_figures.py`).
+- A checkout of the `opdi` repository beside this one, for the data
+  dictionary.
+
+### Steps
+
+```bash
+# 1. Tables of the data dictionary, from the pipeline's list of columns
+python tools/gen_data_dictionary.py --opdi ../opdi/src --check   # or without --check to rewrite
+
+# 2. Only when a study's committed results changed: figures and numbers
+python tools/draw_validation_figures.py
+python tools/gen_validation_summary.py --opdi ../opdi/src
+
+# 3. Checks: links, sidebar, hidden community page, methods template,
+#    numbers, wording, event types; the studies index; the tools' own tests
+python tools/check_site.py
+python tools/check_site.py --list-types --opdi ../opdi/src
+python tools/check_papers_index.py
+python -m pytest tools/tests
+
+# 4. Render the site, and the studies (a separate Quarto project)
+quarto render
+quarto render papers/
+```
+
+`tools/README.md` explains each script and each check.
+
+### What to look at after rendering
+
+These pages have not yet been rendered; check them by eye in `_site/`:
+
+- Home page (`index.html`): the release note in the Data card and the two
+  value boxes.
+- Data section (`content/data/`): `index`, `access`, `dictionary`,
+  `releases`, `limitations`, `v0.0.2`. On `access`, the `USE` statement and
+  the "to be announced" addresses; on `dictionary`, the width of the long
+  column tables; on `v0.0.2`, the entity diagram, the two download scripts
+  and the three file lists in their collapsed boxes.
+- Methods section (`content/methods/`): all seventeen pages, in particular
+  the charts under "Error distribution", the diagram on `pipeline`, the
+  figure of flight milestones on `index`, and the table on
+  `validation-summary`.
+- `content/concepts.html` and `content/methodology.html`, now short pages
+  that point into the Methods section.
+- `content/roadmap.html`, `content/resources.html`, `content/data-challenges.html`
+  (the 2026 edition), `content/about.html`, `content/data-preview.html`,
+  `content/sensors-expansion.html`.
+- `papers/index.html` and every study the Methods pages link to.
+- The old addresses still open the right page: `/data.html`,
+  `/content/data.html`, `/flight-list-data.html`, `/flight-event-data.html`,
+  `/measurement-data.html`, `/methodology.html`, `/concepts.html`.
+
+### The community page
+
+`content/community.qmd` is kept but hidden. `tools/README.md`, section "The
+community page", lists the three edits that show it again.
+
+### Merging
+
+The site is served from the committed `_site/` directory, so a release must
+include a fresh `quarto render`. From the repository root, after the checks:
 
 ```bash
 git checkout main
 git pull
-git merge --squash YYYYMM-release
-git commit -m "YYYYMM full release"
-git tag -af v9.8.1 -m "YYYYMM full release"
-git push origin --follow-tags main
+git merge --squash feature/new-topics
+git commit -m "Release v2.0.0 documentation"
+git push origin main
 ```
 
-The site is served from the committed `_site/` directory, so a release must
-include a fresh `quarto render`.
+`PUBLISHING_CHECKLIST.md` lists what must be supplied or decided before this
+merge.
+
+## Refreshing release v0.0.2
+
+Release v0.0.2 is no longer extended. Should its files be refreshed once
+more, update in `R/portal_config.R` the coverage dates, `refresh_label` and
+the headline counts, render, and check the home page,
+`content/data/v0.0.2.qmd` and `content/data-preview.qmd`.
