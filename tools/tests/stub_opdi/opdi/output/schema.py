@@ -15,11 +15,13 @@ class Column:
 FLIGHT_LIST = (
     Column("flight_id", "string", "", "Identifier of the flight.", "ID", "identity"),
     Column("adep", "string", "", "Departure airport | ICAO code.", "ADEP", "airports"),
+    Column("version", "string", "", "Version of the flight row method.", "VERSION", "release"),
     Column("release", "string", "", "Data release.", "release", "release"),
 )
 EVENT_COLUMNS = (
     Column("event_id", "string", "", "Identifier of the event.", "id", "event"),
     Column("flight_id", "string", "", "Identifier of the flight.", "flight_id", "identity"),
+    Column("version", "string", "", "Version of the event method.", "version", "event"),
 )
 MEASUREMENT_COLUMNS = (
     Column("distance_flown_nm", "double", "NM", "Distance flown since the start of the track.",

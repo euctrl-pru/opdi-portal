@@ -69,13 +69,18 @@ def markdown_table(columns) -> str:
 
 def tables(schema) -> dict[str, tuple]:
     """The published tables, as name -> columns."""
-    flight_list_names = {c.name for c in schema.FLIGHT_LIST}
     measurement_names = {c.name for c in schema.MEASUREMENT_COLUMNS}
     # The flight events file repeats the flight list columns after the event
-    # and its measurements. Its own columns are the rest.
-    event_file_own = tuple(
+    # and its measurements. Its own columns are the event columns (some of
+    # which, such as flight_id and version, share a name with a flight list
+    # column but are listed here all the same) and the columns that follow the
+    # repeated ones: flight_version and release.
+    event_columns = tuple(schema.EVENT_COLUMNS)
+    event_file_own = event_columns + tuple(
         c for c in schema.FLIGHT_EVENTS
-        if c.name not in measurement_names and (c.name not in flight_list_names or c.name == "release")
+        if c not in event_columns
+        and c.name not in measurement_names
+        and (c not in schema.FLIGHT_LIST or c.name == "release")
     )
     out = {
         "flight_list": tuple(schema.FLIGHT_LIST),

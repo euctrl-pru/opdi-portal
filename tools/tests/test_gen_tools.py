@@ -20,6 +20,11 @@ def test_dictionary_tables_from_schema(tmp_path):
     assert "Departure airport \\| ICAO code." in md
     events = (tmp_path / "content/data/_generated/flight_events_columns.md").read_text()
     assert "`event_id`" in events and "`flight_version`" in events and "`adep`" not in events
+    # Event columns that share a name with a flight list column are still
+    # columns of the events file, with their own description.
+    assert "`flight_id`" in events
+    assert "Version of the event method." in events
+    assert "Version of the flight row method." not in events
     rows = list(csv.DictReader((tmp_path / "assets/data/dictionary.csv").open()))
     assert {r["table"] for r in rows} == {"flight_list", "flight_events"}
     assert gen_data_dictionary.main(["--opdi", str(STUB), "--root", str(tmp_path), "--check"]) == 0
