@@ -1,0 +1,162 @@
+---
+title: "Runway milestones"
+description: "How OPDI finds the line-up, the moment a runway is vacated, aircraft taxiing across a runway, and go-arounds. None of them has been validated."
+---
+
+## What it is
+
+Besides the take-off and the landing (see
+[Take-off and landing](takeoff-landing.qmd)), OPDI publishes five more events
+about the use of runways:
+
+| Event type | Moment | Standard number |
+|---|---|---|
+| `line-up` | A departing aircraft enters the runway to take off. | T06 |
+| `runway-vacated` | An arriving aircraft leaves the runway after landing. | T19 |
+| `runway-crossing-entry` | A taxiing aircraft enters a runway in order to cross it. | none |
+| `runway-crossing-vacated` | The same aircraft leaves the runway on the other side. | none |
+| `go-around` | An aircraft on its approach gives up the landing and climbs away. The event is placed at the lowest point of the approach. | none |
+
+The standard numbers are those of airport collaborative decision making
+(A-CDM; see [Take-off and landing](takeoff-landing.qmd#what-it-is)). A runway
+crossing and a go-around have no number there.
+
+The time between `ALDT` (touchdown) and `runway-vacated` is the **runway
+occupancy time** of an arrival. The time between `line-up` and `ATOT` (take-off)
+is the time a departure spends on the runway.
+
+The first four events carry, in `info`, the airport (`apt_icao`), the runway
+direction (`runway`), the true bearing of its centre line
+(`runway_bearing_deg`), the class of the runway pass (`traversal_class`), the
+angle between the aircraft's track and the runway (`align_deg`, degrees), the
+highest ground speed in the pass (`max_gs_kt`, knots) and the standard number
+(`milestone`). A `go-around` carries the destination airport, the lowest height
+above the airport (`low_height_ft`), the highest rate of climb afterwards
+(`recovery_roc_ft_min`, feet per minute) and the duration of the excursion
+(`excursion_seconds`). All five carry a position, an altitude, the distance
+flown and the time passed. The events carry the version `events_v0.3.0`.
+
+## How it is computed
+
+### Line-up, runway vacated and runway crossings
+
+These events come from the same **runway passes** as the take-off and landing
+times: runs of state vectors on or just short of one runway, classified as a
+departure, an arrival or a crossing. The construction of a pass, the runway
+grid and the choice of the runway direction are described on
+[Take-off and landing](takeoff-landing.qmd#how-it-is-computed).
+
+1. **`line-up`** is the first state vector of a departure pass that lies on the
+   runway itself, between the two thresholds.
+2. **`runway-vacated`** is the last state vector of an arrival pass that lies
+   on the runway.
+3. A pass is a **crossing** when all of these hold:
+   - the aircraft's median track is at least 45° away from the runway's
+     bearing;
+   - its ground speed never exceeds 40 kt;
+   - the pass lasts at most 120 s;
+   - the aircraft is less than 15 ft above the airport at the start and at the
+     end of the pass.
+4. **`runway-crossing-entry`** is the first state vector of a crossing pass and
+   **`runway-crossing-vacated`** the last.
+
+All four are taken at a received state vector, not interpolated. A crossing is
+published under its own names so that it can never be counted as a take-off
+or a landing.
+
+### Go-around
+
+A go-around may be abandoned before the aircraft reaches the runway, so this
+detector does not use runway passes. It works on the height of the aircraft
+above its destination airport (barometric altitude minus the airport's
+elevation).
+
+1. Find each time the height falls through 500 ft, and each time it rises
+   through 1,500 ft. A dead band of 50 ft on each side prevents an aircraft
+   flying level near one of these heights from producing a series of
+   crossings. The moments are interpolated between samples.
+2. Pair each rise through 1,500 ft with the last fall through 500 ft before
+   it. This interval is one **excursion**. Only the first rise after a fall is
+   used.
+3. Keep the excursion as a go-around when all of these hold:
+   - its lowest point is more than 15 ft above the airport, so the aircraft
+     did not touch down;
+   - the aircraft climbed at 500 ft/min or more at some point in the
+     excursion, so it climbed away rather than just stopped descending;
+   - the lowest point is at most 10 NM from the destination airport.
+4. The event is placed at the lowest point of the excursion.
+
+The 15 ft limit is the same as the one that defines the touchdown time, so a
+go-around and a touchdown can never describe the same descent.
+
+## Reference data
+
+None. The airport operator records used for the take-off, landing and block
+times (see [Take-off and landing](takeoff-landing.qmd#reference-data)) give no
+time for the line-up, for leaving the runway or for crossing it. They hold one
+record per movement, so a go-around leaves no record of its own. No other
+source of these events was available.
+
+## Validation method
+
+Not validated. Validation would need:
+
+- for `line-up` and `runway-vacated`: times recorded by the airport, for
+  example from a surface movement radar or from the A-CDM system of the
+  airport;
+- for runway crossings: a record of runway crossings from air traffic
+  control or a surface movement radar;
+- for `go-around`: a list of go-arounds from air traffic control or from the
+  airport. A first, weaker check would compare the share of approaches that
+  end in a go-around with the rates published in the literature.
+
+The runway that these events name is the same as for the take-off and landing
+times of the same pass. That runway was checked for take-offs and landings
+(see [Take-off and landing](takeoff-landing.qmd#results)).
+
+## Results
+
+Not validated.
+
+## Error distribution
+
+Not validated, so no error distribution exists.
+
+## Headline accuracy
+
+Not validated.
+
+## Limitations
+
+- None of these events has been compared with reference data. Their timing
+  and their counts are unchecked.
+- They need the aircraft to be received on the runway. Many airports have no
+  receiver close enough, and there the events are missing.
+- They need runways in OurAirports, at an airport that the flight list names
+  for the flight.
+- A runway pass needs at least one state vector with an altitude. ADS-B
+  position messages sent on the ground carry no altitude, so a pass seen only
+  through them is not classified, and gives no event. This hits runway
+  crossings hardest, because the aircraft is on the ground throughout.
+- `line-up`, `runway-vacated` and the crossings are received state vectors,
+  so they can be up to one sampling interval (5 s) away from the real moment.
+  Runway occupancy times computed from them carry that error at both ends.
+- If reception stops while the aircraft is still on the runway, the pass ends
+  there, and `runway-vacated` is placed at the last state vector received,
+  which is too early. Nothing in the data marks this case.
+- For a crossing, the runway is right but its direction (for example `07`
+  rather than `25`) is arbitrary: an aircraft crossing at right angles does
+  not point along either. Do not count crossings per runway direction.
+- A pass whose track is between 30° and 45° from the runway is neither a
+  departure, an arrival nor a crossing, and gives no event.
+- A go-around whose approach never goes below 500 ft above the airport, or
+  whose climb-away never reaches 1,500 ft, is not found. A flight without a
+  destination airport gets no go-around.
+- When two state vectors share the lowest height of an excursion, the one used
+  for the go-around time can change from one run to the next.
+
+## Full study
+
+- [Flight events from ADS-B](../../papers/flight-events-v4/index.html),
+  chapters "Line-up" (which also describes the runway pass), "Runway
+  vacated", "Go-around" and "Runway crossings".
