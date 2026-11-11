@@ -21,7 +21,9 @@ Kinds of check (each failure is printed with its kind):
               _quarto.yml, the home page or another page. The page is kept as
               a file but must not be reachable. Comment lines in _quarto.yml
               are ignored, so a commented note on how to show the page again
-              is allowed.
+              is allowed. The page must also be excluded from rendering with
+              the entry "!content/community.qmd" under project: render:, placed
+              after the pages to render; that entry is the one allowed mention.
   headings    A page in content/methods/ (other than index.qmd, pipeline.qmd
               and validation-summary.qmd) does not have exactly the nine
               second-level headings of the methods template, in order.
@@ -454,13 +456,54 @@ def check_sidebar(root: Path) -> list[Failure]:
     return failures
 
 
+COMMUNITY_EXCLUSION = re.compile(r"^\s*-\s*[\"']?!content/community\.qmd[\"']?\s*$")
+
+
+def render_entries(root: Path) -> list[tuple[int, str]]:
+    """Entries of the list under `project: render:` in _quarto.yml, with line numbers."""
+    entries = []
+    in_project = in_render = False
+    project_indent = render_indent = 0
+    for number, line in quarto_lines(root):
+        indent = len(line) - len(line.lstrip())
+        if re.match(r"^project:\s*$", line):
+            in_project, project_indent = True, indent
+            continue
+        if in_project and indent <= project_indent:
+            in_project = in_render = False
+        if not in_project:
+            continue
+        if re.match(r"^\s*render:\s*$", line):
+            in_render, render_indent = True, indent
+            continue
+        if in_render and (indent < render_indent or
+                          (indent == render_indent and not line.lstrip().startswith("-"))):
+            in_render = False
+        if in_render:
+            m = re.match(r"^\s*-\s*[\"']?([^\"']+?)[\"']?\s*$", line)
+            if m:
+                entries.append((number, m.group(1)))
+    return entries
+
+
 def check_community(root: Path) -> list[Failure]:
     failures = []
     for number, line in quarto_lines(root):
-        if COMMUNITY_PATTERN.search(line):
+        if COMMUNITY_PATTERN.search(line) and not COMMUNITY_EXCLUSION.match(line):
             failures.append(Failure("community", "_quarto.yml", number,
                                     "the community page is hidden and must not be listed"))
     hidden = (root / "content" / "community.qmd").resolve()
+    if hidden.is_file():
+        entries = render_entries(root)
+        exclusions = [n for n, e in entries if e == "!content/community.qmd"]
+        includes = [n for n, e in entries if not e.startswith("!")]
+        if not exclusions:
+            failures.append(Failure("community", "_quarto.yml", 1,
+                                    'the community page is still rendered: add - "!content/community.qmd" '
+                                    "under project: render:, after the pages to render"))
+        elif includes and min(exclusions) < max(includes):
+            failures.append(Failure("community", "_quarto.yml", min(exclusions),
+                                    "the exclusion of the community page must come after the pages to render"))
     for page in pages(root):
         if page.resolve() == hidden:
             continue

@@ -20,6 +20,10 @@ CSV_HEADER = ",".join(check_site.MEASURE_COLUMNS)
 QUARTO_YML = """\
 project:
   type: website
+  render:
+    - index.qmd
+    - content/
+    - "!content/community.qmd"
 website:
   sidebar:
     contents:
@@ -154,6 +158,34 @@ def test_community_in_sidebar_fails(site):
     yml = site / "_quarto.yml"
     yml.write_text(yml.read_text() + "      - content/community.qmd\n")
     assert "community" in kinds(site)
+
+
+def test_community_page_not_excluded_from_rendering_fails(site):
+    yml = site / "_quarto.yml"
+    yml.write_text(yml.read_text().replace('    - "!content/community.qmd"\n', ""))
+    assert "community" in kinds(site)
+
+
+def test_community_page_without_render_list_fails(site):
+    yml = site / "_quarto.yml"
+    yml.write_text(yml.read_text().replace(
+        '  render:\n    - index.qmd\n    - content/\n    - "!content/community.qmd"\n', ""))
+    assert "community" in kinds(site)
+
+
+def test_community_exclusion_before_includes_fails(site):
+    yml = site / "_quarto.yml"
+    yml.write_text(yml.read_text().replace(
+        '    - index.qmd\n    - content/\n    - "!content/community.qmd"\n',
+        '    - "!content/community.qmd"\n    - index.qmd\n    - content/\n'))
+    assert "community" in kinds(site)
+
+
+def test_community_exclusion_not_needed_without_page(site):
+    (site / "content" / "community.qmd").unlink()
+    yml = site / "_quarto.yml"
+    yml.write_text(yml.read_text().replace('    - "!content/community.qmd"\n', ""))
+    assert kinds(site) == []
 
 
 def test_site_without_methods_section_passes(site):

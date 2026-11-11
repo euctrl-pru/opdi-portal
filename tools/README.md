@@ -47,7 +47,7 @@ count per kind. The kinds are:
   hyphens and dropping any leading digits: `## 2025 PRC Data Challenge` becomes
   `#prc-data-challenge`. An explicit `## Heading {#my-id}` wins.
 - **sidebar**: an entry of the sidebar in `_quarto.yml` points to a missing page.
-- **community**: the community page is referenced (see "The community page" below).
+- **community**: the community page is referenced, or is not excluded from rendering (see "The community page" below).
 - **headings**: a methods page does not have the nine headings of the template.
 - **numbers**: a methods page quotes a number that is not recorded in
   `assets/validation/validation_measures.csv`.
@@ -180,12 +180,24 @@ real site.
 ## The community page
 
 The page `content/community.qmd` is kept in the repository but is hidden: it
-is not in the sidebar, the home page has no card for it, and no page links to
-it. `check_site.py` reports any reference to it (kind `community`). To show
-the page again, first remove the line `"community": check_community,` from
-`CHECKS` in `check_site.py`, then make these three edits:
+is not rendered (so it is neither on the site nor in its search), it is not in
+the sidebar, the home page has no card for it, and no page links to it.
+`check_site.py` reports any reference to it (kind `community`), and also
+reports when `_quarto.yml` does not exclude it from rendering with the entry
+`"!content/community.qmd"` under `project: render:`, after the pages to render.
 
-1. In `_quarto.yml`, under the sidebar entry `- href: content/resources.qmd`
+A site rendered before the page was excluded still holds
+`_site/content/community.html` and an entry for it in `_site/search.json`.
+Both disappear only when the site is rendered again; if
+`_site/content/community.html` remains after that, delete it.
+
+To show the page again, first remove the line `"community": check_community,`
+from `CHECKS` in `check_site.py`, then make these four edits:
+
+1. In `_quarto.yml`, under `project: render:`, remove the line
+   `- "!content/community.qmd"`.
+
+2. In `_quarto.yml`, under the sidebar entry `- href: content/resources.qmd`
    (with its line `text: Resources`), put back:
 
    ```yaml
@@ -195,7 +207,7 @@ the page again, first remove the line `"community": check_community,` from
 
    A commented copy of these lines is at that place in `_quarto.yml`.
 
-2. In `index.qmd`, put this card back between the OPDI Sensors card and the
+3. In `index.qmd`, put this card back between the OPDI Sensors card and the
    Resources card. The member and country counts come from `community` in
    `R/portal_config.R`, which is kept.
 
@@ -232,5 +244,5 @@ the page again, first remove the line `"community": check_community,` from
 
    ````
 
-3. Link the page from other pages where it helps the reader, for example from
+4. Link the page from other pages where it helps the reader, for example from
    `content/about.qmd`.

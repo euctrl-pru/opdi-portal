@@ -64,7 +64,13 @@ published before every value is known.
   `README.md`, "Switching the current release".
 - [ ] **Community page.** It stays hidden until every person and
   organisation shown on `content/community.qmd` has agreed to be listed.
-  `tools/README.md`, "The community page", lists the edits that show it again.
+  `tools/README.md`, "The community page", lists the edits that show it again,
+  including removing `"!content/community.qmd"` from `project: render:` in
+  `_quarto.yml`.
+- [ ] **Old community page in `_site/`.** The page is excluded from rendering,
+  but an earlier render left `_site/content/community.html` and its entry in
+  `_site/search.json`. The search entry goes away at the next full render; if
+  `_site/content/community.html` is still there after rendering, delete it.
 
 ## 4. Render and check
 

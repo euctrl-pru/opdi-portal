@@ -4,6 +4,11 @@ project:
     - index.qmd
     - content/
     - "!archive/"
+    # The community page is hidden: it is not rendered, so it is not on the
+    # site and not in its search. Exclusions must come after the pages to
+    # render. To show the page again, remove this line as well (see the note
+    # in the sidebar below and tools/README.md).
+    - "!content/community.qmd"
     # papers/ is its own Quarto project (papers/_quarto.yml); it is linked from
     # content/resources.qmd but must not be pulled into the site build.
     - "!papers/"
@@ -117,7 +122,8 @@ website:
       # put these two lines back here, under "- href: content/resources.qmd":
       #   - href: content/community.qmd
       #     text: Community
-      # and restore its card on index.qmd (see tools/README.md).
+      # remove the line "!content/community.qmd" under project: render: at the
+      # top of this file, and restore its card on index.qmd (see tools/README.md).
       - href: content/roadmap.qmd
         text: Roadmap
       - href: content/about.qmd
