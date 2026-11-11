@@ -1,0 +1,137 @@
+---
+title: "Measurements"
+description: "How OPDI computes the distance flown and the time passed at each event, and what has been checked."
+---
+
+## What it is
+
+A **measurement** is a number attached to an event. In the published flight
+events file, each measurement is a column, and each row (one event) carries
+its values. Two measurements are given for nearly every event:
+
+| Column | Meaning | Unit |
+|---|---|---|
+| `distance_flown_nm` | Distance flown from the start of the track to the event, along the received positions | nautical miles (NM; 1 NM = 1,852 m) |
+| `time_passed_s` | Time from the first position of the track to the event | seconds |
+
+The distance carries the version `distance_v0.0.3` and the time the version
+`time_v0.0.1`.
+
+Because both are counted from the start of the track, the difference between
+two events of one flight gives the distance and time between them. For example,
+`distance_flown_nm` at `landing` minus `distance_flown_nm` at `airborne` is the
+distance flown in the air, and the difference between two consecutive
+`xing-fir` events is the distance flown in one flight information region.
+
+Some event families add their own measurements, described on their pages:
+`holding_duration_s`, `holding_distance_nm` and `holding_circuits` on
+`holding-end` (see [Holding](holding.qmd)), and `pms_leg_time_s`,
+`pms_leg_distance_nm` and `pms_direct_to_distance_nm` on `pms-leg-exit` (see
+[Point merge](point-merge.qmd)). This page covers the two general ones.
+
+## How it is computed
+
+Both are computed on the cleaned state vectors of each track (see
+[Trajectory cleaning](trajectory-cleaning.qmd)), one every 5 seconds.
+
+**Distance flown**
+
+1. Sort the track's state vectors by time.
+2. For each state vector with a position, compute the great-circle distance
+   from the last earlier state vector that had a position. The great-circle
+   distance is the shortest distance along the surface of a sphere; OPDI uses
+   an Earth radius of 6,371 km. Altitude is not taken into account.
+3. A state vector without a position (for example one emptied by cleaning)
+   adds nothing; the next position then covers the whole stretch in one step.
+4. Add up the steps from the start of the track.
+
+Across a reception gap kept inside a track (see
+[Track identity](track-identity.qmd)), the step is the straight line between
+the last position before the gap and the first after it. That is the shortest
+distance the aircraft could have flown, so the distance is a lower bound there.
+
+**Time passed**
+
+The time of the state vector minus the time of the track's first state vector,
+in whole seconds.
+
+**At the event**
+
+An event that falls on a state vector takes that state vector's values. An
+event placed between two state vectors, such as a flight-level crossing, a
+distance ring crossing, `airborne`, `touchdown` or `landing`, takes values
+interpolated between the two, so that the measurement belongs to the same
+instant as the event.
+
+## Reference data
+
+No external reference has been used. An independent recomputation of the
+distance on tracks that hold a reception gap was used to check the
+computation, on a full run of the pipeline over 2026-06-14 for one aircraft in
+ten.
+
+A comparison with an external reference would be possible for part of the
+flight: the Network Manager's airport data give the distance flown inside a
+circle of 40 NM around the airport, which could be compared with the
+difference of `distance_flown_nm` between the ring crossing and the landing.
+This comparison has not been made.
+
+## Validation method
+
+Not validated against reference data. Two internal checks were made on the
+tracks of the pipeline run that hold at least one gap:
+
+1. For each gap, compare the distance the measurement adds across the gap with
+   the straight line between the gap's two edges, computed separately.
+2. For each such track, recompute the cumulative distance from the state
+   vectors and compare it with the stored value.
+
+The time passed has not been checked.
+
+## Results
+
+Of 234 gaps scored, 233 could be compared (one had no position on one side).
+For 0 of them did the distance added differ from the straight line by more than
+1 NM. On 194 tracks with a kept gap, the stored distance was recomputed; 0
+differed by more than 1 NM.
+
+These checks show that the distance is computed as described. They do not show
+how close it is to the distance the aircraft really flew.
+
+## Error distribution
+
+No distribution of errors exists: the measurements have not been compared with
+an external reference, and the internal checks found no differences above
+1 NM.
+
+## Headline accuracy
+
+Not validated against reference data. The internal check found 0 of 233 gaps
+where the distance added differs from the straight line by more than 1 NM.
+
+## Limitations
+
+- The distance runs along the received positions. Where positions are missing,
+  emptied by cleaning or lost in a gap, it follows a straight line and is
+  shorter than the path really flown.
+- Both measurements start at the first position of the **track**, not at
+  off-block or take-off. A track that starts in the air (where reception
+  starts) has a distance and time that do not cover the start of the flight.
+- The distance is horizontal: climbs and descents add nothing.
+- The time is in whole seconds, and the state vectors are 5 seconds apart, so
+  an event's time and distance can be off by up to one sample.
+- Some event types carry no distance or time: the block times (`AOBT`, `AIBT`,
+  `off-block`, `on-block`), the runway times `ATOT` and `ALDT`, and the
+  level-off events. Their measurement columns are empty.
+- A level-off's `distance_nm` inside `info` is a difference of the cumulative
+  distance and has the same limits.
+- Values depend on the track. If a flight is split into two tracks, the second
+  track starts again at zero.
+
+## Full study
+
+- [One flight, one track across a reception gap](../../papers/track-construction-v5/index.html),
+  section 6.3 (the distance across a gap) and section 7 (how the distance is
+  read from the last known position).
+- [Flight events from ADS-B](../../papers/flight-events-v4/index.html):
+  the measurements attached to the events.

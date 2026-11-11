@@ -1,0 +1,82 @@
+---
+title: "First seen and last seen"
+description: "The first and last position report of each track: what they are, and why they cannot be validated."
+---
+
+## What it is
+
+Every track has two events that mark where its data begin and end:
+
+- `first_seen`: the first state vector of the track, that is, the first
+  position report of the flight received by the OpenSky Network.
+- `last_seen`: the last state vector of the track.
+
+The same two times are published in the flight list as the columns
+`first_seen` and `last_seen`, and the flight list column `track_duration_min`
+is the time between them, in minutes.
+
+These events describe the **reception** of the flight, not the flight itself.
+An aircraft is first seen when a receiver first hears it, which can be at the
+stand, on the runway or in the air, depending on where the receivers are.
+
+## How it is computed
+
+1. Sort the cleaned state vectors of the track by time (see
+   [Trajectory cleaning](trajectory-cleaning.qmd)).
+2. The earliest one gives `first_seen`; the latest one gives `last_seen`.
+3. Each event takes the position, barometric altitude and measurements of that
+   state vector. Its `info` field is empty.
+
+There is no threshold or parameter. Every track has exactly one of each, so the
+number of `first_seen` events is also the number of tracks.
+
+## Reference data
+
+None. No reference dataset records when an aircraft was first or last heard by
+a receiver network, because that is a property of the receivers, not of the
+flight.
+
+## Validation method
+
+Not validated. The events are correct by definition: they are the first and
+last state vector of the track. What could be validated is how far they are
+from the real start and end of the flight, by comparing `first_seen` with the
+off-block time and `last_seen` with the on-block time of the Network Manager's
+airport data. That comparison has not been made.
+
+## Results
+
+Not validated.
+
+## Error distribution
+
+Not validated, so no error distribution exists.
+
+## Headline accuracy
+
+Not validated.
+
+## Limitations
+
+- `first_seen` is not the off-block time and `last_seen` is not the on-block
+  time. Use the block-time events or flight list columns for those.
+- The position in a state vector can be older than its time, because the
+  OpenSky Network repeats the last position heard until a new one arrives. In
+  three hours of data over Europe, the position of an aircraft's last state
+  vector was a median of 190 s old, and more than 30 s old in 55.1% of cases;
+  for the first state vector the median age was 0 s. So `last_seen` is often a
+  few minutes after the aircraft was really last located.
+- The position of either event can be empty where cleaning removed it.
+- Both events depend on the track. If a flight is split into two tracks, each
+  piece has its own `first_seen` and `last_seen` (see
+  [Track identity](track-identity.qmd)).
+- They are most useful as a measure of coverage: the time between `first_seen`
+  and off-block, or between landing and `last_seen`, is the part of the
+  movement that the receivers did not hear.
+
+## Full study
+
+- [Flight events from ADS-B](../../papers/flight-events-v4/index.html),
+  chapter "First seen and last seen".
+- [Thinning state vectors, and what the archive actually contains](../../papers/statevector-decimation/index.html):
+  the age of the position at the first and last state vector.
