@@ -47,14 +47,18 @@ def load_schema(opdi_src: Path):
     if not path.is_file():
         raise SystemExit(f"{path} does not exist. Give the src folder of the opdi repository, "
                          "for example --opdi ../opdi/src")
+    # The schema imports small Spark-free helpers of the package (for example
+    # opdi.versions), so the src folder must be importable.
+    if str(opdi_src) not in sys.path:
+        sys.path.insert(0, str(opdi_src))
     spec = importlib.util.spec_from_file_location("opdi_published_schema", path)
     module = importlib.util.module_from_spec(spec)
     sys.modules[spec.name] = module
     try:
         spec.loader.exec_module(module)
     except ImportError as error:
-        raise SystemExit(f"{path} could not be loaded on its own: it imports another module "
-                         f"({error}). The schema must load without the rest of the pipeline.")
+        raise SystemExit(f"{path} could not be loaded on its own: it imports something that is not installed "
+                         f"({error}). The schema must load without PySpark.")
     return module
 
 

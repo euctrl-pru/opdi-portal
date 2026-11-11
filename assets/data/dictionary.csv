@@ -3,12 +3,12 @@ flight_list,flight_id,string,,identity,Unique identifier of the flight. A flight
 flight_list,icao24,string,,identity,"ICAO 24-bit address of the aircraft's transponder, written as six hexadecimal characters. It normally stays with one aircraft."
 flight_list,flt_id,string,,identity,"Call sign broadcast by the aircraft, for example DLH123."
 flight_list,dof,date,UTC,identity,Date of the flight: the day on which it was first seen. A day's files hold the flights of that date.
-flight_list,adep,string,,airports,"Departure airport, as its four-letter ICAO code. NULL when no departure airport could be identified."
-flight_list,ades,string,,airports,"Destination airport, as its four-letter ICAO code. NULL when no destination airport could be identified."
+flight_list,adep,string,,airports,"Departure airport, as its four-letter ICAO code. 'OOA' (out of area) when the track began at the edge of the covered area, so the flight departed from somewhere outside it. This occurs only in data built with European coverage. NULL when no departure airport could be identified, which includes every overflight."
+flight_list,ades,string,,airports,"Destination airport, as its four-letter ICAO code. 'OOA' (out of area) when the track ended at the edge of the covered area, so the flight continued to somewhere outside it. This occurs only in data built with European coverage. NULL when no destination airport could be identified, which includes every overflight."
 flight_list,adep_p,string,,airports,"Other airports near the start of the track that the flight could have left from, as a comma-separated list of ICAO codes, nearest first."
 flight_list,ades_p,string,,airports,"Other airports near the end of the track that the flight could have gone to, as a comma-separated list of ICAO codes, nearest first."
-flight_list,adep_source,string,,airports,"How the departure airport was decided: 'aerodrome' when an airport was identified, 'out_of_area' when the track began outside the area covered, 'undetermined' when no airport could be identified. When adep is NULL, this column tells the last two cases apart."
-flight_list,ades_source,string,,airports,"How the destination airport was decided, with the same values as adep_source."
+flight_list,adep_source,string,,airports,"How the departure airport was decided. 'aerodrome': adep names the airport near which the track began, found from the position and height of its first reports. 'runway_event': adep was taken from a take-off detected on one of that airport's runways, which takes precedence over the first method. 'out_of_area': adep is 'OOA'. 'undetermined': no airport could be identified and adep is NULL, as for an overflight."
+flight_list,ades_source,string,,airports,"How the destination airport was decided, with the same four values as adep_source: 'aerodrome' (found from the last reports of the track), 'runway_event' (taken from a landing detected on one of the airport's runways), 'out_of_area' (ades is 'OOA') and 'undetermined' (ades is NULL)."
 flight_list,registration,string,,aircraft,"Registration of the aircraft (its tail number), from the OpenSky aircraft database. NULL when the aircraft is not in that database."
 flight_list,model,string,,aircraft,"Aircraft model, from the OpenSky aircraft database."
 flight_list,typecode,string,,aircraft,"ICAO aircraft type designator, for example A320, from the OpenSky aircraft database."
@@ -67,12 +67,12 @@ flight_events,pms_direct_to_distance_nm,double,NM,measurement,"Distance from the
 flight_events,icao24,string,,identity,"ICAO 24-bit address of the aircraft's transponder, written as six hexadecimal characters. It normally stays with one aircraft."
 flight_events,flt_id,string,,identity,"Call sign broadcast by the aircraft, for example DLH123."
 flight_events,dof,date,UTC,identity,Date of the flight: the day on which it was first seen. A day's files hold the flights of that date.
-flight_events,adep,string,,airports,"Departure airport, as its four-letter ICAO code. NULL when no departure airport could be identified."
-flight_events,ades,string,,airports,"Destination airport, as its four-letter ICAO code. NULL when no destination airport could be identified."
+flight_events,adep,string,,airports,"Departure airport, as its four-letter ICAO code. 'OOA' (out of area) when the track began at the edge of the covered area, so the flight departed from somewhere outside it. This occurs only in data built with European coverage. NULL when no departure airport could be identified, which includes every overflight."
+flight_events,ades,string,,airports,"Destination airport, as its four-letter ICAO code. 'OOA' (out of area) when the track ended at the edge of the covered area, so the flight continued to somewhere outside it. This occurs only in data built with European coverage. NULL when no destination airport could be identified, which includes every overflight."
 flight_events,adep_p,string,,airports,"Other airports near the start of the track that the flight could have left from, as a comma-separated list of ICAO codes, nearest first."
 flight_events,ades_p,string,,airports,"Other airports near the end of the track that the flight could have gone to, as a comma-separated list of ICAO codes, nearest first."
-flight_events,adep_source,string,,airports,"How the departure airport was decided: 'aerodrome' when an airport was identified, 'out_of_area' when the track began outside the area covered, 'undetermined' when no airport could be identified. When adep is NULL, this column tells the last two cases apart."
-flight_events,ades_source,string,,airports,"How the destination airport was decided, with the same values as adep_source."
+flight_events,adep_source,string,,airports,"How the departure airport was decided. 'aerodrome': adep names the airport near which the track began, found from the position and height of its first reports. 'runway_event': adep was taken from a take-off detected on one of that airport's runways, which takes precedence over the first method. 'out_of_area': adep is 'OOA'. 'undetermined': no airport could be identified and adep is NULL, as for an overflight."
+flight_events,ades_source,string,,airports,"How the destination airport was decided, with the same four values as adep_source: 'aerodrome' (found from the last reports of the track), 'runway_event' (taken from a landing detected on one of the airport's runways), 'out_of_area' (ades is 'OOA') and 'undetermined' (ades is NULL)."
 flight_events,registration,string,,aircraft,"Registration of the aircraft (its tail number), from the OpenSky aircraft database. NULL when the aircraft is not in that database."
 flight_events,model,string,,aircraft,"Aircraft model, from the OpenSky aircraft database."
 flight_events,typecode,string,,aircraft,"ICAO aircraft type designator, for example A320, from the OpenSky aircraft database."
@@ -112,8 +112,8 @@ flight_events,release,string,,release,Name of the data release the row belongs t
 flight_index,flight_id,string,,identity,Unique identifier of the flight. A flight is one track: the sequence of position reports of one aircraft that belong together.
 flight_index,icao24,string,,identity,"ICAO 24-bit address of the aircraft's transponder, written as six hexadecimal characters. It normally stays with one aircraft."
 flight_index,flt_id,string,,identity,"Call sign broadcast by the aircraft, for example DLH123."
-flight_index,adep,string,,airports,"Departure airport, as its four-letter ICAO code. NULL when no departure airport could be identified."
-flight_index,ades,string,,airports,"Destination airport, as its four-letter ICAO code. NULL when no destination airport could be identified."
+flight_index,adep,string,,airports,"Departure airport, as its four-letter ICAO code. 'OOA' (out of area) when the track began at the edge of the covered area, so the flight departed from somewhere outside it. This occurs only in data built with European coverage. NULL when no departure airport could be identified, which includes every overflight."
+flight_index,ades,string,,airports,"Destination airport, as its four-letter ICAO code. 'OOA' (out of area) when the track ended at the edge of the covered area, so the flight continued to somewhere outside it. This occurs only in data built with European coverage. NULL when no destination airport could be identified, which includes every overflight."
 flight_index,first_seen,timestamp,UTC,times,Time of the first position report of the flight received by the OpenSky Network.
 flight_index,last_seen,timestamp,UTC,times,Time of the last position report of the flight received by the OpenSky Network.
 flight_index,dof,date,UTC,identity,Date of the flight: the day on which it was first seen. A day's files hold the flights of that date.

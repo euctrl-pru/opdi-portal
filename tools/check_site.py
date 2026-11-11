@@ -707,6 +707,10 @@ def load_schema(opdi_src: Path):
     path = Path(opdi_src) / "opdi" / "output" / "schema.py"
     if not path.is_file():
         raise FileNotFoundError(f"{path} does not exist; give the pipeline's src folder")
+    # The schema imports small Spark-free helpers of the package (for example
+    # opdi.versions), so the src folder must be importable.
+    if str(opdi_src) not in sys.path:
+        sys.path.insert(0, str(opdi_src))
     spec = importlib.util.spec_from_file_location("opdi_published_schema", path)
     module = importlib.util.module_from_spec(spec)
     sys.modules[spec.name] = module
