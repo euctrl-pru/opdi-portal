@@ -3,6 +3,34 @@ title: "Methods"
 description: "How each item of the OPDI data is computed from aircraft position reports, how it was checked, how accurate it is, and what its limits are."
 ---
 
+```{r setup}
+#| include: false
+source("../../R/portal_config.R")
+cfg <- portal_cfg
+rel <- portal_release
+v2_current <- rel$is_current(cfg)
+```
+
+```{r status}
+#| results: asis
+#| echo: false
+if (v2_current) {
+  cat(
+    "::: {.callout-note appearance=\"simple\"}\n",
+    "Release ", cfg$release, " is the current release. It covers the days ",
+    rel$coverage_text(cfg), ".\n",
+    ":::\n", sep = "")
+} else {
+  cat(
+    "::: {.callout-note appearance=\"simple\"}\n",
+    "Release ", cfg$release, " is the upcoming release: its files are being produced, ",
+    "starting with the days from ", rel$day_text(cfg$release_coverage$start), ". ",
+    "The data available today are those of release ", cfg$current_release,
+    ", described on [Release ", cfg$current_release, "](../data/v0.0.2.qmd).\n",
+    ":::\n", sep = "")
+}
+```
+
 The Open Performance Data Initiative (OPDI) turns aircraft position reports
 into open data about flights. The reports come from the
 [OpenSky Network](https://opensky-network.org/), a network of ground receivers
@@ -20,7 +48,8 @@ it. The code is open: [euctrl-pru/opdi on GitHub](https://github.com/euctrl-pru/
 Aircraft send their position about once per second in **ADS-B** messages
 (Automatic Dependent Surveillance–Broadcast). Each message identifies the
 aircraft by its **ICAO 24-bit address**, a six-character code set in its
-transponder, and usually by its **call sign**, the radio name of the flight
+transponder and assigned under the rules of ICAO (the International Civil
+Aviation Organization, the United Nations agency for civil aviation), and usually by its **call sign**, the radio name of the flight
 (for example `DLH123`). The OpenSky Network stores what it receives as
 **state vectors**: one row per aircraft and second, with position, altitude,
 speed, heading and vertical rate.
@@ -44,8 +73,10 @@ the event behind it was not detected.
 crossing of a flight level. Every event has:
 
 - the flight it belongs to (`flight_id`);
-- a position: longitude and latitude in degrees (WGS 84), and an altitude in
-  feet;
+- a position: longitude and latitude in degrees, and an altitude in feet. The
+  coordinates use WGS 84, the reference system of GPS. The position is empty
+  for the block times, the level-offs, and take-off and landing times found
+  from the climb or descent;
 - a time (`event_time`, in UTC);
 - a **type**, for example `top-of-climb` or `xing-fir`;
 - a **source**, the origin of the position data (`OSN` for the OpenSky
@@ -53,7 +84,9 @@ crossing of a flight level. Every event has:
 - a **version**, which names the method that produced that event type. A
   method that changes gets a new version, so released data stay reproducible;
 - **info**: extra details as JSON text, for example the runway of a take-off
-  or the two regions of a FIR crossing.
+  or the two regions of a crossing from one flight information region (FIR)
+  to the next. A FIR is an area of airspace in which one service provider
+  gives information to flights.
 
 Some things are not instants but periods, for example a level flight segment
 or a holding pattern. They are published as a **pair of events**, one at the
@@ -152,8 +185,10 @@ from, is [`assets/validation/validation_measures.csv`](../../assets/validation/v
 ## Measures used on these pages
 
 - **Reference data** (or ground truth): an independent record of the same
-  flights, used to check OPDI's answers. Most often this is EUROCONTROL
-  Network Manager data, which cover flights in the European area.
+  flights, used to check OPDI's answers. Most often this is data of the
+  EUROCONTROL Network Manager, the EUROCONTROL service that coordinates air
+  traffic across Europe and keeps a record of each flight it handles. These
+  data cover flights in the European area.
 - **Coverage**: of the reference cases, the share for which OPDI gives an
   answer.
 - **Accuracy**: of the answers OPDI gives, the share that are right.

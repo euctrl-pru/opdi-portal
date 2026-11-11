@@ -46,10 +46,11 @@ A column is empty when the event behind it was not found.
 ## How it is computed
 
 The take-off and landing times are found by two methods. The first follows
-the aircraft on the runway itself and is the more precise where it works. The
+the aircraft on the runway itself, but needs reception near the ground. The
 second reads the first part of the climb and the last part of the descent,
 which the receivers see far more often. The published time comes from the
-first method where it gives an answer, and from the second otherwise.
+first method where it gives an answer, and from the second otherwise; the
+Results section compares the two.
 
 Both methods work on the cleaned state vectors of each track (see
 [Trajectory cleaning](trajectory-cleaning.qmd)), one every 5 seconds, and only
@@ -66,7 +67,9 @@ sea level, from OurAirports).
 ### The runway-pass method (`method` = `acdm`)
 
 1. **Runway grid.** Every runway of every large and medium airport is covered
-   with small hexagonal cells (H3 cells of resolution 12, each about 300 m²).
+   with small hexagonal cells. These are H3 cells: H3 is an open system that
+   divides the surface of the Earth into hexagons of a few fixed sizes. Here
+   the size is resolution 12, where each cell covers about 300 m².
    The grid holds the runway itself and, at each end, an approach area that
    extends 1 NM out from the threshold, away from the runway.
 2. **Samples on or near the runway.** A state vector is kept for a runway
@@ -76,7 +79,8 @@ sea level, from OurAirports).
 3. **Runway pass.** The kept samples of one runway direction, in time order,
    form a **runway pass**. A silence of more than 300 s starts a new pass.
 4. **Classify the pass.** Three measurements are made over the pass: the angle
-   between the aircraft's median track and the runway's bearing, the highest
+   between the runway's bearing and the median of the aircraft's direction of
+   travel over the ground (its ground track), the highest
    ground speed, and the height above the airport at the first and the last
    sample that has an altitude.
    - **Departure**: angle at most 30°, ground speed above 50 kt, height below
@@ -91,7 +95,7 @@ sea level, from OurAirports).
 5. **Choose the runway direction.** When several runway directions classify,
    the one whose centre line is nearest to the aircraft wins. Between the two
    directions of one runway, the one whose bearing is closest to the
-   aircraft's track wins.
+   aircraft's ground track wins.
 6. **`take-off-roll`.** In a departure pass, find runs of samples with ground
    speed of at least 50 kt. A run counts if it lasts at least 5 s and has no
    silence of more than 30 s inside it. The event is the first sample of the
@@ -116,17 +120,19 @@ the same moment.
 
 ### The climb-and-descent method (`method` = `legacy`)
 
-This method follows the track-based runway detection of the open-source
-`traffic` library. It is applied to the departure airport and to the
+This method follows the runway detection of the open-source
+[`traffic`](https://traffic-viz.github.io/) library, a Python library for
+working with aircraft trajectories. It is applied to the departure airport and to the
 destination airport of the flight list.
 
 1. Keep the samples of the track that are within 5 NM of the airport's
-   reference point, less than 1,500 ft above the airport, faster than 30 kt
+   reference point (the single position that officially marks where the
+   airport is), less than 1,500 ft above the airport, faster than 30 kt
    ground speed, and climbing faster than 257 ft/min (departure) or descending
    faster than 257 ft/min (arrival).
 2. At least 4 samples must remain. They are the initial climb or the final
    descent.
-3. **Runway.** Take the median track of these samples. The candidate runways
+3. **Runway.** Take the median ground track of these samples. The candidate runways
    are those whose bearing is within 10° of it. Among them, the one whose
    centre line is nearest to the median position wins; the bearing breaks a
    tie.
@@ -177,9 +183,12 @@ These rules are applied only to days whose events have been computed.
 **Airport operator records** (the airport data flow, APDF). Airports send
 EUROCONTROL a record of each departure and arrival. For each movement the
 record gives the actual off-block, take-off, landing and in-block times, the
-runway and the stand. These records do not contain the aircraft address. They are linked to
-the EUROCONTROL Network Manager's flight records, which do, and then to OPDI
-flights by aircraft address, call sign and day.
+runway and the stand. These records do not contain the aircraft address. They
+are linked to the flight records of the EUROCONTROL Network Manager, which do
+contain it. The Network Manager is the EUROCONTROL service that coordinates air
+traffic across Europe and holds the flight plan of every flight it handles. The
+linked records are then matched to OPDI flights by aircraft address, call sign
+and day.
 
 The study used three days, 5 to 7 June 2026, at the 20 airports with the best
 ADS-B reception in the OPDI data on those days: EBBR, LSZH, EICK, EFHK, LEIB,
@@ -228,6 +237,7 @@ reference arrivals.
 | Within 10 s | 24.71% | 25.48% |
 | Within 30 s | 54.10% | 73.43% |
 | Within 60 s | 86.97% | 94.36% |
+| Within 120 s | 95.69% | 95.26% |
 | Within 300 s | 95.72% | 95.37% |
 
 **Each method on its own.** The climb-and-descent method answers more
@@ -316,16 +326,14 @@ runways match the airport record.
   receiver close enough.
 - The height above the airport uses the uncorrected barometric altitude. On a
   day with high or low air pressure, the 15 ft crossing moves slightly.
-- On a runway whose bearing is close to north (runways numbered 36 and 18),
-  the median track can come out pointing the wrong way. The runway direction
+- On a runway whose bearing is close to the north–south line (runways
+  numbered 18 and 36), the median ground track can come out pointing the wrong way. The runway direction
   can then be wrong, and `landing` can be missing although `ALDT` is present.
 - If an aircraft is first received when already faster than 50 kt,
   `take-off-roll` is placed at the first sample received, which is too late.
   Nothing in the data marks this case.
 - `landing` needs a sample less than 60 s before the aircraft enters the
   runway area. It is missing more often than `ALDT`.
-- The runway bearing comes from the threshold positions in OurAirports. It is
-  right whenever the runway is right, to the precision of those positions.
 - The runway named by the climb-and-descent method has not been checked
   against the records.
 - The rules that mark `superseded_*` and `movement_*` have not been checked

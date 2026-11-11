@@ -28,7 +28,8 @@ is the time a departure spends on the runway.
 The first four events carry, in `info`, the airport (`apt_icao`), the runway
 direction (`runway`), the true bearing of its centre line
 (`runway_bearing_deg`), the class of the runway pass (`traversal_class`), the
-angle between the aircraft's track and the runway (`align_deg`, degrees), the
+angle between the runway and the aircraft's direction of travel over the
+ground (its ground track) (`align_deg`, degrees), the
 highest ground speed in the pass (`max_gs_kt`, knots) and the standard number
 (`milestone`). A `go-around` carries the destination airport, the lowest height
 above the airport (`low_height_ft`), the highest rate of climb afterwards
@@ -51,7 +52,7 @@ grid and the choice of the runway direction are described on
 2. **`runway-vacated`** is the last state vector of an arrival pass that lies
    on the runway.
 3. A pass is a **crossing** when all of these hold:
-   - the aircraft's median track is at least 45° away from the runway's
+   - the aircraft's median ground track is at least 45° away from the runway's
      bearing;
    - its ground speed never exceeds 40 kt;
    - the pass lasts at most 120 s;
@@ -147,7 +148,7 @@ Not validated.
 - For a crossing, the runway is right but its direction (for example `07`
   rather than `25`) is arbitrary: an aircraft crossing at right angles does
   not point along either. Do not count crossings per runway direction.
-- A pass whose track is between 30° and 45° from the runway is neither a
+- A pass whose ground track is between 30° and 45° from the runway is neither a
   departure, an arrival nor a crossing, and gives no event.
 - A go-around whose approach never goes below 500 ft above the airport, or
   whose climb-away never reaches 1,500 ft, is not found. A flight without a

@@ -53,8 +53,9 @@ distance the aircraft could have flown, so the distance is a lower bound there.
 
 **Time passed**
 
-The time of the state vector minus the time of the track's first state vector,
-in whole seconds.
+The time of the event minus the time of the track's first state vector, in
+seconds: whole seconds for events taken at a state vector, interpolated
+otherwise.
 
 **At the event**
 
@@ -120,8 +121,9 @@ where the distance added differs from the straight line by more than 1 NM.
   off-block or take-off. A track that starts in the air (where reception
   starts) has a distance and time that do not cover the start of the flight.
 - The distance is horizontal: climbs and descents add nothing.
-- The time is in whole seconds, and the state vectors are 5 seconds apart, so
-  an event's time and distance can be off by up to one sample.
+- The time is in seconds: whole seconds for events taken at a state vector,
+  interpolated otherwise. The state vectors are 5 seconds apart, so an
+  event's time and distance can be off by up to one sample.
 - Some events carry no distance or time: the block times (`AOBT`, `AIBT`),
   the runway times `ATOT` and `ALDT` found from the climb or descent
   (`method` = `legacy` in `info`), and the level-off events. Their measurement

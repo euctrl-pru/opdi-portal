@@ -59,8 +59,8 @@ decides whether a new track starts there.
 | Check | Setting | Why |
 |---|---|---|
 | Gap not too long | at most 600 minutes (10 hours) | A longer silence leaves room for anything to have happened. |
-| En route before the gap | lowest of the 5 nearest altitudes within 5 minutes before the gap at or above 18,000 ft; or, below that, climbing faster than 500 ft/min on average over at least 3 vertical-rate values | An aircraft lost at cruise, or still climbing out, is on its way somewhere. |
-| En route after the gap | the same at the other edge: at or above 18,000 ft; or between 5,000 ft and 18,000 ft and descending faster than 500 ft/min on at least 3 values | An aircraft that reappears on its descent is arriving. |
+| En route before the gap | The lowest of the 5 nearest altitudes within 5 minutes before the gap is at or above 18,000 ft. If it is lower, the aircraft must be climbing faster than 500 ft/min on average over at least 3 vertical-rate values. | An aircraft lost at cruise, or still climbing out, is on its way somewhere. |
+| En route after the gap | The same altitude rule at the other edge: at or above 18,000 ft. If it is between 5,000 ft and 18,000 ft, the aircraft must be descending faster than 500 ft/min on at least 3 vertical-rate values. | An aircraft that reappears on its descent is arriving. |
 | No descent then climb | not both descending faster than 500 ft/min before and climbing faster than 500 ft/min after; a missing vertical rate does not count against it | That is what a stop inside the gap looks like. |
 | Call sign agrees | the last call sign before the gap (at most 60 minutes old) and the first after it (within 10 minutes) are not both present and different; a blank agrees with anything | A different call sign is a different flight. |
 | Straight-line speed not too slow | at least 400 kt: the great-circle distance between the edge positions divided by the time between them | A stop uses up time, which lowers this speed. |
@@ -142,7 +142,7 @@ counted as not in one track.
 
 | Test | Result |
 |---|---|
-| Real gaps kept inside a track | 24,422 of 228,655 gaps of more than 30 min |
+| Gaps in the real data (not the made-up gaps of the tests "Hidden landings" and "Cut flights") kept inside a track | 24,422 of 228,655 gaps of more than 30 min |
 | Kept gaps that the reference can check | 5,888 |
 | False joins among them | 1 (0.017%) |
 | Kept gaps the reference cannot check | 75.9% |
@@ -179,7 +179,8 @@ false join.
 - A track starts where reception starts. It is not a flight plan: a track can
   begin in the air or end before landing.
 - `flight_id` depends on the rule that built it. Identifiers from different
-  releases cannot be joined, and nothing in a row says which rule produced it.
+  releases cannot be joined. The track rule is not named in the data; the
+  flight list `version` changes with it.
 - Aircraft that share a placeholder address (`000000`, `000001`, `ffffff`) are
   never joined across a gap.
 - The reference covers two days, both in June.
