@@ -159,14 +159,19 @@ The views have the same names in Trino and in DuckDB.
 
 | Old shape | Trino and DuckDB view | Python reader |
 |---|---|---|
-| Flight list (upper-case names, 16 columns) | `flight_list_v0` | `published.as_flight_list_v0(flights)` |
+| Flight list (lower-case names and order of v0.0.2, 16 columns) | `flight_list_v0` | `published.as_flight_list_v0(flights)` |
 | Flight events (without measurements) | `events` | `published.as_events(events)` |
 | Measurements (one row per value) | `measurements` | `published.as_measurements(events)` |
 
 [Access](access.qmd) shows how to use them. The views change the shape, not
 the content: the rows follow the methods of release v2.0.0, and the
-identifiers do not match those of release v0.0.2. The old flight list view
-leaves out the columns that release v0.0.2 did not have.
+identifiers are text and do not match the 64-bit integer identifiers of
+release v0.0.2, so rows cannot be joined to v0.0.2 files by identifier. The
+column `version` holds the version of each method, not "v0.0.2". In the
+`measurements` view every event has one row for the distance flown and one for
+the time passed, even when the value is empty, as in release v0.0.2; the other
+measurement types have a row only when they have a value. The old flight list
+view leaves out the columns that release v0.0.2 did not have.
 
 ## Where release v0.0.2 is
 

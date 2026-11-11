@@ -77,10 +77,21 @@ The examples below then use the short table names.
 | `measurements` | view | measured value | the measurements as rows, in the shape of release v0.0.2 |
 | `flight_list_v0` | view | flight | the flight list with the columns of release v0.0.2 |
 
-A **view** is a stored query that looks like a table. The three views give
-the data the shape that release v0.0.2 had, for code written for that
-release. [Releases](releases.qmd#moving-from-v0.0.2) lists the old and new
-names.
+A **view** is a stored query that looks like a table. The views
+`flight_list_v0`, `events` and `measurements` are the separate flight list,
+events and measurements tables in the layout of release v0.0.2, for code
+written for that release. [Releases](releases.qmd#moving-from-v0.0.2) lists the
+old and new names.
+
+Two things differ from the files of release v0.0.2. The identifiers are text
+and do not match the 64-bit integer identifiers of v0.0.2 files, so rows
+cannot be joined to v0.0.2 files by identifier. And `version` holds the
+version of each method, not "v0.0.2".
+
+In `measurements`, every event has one row for the distance flown and one for
+the time passed, even when the value is empty, as in release v0.0.2. The other
+measurement types (holding and point merge) have a row only when they have a
+value.
 
 **Filter on `dof` (the date of flight) whenever you can.** Each daily file
 holds a single date, so Trino can skip the contents of the files of other
@@ -225,8 +236,9 @@ file of the same day holds the flight's events.
 ### Python
 
 The OPDI package contains a small reader, `opdi.published`, that needs only
-pandas, pyarrow and (for the views) DuckDB, not Spark. Install it from the
-OPDI repository:
+pandas, pyarrow and (for the views) DuckDB. It needs Python 3.10 or later.
+Installing `opdi[reader]` also installs PySpark, but the reader does not start
+Spark. Install it from the OPDI repository:
 
 ```bash
 pip install "opdi[reader] @ git+https://github.com/euctrl-pru/opdi"
@@ -294,7 +306,7 @@ The shapes of release v0.0.2 are one call away:
 ```python
 old_events = published.as_events(events)              # id, flight_id, type, ..., altitude, info
 old_measurements = published.as_measurements(events)  # id, event_id, type, value, version
-old_flights = published.as_flight_list_v0(flights)    # ID, ICAO24, FLT_ID, DOF, ADEP, ...
+old_flights = published.as_flight_list_v0(flights)    # id, icao24, flt_id, dof, adep, ...
 ```
 
 ### R
