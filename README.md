@@ -212,6 +212,13 @@ quarto render
 quarto render papers/
 ```
 
+Rendering the site (`quarto render`) needs no credentials. Rendering the
+studies is different: `quarto render papers/` runs the analysis of each newer
+study again when the inputs of that study have changed, and then needs
+credentials for the computing cluster. To render them from the committed data
+instead, run `OPDI_RENDER=allow-stale quarto render papers/`; the study then
+marks the figures it could not check against its inputs.
+
 `tools/README.md` explains each script and each check.
 
 ### What to look at after rendering
@@ -241,8 +248,12 @@ These pages have not yet been rendered; check them by eye in `_site/`:
 
 ### The community page
 
-`content/community.qmd` is kept but hidden. `tools/README.md`, section "The
-community page", lists the three edits that show it again.
+`content/community.qmd` is kept but hidden: it is excluded from rendering in
+`_quarto.yml` and is not linked from any page. `tools/README.md`, section "The
+community page", lists the four edits that show it again. A `_site/` rendered
+before the exclusion still holds `content/community.html` and its entry in
+`_site/search.json`; both go away only on the next render. If
+`_site/content/community.html` is still there after rendering, delete it.
 
 ### Merging
 

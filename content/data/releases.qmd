@@ -12,7 +12,7 @@ v2_current <- rel$is_current(cfg)
 ```
 
 This page compares the two releases of OPDI data: release
-`r cfg$release` and the previous release, `r cfg$previous_release`. It says
+`r cfg$release` and the earlier release, `r cfg$previous_release`. It says
 what is new for a user of the data, and it gives a table to move code written
 for the old files to the new ones.
 
@@ -155,11 +155,13 @@ replaces it in release v2.0.0.
 Ready-made views give the data the shape of release v0.0.2, for code written
 for that release:
 
-| Old shape | Trino view | Python reader | DuckDB view |
-|---|---|---|---|
-| Flight list (upper-case names, 16 columns) | `flight_list_v0` | `published.as_flight_list_v0(flights)` | none |
-| Flight events (without measurements) | `events` | `published.as_events(events)` | `opdi_flight_events` |
-| Measurements (one row per value) | `measurements` | `published.as_measurements(events)` | `opdi_measurements` |
+The views have the same names in Trino and in DuckDB.
+
+| Old shape | Trino and DuckDB view | Python reader |
+|---|---|---|
+| Flight list (upper-case names, 16 columns) | `flight_list_v0` | `published.as_flight_list_v0(flights)` |
+| Flight events (without measurements) | `events` | `published.as_events(events)` |
+| Measurements (one row per value) | `measurements` | `published.as_measurements(events)` |
 
 [Access](access.qmd) shows how to use them. The views change the shape, not
 the content: the rows follow the methods of release v2.0.0, and the
@@ -169,5 +171,5 @@ leaves out the columns that release v0.0.2 did not have.
 ## Where release v0.0.2 is
 
 Its files stay available for download on
-[Previous release v0.0.2](v0.0.2.qmd), which also describes how it was
+[Release v0.0.2](v0.0.2.qmd), which also describes how it was
 computed.

@@ -24,7 +24,7 @@ if (!v2_current) {
     "::: {.callout-note appearance=\"simple\"}\n",
     "Release ", cfg$release, " is the upcoming release: its tables and files are being ",
     "produced. The data available today are those of release ", cfg$current_release,
-    ", described on [Previous release ", cfg$previous_release, "](v0.0.2.qmd).\n",
+    ", described on [Release ", cfg$previous_release, "](v0.0.2.qmd).\n",
     ":::\n", sep = "")
 }
 ```
@@ -83,7 +83,8 @@ release. [Releases](releases.qmd#moving-from-v0.0.2) lists the old and new
 names.
 
 **Filter on `dof` (the date of flight) whenever you can.** Each daily file
-holds a single date, so Trino skips every file of the other days.
+holds a single date, so Trino can skip the contents of the files of other
+days.
 
 ### Example: flights between two airports on a day
 
@@ -232,7 +233,8 @@ pip install "opdi[reader] @ git+https://github.com/euctrl-pru/opdi"
 ```
 
 The reader finds the files under a base address: a web address, an S3
-address or a local folder that holds `flight_list/` and `flight_events/`.
+address (the address of a folder in cloud storage that is reached with
+Amazon's S3 protocol, written `s3://bucket/folder`) or a local folder that holds `flight_list/` and `flight_events/`.
 Give it with `base=`, or set the environment variable `OPDI_PUBLISHED_URL`
 once.
 
@@ -377,8 +379,9 @@ GROUP BY fir
 ORDER BY crossings DESC;
 ```
 
-From Python, the reader creates DuckDB views with the same names for the
-published shape and the shapes of release v0.0.2:
+From Python, the reader creates DuckDB views over the files. Their names are
+the same as the names of the tables and views in Trino, so a query written for
+one runs on the other:
 
 ```python
 import duckdb
@@ -387,15 +390,17 @@ from opdi import published
 
 con = duckdb.connect()
 con.execute(published.duckdb_views(base="/data/opdi", start=date(2026, 6, 14)))
-con.sql("SELECT type, count(*) AS n FROM opdi_flight_events GROUP BY type ORDER BY n DESC")
+con.sql("SELECT type, count(*) AS n FROM flight_events GROUP BY type ORDER BY n DESC")
 ```
 
 | DuckDB view | Holds |
 |---|---|
-| `opdi_flight_list` | the flight list files as published |
-| `opdi_flight_events_merged` | the flight events files as published |
-| `opdi_flight_events` | the events alone, in the shape of release v0.0.2 |
-| `opdi_measurements` | the measurements as rows, in the shape of release v0.0.2 |
+| `flight_list` | the flight list files as published |
+| `flight_events` | the flight events files as published: events, measurements and flight list columns in one row |
+| `flight_index` | the monthly flight index files, when the folder holds `index/` |
+| `events` | the events alone, in the shape of release v0.0.2 |
+| `measurements` | the measurements as rows, in the shape of release v0.0.2 |
+| `flight_list_v0` | the flight list with the columns of release v0.0.2 |
 
 `duckdb_views` also takes an end date (`end=`). Without `start`, it reads every
 file in a local or S3 folder.

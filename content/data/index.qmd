@@ -27,7 +27,7 @@ if (v2_current) {
     "::: {.callout-note appearance=\"simple\"}\n",
     "**Current release: ", cfg$release, ".** It covers the days ",
     rel$coverage_text(cfg), ". The previous release, ", cfg$previous_release,
-    ", stays available: see [Previous release ", cfg$previous_release, "](v0.0.2.qmd).\n",
+    ", stays available: see [Release ", cfg$previous_release, "](v0.0.2.qmd).\n",
     ":::\n", sep = "")
 } else {
   cat(
@@ -37,7 +37,7 @@ if (v2_current) {
     rel$day_text(cfg$release_coverage$start), " onwards. Until they are available, use ",
     "release ", cfg$current_release, ", which covers ",
     portal_labels$month_range(cfg$coverage$start, cfg$coverage$end),
-    ": see [Previous release ", cfg$previous_release, "](v0.0.2.qmd).\n",
+    ": see [Release ", cfg$previous_release, "](v0.0.2.qmd).\n",
     ":::\n", sep = "")
 }
 ```
@@ -102,13 +102,16 @@ A flight that takes off at 23:30 UTC and lands at 02:00 UTC the next day is
 therefore in the files of the day it took off, with its landing.
 
 A small number of events belong to a track that has no row in the flight list
-(3,442 of 6,773,617 events, or 0.05%, on 14 June 2026). They are published in
-the file of the day their track started, with empty flight columns.
+(3,442 of 6,773,617 events, or 0.05%, on 14 June 2026). The flight list holds
+only tracks for which a departure or a destination airport could be named
+(see [Departure and destination airports](../methods/airports.qmd)); these
+tracks had neither. Their events are published in the file of the day their
+track started, with empty flight columns.
 
 ## Coverage
 
-Release `r cfg$release` covers the whole world: every flight that the OpenSky
-Network received. Release `r cfg$previous_release` covered a box around Europe
+Release `r cfg$release` `r if (v2_current) "covers" else "will cover"` the
+whole world: every flight that the OpenSky Network received. Release `r cfg$previous_release` covered a box around Europe
 only. Reception is not the same everywhere: it depends on where receivers
 are, and it is thin over the oceans and near the ground at many airports. [Limitations](limitations.qmd#ads-b-reception)
 explains what this means for the data.
@@ -116,10 +119,11 @@ explains what this means for the data.
 ## How to get the data
 
 - **Through Trino.** Trino is a database engine that runs SQL queries
-  directly on files. The OPDI files are available as tables on the OpenSky
+  directly on files. The OPDI files of release `r cfg$release`
+  `r if (v2_current) "are" else "will be"` available as tables on the OpenSky
   Network's Trino instance. This is the quickest way to select a few flights
   or to count over many days without downloading anything.
-- **As files.** The daily files can be downloaded and read with Python, R,
+- **As files.** The daily files `r if (v2_current) "can" else "will"` be downloaded and read with Python, R,
   DuckDB or any other tool that reads Parquet.
 
 [Access](access.qmd) gives the names of the tables, the addresses of the files
@@ -133,7 +137,7 @@ and example queries for both.
 | [Data dictionary](dictionary.qmd) | What every column, event type and `info` field means, and how the tables join. |
 | [Releases](releases.qmd) | What changed in release `r cfg$release` compared with release `r cfg$previous_release`, and how to move from one to the other. |
 | [Limitations](limitations.qmd) | When the data are missing or wrong, for the whole dataset and for each method. |
-| [Previous release v0.0.2](v0.0.2.qmd) | The monthly and ten-day files of the previous release, and how it was computed. |
+| [Release v0.0.2](v0.0.2.qmd) | The monthly and ten-day files of release v0.0.2, and how it was computed. |
 | [Data preview](../data-preview.qmd) | Charts made from the data. |
 
 ## Contact

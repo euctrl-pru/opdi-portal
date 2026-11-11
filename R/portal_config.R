@@ -159,7 +159,8 @@ portal_cfg <- list(
   # Release v0.0.2 (monthly and ten-day files)
   # ---------------------------------------------------------------------------
   # Month of the latest refresh of the v0.0.2 files, the period they cover and
-  # their size. Update these for each refresh of release v0.0.2.
+  # their size. Release v0.0.2 is no longer extended: these values record the
+  # last time its files were updated.
   refresh_label = "October 2026",
   coverage = list(
     start = as.Date("2022-01-01"),

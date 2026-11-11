@@ -3,6 +3,34 @@ title: "Data dictionary"
 description: "Every column of the OPDI files of release v2.0.0, every event type, the fields of the info column, the version columns, and how the tables join."
 ---
 
+```{r setup}
+#| include: false
+source("../../R/portal_config.R")
+cfg <- portal_cfg
+rel <- portal_release
+v2_current <- rel$is_current(cfg)
+```
+
+```{r status}
+#| results: asis
+#| echo: false
+if (v2_current) {
+  cat(
+    "::: {.callout-note appearance=\"simple\"}\n",
+    "Release ", cfg$release, " is the current release. It covers the days ",
+    rel$coverage_text(cfg), ".\n",
+    ":::\n", sep = "")
+} else {
+  cat(
+    "::: {.callout-note appearance=\"simple\"}\n",
+    "Release ", cfg$release, " is the upcoming release: its files are being produced, ",
+    "starting with the days from ", rel$day_text(cfg$release_coverage$start), ". ",
+    "The data available today are those of release ", cfg$current_release,
+    ", described on [Release ", cfg$current_release, "](v0.0.2.qmd).\n",
+    ":::\n", sep = "")
+}
+```
+
 This page lists everything a row of the OPDI files can hold: every column of
 the flight list and of the flight events, every event type, and the fields of
 the `info` column of each event type. It also explains the three version
@@ -32,6 +60,21 @@ of one aircraft that OPDI treats as one flight (see
 [Track identity](../methods/track-identity.qmd)).
 
 {{< include _generated/flight_list_columns.md >}}
+
+### How the airports were found {#airport-source}
+
+The columns `adep_source` and `ades_source` say how the departure and the
+destination airport were found. They hold one of four values:
+
+| Value | Meaning |
+|---|---|
+| `aerodrome` | An airport was named from the trajectory: from the first position for the departure, from the descent near an airport for the destination. |
+| `out_of_area` | The track began in the air near the edge of the area covered, so the flight came from outside it (departure only). This value is not used when the area covered is the whole world. |
+| `undetermined` | No airport could be named. |
+| `runway_event` | The airport was taken from a take-off or landing detected on a runway, replacing the value found from the trajectory. |
+
+[Departure and destination airports](../methods/airports.qmd) explains each
+case.
 
 ## Flight events {#flight-events}
 

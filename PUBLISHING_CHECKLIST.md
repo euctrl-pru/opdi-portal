@@ -42,6 +42,17 @@ published before every value is known.
   quarter of 2027). The team, country and submission totals of 2026 are left
   out because they were not published; add them when they are, and change
   `totals_label` from "2024-2025".
+- [ ] **2024 PRC Data Challenge totals.** `content/data-challenges.qmd`,
+  line 124, says "around 550 submissions; 43 teams from 22 countries reached
+  the final phase". The same values are in `R/portal_config.R`, lines 202-207
+  (`finalists = 43`, `countries = 22`, `submissions = "~550"`), and feed the
+  totals boxes at the top of the page. No official page was found that states
+  them. Confirm them with the challenge organisers or correct them.
+- [ ] **2025 PRC Data Challenge, 2nd and 3rd place.** The affiliations in the
+  winners table of `content/data-challenges.qmd`, line 105 (jubilant-vase:
+  Sapienza / ENSAI, FR) and line 106 (outspoken-tornado: Euranova, BE), were
+  on the page before this work and have not been checked again. Confirm them
+  on the team pages linked from that table.
 - [ ] **The OPDI software is public.** The Access page tells readers to
   install the reader with
   `pip install "opdi[reader] @ git+https://github.com/euctrl-pru/opdi"`, and
@@ -53,6 +64,10 @@ published before every value is known.
 - [ ] **Release v0.0.2 downloads.** Open a few of the links on
   `content/data/v0.0.2.qmd` (first and last month, first and last ten-day
   file) to confirm the files are still served.
+- [ ] **Last ten-day file of release v0.0.2.** The download loop on
+  `content/data/v0.0.2.qmd` generates the ten-day file names from
+  `coverage` in `R/portal_config.R`. Check that the last file it generates,
+  the one ending after 2026-09-30, exists on the server.
 
 ## 3. Decisions
 
