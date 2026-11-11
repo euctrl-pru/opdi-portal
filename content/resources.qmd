@@ -4,39 +4,26 @@ title: "Resources"
 
 The papers, open datasets, and software behind the \acr{OPDI} — together with the open-source ecosystem the initiative is built upon.
 
-## Methodology studies
+## Method studies
 
-Benchmarks of \acr{OPDI} algorithms against EUROCONTROL reference data. Each study reports what the comparison showed, including where a proposed method failed, and renders every figure from a committed cache so its results can be reproduced from the repository alone.
+Each method of the OPDI data has been tested in a study: a report that
+compares the method with EUROCONTROL reference data, and says where it works
+and where it fails. The [Methods](methods/index.qmd) pages summarise the
+results; the studies give every detail. A study can have several versions:
+the latest describes the method of release v2.0.0, and the earlier ones are
+kept as the record of how it was developed.
 
-:::: {.publication-card}
-::: {.publication-venue}
-PRU<br>**2026**
-:::
-::: {.publication-info}
-[Study]{.pill .pill-paper}
+| Topic | Latest study | Earlier versions | Summarised on |
+|---|---|---|---|
+| Which position reports form one flight | [Turning ADS-B state vectors into flight tracks, version 5](../papers/track-construction-v5/index.html) | [1](../papers/track-construction-v1/index.html), [2](../papers/track-construction-v2/index.html), [3](../papers/track-construction-v3/index.html), [4](../papers/track-construction-v4/index.html) | [Track identity](methods/track-identity.qmd) |
+| How many position reports to keep | [Thinning state vectors, and what the archive actually contains](../papers/statevector-decimation/index.html) | none | [Trajectory cleaning](methods/trajectory-cleaning.qmd) |
+| Departure and destination airports | [Departure and destination aerodromes in the OPDI flight list, version 7](../papers/adep-ades-detection-v7/index.html) | [1](../papers/adep-ades-detection/index.html), [2](../papers/adep-ades-detection-v2/index.html), [3](../papers/adep-ades-detection-v3/index.html), [4.5](../papers/adep-ades-detection-v4/index.html), [5](../papers/adep-ades-detection-v5/index.html), [6](../papers/adep-ades-detection-v6/index.html) (with its [review reply](../papers/adep-ades-detection-v6/reply.html)), [6.2](../papers/adep-ades-detection-v6.2/index.html) | [Departure and destination airports](methods/airports.qmd) |
+| Runway, block, surface and vertical events, distance rings | [Flight events from ADS-B, version 4](../papers/flight-events-v4/index.html) | [1](../papers/flight-events-v1/index.html), [2](../papers/flight-events-v2/index.html), [3](../papers/flight-events-v3/index.html) | [Take-off and landing](methods/takeoff-landing.qmd), [Block times](methods/block-times.qmd), [Runway milestones](methods/runway-milestones.qmd), [Airport surface events](methods/surface-events.qmd), [Vertical events](methods/vertical-events.qmd), [Distance rings](methods/distance-rings.qmd) |
+| Holding, point merge and FIR crossings | [Holding, point merge and FIR crossings as flight events, version 1](../papers/airspace-events-v1/index.html) | none | [Holding](methods/holding.qmd), [Point merge](methods/point-merge.qmd), [FIR crossings](methods/fir-crossings.qmd) |
+| ADS-C position reports as a second source | [ADS-C in the OPDI trajectory, version 1](../papers/adsc-fusion-v1/index.html) | none | Not used with the default settings |
 
-**[Detecting departure and destination aerodromes from ADS-B — version 4.5](../papers/adep-ades-detection-v4/index.html)** · [PDF](../papers/adep-ades-detection-v4/adep-ades-detection-v4.pdf)
-
-EUROCONTROL Performance Review Unit
-
-Detection moved inside the pipeline: H3 as the index, exact distance as the comparison, three modes behind one parameter. The detection radius turns out to barely matter for coverage while the abstention height decides almost everything — though on accuracy both axes pull the other way, which is what fixes the operating point. Earlier versions remain published: [v1](../papers/adep-ades-detection/index.html), [v2](../papers/adep-ades-detection-v2/index.html), [v3](../papers/adep-ades-detection-v3/index.html).
-:::
-::::
-
-:::: {.publication-card}
-::: {.publication-venue}
-PRU<br>**2026**
-:::
-::: {.publication-info}
-[Study]{.pill .pill-paper}
-
-**[Detecting departure and destination aerodromes from ADS-B — version 1](../papers/adep-ades-detection/index.html)** · [PDF](../papers/adep-ades-detection/adep-ades-detection.pdf)
-
-EUROCONTROL Performance Review Unit
-
-A comparison of seven \acr{ADEP}/\acr{ADES} methodologies against APDF ground truth over two three-day samples a year apart. Finds that the production algorithm's altitude-trend logic contributes no accuracy over a nearest-aerodrome rule on the same flights, and that replacing it with explicit endpoint abstention improves departure detection by 8–10 points of coverage — while the same change fails to replicate for arrivals.
-:::
-::::
+All studies, with a short summary of each, are listed on the
+[studies index](../papers/index.html). Each study page also links to its PDF.
 
 ## Publications
 
@@ -154,9 +141,43 @@ Open-source projects created and maintained by the \acr{PRC} as part of the init
 
 **[OPDI](https://github.com/euctrl-pru/opdi)**
 
-A pip-installable Python package for processing \acr{OSN} aviation data through modular ETL pipelines. This is the code underpinning the OPDI datasets — see the [Methodology](methodology.qmd) for how each dataset is derived.
+The software that produces the OPDI data: a Python package that runs the
+processing steps on Apache Spark, from the OpenSky Network's position reports
+to the published daily files. [Processing steps](methods/pipeline.qmd)
+describes what it does, and the [Methods](methods/index.qmd) pages describe
+each algorithm.
 
-[{{< iconify fa6-brands github >}} Repository](https://github.com/euctrl-pru/opdi) · [{{< iconify fa6-solid book >}} Documentation](https://euctrl-pru.github.io/OPDI/)
+[{{< iconify fa6-brands github >}} Repository](https://github.com/euctrl-pru/opdi) · [{{< iconify fa6-solid book >}} API reference](https://euctrl-pru.github.io/OPDI/)
+:::
+::::
+
+:::: {.project-card}
+::: {.project-info}
+[Python]{.pill .pill-lang}
+
+**OPDI reader (`opdi.published`)**
+
+A small part of the OPDI package that reads the published daily files into
+pandas tables, gives back the table shapes of release v0.0.2, and creates
+DuckDB views. It needs pandas, pyarrow and DuckDB, not Spark. See
+[Access](data/access.qmd#python) for examples.
+
+[{{< iconify fa6-brands github >}} Repository](https://github.com/euctrl-pru/opdi)
+:::
+::::
+
+:::: {.project-card}
+::: {.project-info}
+[Airflow]{.pill .pill-lang}
+
+**OPDI daily processing (Airflow)**
+
+The schedule that produces the data: two Apache Airflow workflows, one that
+processes each new day and one that processes a chosen range of past days.
+They are in the `airflow/` folder of the OPDI repository, with instructions
+for running them.
+
+[{{< iconify fa6-brands github >}} Repository](https://github.com/euctrl-pru/opdi)
 :::
 ::::
 
@@ -166,7 +187,7 @@ A pip-installable Python package for processing \acr{OSN} aviation data through 
 
 **[HexAeroPy](https://github.com/euctrl-pru/HexAeroPy)**
 
-Determines the airports, runways, taxiways, and stands used by a flight from its coordinates alone. Developed for small-scale applications of the OPDI runway-detection approach.
+Determines the airports, runways, taxiways, and stands used by a flight from its coordinates alone. Developed for small-scale applications of the OPDI approach to airport layouts.
 
 [{{< iconify fa6-brands github >}} Repository](https://github.com/euctrl-pru/HexAeroPy)
 :::
@@ -174,7 +195,8 @@ Determines the airports, runways, taxiways, and stands used by a flight from its
 
 ## Open-Source Foundations
 
-The \acr{OPDI} would not be possible without the wider open aviation software community. These projects are used throughout the data pipeline and the methodologies.
+Open-source projects from the wider open aviation software community that
+OPDI builds on, or that work well with its data.
 
 :::: {.project-card .project-dependency}
 ::: {.project-info}
@@ -182,7 +204,8 @@ The \acr{OPDI} would not be possible without the wider open aviation software co
 
 **[traffic](https://traffic-viz.github.io/)**
 
-A toolbox for processing and analysing air traffic data. Used for trajectory filtering and cleaning.
+A toolbox for processing and analysing air traffic data, for example to plot
+and analyse the trajectories of OPDI flights.
 
 [{{< iconify fa6-brands github >}} Repository](https://github.com/xoolive/traffic) · [{{< iconify fa6-solid book >}} Documentation](https://traffic-viz.github.io/)
 :::
@@ -194,7 +217,7 @@ A toolbox for processing and analysing air traffic data. Used for trajectory fil
 
 **[OpenAP](https://openap.dev/)**
 
-The open model for aircraft performance and emissions, by [Dr. Junzi Sun](https://junzis.com/) of TU Delft. Used to classify state vectors into flight phases when deriving flight events.
+The open model for aircraft performance and emissions, by [Dr. Junzi Sun](https://junzis.com/) of TU Delft. OPDI uses its rules and values to decide the flight phase of each position report (see [Vertical events](methods/vertical-events.qmd)).
 
 [{{< iconify fa6-brands github >}} Repository](https://github.com/junzis/openap) · [{{< iconify fa6-solid book >}} Documentation](https://openap.dev/)
 :::
@@ -218,7 +241,7 @@ The Python interface to the \acr{OSN} database, providing access to state vector
 
 **[fastmeteo](https://github.com/open-aviation/fastmeteo)**
 
-A fast tool for obtaining meteorological data along flight trajectories. Used to associate weather information with trajectory points.
+A fast tool for obtaining meteorological data along flight trajectories, for example to add weather to OPDI flights.
 
 [{{< iconify fa6-brands github >}} Repository](https://github.com/open-aviation/fastmeteo)
 :::

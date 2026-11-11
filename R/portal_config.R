@@ -124,6 +124,14 @@ portal_cfg <- list(
     start = as.Date("2025-01-01"),
     end   = as.Date(NA)
   ),
+  # Date on which release v2.0.0 is announced, as text, for example
+  # "2027-01-15". Empty: shown as "to be announced" on the Roadmap.
+  release_date = "",
+  # Number of flights in release v2.0.0, as shown on the home page once
+  # `current_release` is "v2.0.0", for example "+120M". Empty: "to be announced".
+  release_counts = list(
+    flights = ""
+  ),
 
   # Access to the files of release v2.0.0.
   access = list(
@@ -133,6 +141,9 @@ portal_cfg <- list(
     # the names used on the instance.
     trino_catalog = "minio",
     trino_schema = "opdi",
+    # Set to TRUE once the two names above are the real ones. While FALSE, the
+    # Access page says that they are placeholders.
+    trino_names_final = FALSE,
     # Address of the Trino file browser. Leave empty while it is not known:
     # the pages then say "to be announced".
     browser_url = "",

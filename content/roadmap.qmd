@@ -1,48 +1,93 @@
 ---
 title: "Roadmap"
+description: "What the current OPDI release delivers, what is planned next, and the list of past releases."
 aliases:
   - /roadmap.html
 ---
 
+```{r setup}
+#| include: false
+source("../R/portal_config.R")
+cfg <- portal_cfg
+rel <- portal_release
+v2_current <- rel$is_current(cfg)
+```
 
+This page says what OPDI delivers today, what is planned next, and which
+releases of the data have been published. For the changes between the two
+latest releases in detail, see [Releases](data/releases.qmd).
 
-The plan is to release subsequent improvements of the \acr{OPDI} data sets roughly every two months as data and validations become available. 
+## Release v2.0.0
 
-## Upcoming focus
+```{r status}
+#| results: asis
+#| echo: false
+if (v2_current) {
+  cat("Release ", cfg$release, " is the current release. It covers the days ",
+      rel$coverage_text(cfg), ".\n", sep = "")
+} else {
+  cat("Release ", cfg$release, " is the upcoming release. Its files are being produced, ",
+      "starting with the days from ", rel$day_text(cfg$release_coverage$start),
+      " onwards. Until they are available, release ", cfg$current_release,
+      " is the one to use.\n", sep = "")
+}
+```
 
-The next planned updates aim to include the following improvements:
+Release v2.0.0 delivers:
 
-- Inclusion of new event types and occurrences:
-  * off-block
-  * in-block
-  * \acr{FIR} crossing
+- **Daily files**: one flight list and one file of flight events per day. Each
+  event row carries its measurements and the columns of its flight.
+- **Worldwide coverage**: every flight received by the OpenSky Network, not
+  only those in a box around Europe.
+- **New events**: runway milestones (line-up, take-off roll, threshold,
+  touchdown, runway vacated, runway crossings, go-arounds), block times,
+  distance rings, level-offs, holding patterns, point merge legs and FIR
+  crossings.
+- **A richer flight list**, with take-off, landing and block times, runways,
+  stands and the times of crossing distance rings.
+- **One flight across a reception gap**, where the data on both sides fit one
+  continuous flight.
+- **Documented methods**: a page per method with its validation and its
+  limits, in [Methods](methods/index.qmd).
+- **Access through Trino**, on the OpenSky Network's Trino instance, besides
+  the files (see [Access](data/access.qmd)).
+- **Daily production**: each new day is processed automatically once the day
+  after it is complete.
 
-### Candidate topics for future releases
+## Next
 
-In the longer term the \acr{OPDI} aims to include the following improvements:
+These improvements are planned after release v2.0.0. They will be published
+as new versions of the methods concerned, so that data already published stay
+reproducible.
 
-- Include more events
-  * start and stop of holdings
-- Use third party trajectory data (aside from the available via \acr{OSN}).
-- Validate flight events and measurements using third party data.
-- Provide easy access to \acr{OSN} state vector trajectories at 5-sec granularity
-- Provide cleaned up state vector based trajectories, i.e. remove vertical glitches
-  (via `filter()` in [`traffic`](https://traffic-viz.github.io/index.html) library), associate meteorological information (via
-  [`fastmeteo`](https://github.com/junzis/fastmeteo) library), remove dirty trajectories (too small/short), ...
+- **FIR crossings checked against Network Manager records.** The crossings
+  are so far compared only with the exact boundaries of the regions (see
+  [FIR crossings](methods/fir-crossings.qmd#limitations)).
+- **Newer airspace boundaries.** The FIR boundaries are those of one AIRAC
+  cycle (524) for every day. Newer cycles, matched to the date of each
+  flight, would follow changes of the boundaries.
+- **More merge points.** Point merge legs are found only at the airports in
+  OPDI's table of merge points (see [Point merge](methods/point-merge.qmd#limitations)).
+- **Earlier years.** The daily files are produced from 2025 onwards first.
+  The same processing can then be run back to 2019.
+- **Validation of the items not yet validated.** The
+  [Validation summary](methods/validation-summary.qmd) marks them "Not
+  validated".
 
 ## Past Releases
 
-An overview of past releases and the various versions were used in each OPDI version can be seen below.
+| Release | Published | Period covered | Notes |
+|---|---|---|---|
+| OPDI v0.0.1 | 2023-12-01 | 2 months | First release: flight list, flight events and measurements. |
+| OPDI v0.0.2 (release 1) | 2024-03-01 | 1.5 years | Second version of the flight list, flight event and measurement methods. |
+| OPDI v0.0.2 (release 2) | 2024-08-01 | 2.5 years | Same methods, more months. |
+| OPDI v0.0.2 (release 3) | 2024-12-01 | 3 years | Same methods, more months. |
+| OPDI v0.0.2 (refreshes) | January 2026 to `r cfg$refresh_label` | January 2022 to `r format(cfg$coverage$end, "%B %Y")` | New months added to the same release, at regular refreshes. |
+| OPDI `r cfg$release` | `r rel$value_or_tba(cfg$release_date)` | `r if (v2_current) sub("^from ", "", rel$coverage_text(cfg)) else paste("from", rel$day_text(cfg$release_coverage$start), "(planned)")` | Daily files, worldwide; see [Releases](data/releases.qmd). |
 
-| OPDI version | Release date   | Flight List | Flight Event | Measurements | Period |
-|--------------|----------------|---------------------|----------------------|----------------------|----------|
-| OPDI v0.0.1  | 2023-12-01| Flight List v0.0.1  | Flight Event v0.0.1  | Measurements v0.0.1  | 2 months |
-| OPDI v0.0.2 (release 1) | 2024-03-01| Flight List v0.0.2  | Flight Event v0.0.2  | Measurements v0.0.2  | 1.5 years |
-| OPDI v0.0.2 (release 2) | 2024-08-01| Flight List v0.0.2  | Flight Event v0.0.2  | Measurements v0.0.2  | 2.5 years |
-| OPDI v0.0.2 (release 3) | 2024-12-01| Flight List v0.0.2  | Flight Event v0.0.2  | Measurements v0.0.2  | 3 years |
+The files of release v0.0.2 are on [Previous release v0.0.2](data/v0.0.2.qmd).
 
 ## Contact
 
-If you notice any bugs, or if you have any feature requests, please [contact us](mailto:pru-support@eurocontrol.int).
-
-
+If you notice an error in the data, or would like a feature, please
+[contact us](mailto:pru-support@eurocontrol.int).

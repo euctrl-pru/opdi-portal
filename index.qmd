@@ -12,6 +12,23 @@ source("R/portal_config.R")
 source("R/sensor_coverage.R")
 cfg <- portal_cfg
 labs <- portal_labels
+rel <- portal_release
+v2_current <- rel$is_current(cfg)
+
+# The period shown on the Data card: that of the release presented as current.
+period_value <- if (v2_current) {
+  end <- cfg$release_coverage$end
+  if (is.na(end)) {
+    paste(format(cfg$release_coverage$start, "%m/%Y"), "- now")
+  } else {
+    labs$short_month_range(cfg$release_coverage$start, end)
+  }
+} else {
+  labs$short_month_range(cfg$coverage$start, cfg$coverage$end)
+}
+
+# The number of flights shown on the Data card.
+flights_value <- if (v2_current) rel$value_or_tba(cfg$release_counts$flights) else cfg$counts$flights
 
 # Sensor counts come from the PocketBase register (cached), so the homepage
 # and the Sensors page always agree. Falls back to portal_config.R.
@@ -25,7 +42,7 @@ Much of the data behind aviation performance analysis is difficult to obtain,
 which makes results hard to reproduce and to build on. The **\acr{OPDI}**, an
 initiative of the \acr{PRC} in collaboration with the
 [\acr{OSN}](https://opensky-network.org/), takes a different route: it builds a
-picture of European air traffic from crowd-sourced \acr{ADS-B} signals, and
+picture of air traffic from crowd-sourced \acr{ADS-B} signals, and
 publishes the data, the methods and the tools **openly and free to use**.
 
 It works on three fronts:
@@ -54,7 +71,7 @@ Open flight performance data — flight lists, events, and measurements derived 
 ```{r}
 bslib::value_box(
   title = "Flights",
-  value = cfg$counts$flights,
+  value = flights_value,
   showcase = bs_icon("airplane"),
   theme = value_box_theme(bg = "#003399")
 )
@@ -63,18 +80,34 @@ bslib::value_box(
 ```{r}
 bslib::value_box(
   title = "Period",
-  value = labs$short_month_range(cfg$coverage$start, cfg$coverage$end),
+  value = period_value,
   showcase = bs_icon("calendar-range"),
   theme = value_box_theme(bg = "#003399")
 )
 ```
 :::
 
-::: {.callout-note appearance="simple" style="border-left-color: #003399;"}
-**Latest release (`r cfg$version`):** `r labs$month_range(cfg$coverage$start, cfg$coverage$end)`, refreshed `r cfg$refresh_label`. See [Methodology](content/methodology.qmd) for details.
-:::
+```{r release-note}
+#| results: asis
+#| echo: false
+if (v2_current) {
+  cat("::: {.callout-note appearance=\"simple\" style=\"border-left-color: #003399;\"}\n",
+      "**Current release (", cfg$release, "):** worldwide, one flight list and one file of ",
+      "flight events per day, ", rel$coverage_text(cfg), ". The previous release (",
+      cfg$previous_release, ") stays available.\n:::\n", sep = "")
+} else {
+  cat("::: {.callout-note appearance=\"simple\" style=\"border-left-color: #003399;\"}\n",
+      "**Available release (", cfg$current_release, "):** ",
+      labs$month_range(cfg$coverage$start, cfg$coverage$end), ", refreshed ",
+      cfg$refresh_label, ". **Upcoming release (", cfg$release, "):** worldwide, ",
+      "one flight list and one file of flight events per day, with new event types ",
+      "and every method documented.\n:::\n", sep = "")
+}
+```
 
-[Explore the data &rarr;](content/data.qmd){.btn .btn-sm style="background-color:#003399;color:white;border:none;"}
+[Explore the data &rarr;](content/data/index.qmd){.btn .btn-sm style="background-color:#003399;color:white;border:none;"}
+[How it is computed &rarr;](content/methods/index.qmd){.btn .btn-sm .btn-outline-secondary}
+[What changed in `r cfg$release` &rarr;](content/data/releases.qmd){.btn .btn-sm .btn-outline-secondary}
 
 :::
 

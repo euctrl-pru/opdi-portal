@@ -72,6 +72,37 @@ Units follow aviation use: altitudes in feet (ft), distances in nautical miles
 (NM, 1 NM = 1,852 m), speeds in knots (kt, nautical miles per hour), vertical
 rates in feet per minute and times in UTC.
 
+## Milestones of a flight
+
+Airports, airlines and air traffic control describe a flight, from one stand
+to the next, by a sequence of standard moments, numbered T00 to T25 in airport
+collaborative decision making (A-CDM). @fig-flight-phases shows them with the
+phases of flight between them. Several are published by OPDI as event types:
+
+| Number | Moment | OPDI event type | Page |
+|---|---|---|---|
+| T04 | Off-block: the aircraft leaves its stand | `AOBT` | [Block times](block-times.qmd) |
+| T06 | The aircraft enters the runway to take off | `line-up` | [Runway milestones](runway-milestones.qmd) |
+| T07 | Start of the take-off roll | `take-off-roll` | [Take-off and landing](takeoff-landing.qmd) |
+| T08 | Take-off: the wheels leave the runway | `ATOT` | [Take-off and landing](takeoff-landing.qmd) |
+| T12 | Top of climb | `top-of-climb` | [Vertical events](vertical-events.qmd) |
+| T13 | Top of descent | `top-of-descent` | [Vertical events](vertical-events.qmd) |
+| T16 | The aircraft passes over the runway threshold | `landing` | [Take-off and landing](takeoff-landing.qmd) |
+| T17 | Touchdown | `ALDT` | [Take-off and landing](takeoff-landing.qmd) |
+| T19 | The aircraft leaves the runway | `runway-vacated` | [Runway milestones](runway-milestones.qmd) |
+| T21 | In-block: the aircraft stops at its stand | `AIBT` | [Block times](block-times.qmd) |
+
+![Phases of a flight (boxes) and the standard moments between them (T labels). Simplified.](../../assets/img/aircraft_state_diagram.png){#fig-flight-phases width="100%"}
+
+The time between two milestones measures one part of the flight. For
+example, the time from `AOBT` to `ATOT` is the taxi-out time, from `ALDT` to
+`AIBT` the taxi-in time, and from `ATOT` to `ALDT` the time in the air.
+OPDI also publishes moments that have no standard number, such as the
+crossing of a flight level, of a distance ring or of a flight information
+region, the start and end of a holding pattern, a go-around and a runway
+crossing. All event types are listed in the
+[Data dictionary](../data/dictionary.qmd#event-types).
+
 ## The methods pages
 
 | Page | What it covers |
