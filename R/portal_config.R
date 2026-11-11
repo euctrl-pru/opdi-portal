@@ -102,16 +102,16 @@ update_sensor_pages_cache <- list(
 
 portal_cfg <- list(
   version = "v0.0.2",
-  refresh_label = "Juli 2026",
+  refresh_label = "October 2026",
   coverage = list(
     start = as.Date("2022-01-01"),
-    end   = as.Date("2026-07-31"),
-    snapshot_end = as.Date("2026-07-31")
+    end   = as.Date("2026-09-30"),
+    snapshot_end = as.Date("2026-09-30")
   ),
   counts = list(
-    flights = "+76M",
-    events = "+1.8B",
-    measurements = "+3.7B"
+    flights = "+79M",
+    events = "+1.9B",
+    measurements = "+3.8B"
   ),
 
   resources = list(
