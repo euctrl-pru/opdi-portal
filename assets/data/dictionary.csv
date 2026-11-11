@@ -1,0 +1,132 @@
+table,name,type,unit,group,description
+flight_list,flight_id,string,,identity,Unique identifier of the flight. A flight is one track: the sequence of position reports of one aircraft that belong together.
+flight_list,icao24,string,,identity,"ICAO 24-bit address of the aircraft's transponder, written as six hexadecimal characters. It normally stays with one aircraft."
+flight_list,flt_id,string,,identity,"Call sign broadcast by the aircraft, for example DLH123."
+flight_list,dof,date,UTC,identity,Date of the flight: the day on which it was first seen. A day's files hold the flights of that date.
+flight_list,adep,string,,airports,"Departure airport, as its four-letter ICAO code. NULL when no departure airport could be identified."
+flight_list,ades,string,,airports,"Destination airport, as its four-letter ICAO code. NULL when no destination airport could be identified."
+flight_list,adep_p,string,,airports,"Other airports near the start of the track that the flight could have left from, as a comma-separated list of ICAO codes, nearest first."
+flight_list,ades_p,string,,airports,"Other airports near the end of the track that the flight could have gone to, as a comma-separated list of ICAO codes, nearest first."
+flight_list,adep_source,string,,airports,"How the departure airport was decided: 'aerodrome' when an airport was identified, 'out_of_area' when the track began outside the area covered, 'undetermined' when no airport could be identified. When adep is NULL, this column tells the last two cases apart."
+flight_list,ades_source,string,,airports,"How the destination airport was decided, with the same values as adep_source."
+flight_list,registration,string,,aircraft,"Registration of the aircraft (its tail number), from the OpenSky aircraft database. NULL when the aircraft is not in that database."
+flight_list,model,string,,aircraft,"Aircraft model, from the OpenSky aircraft database."
+flight_list,typecode,string,,aircraft,"ICAO aircraft type designator, for example A320, from the OpenSky aircraft database."
+flight_list,icao_aircraft_class,string,,aircraft,"ICAO aircraft description, for example L2J for a landplane with two jet engines, from the OpenSky aircraft database."
+flight_list,icao_operator,string,,aircraft,"Three-letter ICAO code of the aircraft operator, from the OpenSky aircraft database."
+flight_list,first_seen,timestamp,UTC,times,Time of the first position report of the flight received by the OpenSky Network.
+flight_list,last_seen,timestamp,UTC,times,Time of the last position report of the flight received by the OpenSky Network.
+flight_list,atot,timestamp,UTC,milestones,Actual take-off time: when the aircraft left the runway at the departure airport. Taken from the flight's earliest ATOT event at that airport. NULL when no take-off was detected.
+flight_list,aldt,timestamp,UTC,milestones,Actual landing time: when the aircraft touched down at the destination airport. Taken from the flight's latest ALDT event at that airport. NULL when no landing was detected.
+flight_list,aobt,timestamp,UTC,milestones,"Actual off-block time: when the aircraft started to move away from its parking position. Taken from the flight's earliest AOBT event. NULL when it was not detected, which is common because it needs reception on the ground."
+flight_list,aibt,timestamp,UTC,milestones,"Actual in-block time: when the aircraft stopped at its parking position after landing. Taken from the flight's latest AIBT event. NULL when it was not detected, which is common because it needs reception on the ground."
+flight_list,rwy_dep,string,,runway,"Runway used for take-off, for example 25R. Taken from the same event as atot."
+flight_list,rwy_dep_bearing_deg,double,degrees,runway,"True bearing of the centre line of the take-off runway, in degrees clockwise from north. It describes the runway, not the heading of the aircraft."
+flight_list,rwy_arr,string,,runway,"Runway used for landing, for example 07L. Taken from the same event as aldt."
+flight_list,rwy_arr_bearing_deg,double,degrees,runway,"True bearing of the centre line of the landing runway, in degrees clockwise from north. It describes the runway, not the heading of the aircraft."
+flight_list,stnd_dep,string,,milestones,"Parking position (stand) the flight left from, with the name it has in OpenStreetMap. NULL when it was not detected."
+flight_list,stnd_arr,string,,milestones,"Parking position (stand) the flight arrived at, with the name it has in OpenStreetMap. NULL when it was not detected."
+flight_list,c40_arr,timestamp,UTC,rings,"Time when the arriving flight last crossed, inbound, a circle of 40 nautical miles (NM) radius around the destination airport. NULL when no such crossing was detected."
+flight_list,c50_arr,timestamp,UTC,rings,"Time when the arriving flight last crossed, inbound, a circle of 50 nautical miles (NM) radius around the destination airport. NULL when no such crossing was detected."
+flight_list,c60_arr,timestamp,UTC,rings,"Time when the arriving flight last crossed, inbound, a circle of 60 nautical miles (NM) radius around the destination airport. NULL when no such crossing was detected."
+flight_list,c100_arr,timestamp,UTC,rings,"Time when the arriving flight last crossed, inbound, a circle of 100 nautical miles (NM) radius around the destination airport. NULL when no such crossing was detected."
+flight_list,c110_arr,timestamp,UTC,rings,"Time when the arriving flight last crossed, inbound, a circle of 110 nautical miles (NM) radius around the destination airport. NULL when no such crossing was detected."
+flight_list,c120_arr,timestamp,UTC,rings,"Time when the arriving flight last crossed, inbound, a circle of 120 nautical miles (NM) radius around the destination airport. NULL when no such crossing was detected."
+flight_list,c40_dep,timestamp,UTC,rings,"Time when the departing flight first crossed, outbound, a circle of 40 nautical miles (NM) radius around the departure airport. NULL when no such crossing was detected."
+flight_list,c50_dep,timestamp,UTC,rings,"Time when the departing flight first crossed, outbound, a circle of 50 nautical miles (NM) radius around the departure airport. NULL when no such crossing was detected."
+flight_list,c60_dep,timestamp,UTC,rings,"Time when the departing flight first crossed, outbound, a circle of 60 nautical miles (NM) radius around the departure airport. NULL when no such crossing was detected."
+flight_list,c100_dep,timestamp,UTC,rings,"Time when the departing flight first crossed, outbound, a circle of 100 nautical miles (NM) radius around the departure airport. NULL when no such crossing was detected."
+flight_list,c110_dep,timestamp,UTC,rings,"Time when the departing flight first crossed, outbound, a circle of 110 nautical miles (NM) radius around the departure airport. NULL when no such crossing was detected."
+flight_list,c120_dep,timestamp,UTC,rings,"Time when the departing flight first crossed, outbound, a circle of 120 nautical miles (NM) radius around the departure airport. NULL when no such crossing was detected."
+flight_list,track_duration_min,double,min,quality,"Time between first_seen and last_seen, in minutes. Very short tracks are often pieces of a flight seen on the ground rather than whole flights. No row is removed on this value, so users can choose their own limit."
+flight_list,superseded_dep,boolean,,quality,"True when this row is a piece of a departure that is already counted on another row: it has no take-off, and the same aircraft departs again from the same airport within 3 hours (10,800 s). False otherwise."
+flight_list,superseded_arr,boolean,,quality,"True when this row is a piece of an arrival that is already counted on another row: it has no landing, and the same aircraft arrived at the same airport within the 3 hours (10,800 s) before. False otherwise."
+flight_list,movement_dep,boolean,,quality,"True when this row counts as a departure: the row names an airport, it is not a fragment counted on another row, and there is evidence that the aircraft flew (a detected runway time, an airport at the other end, or a crossing of one of the distance circles). Use this column to count departures."
+flight_list,movement_arr,boolean,,quality,"True when this row counts as an arrival: the row names an airport, it is not a fragment counted on another row, and there is evidence that the aircraft flew (a detected runway time, an airport at the other end, or a crossing of one of the distance circles). Use this column to count arrivals."
+flight_list,version,string,,release,"Version of the method that built this flight row, for example v5.0.0. It changes only when that method changes."
+flight_list,release,string,,release,Name of the data release the row belongs to (v2.0.0). It is the same on every row of a release.
+flight_events,event_id,string,,event,Unique identifier of the event.
+flight_events,flight_id,string,,event,Identifier of the flight the event belongs to. It matches flight_id in the flight list.
+flight_events,type,string,,event,"Event type, for example ATOT, level-start or xing-40nm. The data dictionary lists every type."
+flight_events,event_time,timestamp,UTC,event,Time at which the event happened.
+flight_events,longitude,double,degrees,position,"Longitude of the aircraft at the event, in degrees (WGS 84, positive east)."
+flight_events,latitude,double,degrees,position,"Latitude of the aircraft at the event, in degrees (WGS 84, positive north)."
+flight_events,altitude_ft,double,ft,position,"Altitude of the aircraft at the event, in feet, from the barometric altitude the aircraft reports. For a flight-level crossing it is the flight level times 100. NULL for events that have no altitude."
+flight_events,h3_res_5,string,,position,"Cell of the H3 hexagonal grid at resolution 5 that contains the event position. Cells cover about 250 km2 each, so the column can be used to select events in a region quickly."
+flight_events,source,string,,event,"Source of the position reports, OSN for the OpenSky Network."
+flight_events,version,string,,event,"Version of the method that produced this event type, for example events_v0.3.0. Different event types can have different versions."
+flight_events,info,string,,event,"Extra details about the event, as JSON text, for example the runway or the airport. The keys depend on the event type and are listed in the data dictionary."
+flight_events,distance_flown_nm,double,NM,measurement,"Distance flown from the start of the track to this event, along the received positions, in nautical miles (NM, 1 NM = 1,852 m)."
+flight_events,time_passed_s,double,s,measurement,"Time from the first position of the track to this event, in seconds."
+flight_events,holding_duration_s,double,s,measurement,"Time spent in a holding pattern, in seconds. A holding pattern is a loop flown while the aircraft waits for permission to continue. It is set only on holding-end events and is NULL on every other event."
+flight_events,holding_distance_nm,double,NM,measurement,"Distance flown in the holding pattern, in nautical miles (NM). It is set only on holding-end events and is NULL on every other event."
+flight_events,holding_circuits,double,count,measurement,"Number of loops flown in the holding pattern: the total turn divided by 360 degrees, to one decimal. It is set only on holding-end events and is NULL on every other event."
+flight_events,pms_leg_time_s,double,s,measurement,"Time spent on a point merge leg, in seconds. A point merge system is an arrival procedure in which aircraft fly along an arc, called a leg, at a fixed distance from a merge point until they are sent directly to it. It is set only on pms-leg-exit events and is NULL on every other event."
+flight_events,pms_leg_distance_nm,double,NM,measurement,"Distance flown along the point merge leg, in nautical miles (NM). It is set only on pms-leg-exit events and is NULL on every other event."
+flight_events,pms_direct_to_distance_nm,double,NM,measurement,"Distance from the aircraft to the merge point when it left the leg, in nautical miles (NM). It is set only on pms-leg-exit events and is NULL on every other event."
+flight_events,icao24,string,,identity,"ICAO 24-bit address of the aircraft's transponder, written as six hexadecimal characters. It normally stays with one aircraft."
+flight_events,flt_id,string,,identity,"Call sign broadcast by the aircraft, for example DLH123."
+flight_events,dof,date,UTC,identity,Date of the flight: the day on which it was first seen. A day's files hold the flights of that date.
+flight_events,adep,string,,airports,"Departure airport, as its four-letter ICAO code. NULL when no departure airport could be identified."
+flight_events,ades,string,,airports,"Destination airport, as its four-letter ICAO code. NULL when no destination airport could be identified."
+flight_events,adep_p,string,,airports,"Other airports near the start of the track that the flight could have left from, as a comma-separated list of ICAO codes, nearest first."
+flight_events,ades_p,string,,airports,"Other airports near the end of the track that the flight could have gone to, as a comma-separated list of ICAO codes, nearest first."
+flight_events,adep_source,string,,airports,"How the departure airport was decided: 'aerodrome' when an airport was identified, 'out_of_area' when the track began outside the area covered, 'undetermined' when no airport could be identified. When adep is NULL, this column tells the last two cases apart."
+flight_events,ades_source,string,,airports,"How the destination airport was decided, with the same values as adep_source."
+flight_events,registration,string,,aircraft,"Registration of the aircraft (its tail number), from the OpenSky aircraft database. NULL when the aircraft is not in that database."
+flight_events,model,string,,aircraft,"Aircraft model, from the OpenSky aircraft database."
+flight_events,typecode,string,,aircraft,"ICAO aircraft type designator, for example A320, from the OpenSky aircraft database."
+flight_events,icao_aircraft_class,string,,aircraft,"ICAO aircraft description, for example L2J for a landplane with two jet engines, from the OpenSky aircraft database."
+flight_events,icao_operator,string,,aircraft,"Three-letter ICAO code of the aircraft operator, from the OpenSky aircraft database."
+flight_events,first_seen,timestamp,UTC,times,Time of the first position report of the flight received by the OpenSky Network.
+flight_events,last_seen,timestamp,UTC,times,Time of the last position report of the flight received by the OpenSky Network.
+flight_events,atot,timestamp,UTC,milestones,Actual take-off time: when the aircraft left the runway at the departure airport. Taken from the flight's earliest ATOT event at that airport. NULL when no take-off was detected.
+flight_events,aldt,timestamp,UTC,milestones,Actual landing time: when the aircraft touched down at the destination airport. Taken from the flight's latest ALDT event at that airport. NULL when no landing was detected.
+flight_events,aobt,timestamp,UTC,milestones,"Actual off-block time: when the aircraft started to move away from its parking position. Taken from the flight's earliest AOBT event. NULL when it was not detected, which is common because it needs reception on the ground."
+flight_events,aibt,timestamp,UTC,milestones,"Actual in-block time: when the aircraft stopped at its parking position after landing. Taken from the flight's latest AIBT event. NULL when it was not detected, which is common because it needs reception on the ground."
+flight_events,rwy_dep,string,,runway,"Runway used for take-off, for example 25R. Taken from the same event as atot."
+flight_events,rwy_dep_bearing_deg,double,degrees,runway,"True bearing of the centre line of the take-off runway, in degrees clockwise from north. It describes the runway, not the heading of the aircraft."
+flight_events,rwy_arr,string,,runway,"Runway used for landing, for example 07L. Taken from the same event as aldt."
+flight_events,rwy_arr_bearing_deg,double,degrees,runway,"True bearing of the centre line of the landing runway, in degrees clockwise from north. It describes the runway, not the heading of the aircraft."
+flight_events,stnd_dep,string,,milestones,"Parking position (stand) the flight left from, with the name it has in OpenStreetMap. NULL when it was not detected."
+flight_events,stnd_arr,string,,milestones,"Parking position (stand) the flight arrived at, with the name it has in OpenStreetMap. NULL when it was not detected."
+flight_events,c40_arr,timestamp,UTC,rings,"Time when the arriving flight last crossed, inbound, a circle of 40 nautical miles (NM) radius around the destination airport. NULL when no such crossing was detected."
+flight_events,c50_arr,timestamp,UTC,rings,"Time when the arriving flight last crossed, inbound, a circle of 50 nautical miles (NM) radius around the destination airport. NULL when no such crossing was detected."
+flight_events,c60_arr,timestamp,UTC,rings,"Time when the arriving flight last crossed, inbound, a circle of 60 nautical miles (NM) radius around the destination airport. NULL when no such crossing was detected."
+flight_events,c100_arr,timestamp,UTC,rings,"Time when the arriving flight last crossed, inbound, a circle of 100 nautical miles (NM) radius around the destination airport. NULL when no such crossing was detected."
+flight_events,c110_arr,timestamp,UTC,rings,"Time when the arriving flight last crossed, inbound, a circle of 110 nautical miles (NM) radius around the destination airport. NULL when no such crossing was detected."
+flight_events,c120_arr,timestamp,UTC,rings,"Time when the arriving flight last crossed, inbound, a circle of 120 nautical miles (NM) radius around the destination airport. NULL when no such crossing was detected."
+flight_events,c40_dep,timestamp,UTC,rings,"Time when the departing flight first crossed, outbound, a circle of 40 nautical miles (NM) radius around the departure airport. NULL when no such crossing was detected."
+flight_events,c50_dep,timestamp,UTC,rings,"Time when the departing flight first crossed, outbound, a circle of 50 nautical miles (NM) radius around the departure airport. NULL when no such crossing was detected."
+flight_events,c60_dep,timestamp,UTC,rings,"Time when the departing flight first crossed, outbound, a circle of 60 nautical miles (NM) radius around the departure airport. NULL when no such crossing was detected."
+flight_events,c100_dep,timestamp,UTC,rings,"Time when the departing flight first crossed, outbound, a circle of 100 nautical miles (NM) radius around the departure airport. NULL when no such crossing was detected."
+flight_events,c110_dep,timestamp,UTC,rings,"Time when the departing flight first crossed, outbound, a circle of 110 nautical miles (NM) radius around the departure airport. NULL when no such crossing was detected."
+flight_events,c120_dep,timestamp,UTC,rings,"Time when the departing flight first crossed, outbound, a circle of 120 nautical miles (NM) radius around the departure airport. NULL when no such crossing was detected."
+flight_events,track_duration_min,double,min,quality,"Time between first_seen and last_seen, in minutes. Very short tracks are often pieces of a flight seen on the ground rather than whole flights. No row is removed on this value, so users can choose their own limit."
+flight_events,superseded_dep,boolean,,quality,"True when this row is a piece of a departure that is already counted on another row: it has no take-off, and the same aircraft departs again from the same airport within 3 hours (10,800 s). False otherwise."
+flight_events,superseded_arr,boolean,,quality,"True when this row is a piece of an arrival that is already counted on another row: it has no landing, and the same aircraft arrived at the same airport within the 3 hours (10,800 s) before. False otherwise."
+flight_events,movement_dep,boolean,,quality,"True when this row counts as a departure: the row names an airport, it is not a fragment counted on another row, and there is evidence that the aircraft flew (a detected runway time, an airport at the other end, or a crossing of one of the distance circles). Use this column to count departures."
+flight_events,movement_arr,boolean,,quality,"True when this row counts as an arrival: the row names an airport, it is not a fragment counted on another row, and there is evidence that the aircraft flew (a detected runway time, an airport at the other end, or a crossing of one of the distance circles). Use this column to count arrivals."
+flight_events,flight_version,string,,release,Version of the method that built the flight's row in the flight list (the version column of the flight list).
+flight_events,release,string,,release,Name of the data release the row belongs to (v2.0.0). It is the same on every row of a release.
+flight_index,flight_id,string,,identity,Unique identifier of the flight. A flight is one track: the sequence of position reports of one aircraft that belong together.
+flight_index,icao24,string,,identity,"ICAO 24-bit address of the aircraft's transponder, written as six hexadecimal characters. It normally stays with one aircraft."
+flight_index,flt_id,string,,identity,"Call sign broadcast by the aircraft, for example DLH123."
+flight_index,adep,string,,airports,"Departure airport, as its four-letter ICAO code. NULL when no departure airport could be identified."
+flight_index,ades,string,,airports,"Destination airport, as its four-letter ICAO code. NULL when no destination airport could be identified."
+flight_index,first_seen,timestamp,UTC,times,Time of the first position report of the flight received by the OpenSky Network.
+flight_index,last_seen,timestamp,UTC,times,Time of the last position report of the flight received by the OpenSky Network.
+flight_index,dof,date,UTC,identity,Date of the flight: the day on which it was first seen. A day's files hold the flights of that date.
+flight_index,file,string,,identity,"Path of the flight list file that holds the flight, relative to the published folder, for example flight_list/flight_list_20260614.parquet."
+catalogue,day,date,UTC,release,Day the row describes.
+catalogue,flights,bigint,count,release,Number of rows in the day's flight list file.
+catalogue,events,bigint,count,release,Number of rows in the day's flight events file.
+catalogue,first_event,timestamp,UTC,release,Time of the earliest event in the day's flight events file. NULL when the file is empty.
+catalogue,last_event,timestamp,UTC,release,"Time of the latest event in the day's flight events file. It can fall on the next day, because a flight keeps all its events in the file of the day it started. NULL when the file is empty."
+catalogue,flight_list_bytes,bigint,bytes,release,Size of the day's flight list file.
+catalogue,flight_events_bytes,bigint,bytes,release,Size of the day's flight events file.
+catalogue,release,string,,release,Name of the data release (v2.0.0).
+catalogue,flight_list_version,string,,release,"Version of the flight list method used for the day. When several were used, they are listed separated by commas."
+catalogue,event_versions,array<string>,,release,Versions of the event methods found in the day's flight events file.
+catalogue,commit,string,,release,Identifier of the version of the OPDI software (the git commit) that published the day.
+catalogue,published_at,timestamp,UTC,release,Time when the day was published.
