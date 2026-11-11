@@ -736,6 +736,312 @@ def fir_crossings_agreement(root: Path) -> list[dict]:
     ]
 
 
+# --- Runway and block times, distance rings: flight-events study ------------
+
+EVENTS_DIR = "papers/flight-events-v4/data"
+EVENTS_REFERENCE = ("Airport operator records (APDF) of the 20 best-received airports, "
+                    "matched on aircraft address, call sign and day, 2026-06-05 to 2026-06-07")
+RING_REFERENCE = ("Ring crossings recorded with the airport operator records (APDF) for arrivals "
+                  "at the 20 best-received airports, 2026-06-05 to 2026-06-07")
+#: Tolerances reported by the study, in seconds.
+TOLERANCES_S = (10, 30, 60, 120, 300)
+#: The airports whose reference times are given to the second (the others round to the minute).
+SECOND_RESOLUTION_AIRPORTS = ("LSZH", "LEIB", "EDDS")
+LIGHT = "#9fb3e0"       # lighter tint of the accent, for a second series
+
+
+def _row(frame, **match):
+    """The one row of a study table that matches every column = value given."""
+    sel = frame
+    for column, value in match.items():
+        sel = sel[sel[column].astype(str) == str(value)]
+    if len(sel) != 1:
+        raise ValueError(f"expected one row for {match}, found {len(sel)}")
+    return sel.iloc[0]
+
+
+def _fmt(value, decimals: int = 1) -> str:
+    return f"{float(value):.{decimals}f}"
+
+
+def _within_chart(ax, series: list[tuple[str, object, str]]) -> None:
+    """Grouped bars: share of reference cases matched within each tolerance."""
+    width = 0.8 / len(series)
+    for j, (label, row, colour) in enumerate(series):
+        xs = [i + (j - (len(series) - 1) / 2) * width for i in range(len(TOLERANCES_S))]
+        values = [float(row[f"within_{t}s_pct"]) for t in TOLERANCES_S]
+        ax.bar(xs, values, width=width, color=colour, label=label)
+        for x, v in zip(xs, values):
+            ax.annotate(f"{v:.0f}", xy=(x, v), xytext=(0, 2), textcoords="offset points",
+                        ha="center", fontsize=7, color="#333333")
+    ax.set_xticks(range(len(TOLERANCES_S)))
+    ax.set_xticklabels([f"{t} s" for t in TOLERANCES_S], fontsize=9)
+    ax.set_xlabel("Largest difference from the reference time (seconds)")
+    ax.set_ylabel("Reference cases matched (%)")
+    ax.set_ylim(0, 105)
+    ax.legend(frameon=False, fontsize=8, loc="upper center", bbox_to_anchor=(0.5, -0.2), ncol=2)
+
+
+def _time_measures(page: str, key: str, row, what: str, common: dict, *, headline_item: str = "",
+                   kind: str = "event", where: str = "",
+                   cases: str = "movements") -> list[dict]:
+    """The standard numbers of one time comparison: coverage, median errors, matches within tolerances.
+
+    ``what`` names the item in words; ``where`` says which row of the study file the numbers are
+    read from and is appended to each ``source_field``.
+    """
+    n = int(row["n_truth"])
+    suffix = f", {where}" if where else ""
+    out = [
+        measure(page=page, measure_id=f"{key}_n", value=n, n=n,
+                label=f"{what}: reference {cases}", source_field="n_truth" + suffix, **common),
+        measure(page=page, measure_id=f"{key}_coverage", value=_fmt(row["coverage_pct"], 2), unit="%", n=n,
+                label=f"{what}: share of reference {cases} with a matching OPDI event (coverage)",
+                source_field="coverage_pct" + suffix, **common),
+        measure(page=page, measure_id=f"{key}_bias", value=_fmt(row["bias_s"]), unit="s", n=n,
+                label=f"{what}: median difference, OPDI minus reference (positive is late)",
+                source_field="bias_s" + suffix, **common),
+        measure(page=page, measure_id=f"{key}_mad", value=_fmt(row["mad_s"]), unit="s", n=n,
+                label=f"{what}: median absolute difference", source_field="mad_s" + suffix, **common),
+        measure(page=page, measure_id=f"{key}_p90", value=_fmt(row["p90_abs_s"]), unit="s", n=n,
+                label=f"{what}: 90th percentile of the absolute difference",
+                source_field="p90_abs_s" + suffix, **common),
+    ]
+    for t in TOLERANCES_S:
+        is_headline = bool(headline_item) and t == 60
+        rec = dict(common)
+        if is_headline:
+            rec.update(item=headline_item, kind=kind)
+        out.append(measure(page=page, measure_id=f"{key}_within_{t}s",
+                           value=_fmt(row[f"within_{t}s_pct"], 2), unit="%", n=n, headline=is_headline,
+                           label=f"{what}: share of reference {cases} with an OPDI time within {t} s",
+                           source_field=f"within_{t}s_pct" + suffix, **rec))
+    return out
+
+
+@figure("takeoff-landing", "within")
+def takeoff_landing_within(root: Path) -> list[dict]:
+    """How close the published take-off and landing times are to the airport records."""
+    pool_file = f"{EVENTS_DIR}/pooling_rules_2026.csv"
+    pool = read_csv(root, pool_file)
+    dep = _row(pool, rule="acdm_first", milestone="ATOT")
+    arr = _row(pool, rule="acdm_first", milestone="ALDT")
+
+    fig, ax = new_figure(f"Take-off and landing times (n = {int(dep['n_truth']):,} departures, "
+                         f"{int(arr['n_truth']):,} arrivals)")
+    _within_chart(ax, [("Take-off time (ATOT)", dep, ACCENT), ("Landing time (ALDT)", arr, LIGHT)])
+    save(fig, root / OUT_DIR / "takeoff-landing_within.svg")
+
+    page = "takeoff-landing"
+    base = dict(reference=EVENTS_REFERENCE, source_file=pool_file, item="", kind="")
+    rows = []
+    rows += _time_measures(page, "atot", dep, "Take-off time as published", base,
+                           headline_item="ATOT;atot", where="row rule = acdm_first, milestone = ATOT",
+                           cases="departures")
+    rows += _time_measures(page, "aldt", arr, "Landing time as published", base,
+                           headline_item="ALDT;aldt", where="row rule = acdm_first, milestone = ALDT",
+                           cases="arrivals")
+    for key, milestone in (("atot", "ATOT"), ("aldt", "ALDT")):
+        alt = _row(pool, rule="legacy_first", milestone=milestone)
+        rows.append(measure(page=page, measure_id=f"{key}_climb_first_within_10s",
+                            value=_fmt(alt["within_10s_pct"], 2), unit="%", n=int(alt["n_truth"]),
+                            label=f"{milestone}, climb-and-descent value taken first: share within 10 s",
+                            source_field="within_10s_pct, rule = legacy_first", **base))
+        rows.append(measure(page=page, measure_id=f"{key}_climb_first_coverage",
+                            value=_fmt(alt["coverage_pct"], 2), unit="%", n=int(alt["n_truth"]),
+                            label=f"{milestone}, climb-and-descent value taken first: coverage",
+                            source_field="coverage_pct, rule = legacy_first", **base))
+
+    # Each method on its own, same run.
+    lad_file = f"{EVENTS_DIR}/ladder_2026.csv"
+    lad = read_csv(root, lad_file)
+    lad_common = dict(reference=EVENTS_REFERENCE, source_file=lad_file, item="", kind="")
+    for key, det, milestone, what in (
+            ("pass_atot", "airborne", "ATOT", "Take-off time, runway-pass method alone"),
+            ("climb_atot", "ATOT", "ATOT", "Take-off time, climb-and-descent method alone"),
+            ("pass_aldt", "touchdown", "ALDT", "Landing time, runway-pass method alone"),
+            ("climb_aldt", "ALDT", "ALDT", "Landing time, climb-and-descent method alone")):
+        r = _row(lad, rung="V07_shipped", det_type=det, milestone=milestone)
+        field = f"row rung = V07_shipped, det_type = {det}, milestone = {milestone}"
+        n = int(r["n_truth"])
+        for metric, column, unit, dec in (("coverage", "coverage_pct", "%", 2), ("bias", "bias_s", "s", 1),
+                                          ("mad", "mad_s", "s", 1), ("within_60s", "within_60s_pct", "%", 2)):
+            words = {"coverage": "coverage", "bias": "median difference (positive is late)",
+                     "mad": "median absolute difference", "within_60s": "share within 60 s"}[metric]
+            rows.append(measure(page=page, measure_id=f"{key}_{metric}", value=_fmt(r[column], dec), unit=unit,
+                                n=n, label=f"{what}: {words}", source_field=f"{column}, {field}", **lad_common))
+
+    # The three airports whose records are given to the second.
+    det_file = f"{EVENTS_DIR}/per_airport_by_detector_2026.csv"
+    per_det = read_csv(root, det_file)
+    det_common = dict(reference=EVENTS_REFERENCE, source_file=det_file, item="", kind="")
+    for apt in SECOND_RESOLUTION_AIRPORTS:
+        for det, milestone, words in (("ATOT", "ATOT", "take-off, climb-and-descent method"),
+                                      ("airborne", "ATOT", "take-off, runway-pass method"),
+                                      ("ALDT", "ALDT", "landing, climb-and-descent method"),
+                                      ("touchdown", "ALDT", "landing, runway-pass method")):
+            r = _row(per_det, gt_airport=apt, det_type=det, milestone=milestone)
+            field = f"row gt_airport = {apt}, det_type = {det}, milestone = {milestone}"
+            n = int(r["n_truth"])
+            rows.append(measure(page=page, measure_id=f"{apt.lower()}_{det.lower()}_bias",
+                                value=_fmt(r["bias_s"]), unit="s", n=n,
+                                label=f"{apt}, {words}: median difference (positive is late)",
+                                source_field=f"bias_s, {field}", **det_common))
+            rows.append(measure(page=page, measure_id=f"{apt.lower()}_{det.lower()}_mad",
+                                value=_fmt(r["mad_s"]), unit="s", n=n,
+                                label=f"{apt}, {words}: median absolute difference",
+                                source_field=f"mad_s, {field}", **det_common))
+
+    # Runway named, against the runway of the airport record.
+    rwy_file = f"{EVENTS_DIR}/runway_2026.csv"
+    rwy = read_csv(root, rwy_file)
+    rwy_common = dict(reference=EVENTS_REFERENCE, source_file=rwy_file, kind="flight list column")
+    for key, det, milestone, item, what in (("rwy_dep", "airborne", "ATOT", "rwy_dep", "Take-off runway"),
+                                            ("rwy_arr", "touchdown", "ALDT", "rwy_arr", "Landing runway")):
+        r = _row(rwy, det_type=det, milestone=milestone)
+        field = f"row det_type = {det}, milestone = {milestone}"
+        rows.append(measure(page=page, measure_id=f"{key}_named", value=_fmt(r["named_pct"], 2), unit="%",
+                            n=int(r["n_truth"]), item=item,
+                            label=f"{what}: share of reference movements for which the runway-pass method names a runway",
+                            source_field=f"named_pct, {field}", **rwy_common))
+        rows.append(measure(page=page, measure_id=f"{key}_exact", value=_fmt(r["exact_pct_of_named"], 2),
+                            unit="%", n=int(r["n_named"]), item=item, headline=True,
+                            label=f"{what} named by the runway-pass method: share equal to the runway in the airport record",
+                            source_field=f"exact_pct_of_named, {field}", **rwy_common))
+
+    per_apt = read_csv(root, f"{EVENTS_DIR}/per_airport_2026.csv")
+    n_apt = per_apt["gt_airport"].nunique()
+    rows.append(measure(page=page, measure_id="airports", value=n_apt, n=n_apt,
+                        label="Airports in the study", reference=EVENTS_REFERENCE,
+                        source_file=f"{EVENTS_DIR}/per_airport_2026.csv",
+                        source_field="distinct gt_airport"))
+    rows.append(measure(page=page, measure_id="second_airports", value=len(SECOND_RESOLUTION_AIRPORTS),
+                        n=n_apt, label="Study airports whose reference times are given to the second",
+                        reference=EVENTS_REFERENCE, source_file=f"{EVENTS_DIR}/resolution_2026.csv",
+                        source_field="gt_airport with most reference times at second resolution "
+                                     "(LSZH, LEIB, EDDS)"))
+    return rows
+
+
+@figure("block-times", "within")
+def block_times_within(root: Path) -> list[dict]:
+    """How close the off-block and in-block times are to the airport records."""
+    lad_file = f"{EVENTS_DIR}/ladder_2026.csv"
+    lad = read_csv(root, lad_file)
+    off = _row(lad, rung="V07_shipped", det_type="off-block", milestone="AOBT")
+    on = _row(lad, rung="V07_shipped", det_type="on-block", milestone="AIBT")
+
+    fig, ax = new_figure(f"Off-block and in-block times (n = {int(off['n_truth']):,} departures, "
+                         f"{int(on['n_truth']):,} arrivals)")
+    _within_chart(ax, [("Off-block time (AOBT)", off, ACCENT), ("In-block time (AIBT)", on, LIGHT)])
+    save(fig, root / OUT_DIR / "block-times_within.svg")
+
+    page = "block-times"
+    common = dict(reference=EVENTS_REFERENCE, source_file=lad_file, item="", kind="")
+    rows = _time_measures(page, "aobt", off, "Off-block time", common, headline_item="AOBT;aobt",
+                          where="row rung = V07_shipped, det_type = off-block, milestone = AOBT",
+                          cases="departures")
+    rows += _time_measures(page, "aibt", on, "In-block time", common, headline_item="AIBT;aibt",
+                           where="row rung = V07_shipped, det_type = on-block, milestone = AIBT",
+                           cases="arrivals")
+    return rows
+
+
+@figure("block-times", "by_airport")
+def block_times_by_airport(root: Path) -> list[dict]:
+    """Median error of the off-block and in-block times at each study airport."""
+    src = f"{EVENTS_DIR}/per_airport_2026.csv"
+    per = read_csv(root, src)
+    off = per[per["milestone"] == "AOBT"].set_index("gt_airport")
+    on = per[per["milestone"] == "AIBT"].set_index("gt_airport")
+    airports = sorted(off.index, key=lambda a: float(off.loc[a, "bias_s"]))
+    n = int(off["n_truth"].sum() + on["n_truth"].sum())
+
+    fig, ax = new_figure(f"Median difference by airport (n = {n:,} movements)")
+    ys = range(len(airports))
+    height = 0.4
+    ax.barh([y - height / 2 for y in ys], [float(off.loc[a, "bias_s"]) for a in airports], height=height,
+            color=ACCENT, label="Off-block time (AOBT)")
+    ax.barh([y + height / 2 for y in ys], [float(on.loc[a, "bias_s"]) for a in airports], height=height,
+            color=LIGHT, label="In-block time (AIBT)")
+    ax.axvline(0, color=MUTED, linewidth=1)
+    ax.set_yticks(list(ys))
+    ax.set_yticklabels(airports, fontsize=7)
+    ax.set_xlabel("Median difference, OPDI minus airport record (seconds; positive is late)")
+    ax.set_ylabel("Airport (ICAO code)")
+    ax.legend(frameon=False, fontsize=8, loc="upper center", bbox_to_anchor=(0.5, -0.14), ncol=2)
+    fig.set_size_inches(FIGSIZE[0], 5.0)
+    save(fig, root / OUT_DIR / "block-times_by_airport.svg")
+
+    page = "block-times"
+    common = dict(page=page, reference=EVENTS_REFERENCE, source_file=src, item="", kind="")
+    n_apt = len(off)
+    late = int((off["bias_s"].astype(float) > 0).sum())
+    early = int((on["bias_s"].astype(float) < 0).sum())
+    return [
+        measure(measure_id="airports", value=n_apt, n=n_apt, label="Airports in the study",
+                source_field="distinct gt_airport, milestone = AOBT", **common),
+        measure(measure_id="aobt_late_airports", value=late, n=n_apt,
+                label="Airports where the median off-block difference is positive (OPDI late)",
+                source_field="count of bias_s > 0, milestone = AOBT", **common),
+        measure(measure_id="aibt_early_airports", value=early, n=n_apt,
+                label="Airports where the median in-block difference is negative (OPDI early)",
+                source_field="count of bias_s < 0, milestone = AIBT", **common),
+        measure(measure_id="aobt_bias_min", value=_fmt(off["bias_s"].astype(float).min()), unit="s", n=n_apt,
+                label="Smallest median off-block difference of any study airport",
+                source_field="min of bias_s, milestone = AOBT", **common),
+        measure(measure_id="aobt_bias_max", value=_fmt(off["bias_s"].astype(float).max()), unit="s", n=n_apt,
+                label="Largest median off-block difference of any study airport",
+                source_field="max of bias_s, milestone = AOBT", **common),
+        measure(measure_id="aibt_bias_min", value=_fmt(on["bias_s"].astype(float).min()), unit="s", n=n_apt,
+                label="Most negative median in-block difference of any study airport",
+                source_field="min of bias_s, milestone = AIBT", **common),
+        measure(measure_id="aibt_bias_max", value=_fmt(on["bias_s"].astype(float).max()), unit="s", n=n_apt,
+                label="Largest median in-block difference of any study airport",
+                source_field="max of bias_s, milestone = AIBT", **common),
+    ]
+
+
+@figure("distance-rings", "within")
+def distance_rings_within(root: Path) -> list[dict]:
+    """How close the 40 NM and 100 NM ring crossings are to the crossings in the airport records."""
+    src = f"{EVENTS_DIR}/rings_2026.csv"
+    rings = read_csv(root, src)
+    r40 = _row(rings, milestone="xing-40nm")
+    r100 = _row(rings, milestone="xing-100nm")
+
+    fig, ax = new_figure(f"Arrival ring crossings (n = {int(r40['n_truth']):,} at 40 NM, "
+                         f"{int(r100['n_truth']):,} at 100 NM)")
+    _within_chart(ax, [("40 NM ring", r40, ACCENT), ("100 NM ring", r100, LIGHT)])
+    save(fig, root / OUT_DIR / "distance-rings_within.svg")
+
+    page = "distance-rings"
+    rows = []
+    for key, r, item, words in (("r40", r40, "xing-{radius}nm;c40_arr", "40 NM ring"),
+                                ("r100", r100, "c100_arr", "100 NM ring")):
+        common = dict(reference=RING_REFERENCE, source_file=src, item="", kind="")
+        field = f"row milestone = {r['milestone']}"
+        n = int(r["n_truth"])
+        rows += _time_measures(page, key, r, f"Arrival crossing of the {words}", common, where=field,
+                               cases="arrivals")
+        for m in rows[-len(TOLERANCES_S):]:
+            if m["measure_id"] == f"{key}_within_10s":
+                m.update(headline="1", item=item, kind="event" if key == "r40" else "flight list column")
+        rows.append(measure(page=page, measure_id=f"{key}_pos_median", value=_fmt(r["median_pos_error_nm"], 2),
+                            unit="NM", n=int(r["n_compared"]),
+                            label=f"{words}: median distance between the OPDI and the reference crossing position",
+                            source_field=f"median_pos_error_nm, {field}", **common))
+        rows.append(measure(page=page, measure_id=f"{key}_pos_p90", value=_fmt(r["p90_pos_error_nm"], 2),
+                            unit="NM", n=int(r["n_compared"]),
+                            label=f"{words}: 90th percentile of that distance",
+                            source_field=f"p90_pos_error_nm, {field}", **common))
+        rows.append(measure(page=page, measure_id=f"{key}_far",
+                            value=_fmt(float(r["coverage_pct"]) - float(r["within_300s_pct"]), 2), unit="%", n=n,
+                            label=f"{words}: share of reference crossings whose matched OPDI crossing is more than 300 s away",
+                            source_field=f"coverage_pct - within_300s_pct, {field}", **common))
+    return rows
+
+
 # --- Measurements ------------------------------------------------------------
 
 @measure_set("measurements")

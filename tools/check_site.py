@@ -117,29 +117,36 @@ FORBIDDEN_WORDS = (
     (r"\bA(8|9|10)\b", "internal method name: describe the method instead"),
 )
 
-#: Event types the pipeline publishes. A part in braces stands for a family:
+#: Event types the pipeline publishes with its default settings (EventConfig()
+#: in src/opdi/config.py). A part in braces stands for a family:
 #: xing-{radius}nm is matched by xing-40nm, xing-100nm and so on, or by the
 #: written form with braces.
+#:
+#: Names that only other settings produce are not listed: take-off,
+#: first-xing-fl{level}, last-xing-fl{level}, top-of-climb-cco,
+#: top-of-descent-cdo, airborne, touchdown, off-block and on-block. With the
+#: default settings the lift-off and touchdown are published as ATOT and ALDT,
+#: the block times as AOBT and AIBT, and top-of-climb and top-of-descent are
+#: the tops of EUROCONTROL's vertical flight efficiency method.
 EVENT_TYPES = (
-    # Flight phases and vertical events
-    "take-off", "landing", "top-of-climb", "top-of-descent",
-    "top-of-climb-cco", "top-of-descent-cdo",
+    # Vertical events
+    "top-of-climb", "top-of-descent",
     "level-start", "level-end",
     "level-off-climb-start", "level-off-climb-end",
     "level-off-descent-start", "level-off-descent-end",
-    "first-xing-fl{level}", "last-xing-fl{level}", "xing-fl{level}",
+    "xing-fl{level}",
     # Distance rings around the airports
     "xing-{radius}nm",
-    # Airport surface
+    # Airport surface (taxiway, apron, parking_position, threshold, hangar,
+    # deicing_pad; the runway is covered by the runway events)
     "entry-{element}", "exit-{element}",
-    # Runway milestones and block times
-    "line-up", "take-off-roll", "airborne", "touchdown", "runway-vacated",
-    "go-around", "runway-crossing-entry", "runway-crossing-vacated",
-    "off-block", "on-block",
-    # Older names of airborne, touchdown, off-block and on-block (actual
-    # take-off, landing, off-block and in-block times), used when the
-    # pipeline is set to publish them under these names
-    "ATOT", "ALDT", "AOBT", "AIBT",
+    # Runway events: take-off and landing
+    "take-off-roll", "ATOT", "landing", "ALDT",
+    # Other runway milestones
+    "line-up", "runway-vacated", "go-around",
+    "runway-crossing-entry", "runway-crossing-vacated",
+    # Block times
+    "AOBT", "AIBT",
     # Airspace events
     "holding-start", "holding-end",
     "pms-leg-entry", "pms-leg-exit", "pms-merge-point",

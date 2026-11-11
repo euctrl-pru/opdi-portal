@@ -55,3 +55,20 @@ def test_summary_lists_unvalidated_items(tmp_path):
     assert "holding.qmd#validation-method" in text
     line = next(l for l in text.splitlines() if "`first_seen`" in l)
     assert "Not validated" in line
+
+
+def test_every_event_type_has_a_methods_page():
+    import check_site
+    pages = gen_validation_summary.METHOD_PAGES["event"]
+    assert [name for name in check_site.EVENT_TYPES if name not in pages] == []
+    for page in set(pages.values()):
+        assert (check_site.ROOT / "content" / "methods" / f"{page}.qmd").is_file(), page
+
+
+def test_summary_links_unvalidated_items_to_their_page(tmp_path):
+    measures = tmp_path / "validation_measures.csv"
+    figures.upsert_measures([row("holding", "f1", "0.74", headline="1")], measures)
+    out = tmp_path / "summary.md"
+    assert gen_validation_summary.main(["--measures", str(measures), "--out", str(out)]) == 0
+    line = next(l for l in out.read_text().splitlines() if "`line-up`" in l)
+    assert "Not validated" in line and "runway-milestones.qmd#limitations" in line

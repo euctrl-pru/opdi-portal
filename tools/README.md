@@ -157,8 +157,16 @@ pipeline's published columns change.
 `gen_validation_summary.py` writes `content/methods/_generated/validation_summary.md`:
 one line per event type (and, with `--opdi`, per flight list column and
 measurement), with the headline row of `validation_measures.csv` for that item,
-or "Not validated" when there is none. The page
-`content/methods/validation-summary.qmd` includes it.
+or "Not validated" when there is none. Every line links to the methods page
+that describes the item; the page of each item is listed in `METHOD_PAGES` in
+`gen_validation_summary.py`. The page
+`content/methods/validation-summary.qmd` includes the table.
+
+`EVENT_TYPES` in `check_site.py` is the list of event types the pipeline
+publishes with its default settings (`EventConfig()` in the pipeline's
+`src/opdi/config.py`). When the pipeline adds, removes or renames an event
+type, update `EVENT_TYPES` and `METHOD_PAGES` together; a test fails when an
+event type has no methods page.
 
 ## Tests
 

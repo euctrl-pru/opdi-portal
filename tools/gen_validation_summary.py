@@ -42,6 +42,62 @@ NOTE = ("<!-- Written by tools/gen_validation_summary.py from "
         "assets/validation/validation_measures.csv. Do not edit by hand. -->\n\n")
 
 
+#: The methods page that describes each published item, by kind and name.
+#: Every event type in check_site.EVENT_TYPES must be here (a test checks it).
+#: Columns that are not computed by an algorithm of their own (the version
+#: columns) have no page.
+METHOD_PAGES: dict[str, dict[str, str]] = {
+    "event": {
+        **{t: "vertical-events" for t in (
+            "top-of-climb", "top-of-descent", "level-start", "level-end",
+            "level-off-climb-start", "level-off-climb-end",
+            "level-off-descent-start", "level-off-descent-end", "xing-fl{level}")},
+        "xing-{radius}nm": "distance-rings",
+        "entry-{element}": "surface-events", "exit-{element}": "surface-events",
+        **{t: "takeoff-landing" for t in ("take-off-roll", "ATOT", "landing", "ALDT")},
+        **{t: "runway-milestones" for t in (
+            "line-up", "runway-vacated", "go-around",
+            "runway-crossing-entry", "runway-crossing-vacated")},
+        "AOBT": "block-times", "AIBT": "block-times",
+        "holding-start": "holding", "holding-end": "holding",
+        **{t: "point-merge" for t in ("pms-leg-entry", "pms-leg-exit", "pms-merge-point")},
+        "xing-fir": "fir-crossings",
+        "first_seen": "first-last-seen", "last_seen": "first-last-seen",
+    },
+    "flight list column": {
+        **{c: "track-identity" for c in ("flight_id", "icao24", "flt_id", "dof")},
+        **{c: "airports" for c in ("adep", "ades", "adep_p", "ades_p", "adep_source", "ades_source")},
+        **{c: "pipeline" for c in ("registration", "model", "typecode", "icao_aircraft_class",
+                                   "icao_operator")},
+        **{c: "first-last-seen" for c in ("first_seen", "last_seen", "track_duration_min")},
+        **{c: "takeoff-landing" for c in (
+            "atot", "aldt", "rwy_dep", "rwy_dep_bearing_deg", "rwy_arr", "rwy_arr_bearing_deg",
+            "superseded_dep", "superseded_arr", "movement_dep", "movement_arr")},
+        **{c: "block-times" for c in ("aobt", "aibt", "stnd_dep", "stnd_arr")},
+        **{f"c{nm}_{leg}": "distance-rings" for nm in (40, 50, 60, 100, 110, 120)
+           for leg in ("arr", "dep")},
+    },
+    "measurement": {
+        "distance_flown_nm": "measurements", "time_passed_s": "measurements",
+        **{m: "holding" for m in ("holding_duration_s", "holding_distance_nm", "holding_circuits")},
+        **{m: "point-merge" for m in ("pms_leg_time_s", "pms_leg_distance_nm",
+                                      "pms_direct_to_distance_nm")},
+    },
+}
+
+#: Pages without the nine-heading template, linked to one section instead.
+FREE_FORM_LINKS = {"pipeline": "[Processing steps](pipeline.qmd#flight-list)"}
+
+
+def details(page: str) -> str:
+    """Links to the Validation method and Limitations sections of a methods page."""
+    if not page:
+        return ""
+    if page in FREE_FORM_LINKS:
+        return FREE_FORM_LINKS[page]
+    return f"[Validation]({page}.qmd#validation-method), [Limitations]({page}.qmd#limitations)"
+
+
 def read_rows(path: Path) -> list[dict]:
     import csv
     if not path.is_file():
@@ -80,15 +136,16 @@ def summary(rows: list[dict], all_items: list[tuple[str, str]]) -> str:
              "|---|---|---|---|---:|---|"]
     for name, kind in all_items + extra:
         row = headline.get(name)
+        page = METHOD_PAGES.get(kind, {}).get(name, "")
         if row is None:
-            lines.append(f"| `{name}` | {kind} | Not validated |  |  |  |")
+            lines.append(f"| `{name}` | {kind} | Not validated |  |  | {details(page)} |")
             continue
-        unit = f" {row['unit']}" if row.get("unit") else ""
+        unit = row.get("unit", "")
+        unit = unit if unit in ("", "%") else f" {unit}"
         accuracy = f"{cell(row['label'])}: {row['value']}{unit}"
-        page = f"{row['page']}.qmd"
-        details = f"[Validation]({page}#validation-method), [Limitations]({page}#limitations)"
         lines.append(f"| `{name}` | {kind or cell(row.get('kind', ''))} | {accuracy} | "
-                     f"{cell(row.get('reference', ''))} | {row.get('n', '')} | {details} |")
+                     f"{cell(row.get('reference', ''))} | {row.get('n', '')} | "
+                     f"{details(page or row['page'])} |")
     return NOTE + "\n".join(lines) + "\n"
 
 
