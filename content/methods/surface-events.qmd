@@ -1,0 +1,123 @@
+---
+title: "Airport surface events"
+description: "How OPDI finds when an aircraft enters and leaves the taxiways, aprons, stands, runway thresholds, hangars and de-icing pads of an airport. Not validated."
+---
+
+## What it is
+
+An airport is made of areas with different uses. OPDI publishes an event each
+time an aircraft enters or leaves one of them:
+
+| Area | Meaning | Event types |
+|---|---|---|
+| Taxiway | A path on which aircraft move between the runways and the parking areas. | `entry-taxiway`, `exit-taxiway` |
+| Apron | An area where aircraft park, board passengers, load and refuel. | `entry-apron`, `exit-apron` |
+| Stand (`parking_position`) | One marked parking position for one aircraft, usually on an apron. | `entry-parking_position`, `exit-parking_position` |
+| Runway threshold | The start of the part of the runway that may be used for landing, marked by white stripes. | `entry-threshold`, `exit-threshold` |
+| Hangar | A building in which aircraft are kept or maintained. | `entry-hangar`, `exit-hangar` |
+| De-icing pad | An area where ice and snow are removed from aircraft before take-off. | `entry-deicing_pad`, `exit-deicing_pad` |
+
+The runway itself is not in this list. Its use is described by the runway
+events: see [Take-off and landing](takeoff-landing.qmd) and
+[Runway milestones](runway-milestones.qmd).
+
+Each event carries the position, altitude, distance flown and time passed of
+the state vector it was taken from. Its `info` field holds the OpenStreetMap
+identifier of the area (`osm_id`), its kind (`osm_aeroway`), its name or
+number in OpenStreetMap if it has one (`osm_ref`, for example the stand
+number), the airport (`osm_airport`), the time spent in the area
+(`opdi_time_in_use_s`, seconds), the aircraft address (`osn_icao24`) and the
+call sign (`osn_flight_id`). The events carry the version `events_v0.3.0`.
+
+The stand events are also used to find the block times and the stand columns
+of the flight list (see [Block times](block-times.qmd)).
+
+## How it is computed
+
+1. **Airport layouts.** The areas come from OpenStreetMap, the open map of the
+   world, for every large and medium airport. An area mapped as a line (for
+   example a taxiway centre line) or a point (for example a stand) is widened
+   into a surface, using the width given in OpenStreetMap or a default width
+   for its kind. Each area is then covered with small hexagonal cells (H3 cells
+   of resolution 12, each about 300 m²).
+2. **Samples near the ground.** The method uses the cleaned state vectors of
+   each track (see [Trajectory cleaning](trajectory-cleaning.qmd)) that have a
+   position and that are either marked as on the ground by the aircraft, or at
+   most 2,000 ft above the airport. The height above the airport is the
+   barometric altitude minus the airport's elevation; for this test the lower
+   of the departure and destination airports' heights is used.
+3. **Match.** A state vector is in an area when its H3 cell is one of the
+   area's cells and the area belongs to an airport that the flight list names
+   for the flight: the departure airport, the destination airport or one of
+   the other close airports listed (see
+   [Departure and destination airports](airports.qmd)).
+4. **Visits.** The matched state vectors of one track in one area, in time
+   order, form a visit. A silence of more than 300 s starts a new visit.
+5. **Events.** The first state vector of a visit gives the `entry-` event and
+   the last one gives the `exit-` event, each with the position, altitude and
+   measurements of that state vector.
+6. A visit made of a single state vector, or whose entry and exit fall in the
+   same second, has no duration and is dropped.
+
+## Reference data
+
+None. The airport operator records used for the runway and block times (see
+[Take-off and landing](takeoff-landing.qmd#reference-data)) name the stand of
+each movement, but give no time of entry into or exit from any area of the
+airport. No other source of these times was available.
+
+## Validation method
+
+Not validated. Validation would need the times at which aircraft enter and
+leave areas of the airport, as recorded for example by a surface movement
+radar or by the airport's own systems.
+
+Two parts of the data could be checked against the airport operator records
+without new data, but have not been: the stand of `exit-parking_position` at
+the departure airport against the departure stand in the records, and the
+stand of `entry-parking_position` at the destination against the arrival
+stand. The stand events are used indirectly in the block times, which were
+validated (see [Block times](block-times.qmd#results)).
+
+## Results
+
+Not validated.
+
+## Error distribution
+
+Not validated, so no error distribution exists.
+
+## Headline accuracy
+
+Not validated.
+
+## Limitations
+
+- None of these events has been compared with reference data.
+- The events need the aircraft to be received on the ground. Away from the
+  best-covered airports, ground reception is often missing and so are the
+  events.
+- The events depend on OpenStreetMap. An area that is not mapped, or mapped in
+  the wrong place, gives no event or a wrong one. Names in `osm_ref` follow
+  OpenStreetMap and can differ from the names the airport uses.
+- Only large and medium airports are covered, and only those that the flight
+  list names for the flight.
+- The H3 cells are about 20 m across, and the state vectors are 5 s apart.
+  Entry and exit times can therefore be off by up to one sampling interval,
+  and a small area (such as a runway threshold) crossed between two state
+  vectors is missed.
+- A visit made of a single state vector is dropped, so short passages over
+  small areas are under-counted.
+- Areas overlap: a stand usually lies on an apron, and a taxiway can cross an
+  apron. One movement can therefore produce several entry and exit events at
+  the same time.
+- An aircraft taxiing past stands enters and leaves the stand areas it passes
+  over. An `entry-parking_position` event does not mean that the aircraft
+  parked there.
+- De-icing pads are mapped in OpenStreetMap at few airports, and are used
+  mainly in winter.
+
+## Full study
+
+- [Flight events from ADS-B](../../papers/flight-events-v4/index.html),
+  chapter "Airport surface events".
