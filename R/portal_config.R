@@ -127,6 +127,9 @@ portal_cfg <- list(
 
   challenges = list(
     editions = 3,
+    # The totals cover the 2024 and 2025 editions only: the 2026 totals have
+    # not been published. Pages show this label next to each total.
+    totals_label = "2024-2025",
     total_teams = "300+",
     total_countries = 51,
     total_submissions = "2,600+",
@@ -149,29 +152,33 @@ portal_cfg <- list(
       ),
       list(
         id = "dc2025",
-        title = "Fuel Flow Estimation",
+        title = "Fuel Burn Estimation",
         year = 2025,
         status = "Completed",
         teams = 179,
+        # Teams that submitted predictions (179 signed up).
         finalists = 53,
         countries = 48,
         submissions = "2,127",
-        description = "Participants estimated per-second fuel flow along flight trajectories, enabling granular emissions analysis using open data sources.",
+        description = "Participants estimated the fuel burnt by an aircraft over given intervals of a flight, using open data sources, as a basis for estimating emissions.",
         url = "https://ansperformance.eu/study/data-challenge/dc2025/",
         github = "https://github.com/prc-data-challenge-2025"
       ),
       list(
         id = "dc2026",
-        title = NA_character_,
+        title = "Taxi-Out Time Prediction",
         year = 2026,
-        status = "Announced",
+        status = "Completed",
+        dates = "1 September - 14 October 2026",
+        # Team, country and submission totals have not been published.
         teams = NA_integer_,
         finalists = NA_integer_,
         countries = NA_integer_,
         submissions = NA_character_,
-        description = "The next edition of the PRC Data Challenge is in development. The topic and dataset will be announced in due course.",
-        url = "https://ansperformance.eu/study/data-challenge/",
-        github = NA_character_
+        movements = 4167797,
+        description = "Participants predicted the taxi-out time (from off-block to take-off, in seconds) of departing flights at ten major European airports, from airport movement data matched to the Network Manager flight list.",
+        url = "https://ansperformance.eu/study/data-challenge/dc2026/",
+        github = "https://github.com/prc-data-challenge-2026"
       )
     )
   ),
