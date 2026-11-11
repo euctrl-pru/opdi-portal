@@ -16,7 +16,7 @@ The columns are:
 |---|---|
 | `adep` | Departure airport (ADEP, aerodrome of departure). |
 | `ades` | Destination airport (ADES, aerodrome of destination). |
-| `adep_source`, `ades_source` | How the answer was reached: `aerodrome` (an airport was named), `out_of_area` (the track began outside the area covered) or `undetermined` (no answer). |
+| `adep_source`, `ades_source` | How the answer was reached: `aerodrome` (an airport was named), `out_of_area` (the track began outside the area covered), `undetermined` (no answer) or `runway_event` (corrected from a runway event, see below). |
 | `adep_p`, `ades_p` | Other airports that were close, nearest first. |
 
 An empty `adep` or `ades` means that OPDI could not tell. It is not a guess
@@ -69,6 +69,16 @@ or private field must be clearly nearest to win.
 
 The destination method never writes `OOA`. A track that ends near the edge of
 the area may just have lost reception, so that label would too often be wrong.
+
+### Correction from runway events
+
+After the events are computed, a runway event can overrule the airport named
+from the trajectory. If the track has a take-off or a start of take-off roll
+on a runway (`ATOT`, `line-up` or `take-off-roll`), the airport of the
+earliest such event becomes `adep`. If it has a landing on a runway (`ALDT` or
+`runway-vacated`), the airport of the latest such event becomes `ades`. The
+source column is then `runway_event`, and an airport that was replaced moves
+to `adep_p` or `ades_p`. See [Take-off and landing](takeoff-landing.qmd).
 
 The pipeline's default coverage is the whole world. The area covered then has
 no edge, so `OOA` is not written at all and a flight that entered coverage in
@@ -170,6 +180,9 @@ with 68.3% given an answer (95,116 reference flights, June 2025).
   main study (see [Validation method](#validation-method)).
 - Positions and elevations of airports come from OurAirports. An error there
   carries over.
+- The figures above score the airports named from the trajectory. The
+  correction from runway events was not part of that study and has not been
+  scored.
 
 ## Full study
 

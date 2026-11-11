@@ -1,0 +1,60 @@
+---
+title: "Validation summary"
+description: "One table with every published event type, flight list column and measurement of OPDI, its headline accuracy, the reference data it was checked against, and links to the details."
+---
+
+This page lists every item that OPDI publishes with the default settings of
+release v2.0.0: each event type, each column of the flight list and each
+measurement. For each item it gives the single number to remember from its
+validation, and links to the methods page that describes the method and its
+limits.
+
+## How to read the table
+
+- **Item** is the event type, column or measurement as it appears in the data.
+  A part in braces stands for a family: `xing-{radius}nm` covers `xing-40nm`,
+  `xing-100nm` and the other rings, and `entry-{element}` covers
+  `entry-taxiway`, `entry-apron` and the other airport areas.
+- **Kind** says whether the item is an event type, a flight list column or a
+  measurement.
+- **Headline accuracy** names the measure and gives its value. It is the
+  number given under "Headline accuracy" on the item's methods page.
+- **Reference** is the independent data the item was compared with.
+- **n** is the number of cases the value is computed over: flights, movements,
+  crossings or time windows, depending on the item.
+- **Details** links to the "Validation method" and "Limitations" sections of
+  the item's methods page.
+
+**"Not validated"** means that the item has not been compared with any
+independent data, so OPDI cannot say how accurate it is. It does not mean the
+item is wrong. For most such items no suitable reference exists: no available
+dataset records, for example, the top of climb or the entry into a taxiway.
+Each methods page says what would be needed to validate its items. Some items,
+such as the aircraft type, are copied from another database rather than
+computed, and some, such as the version columns, describe the data itself.
+
+**Accuracy figures of different items cannot be compared with each other.**
+Each figure is measured against its own reference data, on its own days and
+airports, with its own measure. Three examples:
+
+- The take-off and landing times are compared with airport records that are
+  mostly rounded to the minute, so their share within 60 s says little about
+  differences of a few seconds. The ring crossings are compared with records
+  given to the second.
+- The time milestones were measured at the 20 airports with the best ADS-B
+  reception, so their figures are better than what can be expected elsewhere.
+- Some figures count how often OPDI agrees with the reference; others, such as
+  the point merge figure, come from a visual check of a small sample; the FIR
+  crossings are compared with an exact calculation from the same boundaries,
+  which checks the computation but not the boundaries.
+
+Read the methods page of an item before using its figure.
+
+## All items
+
+{{< include _generated/validation_summary.md >}}
+
+The table is written by `tools/gen_validation_summary.py` from
+[`assets/validation/validation_measures.csv`](../../assets/validation/validation_measures.csv),
+which lists every number quoted on the methods pages with the study file and
+column it comes from.

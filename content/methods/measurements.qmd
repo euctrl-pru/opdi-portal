@@ -19,9 +19,10 @@ The distance carries the version `distance_v0.0.3` and the time the version
 
 Because both are counted from the start of the track, the difference between
 two events of one flight gives the distance and time between them. For example,
-`distance_flown_nm` at `landing` minus `distance_flown_nm` at `airborne` is the
-distance flown in the air, and the difference between two consecutive
-`xing-fir` events is the distance flown in one flight information region.
+`distance_flown_nm` at `landing` minus `distance_flown_nm` at `xing-40nm` is the
+distance flown from the 40 NM ring to the runway threshold, and the difference
+between two consecutive `xing-fir` events is the distance flown in one flight
+information region.
 
 Some event families add their own measurements, described on their pages:
 `holding_duration_s`, `holding_distance_nm` and `holding_circuits` on
@@ -59,7 +60,8 @@ in whole seconds.
 
 An event that falls on a state vector takes that state vector's values. An
 event placed between two state vectors, such as a flight-level crossing, a
-distance ring crossing, `airborne`, `touchdown` or `landing`, takes values
+distance ring crossing, `landing`, or `ATOT` and `ALDT` found on the runway
+(`method` = `acdm` in `info`), takes values
 interpolated between the two, so that the measurement belongs to the same
 instant as the event.
 
@@ -120,9 +122,10 @@ where the distance added differs from the straight line by more than 1 NM.
 - The distance is horizontal: climbs and descents add nothing.
 - The time is in whole seconds, and the state vectors are 5 seconds apart, so
   an event's time and distance can be off by up to one sample.
-- Some event types carry no distance or time: the block times (`AOBT`, `AIBT`,
-  `off-block`, `on-block`), the runway times `ATOT` and `ALDT`, and the
-  level-off events. Their measurement columns are empty.
+- Some events carry no distance or time: the block times (`AOBT`, `AIBT`),
+  the runway times `ATOT` and `ALDT` found from the climb or descent
+  (`method` = `legacy` in `info`), and the level-off events. Their measurement
+  columns are empty.
 - A level-off's `distance_nm` inside `info` is a difference of the cumulative
   distance and has the same limits.
 - Values depend on the track. If a flight is split into two tracks, the second
