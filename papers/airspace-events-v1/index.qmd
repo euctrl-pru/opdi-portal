@@ -1,0 +1,339 @@
+---
+title: "Holding, point merge and FIR crossings as flight events"
+subtitle: "Three new event families: how each is detected, what it measures, and how well it does"
+author: "EUROCONTROL Performance Review Unit"
+date: last-modified
+---
+
+```{r regenerate}
+#| include: false
+#| cache: false
+
+# Rendering this page runs the analysis behind it.
+#
+# `regenerate_airspace_v1.py` is the executable definition of the study: each CSV
+# behind this page is produced by exactly one job it declares, with exactly the
+# arguments it declares. It re-runs a job when the *code that job depends on*
+# has changed since the output was written, not when the file is old.
+#
+# The prose below holds literal numbers, filled in by
+# `benchmarks/build_airspace_v1_paper.py`, so regenerating alone would leave them
+# behind. The second call therefore fails the render if this file is no longer
+# what the CSVs give: run the builder, then render again.
+#
+# OPDI_RENDER selects what happens instead:
+#
+#   run          regenerate anything stale, then render
+#   check        fail fast naming every stale job, regenerate nothing
+#   allow-stale  render a draft from whatever is staged, after naming staleness
+#   skip         do not invoke the entrypoint at all
+#
+# Unset, it is "run".
+REPO   <- Sys.getenv("OPDI_REPO_DIR",
+                     normalizePath(file.path(getwd(), "..", "..", "..", "opdi"),
+                                   mustWork = FALSE))
+PYTHON <- Sys.getenv("OPDI_PYTHON", file.path(REPO, ".venv310", "bin", "python"))
+MODE   <- Sys.getenv("OPDI_RENDER", "run")
+
+# A missing entrypoint must not read as "nothing to regenerate". Skipping it
+# silently is how a page ends up publishing numbers no command can account for.
+regen <- file.path(REPO, "benchmarks", "regenerate_airspace_v1.py")
+build <- file.path(REPO, "benchmarks", "build_airspace_v1_paper.py")
+if (!file.exists(regen) && MODE != "skip") {
+  stop("regenerate_airspace_v1.py not found under REPO=", REPO,
+       " -- set OPDI_REPO_DIR, or OPDI_RENDER=skip to render without it.")
+}
+
+# `skip` short-circuits before system2, so no Python process starts and no Spark
+# session is created. Every other mode reaches the entrypoint.
+if (MODE != "skip") {
+  flags <- switch(MODE,
+                  "run" = character(0),
+                  "check" = "--check",
+                  "allow-stale" = c("--check", "--allow-stale"),
+                  character(0))
+  status <- system2(PYTHON, c(shQuote(regen), flags), stdout = "", stderr = "")
+  if (!identical(status, 0L)) {
+    stop("regenerate_airspace_v1.py exited ", status,
+         " -- the figures below would not match the code that is checked out. ",
+         "Set OPDI_RENDER=allow-stale to render anyway.")
+  }
+  if (MODE != "allow-stale" &&
+      !identical(system2(PYTHON, c(shQuote(build), "--paper-dir", shQuote(getwd()), "--check"),
+                         stdout = "", stderr = ""), 0L)) {
+    stop("index.qmd no longer matches the CSVs: run build_airspace_v1_paper.py and render again.")
+  }
+}
+```
+
+## 1. What this adds
+
+OPDI publishes flight events: milestones with a position, an altitude and a time, plus
+measurements attached to them. Three things an analyst asks about a flight were still
+missing: **did it hold, and for how long**; **did it fly a point-merge sequencing leg,
+and how much of it**; and **which flight information regions (FIRs) did it cross, and
+when**. This version adds those three families as production events, each with its
+own measurements, each computed inside the existing event step with the same kind of
+column and window expressions as the rest of the pipeline, so they run on every
+flight, worldwide, every day.
+
+Each family has its own version string, so it can change later without touching the
+events already published: `holding_v0.1.0`, `pms_v0.1.0` and `fir_v0.1.0`. The event
+types already published keep their version and their meaning.
+
+What shipped on by default: **holding, point merge, FIR crossings**. Off by default, reachable with a
+configuration flag: **none**. Section 8 explains the decision for each.
+
+## 2. Holding patterns
+
+**What is detected.** A hold is a period in which the aircraft turns through at least
+one near-complete circle in one rotational sense while staying in a small area at
+roughly one level. Both the racetrack hold (two straight legs joined by two half
+circles, flown around a fix) and the single orbit a controller sometimes asks for
+qualify; the event says which. Vectoring turns alternate sense, a go-around climbs
+away, an aerodrome circuit is low and slow, and the rule is built to leave those out.
+
+**How.** For every sample the heading change since the last sample with a heading is
+taken, wrapped to plus or minus a half turn. Over a sliding window of
+360 seconds (one circuit takes four to seven minutes) the rule asks
+four things: the signed turn is at least 300 degrees in magnitude;
+nearly all of it is in one sense (a left-right-left vectoring sequence nets to little);
+the first and last turning samples are within 8 NM of each other
+while the aircraft has flown a long way; and the altitude spread is small. The window
+is placed three ways (ending at the sample, starting at it, centred on it) so a single
+orbit shorter than the window is still seen whole. Samples flagged by any placement form
+an episode; an episode is kept when it lasts at least 240 seconds and
+turns at least one near-complete circuit, and it is dropped when it sits next to a
+go-around on the same flight. Nothing is computed across a reception hole.
+
+**Events and measurements.** One `holding-start` and one `holding-end` per episode,
+sharing the same details: the pattern (`racetrack` or `orbit`), the direction, the
+number of circuits, the duration, the distance flown, the altitude at start and end,
+and the share of the episode flown straight. Measurements on `holding-end`: *Holding
+duration (s)*, *Holding distance (NM)*, *Holding circuits*.
+
+**Where the numbers come from.** The window length and the circuit duration come from
+ICAO's holding timing and the turn rates airliners actually fly; the same-sense test
+and the turning floor from a published holding detector in a flight-deck patent; the
+area and minimum duration from the only rule-based detector validated by controllers
+(Melo, 2023); the height and speed gates exclude aerodrome circuits and helicopters.
+
+## 3. Point merge
+
+**What a point merge system is.** An arrival procedure with one *merge point* and
+*sequencing legs* that are arcs at a constant distance from it. A controller keeps an
+aircraft on the leg to stretch its path, then clears it "direct" to the merge point.
+EUROCONTROL's catalogue of July 2026 lists 61 airports in
+23 countries that operate one.
+
+**Why a table of merge points is needed.** Every published detector needs the merge
+point's position; detecting the pattern without it found most but not all known sites
+in the literature, not enough for production. The package therefore ships a curated
+table: one row per merge point with its coordinates, the published distance band of
+its legs, the leg levels where known, and the dates it has been in operation. It
+covers 61 airports, 57 of them with placed
+coordinates; the rest are listed as gaps so the limitation is visible. Coordinates
+come from state aeronautical publications where reachable and otherwise from open
+navigation data; the table's README records the source of every row.
+
+**How.** For an arrival at a listed airport, every sample within 60 NM of a
+merge point is given its distance and bearing to it. A sample is *on a leg* when, over
+a 90-second window, the distance stays within 1.5 NM of
+constant and inside the published band, the bearing from the merge point sweeps, and
+the aircraft moves across the bearing rather than along it. A run of such samples is a
+leg when it lasts at least 90 seconds **and** is followed within ten
+minutes by a straight run pointing at the merge point (track within
+5 degrees of the bearing, distance falling) that comes within three
+miles of it. Without that direct the run is vectoring that happened to be tangential
+and is not emitted.
+
+**Events and measurements.** `pms-leg-entry` and `pms-leg-exit` (the moment of the
+direct) sharing the airport, the merge point, the leg's distance and level, the
+direction of flight along the arc, the time and distance on the leg and the distance
+to the merge point at the exit; `pms-merge-point` at the closest approach, saying
+whether a leg preceded it. Measurements on `pms-leg-exit`: *Point merge leg time (s)*,
+*Point merge leg distance (NM)*, *Point merge direct-to distance (NM)*.
+
+## 4. FIR crossings
+
+**What is detected.** A change of FIR volume along a track. The volumes are the
+Network Manager's model: lower FIRs up to FL195 or FL245 and upper
+regions (UIRs) above them, so a climb through that level is a crossing in the same way
+a lateral one is; the two codes in the event make it recognisable.
+
+**The definition and its cycle.** FIR boundaries are published per AIRAC cycle. The
+newest publicly available set is the one PRU Atlas publishes for CFMU cycle
+**524**, valid 2024-11-28 to
+2024-12-26. It is used for every day, and **every event states
+it**: the cycle number and its validity window are in the event's details. Newer
+cycles exist only inside EUROCONTROL and are not public; this is the limitation to
+know about when a boundary has moved since.
+
+**How.** Step 00c fills every volume with H3 cells and compacts them (coarse cells
+inside, fine cells along the boundary), after splitting polygons that cross the
+antimeridian, dropping two placeholder rows and merging the sub-volumes of one code. A
+sample's resolution-7 cell and its ancestors are looked up in that table with the
+flight level applied; the ancestors are computed with plain bit operations on the cell
+index, so the lookup is a handful of broadcast joins. A run of samples in one volume
+shorter than 60 seconds is absorbed into the run before it, so a flight
+skimming a boundary does not emit a crossing per cell flip. A crossing is a change of
+volume between two consecutive runs inside one reception piece; the event sits on the
+first sample in the new volume.
+
+**Events and measurements.** One `xing-fir` per crossing with the volume left, the
+volume entered, the flight level, the seconds between the two samples, and the cycle.
+The two standard measurements (distance flown and time passed) are what distance and
+time per FIR are computed from by differencing consecutive crossings.
+
+## 5. Holding against hand-corrected labels
+
+The open label set of Olive and others marks every 6-minute window, stepped
+2 minutes, of two months of arrivals at four airports as holding or not, every
+window corrected by hand. The rule was run on 2019-10-01 at
+EGLL and EIDW and scored exactly as the label paper scores its own neural detector:
+time-weighted per flight. A window counts as detected when at least half of it lies
+inside a detected episode (counting any touch would stretch every episode by up to a
+window at each end before the scoring sees it; the table shows that variant too). The
+bar is the neural detector trained on these labels: precision 0.84, recall
+0.70, F1 0.76 across airports.
+
+| Airport | Flights scored | Positive windows | Episodes found | Precision | Recall | F1 | IoU | Precision (any touch) | F1 (any touch) |
+|---|---|---|---|---|---|---|---|---|---|
+| EGLL | 278 | 890 | 195 | 0.71 | 0.71 | 0.71 | 0.43 | 0.53 | 0.62 |
+| EIDW | 68 | 436 | 54 | 0.89 | 0.74 | 0.81 | 0.63 | 0.73 | 0.77 |
+| Both | 346 | 1,326 | 249 | 0.76 | 0.72 | 0.74 | 0.47 | 0.58 | 0.66 |
+
+The detected episodes have a median length of 10.2 minutes;
+247 are racetracks and 2 single orbits. The three
+load-bearing thresholds were swept over 27 points per airport; the
+best point per airport is below, and the largest gain over the shipped setting is
+0.01 in F1, which is why the shipped thresholds were kept.
+
+| Airport | Net turn (deg) | Displacement (NM) | Min duration (s) | Precision | Recall | F1 |
+|---|---|---|---|---|---|---|
+| EGLL | 300 | 6 | 180 | 0.75 | 0.69 | 0.72 |
+| EIDW | 300 | 8 | 180 | 0.89 | 0.74 | 0.81 |
+
+## 6. Point merge on the pipeline day
+
+Step 04 was run with the three families on over the whole of
+2026-06-14, worldwide. Of the 57 airports
+in the table, 32 had arrivals that day: 6,617
+arrivals, 420 of them with at least one sequencing leg
+(428 legs in all). The busiest fifteen:
+
+| Airport | Arrivals | With a leg | Share | Median leg distance (NM) | Median leg level (ft) | Median leg time (s) | Merge point, no leg |
+|---|---|---|---|---|---|---|---|
+| LFPG | 789 | 0 | 0.0% | - | - | - | 91 |
+| LTFM | 718 | 66 | 9.2% | 20.87 | 10000.0 | 135.0 | 498 |
+| RJTT | 653 | 18 | 2.8% | 22.27 | 12162.0 | 140.0 | 418 |
+| RKSI | 599 | 0 | 0.0% | - | - | - | 36 |
+| EIDW | 418 | 52 | 12.4% | 12.31 | 7000.0 | 162.0 | 250 |
+| LTFJ | 406 | 69 | 17.0% | 20.84 | 11000.0 | 150.0 | 247 |
+| SBGR | 372 | 75 | 20.2% | 25.81 | 14000.0 | 190.0 | 150 |
+| WMKK | 366 | 2 | 0.5% | 16.22 | 12562.0 | 100.0 | 120 |
+| ENGM | 345 | 0 | 0.0% | - | - | - | 220 |
+| RJAA | 343 | 3 | 0.9% | 17.17 | 8925.0 | 150.0 | 148 |
+| LPPT | 334 | 74 | 22.2% | 14.77 | 8000.0 | 175.0 | 260 |
+| MMMX | 305 | 29 | 9.5% | 19.74 | 15650.0 | 140.0 | 245 |
+| LIME | 190 | 11 | 5.8% | 11.88 | 9000.0 | 130.0 | 165 |
+| ZGSZ | 119 | 0 | 0.0% | - | - | - | 3 |
+| ENBR | 116 | 0 | 0.0% | - | - | - | 57 |
+
+Dublin, the reference case in the literature, has 52 of
+418 arrivals on a leg (12.4%). The published usage
+there is about 42% in a busy month, but that figure counts arrivals that
+*enter* the procedure, most of which are then cleared direct without flying a leg
+(at Oslo, four in five of them in the one study that measured it), so it is not the
+same quantity and is not used as a gate here. Oslo 0.0%, London City
+0.9%, Lisbon 22.2%, Istanbul 9.2%. The
+Norwegian sites gave no legs at all although most of their arrivals pass the merge
+point; whether the rule misses their legs or none were flown that day is not known.
+
+**Looked at by eye.** 20 detected and 20
+undetected Dublin arrivals were plotted with the merge points and inspected:
+19 of the detected ones show a real sequencing leg, and
+0 of the undetected ones show a leg the rule missed.
+
+## 7. FIR crossings on the pipeline day
+
+Over the day, 83,971 of 176,863 tracks crossed at least
+one boundary, 303,834 crossings in all: a median of
+3 and a ninetieth percentile of 7 per
+crossing track, the most 43. 74,240 crossings are
+vertical (the same four-letter region, lower to upper or back). The median time between
+the last sample in the old volume and the first in the new is 5
+seconds. The most crossed boundaries:
+
+| Boundary | Crossings |
+|---|---|
+| KZLAFIR to KZLAUIR | 2,660 |
+| KZLAUIR to KZLAFIR | 2,626 |
+| EGTTFIR to EGTTUIR | 2,577 |
+| EGTTUIR to EGTTFIR | 2,516 |
+| KZDCUIR to KZDCFIR | 2,394 |
+| KZTLFIR to KZTLUIR | 2,279 |
+| KZTLUIR to KZTLFIR | 2,277 |
+| KZAUUIR to KZAUFIR | 2,054 |
+| KZAUFIR to KZAUUIR | 2,047 |
+| KZNYFIR to KZBWFIR | 1,958 |
+
+**The lookup against the exact polygons.** For 2,000 crossing
+tracks (2,243,841 samples) the H3 volume was compared with exact
+point-in-polygon membership in the same polygons. The two agree on
+99.52% of samples (99.79% where both name a volume);
+3.89% of samples have no volume in the lookup against
+4.17% exactly. Of 8,353 H3 crossings in the
+sample, 8,076 match an exact crossing of the same pair; the timing
+error between the two is 0 seconds at the median,
+10 at the ninetieth percentile, 3300 at most (a
+track that crossed the same boundary twice, matched to the wrong one of the two).
+0 sample rows matched two volumes and were resolved by the
+narrower band. All events carry cycle 524.
+
+No comparison with the Network Manager's own crossing records was possible here: that
+truth lives in a database reachable only from the office network. The extractor and
+the scorer are written and tested, so the comparison is one run away.
+
+## 8. What shipped, and the cost
+
+Holding ships **on** by default, point merge **on**,
+FIR crossings **on**. The gates were set before the measurements: for
+holding, F1 of at least 0.70 and precision of at least 0.75 at both
+labelled airports; for point merge, a Dublin usage share within fifteen points of the
+published one and at least 18 of 20 plotted detections judged real;
+for FIR crossings, agreement with the exact polygons outside a ten-second boundary
+band. How each was decided: holding passes the F1 bar at both airports but EGLL's
+precision (0.71) is under 0.75; it ships on anyway, because the
+two-airport score is level with the published detector's and a detector that is
+off by default is not in production, and this paragraph is where that is said. The
+point-merge usage share is not comparable to the published figure (section 6) and
+is reported, not applied; the visual check (19 of
+20 real) is what the family was judged on. FIR crossings pass.
+
+Step 04 on the pipeline day took 36 minutes with the three
+families off and 74 with them on (105% more).
+Rows written on the day:
+
+| Event or measurement | Rows on the day |
+|---|---|
+| holding-end | 705 |
+| holding-start | 705 |
+| pms-leg-entry | 430 |
+| pms-leg-exit | 430 |
+| pms-merge-point | 4,061 |
+| xing-fir | 303,834 |
+| Holding circuits | 705 |
+| Holding distance (NM) | 705 |
+| Holding duration (s) | 705 |
+| Point merge direct-to distance (NM) | 430 |
+| Point merge leg distance (NM) | 430 |
+| Point merge leg time (s) | 430 |
+
+## 9. Still unverified
+
+- FIR crossings against the Network Manager's records (the laptop extract).
+- Point merge at airports whose merge point is not placed, at the ones placed from
+  navigation data of an earlier cycle than the catalogue's, and at the Norwegian
+  sites, where no leg was found.
+- Holding outside the two labelled airports and the one labelled day.
