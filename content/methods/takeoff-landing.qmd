@@ -114,6 +114,12 @@ sea level, from OurAirports).
 9. **`ALDT`.** The moment the height above the airport falls through 15 ft,
    interpolated in the same way as `ATOT`.
 
+In steps 7 to 9, a state vector without a value (an altitude emptied by
+cleaning, for example) is skipped: the moment is interpolated between the
+last state vector with a known value and the next one. When those two are
+more than 30 minutes apart, no event is given, because its time and position
+cannot be placed.
+
 These events carry a position, an altitude and the measurements distance flown
 and time passed (see [Measurements](measurements.qmd)), all interpolated to
 the same moment.
@@ -148,6 +154,12 @@ Each track keeps at most one `ATOT` and one `ALDT` event. If the runway-pass
 method found the moment, its value is kept (the earliest, if it found
 several); otherwise the value of the climb-and-descent method is kept. The
 field `method` in `info` says which.
+
+The [plausibility checks](plausibility-checks.qmd) then leave out an `ATOT`
+or `ALDT` that is more than 1,500 ft above its airport, measured by the
+event's own altitude or, for the climb-and-descent method, by the altitude of
+the nearest state vector within 60 s. `landing` is not checked against the
+height.
 
 The flight list then takes `atot` from the earliest `ATOT` at the departure
 airport and `aldt` from the latest `ALDT` at the destination airport, with

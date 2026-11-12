@@ -87,6 +87,15 @@ elevation).
    - the lowest point is at most 10 NM from the destination airport.
 4. The event is placed at the lowest point of the excursion.
 
+A state vector without an altitude is skipped in step 1: the crossing is
+interpolated between the last state vector with a known height and the next
+one, and is not given when those two are more than 30 minutes apart.
+
+The [plausibility checks](plausibility-checks.qmd) do not compare these
+events with the track's height: line-up, runway vacated and the runway
+crossings already require the aircraft to be on the runway. The checks only
+leave out an event without a time.
+
 The 15 ft limit is the same as the one that defines the touchdown time, so a
 go-around and a touchdown can never describe the same descent.
 

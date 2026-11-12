@@ -59,6 +59,11 @@ of the flight list (see [Block times](block-times.qmd)).
 6. A visit made of a single state vector, or whose entry and exit fall in the
    same second, has no duration and is dropped.
 
+The [plausibility checks](plausibility-checks.qmd) then leave out an entry or
+exit made while the aircraft was flying: more than 1,500 ft above the airport,
+faster than 80 kt, and with no state vector within 60 s flagged on the
+ground.
+
 ## Reference data
 
 None. The airport operator records used for the runway and block times (see
@@ -114,6 +119,11 @@ Not validated.
 - An aircraft taxiing past stands enters and leaves the stand areas it passes
   over. An `entry-parking_position` event does not mean that the aircraft
   parked there.
+- State vectors up to 2,000 ft above the airport are matched to the areas. The
+  plausibility checks remove an event only when the aircraft was more than
+  1,500 ft above the airport, faster than 80 kt and not reported on the
+  ground, so an aircraft passing low or slowly over an area can still produce
+  an entry and an exit.
 - De-icing pads are mapped in OpenStreetMap at few airports, and are used
   mainly in winter.
 

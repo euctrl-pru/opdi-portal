@@ -20,9 +20,13 @@ The standard numbers are those of airport collaborative decision making
 between `AOBT` and the take-off is the **taxi-out time**; the time between the
 landing and `AIBT` is the **taxi-in time**.
 
-The `info` field of `AOBT` holds `stand_exit`, the time of the track's first
-exit from a stand area; that of `AIBT` holds `stand_entry`, the time of its
-last entry into one. The events carry the version `events_v0.3.0`.
+The `info` field of `AOBT` holds `stand_exit`, the time the track leaves the
+stand that belongs to this off-block, with the name of that stand (`stand`)
+and its airport (`apt_icao`); that of `AIBT` holds `stand_entry`, `stand` and
+`apt_icao` for the stand it reaches. These fields are absent when the stand
+passage does not lie in the same part of the track as the block time (see
+below).
+The events carry the version `events_v0.3.0`.
 
 The flight list repeats the results:
 
@@ -47,33 +51,62 @@ The method follows the start-of-movement detection of the open-source
    The visits of a track to a stand are the `entry-parking_position` and
    `exit-parking_position` events (see
    [Airport surface events](surface-events.qmd)).
-2. **Ground speed.** Take the ground speed of each state vector. Where it is
+2. **Reports that may be on the ground.** Only state vectors that may be on
+   the ground are used to find movement: those flagged on the ground by the
+   aircraft, those without an altitude or a position, and those at most
+   2,000 ft above the departure or the destination airport. State vectors in flight are left out, so the flight itself is
+   never read as movement on the ground.
+3. **Ground speed.** Take the ground speed of each state vector. Where it is
    missing, compute it from the distance between consecutive positions divided
    by the time between them, and take the median over three consecutive
    samples to smooth out jumps.
-3. **Moving.** A state vector is moving when its ground speed is above 2 kt.
-   Consecutive moving state vectors form a run. A run counts as real movement
-   when it lasts at least 30 s; shorter runs are noise in the speed.
-4. **`AOBT`.** If the track has at least one `exit-parking_position` event,
-   `AOBT` is the start of the first run of real movement of the track. For a
-   track that starts at the stand, this is the push-back or the start of the
-   taxi.
-5. **`AIBT`.** If the track has at least one `entry-parking_position` event,
-   `AIBT` is the end of the last run of real movement of the track.
+4. **Moving.** A state vector is moving when its ground speed is above 2 kt.
+   Consecutive moving state vectors form a run; a silence of more than 300 s
+   ends it. A run counts as real movement when it lasts at least 30 s; shorter
+   runs are noise in the speed.
+5. **Parts of the track.** The track is in flight where state vectors that are
+   not on the ground follow each other for at least 30 s; a shorter stretch
+   of them is an altitude error, not a flight. The take-off times (`ATOT`) and
+   landing times (`ALDT`) of the track cut it into parts, and each block time
+   is read from the part on the correct side of its take-off or landing:
+   - from the start of the track to a take-off: `AOBT` is the start of the
+     first real movement in that part;
+   - from a landing to the end of the track: `AIBT` is the end of the last
+     real movement in that part;
+   - from a landing to a take-off (the aircraft landed, stood at its stand and
+     left again): the longest stop between two movements in that part is the
+     stop at the stand. `AIBT` is the end of the movement before it and
+     `AOBT` the start of the movement after it.
 
-The requirement in steps 4 and 5 matters. Without it, a track first received
-while the aircraft was already taxiing would report the start of its taxi as
-an off-block, which would look like a very short taxi rather than a missing
-value.
+   Where the track has no take-off time, or starts with a landing, `AOBT` is
+   read from the ground part at the start of the track, up to its first state
+   vector in flight. Where it has no landing time, or ends with a take-off,
+   `AIBT` is read from the ground part at its end, after its last state vector
+   in flight. A take-off or landing that was not found therefore does not
+   cost the block time next to it.
+6. **Stand passage.** An `AOBT` needs at least one `exit-parking_position`
+   event in the track, and an `AIBT` at least one `entry-parking_position`
+   event. Without it, a track first received while the aircraft was already
+   taxiing would report the start of its taxi as an off-block, which would
+   look like a very short taxi rather than a missing value. When the stand
+   passage lies in the same part of the track, the event names that stand
+   and its airport.
+
+The [plausibility checks](plausibility-checks.qmd) then leave out an `AOBT`
+or `AIBT` that the track contradicts: one placed while the aircraft is more
+than 1,500 ft above the airport, faster than 80 kt and not reported on the
+ground; an `AOBT` at or after the track's last take-off time; and an `AIBT`
+at or before its first landing time.
 
 The events carry no position, no altitude and no distance or time
 measurements: those fields are empty.
 
 The flight list takes `aobt` from the earliest `AOBT` of the flight and
-`aibt` from the latest `AIBT`. `stnd_dep` is the OpenStreetMap name of the
-stand of the flight's earliest `exit-parking_position` at its departure
-airport; `stnd_arr` that of its latest `entry-parking_position` at its
-destination airport.
+`aibt` from the latest `AIBT`. `stnd_dep` is the stand named by that `AOBT`
+when it lies at the departure airport; otherwise it is the OpenStreetMap name
+of the stand of the flight's earliest `exit-parking_position` at its departure
+airport. `stnd_arr` is the stand named by the `AIBT` at the destination
+airport, otherwise that of the latest `entry-parking_position` there.
 
 ## Reference data
 
@@ -96,6 +129,12 @@ over all reference movements. The study also computed the median difference
 for each airport.
 
 ## Results
+
+These figures come from the flight-events study, which took the block times
+from the first and last movement of the whole track rather than from the
+ground part of each leg described above. Figures for one day with the method
+as described, against the records of about ninety European airports, are on
+[Plausibility checks](plausibility-checks.qmd#results).
 
 The study covers 20 airports, 11,674 reference departures and 11,657
 reference arrivals.
@@ -155,10 +194,12 @@ within 60 s (78.57% within 300 s); median difference −65.0 s.
   lower.
 - The events need stands mapped in OpenStreetMap at the airport. Where stands
   are missing or misplaced there, no block time is found.
-- `AOBT` is the first movement of the whole track. The method checks that the
-  track leaves a stand somewhere, not that this first movement starts at that
-  stand. A track that holds more than one flight keeps only the first
-  off-block and the last in-block.
+- The accuracy figures on this page were measured with block times taken
+  from the whole track. Figures with the ground part of each leg exist for one
+  day only (see [Plausibility checks](plausibility-checks.qmd#results)).
+- A block time needs a stand passage somewhere in the track, not necessarily
+  in its own part. When the passage lies elsewhere, the time is kept but
+  names no stand.
 - The flight list's `aobt` and `aibt` are not checked against the departure or
   destination airport, unlike the stand and runway columns.
 - The events have no position, no altitude and no distance or time
@@ -166,10 +207,10 @@ within 60 s (78.57% within 300 s); median difference −65.0 s.
 - The stand name is the `ref` tag of OpenStreetMap. It can differ from the
   name the airport uses, and is empty where OpenStreetMap has none. The stand
   columns have not been compared with the airport records.
-- The stand named is the first stand area the track leaves at the departure
-  airport, or the last one it enters at the destination. If the track starts
-  while the aircraft is already taxiing, or ends before it parks, this can be
-  a stand it only passed over.
+- The stand named is the stand area the track leaves first at or after the
+  off-block time, or enters last at or before the in-block time, in the same
+  part of the track. If the track starts while the aircraft is already
+  taxiing, or ends before it parks, this can be a stand it only passed over.
 
 ## Full study
 

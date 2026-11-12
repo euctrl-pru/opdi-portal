@@ -58,11 +58,14 @@ The method works on the cleaned state vectors of each track (see
    side it was last on. A crossing is the moment the side changes.
 4. **Interpolation.** The time, position, flight level, distance flown and
    time passed of the crossing are interpolated in a straight line between the
-   two state vectors on either side of the ring itself.
+   two state vectors on either side of the ring itself. A state vector without
+   a position is skipped: the crossing is placed between the last state
+   vector with a known distance and the next one.
 5. The bearing is computed from the airport to the interpolated position.
-6. A crossing between two state vectors that are more than 30 minutes apart (a
-   reception gap kept inside a track; see [Track identity](track-identity.qmd))
-   is not reported: its time and position would be guesses.
+6. A crossing between two state vectors with a known distance that are more
+   than 30 minutes apart (a reception gap kept inside a track; see
+   [Track identity](track-identity.qmd)) is not reported: its time and
+   position would be guesses.
 7. Every crossing is kept and numbered in time order.
 
 The same crossing method is used for the flight-level crossings (see

@@ -147,7 +147,11 @@ distance are in `info`.
    the side changes.
 3. The time and position of the crossing are interpolated in a straight line
    between the two state vectors on either side of the level itself. The
-   altitude of the event is exactly the level (10,000 ft for FL100).
+   altitude of the event is exactly the level (10,000 ft for FL100). A state
+   vector without an altitude (emptied by cleaning, for example) is skipped:
+   the crossing is placed between the last state vector with a known altitude
+   and the next one. When those two are more than 30 minutes apart, the
+   crossing is not given, because its time and position cannot be placed.
 4. Every crossing is kept, numbered in time order.
 
 The same crossing method is used for the
@@ -220,7 +224,11 @@ Not validated.
   leaves the dead band, so that crossing is not reported. The level-off events
   describe that case.
 - When the two state vectors around a crossing are far apart (see
-  `bracket_s`), the interpolated time and position are uncertain.
+  `bracket_s`), the interpolated time and position are uncertain. A crossing
+  whose two known altitudes are more than 30 minutes apart is not given.
+- The [plausibility checks](plausibility-checks.qmd) do not test the tops,
+  the level segments or the crossings against the track, except that an
+  event without a time is left out.
 - A level segment shorter than 20 s is not reported. The interpolation on a
   10 s grid smooths short changes of altitude.
 

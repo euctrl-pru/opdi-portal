@@ -121,7 +121,10 @@ judged at three airports. A track keeps at most one take-off and one landing.
 
 Off-block times tend to be late and in-block times early, by about a minute,
 so taxi times computed from them are too short. The events need reception at
-the stand and stands mapped in OpenStreetMap.
+the stand and stands mapped in OpenStreetMap. The accuracy was measured on
+block times taken from the whole track; for the method as published, with
+each block time taken from the ground part of its own leg, figures exist for
+one day only.
 [All limitations](../methods/block-times.qmd#limitations).
 
 ### Runway milestones
@@ -135,7 +138,8 @@ times can be off by up to 5 s.
 
 Not compared with reference data. The events depend on ground reception and
 on OpenStreetMap; areas overlap, so one movement can give several events at
-the same time, and passing over a stand is not parking there.
+the same time, and passing over a stand is not parking there. An aircraft
+passing low or slowly over an area can still produce events.
 [All limitations](../methods/surface-events.qmd#limitations).
 
 ### Vertical events
@@ -178,6 +182,16 @@ The distance flown follows the received positions and a straight line across
 gaps, so it is shorter than the path really flown. Both measurements count
 from the start of the track, not from off-block or take-off.
 [All limitations](../methods/measurements.qmd#limitations).
+
+### Plausibility checks
+
+The checks leave out only the events that the aircraft's own track clearly
+contradicts; a wrong event that the track does not contradict is kept. Their
+limits were set on one day against the records of about ninety European
+airports. Tops of climb and descent, level segments, crossings, holding,
+point merge, FIR crossings, go-arounds and `landing` are checked only for a
+missing time. Removed events are not published.
+[All limitations](../methods/plausibility-checks.qmd#limitations).
 
 ### First seen and last seen
 

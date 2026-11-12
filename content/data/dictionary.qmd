@@ -90,6 +90,11 @@ position. A row of the flight events file has three parts, in this order:
 
 {{< include _generated/flight_events_columns.md >}}
 
+Every published event has a time. Events that the aircraft's own track
+clearly contradicts, such as an in-block time while the aircraft is still
+flying, are not published (see
+[Plausibility checks](../methods/plausibility-checks.qmd)).
+
 ## Measurements {#measurements}
 
 A **measurement** is a number attached to an event. Each measurement is a
@@ -268,8 +273,12 @@ Its `info` holds other fields:
 
 | Event type | Field | Meaning |
 |---|---|---|
-| `AOBT` | `stand_exit` | Time of the track's first exit from a stand area. |
-| `AIBT` | `stand_entry` | Time of the track's last entry into a stand area. |
+| `AOBT` | `stand_exit` | Time of the stand exit that belongs to this off-block: the first exit from a stand area at or after it in the same part of the track, otherwise the last one before it. Absent when that part holds no stand exit. |
+| `AOBT` | `stand` | Name in OpenStreetMap of the stand of `stand_exit`, when it has one. |
+| `AOBT` | `apt_icao` | ICAO code of the airport of that stand. |
+| `AIBT` | `stand_entry` | Time of the stand entry that belongs to this in-block: the last entry into a stand area at or before it in the same part of the track, otherwise the first one after it. Absent when that part holds no stand entry. |
+| `AIBT` | `stand` | Name in OpenStreetMap of the stand of `stand_entry`, when it has one. |
+| `AIBT` | `apt_icao` | ICAO code of the airport of that stand. |
 
 ### Airport surface
 
