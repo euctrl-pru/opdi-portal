@@ -1,0 +1,466 @@
+---
+title: "Plausibility checks for flight milestones"
+subtitle: "Removing the milestones that the aircraft's own track contradicts, without removing correct ones"
+author: "EUROCONTROL Performance Review Unit"
+date: last-modified
+---
+
+```{r setup}
+#| include: false
+library(knitr)
+
+# Read-only. Every number and table on this page comes from a CSV file in
+# data/, staged by benchmarks/milestone_plausibility.py of the opdi
+# repository. Nothing here reads S3, a database or a Spark cluster, and the
+# page has no regeneration entrypoint: data/_manifest.json records, for each
+# file, the script, its arguments, the git commit and the tables it read.
+D <- function(f) read.csv(file.path("data", f), stringsAsFactors = FALSE)
+
+ba   <- D("before_after.csv")        # one row per event type, both runs
+rem  <- D("removed_by_rule.csv")     # one row per check and event type, plus ALL
+cand <- D("candidate_rules.csv")     # one row per candidate check, limit and type
+ctx  <- D("context_by_type.csv")     # percentiles of the facts near each event
+ex   <- D("examples.csv")            # removed events read by hand, 50 per check
+
+num <- function(x, d = 0) formatC(as.numeric(x), format = "f", digits = d, big.mark = ",")
+
+# One number from each file, so that prose and tables cannot drift apart.
+B  <- function(type, col) ba[ba$type == type, col]
+R  <- function(rule, type, col) rem[rem$reject_rule == rule & rem$type == type, col]
+C  <- function(rule, params, type, col) cand[cand$rule == rule & cand$params == params & cand$type == type, col]
+X  <- function(type, subset, measure, col) ctx[ctx$type == type & ctx$subset == subset & ctx$measure == measure, col]
+# The sum of one column of a candidate check over the event types the adopted
+# check reads (the "ALL" rows of candidate_rules.csv also hold other types).
+Cs <- function(rule, params, types, col) {
+  sel <- cand[cand$rule == rule & cand$params == params & cand$type != "ALL", ]
+  sum(sel[sel$type %in% types | (("layout" %in% types) & grepl("^(entry|exit)-", sel$type)), col])
+}
+RUNWAY_TIMES <- c("ATOT", "ALDT")
+GROUND_EVENTS <- c("AOBT", "AIBT", "layout")   # "layout": every entry-/exit- type
+
+MILESTONES <- c("AOBT", "AIBT", "ATOT", "ALDT")
+confirmed_total <- sum(ba$confirmed_60s_before[ba$type %in% MILESTONES])
+xing <- ba[startsWith(ba$type, "xing"), ]
+events_before <- sum(ba$events_before)
+events_after  <- sum(ba$events_after)
+
+# The removed events read by hand.
+ex_n <- function(rule, type) nrow(ex[ex$rule == rule & ex$type == type, ])
+ex_first <- function(rule, type) {
+  e <- ex[ex$rule == rule & ex$type == type, ]
+  sum(e$event_time == e$trk_first_time, na.rm = TRUE)
+}
+```
+
+## What was asked
+
+OPDI publishes **milestones** of each flight: the off-block time (`AOBT`, the
+aircraft leaves its stand), the take-off time (`ATOT`), the landing time
+(`ALDT`), the in-block time (`AIBT`, the aircraft stops at its stand), and
+many others. Each is found by a detector, a set of rules applied to the
+position reports of one **track** (the reports that OPDI treats as one
+flight).
+
+Some published milestones could not be true: an in-block time while the
+aircraft was still in the air, an off-block time after the take-off. The
+question was: can such milestones be found and removed, without removing the
+correct ones?
+
+The answer is a set of five checks that compare each milestone with what the
+aircraft's own position reports say it was doing at that time. This note
+describes how the checks and their limits were chosen, and what they changed
+on one day. The method itself is described on the methods page
+[Plausibility checks](../../content/methods/plausibility-checks.qmd).
+
+## Data
+
+- **One worldwide day, 14 June 2026.** All `r num(events_before)` events of
+  the day, computed with the default settings of the pipeline except the
+  checks and the two detector rules described below. The tracks they come
+  from were read again to find, for each event, what the aircraft was doing
+  at that time.
+- **Airport operator records** (APDF) of about ninety European airports for
+  the same day. They hold `r num(B("AOBT", "records_on_day_before"))`
+  off-block, `r num(B("ATOT", "records_on_day_before"))` take-off,
+  `r num(B("ALDT", "records_on_day_before"))` landing and
+  `r num(B("AIBT", "records_on_day_before"))` in-block times. An OPDI event is
+  matched to the record of the same flight (same aircraft address, call sign
+  and day) and the same milestone. It is **confirmed** when it is within 60 s
+  of the record.
+
+On that day, `r num(confirmed_total)` events were confirmed:
+`r num(B("AOBT", "confirmed_60s_before"))` off-block,
+`r num(B("AIBT", "confirmed_60s_before"))` in-block,
+`r num(B("ATOT", "confirmed_60s_before"))` take-off and
+`r num(B("ALDT", "confirmed_60s_before"))` landing times. These are the
+events the checks must not remove.
+
+For each event that a candidate check reads, the study took the facts from
+the position reports of the same track within 60 s of the event: the height
+above the airport (barometric altitude minus the airport's elevation), the
+ground speed, and the share of reports flagged on the ground.
+
+## How an implausible milestone arises
+
+Reading the removed events one by one showed four patterns.
+
+1. **A track first received in flight.** When the receivers first hear an
+   aircraft after it has taken off, the first movement of the track is the
+   flight itself. An off-block time read from the first movement of the whole
+   track is then placed at the first report, thousands of feet above the
+   departure airport. Of the `r ex_n("airborne_ground_event", "AOBT")`
+   off-block times read by hand for the check "ground event while flying",
+   `r ex_first("airborne_ground_event", "AOBT")` are at the first
+   report of their track. The median height of all events read for that check
+   is `r num(median(ex$ctx_height_ft[ex$rule == "airborne_ground_event"], na.rm = TRUE))` ft
+   above the airport, at
+   `r num(median(ex$ctx_speed_kt[ex$rule == "airborne_ground_event"], na.rm = TRUE))` kt.
+2. **A track first received during the take-off.** The off-block time is then
+   placed during the take-off roll or the first seconds of the climb, a few
+   hundred feet above the airport and at about
+   `r num(median(ex$ctx_speed_kt[ex$rule == "block_after_takeoff"], na.rm = TRUE))` kt,
+   at or after the take-off time of the same track.
+   `r ex_first("block_after_takeoff", "AOBT")` of the
+   `r ex_n("block_after_takeoff", "AOBT")` examples read are at the
+   first report of their track.
+3. **An in-block time on the approach.** The in-block time was the end of the
+   last movement anywhere in the track. In some tracks that movement ends on
+   the final approach, so the in-block time is placed before the landing time,
+   a few hundred feet above the airport, at about
+   `r num(median(ex$ctx_speed_kt[ex$rule == "block_before_landing"], na.rm = TRUE))` kt.
+4. **A crossing read from a report without a value.** Cleaning empties
+   altitudes that cannot be trusted, so a track can hold reports with no
+   altitude in the middle of a climb. A crossing of a flight level, of a
+   distance ring or of the 15 ft height that defines a take-off or landing
+   time, when it falls among such reports, got no time at all
+   (`r num(sum(ba$without_time_before))` events of the day), or the time of
+   another crossing of the same level or ring
+   (`r num(sum(xing$crossings_sharing_time_before))` crossings).
+
+Among the off-block and in-block times far from their record, the height
+above the airport spreads to several thousand feet; among the confirmed ones
+that have a known height, 95% are less than `r num(X("AOBT", "confirmed", "height_ft", "p95"))` ft
+(off-block) and `r num(X("AIBT", "confirmed", "height_ft", "p95"))` ft
+(in-block) above it. Most confirmed block times have no known height at all:
+only `r num(X("AOBT", "confirmed", "height_ft", "n_known"))` of
+`r num(X("AOBT", "confirmed", "height_ft", "n_events"))` confirmed off-block
+times have a report with an altitude within 60 s, because reports sent on the
+ground usually carry none.
+
+## The checks and their limits
+
+Each candidate check was measured on the events of the day with several
+limits. A check was adopted only if it removed at most 0.1% of the confirmed
+events, and only if it removes an event when every fact it needs is known.
+An unknown fact keeps the event.
+
+| Order | Check | Events read | Removed when |
+|---|---|---|---|
+| 1 | Event without a time | every type | it has no time |
+| 2 | Ground event while flying | `AOBT`, `AIBT`, every entry into and exit from an airport area | more than 1,500 ft above the airport (more than 15,000 ft altitude when the airport is unknown), faster than 80 kt, and no report within 60 s flagged on the ground |
+| 3 | Take-off or landing time too high | `ATOT`, `ALDT` | more than 1,500 ft above the airport |
+| 4 | Off-block after take-off | `AOBT` | at or after the last `ATOT` of the track |
+| 5 | In-block before landing | `AIBT` | at or before the first `ALDT` of the track |
+
+### Height of the take-off and landing times
+
+A take-off or landing time is the moment the aircraft passes 15 ft above the
+airport, so a correct one is close to the ground. But a time some hundreds of
+feet up is often still right: the barometric altitude is not corrected for
+the local air pressure, and the reports around the moment are a few seconds
+apart.
+
+```{r tbl-runway-height}
+#| echo: false
+lims <- c(300, 500, 1000, 1500, 2000)
+p <- paste0("height_ft=", lims)
+rt <- data.frame(
+  limit = paste(num(lims), "ft"),
+  removed = num(sapply(p, function(x) Cs("runway_time_too_high", x, RUNWAY_TIMES, "n_removed"))),
+  confirmed = num(sapply(p, function(x) Cs("runway_time_too_high", x, RUNWAY_TIMES, "n_confirmed_removed"))),
+  with_record = num(sapply(p, function(x) Cs("runway_time_too_high", x, RUNWAY_TIMES, "n_removed_with_record"))),
+  far = num(sapply(p, function(x) Cs("runway_time_too_high", x, RUNWAY_TIMES, "n_removed_far_from_record")))
+)
+kable(rt, row.names = FALSE, align = "lrrrr",
+      col.names = c("Removed above", "Removed", "Of which confirmed", "With a record",
+                    "More than 300 s from the record"),
+      caption = paste0("Take-off and landing times (ATOT, ALDT) removed by a height limit, events of ",
+                       "the day without the checks (",
+                       num(Cs("runway_time_too_high", "height_ft=1500", RUNWAY_TIMES, "n_confirmed")),
+                       " confirmed)."))
+```
+
+A limit of 1,000 ft or lower removes confirmed times. Between 1,000 and
+1,500 ft, most of the times that have a record are confirmed by it:
+`r num(Cs("runway_time_too_high", "height_ft=1000", RUNWAY_TIMES, "n_confirmed_removed") - Cs("runway_time_too_high", "height_ft=1500", RUNWAY_TIMES, "n_confirmed_removed"))`
+of `r num(Cs("runway_time_too_high", "height_ft=1000", RUNWAY_TIMES, "n_removed_with_record") - Cs("runway_time_too_high", "height_ft=1500", RUNWAY_TIMES, "n_removed_with_record"))`.
+Above 1,500 ft, no removed time is confirmed. The limit is therefore
+1,500 ft.
+
+### Ground events while flying
+
+Height alone is not enough evidence for a ground event: some reports near the
+ground carry a wrong altitude. The check therefore also requires a speed no
+aircraft taxis at (80 kt; aircraft taxi at 10 to 30 kt) and no report in the
+window flagged on the ground. When the airport is unknown, 15,000 ft of
+altitude is used, which is above the highest airports in the world (about
+14,500 ft).
+
+```{r tbl-ground-event}
+#| echo: false
+rows <- list(
+  c("1,500 ft", "height_ft=1500;speed_kt=None"),
+  c("1,500 ft and 80 kt", "height_ft=1500;speed_kt=80"),
+  c("1,500 ft, 80 kt and no report on the ground", "height_ft=1500;speed_kt=80;on_ground_max=0.0"),
+  c("1,000 ft, 80 kt and no report on the ground", "height_ft=1000;speed_kt=80;on_ground_max=0.0"),
+  c("2,000 ft, 80 kt and no report on the ground", "height_ft=2000;speed_kt=80;on_ground_max=0.0")
+)
+ge <- do.call(rbind, lapply(rows, function(r) data.frame(
+  condition = r[1],
+  removed = num(Cs("airborne_ground_event", r[2], GROUND_EVENTS, "n_removed")),
+  confirmed = num(Cs("airborne_ground_event", r[2], GROUND_EVENTS, "n_confirmed_removed")),
+  with_record = num(Cs("airborne_ground_event", r[2], GROUND_EVENTS, "n_removed_with_record")),
+  far = num(Cs("airborne_ground_event", r[2], GROUND_EVENTS, "n_removed_far_from_record"))
+)))
+kable(ge, row.names = FALSE, align = "lrrrr",
+      col.names = c("Removed when above", "Removed", "Of which confirmed", "With a record",
+                    "More than 300 s from the record"),
+      caption = paste0("Off-block, in-block and airport area events removed by each condition, ",
+                       "events of the day without the checks (",
+                       num(Cs("airborne_ground_event", "height_ft=1500;speed_kt=80", GROUND_EVENTS, "n_confirmed")),
+                       " confirmed block times)."))
+```
+
+Height alone removes confirmed block times; adding the speed and the
+on-ground flag leaves two. Both are off-block times placed at the first
+report of a track that was already about 3,000 ft above its departure
+airport at more than 150 kt (they are in `data/examples.csv`). The aircraft
+cannot have left its stand at that moment: the times match the record by
+chance. The block-time rule described below no longer produces them, so the
+check removes no confirmed time on the day. The limit of 1,500 ft is the same
+as for the take-off and landing times.
+
+### Order of the block times
+
+An aircraft cannot leave its stand after it has taken off, nor reach its
+stand before it has landed. Only times within one track are compared, and an
+off-block time is compared with the **last** take-off of the track and an
+in-block time with the **first** landing, so that a track that lands and
+departs again keeps both its in-block and its off-block time.
+Without the checks, an off-block time at or after the take-off was found for
+`r num(C("block_after_takeoff", "tolerance_s=0", "AOBT", "n_removed"))`
+events and an in-block time at or before the landing for
+`r num(C("block_before_landing", "tolerance_s=0", "AIBT", "n_removed"))`;
+none of them is confirmed.
+
+## Two detector rules corrected at the same time
+
+Two of the patterns above come from the detectors, and were corrected there.
+
+- **Block times from the ground part of each leg.** The off-block and
+  in-block times were taken from the first and last movement anywhere in the
+  track, flight included. They are now read only from reports that may be on
+  the ground (flagged on the ground, without altitude, or at most 2,000 ft
+  above the airport), and only from the part of the track on the correct side
+  of the take-off or landing. A track that lands and departs again gets the
+  in-block time of its arrival and the off-block time of its departure.
+- **Crossings over missing values.** A crossing is now placed between the last
+  report with a known value and the first report with a known value after the
+  crossing. When those two reports are more than 30 minutes apart, no crossing
+  is given, because its time and position cannot be placed.
+
+## Results
+
+The day was computed again with the default settings: the five checks and the
+two detector rules on. It then holds `r num(events_after)` events.
+
+```{r tbl-removed}
+#| echo: false
+r <- rem[rem$reject_rule != "ALL", ]
+agg <- aggregate(cbind(removed, removed_with_record, removed_confirmed_60s, removed_far_300s) ~ reject_rule,
+                 data = r, FUN = sum)
+names_rule <- c(airborne_ground_event = "Ground event while flying",
+                runway_time_too_high = "Take-off or landing time too high",
+                block_after_takeoff = "Off-block after take-off",
+                block_before_landing = "In-block before landing")
+agg <- agg[match(names(names_rule), agg$reject_rule), ]
+tot <- rem[rem$reject_rule == "ALL", ]
+tab <- data.frame(
+  check = c(names_rule[agg$reject_rule], "All checks"),
+  removed = num(c(agg$removed, tot$removed)),
+  with_record = num(c(agg$removed_with_record, tot$removed_with_record)),
+  confirmed = num(c(agg$removed_confirmed_60s, tot$removed_confirmed_60s)),
+  far = num(c(agg$removed_far_300s, tot$removed_far_300s))
+)
+kable(tab, row.names = FALSE, align = "lrrrr",
+      col.names = c("Check", "Removed", "With a record", "Confirmed", "More than 300 s from the record"),
+      caption = "Events removed by each check with the default settings, 14 June 2026.")
+```
+
+The checks removed `r num(R("ALL", "ALL", "removed"))` events. Of the
+`r num(R("ALL", "ALL", "removed_with_record"))` that have a record,
+`r num(R("ALL", "ALL", "removed_far_300s"))` are more than 300 s from it, and
+`r num(R("ALL", "ALL", "removed_confirmed_60s"))` is within 60 s: **no
+confirmed milestone was removed**. No event was removed for having no time,
+because the crossing rule gives every crossing a time or no crossing at all.
+
+```{r tbl-before-after}
+#| echo: false
+# Columns are named <measure>_before and <measure>_after, with "_pct" after
+# them for the shares.
+row <- function(label, col, d = 0, unit = "", suffix = "") {
+  v <- unlist(lapply(MILESTONES, function(t)
+    c(B(t, paste0(col, "_before", suffix)), B(t, paste0(col, "_after", suffix)))))
+  c(label, paste0(num(v, d), unit))
+}
+cols <- c(sapply(MILESTONES, function(t) c(paste(t, "off"), paste(t, "default"))))
+m <- rbind(
+  c("Events", num(unlist(lapply(MILESTONES, function(t) c(B(t, "events_before"), B(t, "events_after")))))),
+  row("Records with an OPDI time (coverage)", "coverage", 2, "%", "_pct"),
+  row("Within 60 s of the record", "share_60s", 2, "%", "_pct"),
+  row("Within 300 s of the record", "share_300s", 2, "%", "_pct"),
+  row("90th percentile of the absolute difference", "p90_abs_error_s", 0, " s"),
+  row("Confirmed events", "confirmed_60s", 0, "")
+)
+kable(m, row.names = FALSE, align = c("l", rep("r", 8)),
+      col.names = c("", cols),
+      caption = paste("The four milestones against the airport records, with the checks and the",
+                      "two detector rules off and with the default settings."))
+```
+
+Fewer off-block and in-block times are published: coverage of the records
+falls from `r num(B("AOBT", "coverage_before_pct"), 2)`% to
+`r num(B("AOBT", "coverage_after_pct"), 2)`% for `AOBT` and from
+`r num(B("AIBT", "coverage_before_pct"), 2)`% to
+`r num(B("AIBT", "coverage_after_pct"), 2)`% for `AIBT`, because wrong times
+are no longer published. Those that remain are closer to the records: within
+60 s, `r num(B("AOBT", "share_60s_before_pct"), 1)`% →
+`r num(B("AOBT", "share_60s_after_pct"), 1)`% and
+`r num(B("AIBT", "share_60s_before_pct"), 1)`% →
+`r num(B("AIBT", "share_60s_after_pct"), 1)`%; the 90th percentile of the
+absolute difference falls from `r num(B("AOBT", "p90_abs_error_s_before"))` s
+to `r num(B("AOBT", "p90_abs_error_s_after"))` s and from
+`r num(B("AIBT", "p90_abs_error_s_before"))` s to
+`r num(B("AIBT", "p90_abs_error_s_after"))` s.
+
+The number of confirmed events did not fall for any milestone. Of the
+`r num(B("AOBT", "confirmed_60s_before"))` confirmed off-block times of the
+first run, `r num(B("AOBT", "confirmed_before_same_time_after"))` are
+published again at the same time. The
+`r num(B("AOBT", "confirmed_60s_before") - B("AOBT", "confirmed_before_same_time_after"))`
+others are off-block times that were placed at the first report of a track
+already in flight and matched a record by chance; the ground-part rule does
+not produce them. Of the `r num(B("AIBT", "confirmed_60s_before"))` confirmed
+in-block times, `r num(B("AIBT", "confirmed_before_same_time_after"))` are
+published again at the same time.
+
+The crossing rule gave a time to `r num(sum(ba$null_now_timed))` crossings
+that had none, and gave no crossing in
+`r num(sum(ba$null_not_emitted))` cases, where the two known values are more
+than 30 minutes apart. These include the crossings of the 15 ft height that
+define `r num(B("ATOT", "null_before"))` take-off and
+`r num(B("ALDT", "null_before"))` landing times. The
+`r num(sum(xing$crossings_sharing_time_before))` crossings that carried the
+time of another crossing no longer do.
+
+## What was not adopted
+
+```{r tbl-not-adopted}
+#| echo: false
+na_rows <- list(
+  c("Taxi time too long: take-off minus off-block, or in-block minus landing", "minutes=30", "30 min"),
+  c("", "minutes=60", "60 min"),
+  c("", "minutes=180", "180 min"),
+  c("Lower height limit for take-off and landing times", "height_ft=1000", "1,000 ft"),
+  c("", "height_ft=500", "500 ft"),
+  c("Take-off after landing in one track: remove the take-off", "remove=ATOT", ""),
+  c("Take-off after landing in one track: remove the landing", "remove=ALDT", ""),
+  c("Distance from the airport", "distance_nm=3", "3 NM"),
+  c("", "distance_nm=5", "5 NM"),
+  c("", "distance_nm=20", "20 NM"),
+  c("Ground event faster than a speed, whatever its height", "speed_kt=80", "80 kt"),
+  c("", "speed_kt=150", "150 kt")
+)
+rule_of <- c("Taxi" = "taxi_too_long", "Lower" = "runway_time_too_high", "Take-off" = "takeoff_after_landing",
+             "Distance" = "far_from_airport", "Ground" = "ground_event_speed_only")
+# A height limit for runway times is counted over ATOT and ALDT only; the
+# other candidates over every type they read (their "ALL" row).
+value <- function(rule, params, col) {
+  if (rule == "runway_time_too_high") Cs(rule, params, RUNWAY_TIMES, col) else C(rule, params, "ALL", col)
+}
+current <- ""
+na <- do.call(rbind, lapply(na_rows, function(r) {
+  if (r[1] != "") current <<- rule_of[[strsplit(r[1], " ")[[1]][1]]]
+  data.frame(
+    check = r[1], limit = r[3],
+    removed = num(value(current, r[2], "n_removed")),
+    confirmed = paste0(num(value(current, r[2], "n_confirmed_removed")), " of ",
+                       num(value(current, r[2], "n_confirmed"))),
+    far = num(value(current, r[2], "n_removed_far_from_record"))
+  )
+}))
+kable(na, row.names = FALSE, align = "llrrr",
+      col.names = c("Candidate check", "Limit", "Removed", "Confirmed removed",
+                    "More than 300 s from the record"),
+      caption = "Candidate checks that were not adopted, events of the day without the checks.")
+```
+
+- **Taxi time too long.** It removes confirmed times at every limit tried,
+  from 30 min to 180 min. A long taxi time is unusual, not impossible.
+- **A lower height limit for take-off and landing times.** It removes
+  confirmed times: `r num(Cs("runway_time_too_high", "height_ft=1000", RUNWAY_TIMES, "n_confirmed_removed"))`
+  at 1,000 ft and `r num(Cs("runway_time_too_high", "height_ft=500", RUNWAY_TIMES, "n_confirmed_removed"))`
+  at 500 ft.
+- **Take-off after landing in one track.** Such a track often holds a real
+  arrival followed by a real departure of the same aircraft. Removing the
+  take-off time removes `r num(C("takeoff_after_landing", "remove=ATOT", "ALL", "n_confirmed_removed"))`
+  confirmed ones, removing the landing time
+  `r num(C("takeoff_after_landing", "remove=ALDT", "ALL", "n_confirmed_removed"))`.
+- **Distance from the airport.** At 3 NM it removes confirmed take-off and
+  landing times; at 5 to 20 NM it still removes confirmed in-block times.
+  Combined with a height of more than 1,000 ft it removes no confirmed time,
+  but it then describes an aircraft in flight, which check 2 already covers.
+- **Speed alone.** It removes confirmed block times at every speed tried:
+  `r num(C("ground_event_speed_only", "speed_kt=80", "ALL", "n_confirmed_removed"))`
+  at 80 kt and `r num(C("ground_event_speed_only", "speed_kt=150", "ALL", "n_confirmed_removed"))`
+  at 150 kt. Speed is therefore used only together with the height and the
+  on-ground flag.
+
+Checks on the tops of climb and descent, on level segments and on the
+distance rings were also measured. A top of descent before the top of climb
+never occurred (`r num(C("top_order", "", "ALL", "n_removed"))` of
+`r num(C("top_order", "", "ALL", "n_events"))` tops). The other candidates
+remove events that no airport record covers, so whether they remove right
+events cannot be judged. None was adopted.
+
+## Limits
+
+- The limits rest on one day and on the records of about ninety European
+  airports. Elsewhere and on other days, the share of right events removed has
+  not been measured.
+- The checks only remove events. They do not correct a wrong time or find a
+  missing one, so the coverage of the block times falls.
+- An event that the track does not contradict is kept even when it is wrong,
+  for example a block time a few minutes off.
+- A `landing` event (the passage over the runway threshold) is not checked:
+  one in twenty is more than `r num(X("landing", "all", "height_ft", "p95"))` ft
+  above the airport, and it is left as it is.
+- Tops of climb and descent, level segments, holding, point merge, FIR
+  crossings and go-arounds have no check other than the missing time.
+- A block time still needs the track to pass a stand somewhere.
+- The airport surface events accept reports up to 2,000 ft above the airport;
+  check 2 removes what that lets through only when the aircraft is also
+  faster than 80 kt and has no report on the ground.
+
+## Provenance
+
+Every number and table on this page is read from the CSV files in `data/`
+when the page is rendered; nothing is computed on a cluster. The files were
+written by `benchmarks/milestone_plausibility.py` of the opdi repository.
+`data/_manifest.json` records, for each file, the command and its arguments,
+the git commit, whether the working copy had uncommitted changes, a
+fingerprint of the source files, and the input tables with their size and
+date. `candidate_rules.csv`, `context_by_type.csv`, `sequence_by_flight.csv`
+and `examples.csv` describe the events of the day without the checks;
+`before_after.csv` and `removed_by_rule.csv` compare them with the run with
+the default settings.
