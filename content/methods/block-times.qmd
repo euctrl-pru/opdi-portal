@@ -53,9 +53,12 @@ The method follows the start-of-movement detection of the open-source
    [Airport surface events](surface-events.qmd)).
 2. **Reports that may be on the ground.** Only state vectors that may be on
    the ground are used to find movement: those flagged on the ground by the
-   aircraft, those without an altitude or a position, and those at most
-   2,000 ft above the departure or the destination airport. State vectors in flight are left out, so the flight itself is
-   never read as movement on the ground.
+   aircraft, those without an altitude, and those at most 2,000 ft above the
+   airport of their leg (the nearer of the departure and the destination
+   airport). State vectors in flight are left out, so the flight itself is
+   never read as movement on the ground. A state vector without a position
+   that carries an altitude and is not flagged on the ground counts neither
+   as ground nor as flight.
 3. **Ground speed.** Take the ground speed of each state vector. Where it is
    missing, compute it from the distance between consecutive positions divided
    by the time between them, and take the median over three consecutive
@@ -74,9 +77,11 @@ The method follows the start-of-movement detection of the open-source
    - from a landing to the end of the track: `AIBT` is the end of the last
      real movement in that part;
    - from a landing to a take-off (the aircraft landed, stood at its stand and
-     left again): the longest stop between two movements in that part is the
-     stop at the stand. `AIBT` is the end of the movement before it and
-     `AOBT` the start of the movement after it.
+     left again): when a stand passage lies in that part, the longest stop
+     between two movements in it is the stop at the stand. `AIBT` is the end
+     of the movement before it and `AOBT` the start of the movement after it.
+     Without a stand passage in the part, the stop is a wait, for example at
+     a holding point between two circuits, and gives no block time.
 
    Where the track has no take-off time, or starts with a landing, `AOBT` is
    read from the ground part at the start of the track, up to its first state
@@ -84,7 +89,18 @@ The method follows the start-of-movement detection of the open-source
    `AIBT` is read from the ground part at its end, after its last state vector
    in flight. A take-off or landing that was not found therefore does not
    cost the block time next to it.
-6. **Stand passage.** An `AOBT` needs at least one `exit-parking_position`
+6. **From or to a standstill.** An `AOBT` is the start of a movement from a
+   standstill: the state vector where the movement starts is at most 30 kt
+   fast, or is flagged on the ground. An `AIBT` is the end of a movement in
+   the same way. The speed is the lower of the reported ground speed and the
+   speed computed from the positions, because the reported value is sometimes
+   stale on the ground. When a track starts while the aircraft is already
+   faster than 30 kt (first received on the take-off roll, in the climb or on
+   final approach), the moment it left the stand was not seen and no `AOBT`
+   is given, flagged on the ground or not; when the track ends while the
+   aircraft is still faster than that, no `AIBT` is given. Only the first
+   movement of a part is read for an `AOBT` and the last for an `AIBT`.
+7. **Stand passage.** An `AOBT` needs at least one `exit-parking_position`
    event in the track, and an `AIBT` at least one `entry-parking_position`
    event. Without it, a track first received while the aircraft was already
    taxiing would report the start of its taxi as an off-block, which would
@@ -95,8 +111,10 @@ The method follows the start-of-movement detection of the open-source
 The [plausibility checks](plausibility-checks.qmd) then leave out an `AOBT`
 or `AIBT` that the track contradicts: one placed while the aircraft is more
 than 1,500 ft above the airport, faster than 80 kt and not reported on the
-ground; an `AOBT` at or after the track's last take-off time; and an `AIBT`
-at or before its first landing time.
+ground; an `AOBT` at or after the take-off of its own leg; and an `AIBT` at
+or before the landing of its own leg. Each block time carries that take-off
+or landing in its `info` field (`take_off` or `landing`, with the method that
+found it in `take_off_method` or `landing_method`).
 
 The events carry no position, no altitude and no distance or time
 measurements: those fields are empty.

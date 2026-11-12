@@ -1302,6 +1302,32 @@ def plausibility_checks_numbers(root: Path) -> list[dict]:
         out.append(measure(measure_id=f"removed_type_{t}", value=int(sel["removed"].sum()), n=events,
                            label=f"Events of type {t} removed by the checks",
                            source_file=rem_src, source_field=f"sum of removed, rows type = {t}", **common))
+    fly_src = f"{PLAUS_DIR}/in_flight_before_after.csv"
+    fly = read_csv(root, fly_src)
+    for t, words in (("AOBT", "off-block"), ("AIBT", "in-block")):
+        r = _row(fly, type=t)
+        for side, side_words in (("before", "checks and the two detector settings off"),
+                                 ("detector", "default detector, before the checks"),
+                                 ("after", "default settings")):
+            known = int(r[f"known_context_{side}"])
+            out += [
+                measure(measure_id=f"{t.lower()}_in_flight_{side}", value=int(r[f"in_flight_{side}"]),
+                        n=known,
+                        label=f"{words.capitalize()} times more than 500 ft above the airport and faster than "
+                              f"80 kt, among those with a known height and speed, {side_words}",
+                        source_file=fly_src, source_field=f"in_flight_{side} (n: known_context_{side}), "
+                                                          f"row type = {t}", **common),
+                measure(measure_id=f"{t.lower()}_in_flight_{side}_pct",
+                        value=_fmt(r[f"in_flight_{side}_pct"], 2), unit="%", n=known,
+                        label=f"Share of the {words} times with a known height and speed that are more than "
+                              f"500 ft above the airport and faster than 80 kt, {side_words}",
+                        source_file=fly_src, source_field=f"in_flight_{side}_pct, row type = {t}", **common),
+                measure(measure_id=f"{t.lower()}_known_context_{side}", value=known,
+                        n=int(r[f"events_{side}"]),
+                        label=f"{words.capitalize()} times with a known height and speed, {side_words}",
+                        source_file=fly_src, source_field=f"known_context_{side} (n: events_{side}), "
+                                                          f"row type = {t}", **common),
+            ]
     xing = ba[ba["type"].str.startswith("xing")]
     out += [
         measure(measure_id="crossings_timed", value=int(ba["null_now_timed"].sum()),

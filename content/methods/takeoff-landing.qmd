@@ -156,10 +156,13 @@ several); otherwise the value of the climb-and-descent method is kept. The
 field `method` in `info` says which.
 
 The [plausibility checks](plausibility-checks.qmd) then leave out an `ATOT`
-or `ALDT` that is more than 1,500 ft above its airport, measured by the
-event's own altitude or, for the climb-and-descent method, by the altitude of
-the nearest state vector within 60 s. `landing` is not checked against the
-height.
+or `ALDT` that is more than 1,500 ft above the ground at its airport. The
+altitude is the event's own or, for the climb-and-descent method, the one
+interpolated between the state vectors on either side within 10 s; the ground
+is the aircraft's own altitude on the ground at that airport, or the airport's
+elevation with 1,000 ft added to the limit for the error of barometric
+altitude (see [Plausibility checks](plausibility-checks.qmd#height-of-a-take-off-or-landing-time)).
+`landing` is not checked against the height.
 
 The flight list then takes `atot` from the earliest `ATOT` at the departure
 airport and `aldt` from the latest `ALDT` at the destination airport, with

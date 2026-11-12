@@ -21,6 +21,7 @@ rem  <- D("removed_by_rule.csv")     # one row per check and event type, plus AL
 cand <- D("candidate_rules.csv")     # one row per candidate check, limit and type
 ctx  <- D("context_by_type.csv")     # percentiles of the facts near each event
 ex   <- D("examples.csv")            # removed events read by hand, 50 per check
+fly  <- D("in_flight_before_after.csv")  # block times placed in flight, per run
 
 num <- function(x, d = 0) formatC(as.numeric(x), format = "f", digits = d, big.mark = ",")
 
@@ -158,9 +159,9 @@ An unknown fact keeps the event.
 |---|---|---|---|
 | 1 | Event without a time | every type | it has no time |
 | 2 | Ground event while flying | `AOBT`, `AIBT`, every entry into and exit from an airport area | more than 1,500 ft above the airport (more than 15,000 ft altitude when the airport is unknown), faster than 80 kt, and no report within 60 s flagged on the ground |
-| 3 | Take-off or landing time too high | `ATOT`, `ALDT` | more than 1,500 ft above the airport |
-| 4 | Off-block after take-off | `AOBT` | at or after the last `ATOT` of the track |
-| 5 | In-block before landing | `AIBT` | at or before the first `ALDT` of the track |
+| 3 | Take-off or landing time too high | `ATOT`, `ALDT` | more than 1,500 ft above the ground at the airport (see below for how the ground level allows for the air pressure) |
+| 4 | Off-block after take-off | `AOBT` | at or after the take-off of its own leg |
+| 5 | In-block before landing | `AIBT` | at or before the landing of its own leg |
 
 ### Height of the take-off and landing times
 
@@ -196,6 +197,24 @@ A limit of 1,000 ft or lower removes confirmed times. Between 1,000 and
 of `r num(Cs("runway_time_too_high", "height_ft=1000", RUNWAY_TIMES, "n_removed_with_record") - Cs("runway_time_too_high", "height_ft=1500", RUNWAY_TIMES, "n_removed_with_record"))`.
 Above 1,500 ft, no removed time is confirmed. The limit is therefore
 1,500 ft.
+
+The table measures the height above the airport's elevation with the
+altitude of the nearest report. Two refinements keep correct times that this
+measure would remove on other days:
+
+- **Air pressure.** Barometric altitude reads about 27 ft too high per hPa
+  below the standard pressure of 1013.25 hPa: at 975 hPa, an aircraft 500 ft
+  above the airport reads about 1,530 ft. The check therefore measures the
+  height above the aircraft's own altitude on the ground at the same airport
+  (the median of its reports flagged on the ground, with an altitude, within
+  30 minutes and 5 NM), which carries the same error. When the track has no
+  such report, the height is measured above the airport's elevation and the
+  limit is raised by 1,000 ft, which covers pressures down to about 976 hPa.
+- **Altitude at the event.** An event without an altitude of its own takes
+  the altitude interpolated between the nearest reports before and after it,
+  each within 10 s and each with a position. The nearest report within 60 s
+  can be a minute away, in which a jet climbs 2,000 to 4,000 ft; without a
+  report on both sides within 10 s, the height is unknown and the event kept.
 
 ### Ground events while flying
 
@@ -243,10 +262,16 @@ as for the take-off and landing times.
 ### Order of the block times
 
 An aircraft cannot leave its stand after it has taken off, nor reach its
-stand before it has landed. Only times within one track are compared, and an
-off-block time is compared with the **last** take-off of the track and an
-in-block time with the **first** landing, so that a track that lands and
-departs again keeps both its in-block and its off-block time.
+stand before it has landed. Each block time is compared with the take-off or
+landing of **its own leg**, which the block time detector records with it:
+the take-off that ends the part of the track the off-block time was read
+from, or the landing that starts the part of the in-block time. Step 04 then
+keeps one take-off and one landing per track, so in a track that departs,
+lands and departs again, the take-off it keeps is the first; compared with
+that one, the correct off-block time of the second departure would be
+removed. A block time read from a part with no take-off or landing (for
+example the ground part at the start of a track whose take-off was not
+found) is not compared.
 Without the checks, an off-block time at or after the take-off was found for
 `r num(C("block_after_takeoff", "tolerance_s=0", "AOBT", "n_removed"))`
 events and an in-block time at or before the landing for
@@ -261,13 +286,29 @@ Two of the patterns above come from the detectors, and were corrected there.
   in-block times were taken from the first and last movement anywhere in the
   track, flight included. They are now read only from reports that may be on
   the ground (flagged on the ground, without altitude, or at most 2,000 ft
-  above the airport), and only from the part of the track on the correct side
-  of the take-off or landing. A track that lands and departs again gets the
-  in-block time of its arrival and the off-block time of its departure.
+  above the airport of the leg), and only from the part of the track on the
+  correct side of the take-off or landing. A track that lands and departs
+  again gets the in-block time of its arrival and the off-block time of its
+  departure, provided a stand passage lies between the landing and the
+  take-off; without one, the stop between them is a wait (at a holding point,
+  between two circuits) and gives no block time.
+- **A movement from or to a standstill.** An off-block time is the start of a
+  movement from a standstill: the report where the movement starts is at most
+  30 kt fast (the lower of the reported and the position-derived ground
+  speed) or is flagged on the ground. When a track is first received while
+  the aircraft is already moving fast, on the take-off roll, in the climb or
+  on final, the moment it left its stand was not seen and no off-block time is
+  given. In-block times are treated the same way at the end of the last
+  movement. The lower of the two speeds is used because the reported speed is
+  sometimes stale on the ground: most of the confirmed in-block times whose
+  nearest report has a speed show about 100 kt there, while the aircraft is
+  flagged on the ground.
 - **Crossings over missing values.** A crossing is now placed between the last
   report with a known value and the first report with a known value after the
-  crossing. When those two reports are more than 30 minutes apart, no crossing
-  is given, because its time and position cannot be placed.
+  crossing. When those two reports are more than 30 minutes apart (60 s for
+  the 15 ft height of the take-off and landing times, which changes fast near
+  the runway), no crossing is given, because its time and position cannot be
+  placed.
 
 ## Results
 
@@ -348,11 +389,47 @@ The number of confirmed events did not fall for any milestone. Of the
 first run, `r num(B("AOBT", "confirmed_before_same_time_after"))` are
 published again at the same time. The
 `r num(B("AOBT", "confirmed_60s_before") - B("AOBT", "confirmed_before_same_time_after"))`
-others are off-block times that were placed at the first report of a track
-already in flight and matched a record by chance; the ground-part rule does
-not produce them. Of the `r num(B("AIBT", "confirmed_60s_before"))` confirmed
-in-block times, `r num(B("AIBT", "confirmed_before_same_time_after"))` are
-published again at the same time.
+others were each read one by one: three were placed at the first report of a
+track already in flight (at ENGM, LDZA and ENBR, the last at 1,025 ft and
+152 kt), one during the take-off roll at LEVC at 119 kt, 17 s before the
+lift-off. None is the start of a movement from a standstill, and each matched
+its record by chance. Of the `r num(B("AIBT", "confirmed_60s_before"))`
+confirmed in-block times, `r num(B("AIBT", "confirmed_before_same_time_after"))`
+are published again at the same time. Of the other two, one (ESSA) is
+published 5 s earlier and is still confirmed: the report it was taken from
+carried a garbled altitude. The other was placed at the last report with a
+position of a track still flying at 146 kt, about 300 km from its destination
+UGKO, and matched the record by chance.
+
+```{r tbl-in-flight}
+#| echo: false
+F <- function(type, side) {
+  r <- fly[fly$type == type, ]
+  paste0(num(r[[paste0("in_flight_", side)]]), " of ", num(r[[paste0("known_context_", side)]]),
+         " (", num(r[[paste0("in_flight_", side, "_pct")]], 2), "%)")
+}
+sides <- c(before = "Checks and the two detector rules off",
+           detector = "Default detector, before the checks",
+           after = "Default settings")
+kable(data.frame(run = sides, aobt = sapply(names(sides), function(x) F("AOBT", x)),
+                 aibt = sapply(names(sides), function(x) F("AIBT", x))),
+      row.names = FALSE, align = "lrr", col.names = c("", "AOBT", "AIBT"),
+      caption = paste("Block times more than 500 ft above the airport and faster than 80 kt,",
+                      "among those with a known height and speed, 14 June 2026."))
+```
+
+The block times that are placed in flight, by the measure of the context
+study above, fall from
+`r num(fly$in_flight_before_pct[fly$type == "AOBT"], 1)`% to
+`r num(fly$in_flight_after_pct[fly$type == "AOBT"], 1)`% of the off-block
+times with a known height and speed, and from
+`r num(fly$in_flight_before_pct[fly$type == "AIBT"], 1)`% to
+`r num(fly$in_flight_after_pct[fly$type == "AIBT"], 1)`% of the in-block
+times. Most of the fall comes from the detector rules, which no longer
+produce them; the checks remove part of the rest. A check removes a block
+time only when it is more than 1,500 ft above the airport, faster than 80 kt
+and without a report flagged on the ground nearby, so a block time placed at
+a lower height, for example on the final approach, is kept.
 
 The crossing rule gave a time to `r num(sum(ba$null_now_timed))` crossings
 that had none, and gave no crossing in
