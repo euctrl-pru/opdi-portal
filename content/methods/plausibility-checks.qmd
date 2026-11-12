@@ -1,0 +1,262 @@
+---
+title: "Plausibility checks"
+description: "How OPDI leaves out the flight milestones that the aircraft's own track contradicts, such as an off-block time while the aircraft is flying, and how often a removed time was one that the airport confirms."
+---
+
+## What it is
+
+An **event**, or milestone, says that something happened to a flight at a
+given time: the aircraft left its stand, took off, crossed a flight level.
+Each event is found by a detector, a set of rules applied to the position
+reports of one **track** (the reports that OPDI treats as one flight; see
+[Track identity](track-identity.qmd)). A detector can be wrong. It can, for
+example, place an in-block time (`AIBT`, the moment the aircraft stops at its
+stand) while the aircraft is still several thousand feet above the airport.
+
+The position reports of the same track say what the aircraft was really doing
+at that time: how high it was above the airport, how fast it moved over the
+ground, and whether its transponder reported it as on the ground. Where these
+facts clearly contradict an event, the event cannot be true. The
+**plausibility checks** find such events and leave them out of the published
+data.
+
+The checks apply to all event families. They run in step 04 of the
+[processing steps](pipeline.qmd#events-and-measurements), after every event
+has been detected and before anything is written. A removed event:
+
+- does not appear in the flight events file, and its measurements go with it;
+- is not used for the columns of the flight list that repeat a milestone
+  (`aobt`, `aibt`, `atot`, `aldt` and the stand and runway columns), which are
+  taken from the events that remain;
+- is kept, with the name of the check that removed it and the facts that check
+  used, in a working table of the pipeline (`opdi_flight_events_rejected`).
+  That table is not published.
+
+## How it is computed
+
+### What the aircraft was doing
+
+For each event that a check reads, OPDI looks at the position reports of the
+same track within 60 s before and after the event's time, and takes:
+
+- the **height above the airport**: the barometric altitude of the nearest
+  report that has one, minus the elevation of the airport (its height above
+  sea level, from OurAirports). Barometric altitude is the altitude measured
+  from air pressure, as aircraft report it, and is not corrected for the local
+  pressure of the day;
+- the **ground speed** of the nearest report that has one, in knots (kt);
+- the **share of reports flagged on the ground** in the 120 s window.
+
+The airport of an event is the one the event names (for example the airport of
+a stand or a taxiway). An event that names none takes the departure airport of
+the flight for a departure milestone (`AOBT`, `ATOT`), the destination airport
+for an arrival milestone (`AIBT`, `ALDT`), and otherwise the nearer of the two
+to the aircraft.
+
+### The checks
+
+The checks are applied in this order. An event is removed by the first check
+that fires.
+
+| Order | Check | Events read | The event is removed when |
+|---|---|---|---|
+| 1 | Event without a time | every event type | it has no time. |
+| 2 | Ground event while flying | `AOBT`, `AIBT`, and every entry into and exit from an area of the airport layout (`entry-{element}`, `exit-{element}`) | all three hold: the aircraft is more than 1,500 ft above the airport (more than 15,000 ft barometric altitude when the airport or its elevation is unknown); it is faster than 80 kt; and no report within 60 s is flagged on the ground. |
+| 3 | Take-off or landing time too high | `ATOT`, `ALDT` | the aircraft is more than 1,500 ft above the airport. The height is the event's own altitude when it has one, otherwise that of the nearest report within 60 s. |
+| 4 | Off-block after take-off | `AOBT` | its time is at or after the last take-off time (`ATOT`) of the same track. |
+| 5 | In-block before landing | `AIBT` | its time is at or before the first landing time (`ALDT`) of the same track. |
+
+**Only clear evidence removes an event.** A check fires only when every fact
+it needs is known and contradicts the event. When a fact is unknown, the event
+is kept: for example when no report lies within 60 s of the event, when the
+reports near it have no altitude, or when the track has no take-off time to
+compare an off-block time with.
+
+### Why these limits
+
+- **1,500 ft above the airport.** A take-off or landing time that is close to
+  the ground, though not on it, is kept. In the study of these checks, the
+  airport records still confirm most take-off and landing times found between
+  1,000 and 1,500 ft above the airport, and none above. The same limit is used
+  for the ground events. It also leaves room for the error of barometric
+  altitude, which is not corrected for the local air pressure.
+- **15,000 ft when the airport is unknown.** This is above the highest airports
+  in the world, which are at about 14,500 ft.
+- **80 kt.** Aircraft taxi at 10 to 30 kt. An aircraft faster than 80 kt and
+  well above the airport is flying.
+- **One report on the ground keeps the event.** A transponder that reports the
+  aircraft on the ground within 60 s of a ground event is evidence that the
+  event may be right, whatever its altitude says.
+- **Order of the block times.** An aircraft cannot leave its stand after it has
+  taken off, nor reach its stand before it has landed. Only the order within
+  one track is compared, because a track can hold an arrival followed by a
+  departure.
+
+The other runway milestones (`line-up`, `take-off-roll`, `runway-vacated`,
+the runway crossings and `landing`) are not compared with the track's height:
+their detector already requires the aircraft to be on or just above the
+runway. Tops of climb and descent, level segments, flight-level and ring
+crossings, holding, point merge, FIR crossings and go-arounds are read only
+by check 1.
+
+### Two detector rules that remove the same kind of error at the source
+
+Two rules inside the detectors keep many implausible events from being
+produced in the first place:
+
+- **Block times from the ground part of each leg.** The off-block and in-block
+  times are read only from reports that may be on the ground, and only from
+  the part of the track on the correct side of the take-off or landing: the
+  off-block time before the take-off, the in-block time after the landing. See
+  [Block times](block-times.qmd#how-it-is-computed).
+- **Crossings over missing values.** Cleaning empties implausible altitudes,
+  so a track can hold reports with no altitude in the middle of a climb. A
+  crossing of a flight level, of a distance ring or of the 15 ft height that
+  defines `ATOT` and `ALDT` is placed between the last report with a known
+  value and the first report with a known value after the crossing. When those
+  two reports are more than 30 minutes apart, no crossing is given, because
+  its time and position cannot be placed. See
+  [Vertical events](vertical-events.qmd#flight-level-crossings) and
+  [Distance rings](distance-rings.qmd#how-it-is-computed).
+
+## Reference data
+
+**Airport operator records** (APDF) for 14 June 2026, from about ninety
+European airports. For each movement they give the actual off-block, take-off,
+landing and in-block times. They are the same kind of records as those used
+for the [take-off and landing times](takeoff-landing.qmd#reference-data).
+
+The day was computed worldwide; the records cover only the European airports
+that send them.
+
+## Validation method
+
+The day of 14 June 2026 was computed twice from the same position reports:
+once with the default settings, and once with the checks and the two detector
+rules above turned off. Each `AOBT`, `ATOT`, `ALDT` and `AIBT` event of both
+runs was matched to the airport record of the same flight (same aircraft
+address, call sign and day) and the same milestone.
+
+- An event is **confirmed** when it is within 60 s of the record.
+- For each removed event that has a record, the study notes whether it is
+  within 60 s of the record (a removed event that was right) or more than
+  300 s from it (a removed event that was clearly wrong).
+- For each milestone and each run, the study counts the share of the day's
+  records that have an OPDI time (coverage), the share of OPDI times with a
+  record that are within 60 s and 300 s of it, and the 90th percentile of the
+  absolute difference.
+
+The limits were chosen before this comparison, on the same day, from a list
+of candidate checks and limits. A check was adopted only if it removed at most
+0.1% of the confirmed events. The candidates that were not adopted are listed
+in the [full study](../../papers/milestone-plausibility-v1/index.html).
+
+## Results
+
+The day, 2026-06-14, holds 6,775,827 events with the checks and the two
+detector settings off. The checks removed 4,929 of them:
+
+| Check | Events removed | Of which with a record |
+|---|---:|---:|
+| Ground event while flying | 2,063 | 306 |
+| Take-off or landing time too high | 3 | 0 |
+| Off-block after take-off | 2,551 | 968 |
+| In-block before landing | 312 | 61 |
+
+By event type, they removed 3,519 `AOBT`, 1,293 `AIBT`, 3 `ATOT`, 38
+`entry-apron`, 44 `exit-apron`, 16 `entry-taxiway` and 16 `exit-taxiway`.
+
+Of the 1,335 removed events that have a record, 1,269 (95.1%) are more than
+300 s from it. None is within 60 s of it: the checks removed **0** of the
+33,854 confirmed events.
+
+Compared with the airport records, with the checks and the two detector
+settings off and with the default settings:
+
+| | `AOBT` off | `AOBT` default | `AIBT` off | `AIBT` default |
+|---|---:|---:|---:|---:|
+| Records of the day | 19,349 | 19,349 | 19,514 | 19,514 |
+| Coverage | 47.92% | 39.23% | 46.96% | 42.02% |
+| Within 60 s | 23.00% | 28.39% | 23.07% | 26.26% |
+| Within 300 s | 41.09% | 50.59% | 65.70% | 73.16% |
+| 90th percentile of the absolute difference | 1,159 s | 904 s | 721 s | 496 s |
+| Confirmed events | 2,167 | 2,174 | 2,204 | 2,213 |
+
+| | `ATOT` off | `ATOT` default | `ALDT` off | `ALDT` default |
+|---|---:|---:|---:|---:|
+| Records of the day | 19,342 | 19,342 | 19,520 | 19,520 |
+| Coverage | 77.60% | 77.82% | 83.76% | 83.78% |
+| Within 60 s | 90.78% | 90.72% | 94.00% | 94.00% |
+| 90th percentile of the absolute difference | 59 s | 59 s | 49 s | 49 s |
+| Confirmed events | 13,737 | 13,768 | 15,746 | 15,750 |
+
+Fewer block times are published with the default settings, because wrong ones
+are left out, and those that remain are closer to the records. The number of
+confirmed events did not fall for any of the four milestones. Of the 2,167
+confirmed off-block times of the first run, 2,164 are published at the same
+time with the default settings; of the 2,204 confirmed in-block times, 2,203.
+
+The crossing rule over missing values gave a time to 101,899 crossings that
+have none when they are read from a report without a value. It gave no
+crossing in 7,470 cases, where the known values are more than 30 minutes
+apart. Read from such reports, 30,164 crossings of a flight level or a ring
+carry the time of another crossing; with the rule, none does.
+
+## Error distribution
+
+![Height above the airport of the off-block (`AOBT`, dark) and in-block (`AIBT`, light) times of the study day, with the checks and the two detector settings off: all events, those confirmed by an airport record (within 60 s), and those more than 300 s from the record. Bar: 25th to 75th percentile; line: 5th to 95th percentile; tick: median. The dashed line is the 1,500 ft limit of the checks. Only events with a report with an altitude within 60 s are shown.](../../assets/validation/plausibility-checks_height.svg){#fig-height}
+
+![Off-block and in-block times compared with the airport records of 2026-06-14, with the checks and the two detector settings off (light) and with the default settings (dark): share of the day's records with an OPDI time, and share of the OPDI times within 60 s and within 300 s of the record.](../../assets/validation/plausibility-checks_before_after.svg){#fig-before-after}
+
+@fig-height shows why the height limit removes no confirmed time. The
+confirmed block times lie close to the airport's elevation: 95% of the
+confirmed off-block times with a known height are less than 26 ft above it,
+and 95% of the confirmed in-block times less than 152 ft. The block times far
+from their record spread up to several thousand feet. Most confirmed block
+times have no known height at all (292 of 2,167 off-block times and 228 of
+2,204 in-block times have one), because reports sent on the ground usually
+carry no altitude. Such events are never removed by the height checks.
+
+@fig-before-after shows the trade: the coverage of the block times falls, and
+their agreement with the records rises.
+
+## Headline accuracy
+
+Confirmed milestones removed by the checks: **0** of 33,854 off-block,
+in-block, take-off and landing times that are within 60 s of an airport
+record, on 2026-06-14.
+
+## Limitations
+
+- The limits rest on one day and on the records of about ninety European
+  airports. Elsewhere in the world, and on other days, the share of right
+  events that are removed has not been measured.
+- The checks only remove events. They do not move a wrong time to the right
+  one, and they do not find an event that the detector missed. The coverage of
+  the block times is therefore lower with the checks.
+- An event that the track does not contradict is kept, even when it is wrong.
+  A block time that is a few minutes off, or an off-block time at the wrong
+  stand, passes every check.
+- A `landing` event (the passage over the runway threshold) is not compared
+  with the track's height. Some are found more than 500 ft above the airport
+  and are kept as they are.
+- Tops of climb and descent, level segments, crossings, holding, point merge,
+  FIR crossings and go-arounds have no check other than the missing time.
+- The airport surface events accept reports up to 2,000 ft above the airport
+  (see [Airport surface events](surface-events.qmd#how-it-is-computed)). Check
+  2 removes such an event only when the aircraft is more than 1,500 ft above
+  the airport and faster than 80 kt. An aircraft passing low or slowly over
+  an airport area can still produce an entry or an exit.
+- A block time still needs the track to pass a stand somewhere. When that
+  passage lies in another part of the track, the time is kept but names no
+  stand (see [Block times](block-times.qmd#limitations)).
+- The height uses barometric altitude without correction for the local air
+  pressure, and the elevation of the airport from OurAirports. An error in
+  either moves the height.
+- The removed events are not published, so a user cannot see them.
+
+## Full study
+
+- [Plausibility checks for flight milestones](../../papers/milestone-plausibility-v1/index.html):
+  the candidate checks and limits, the evidence for each limit, the results of
+  the study day, and the checks that were not adopted.

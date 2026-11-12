@@ -1096,6 +1096,240 @@ def first_last_seen_numbers(root: Path) -> list[dict]:
     ]
 
 
+# --- Plausibility checks -----------------------------------------------------
+
+PLAUS_DIR = "papers/milestone-plausibility-v1/data"
+PLAUS_REFERENCE = ("Airport operator records (APDF) of about ninety European airports, matched on "
+                   "aircraft address, call sign and day; confirmed = within 60 s, 2026-06-14")
+PLAUS_TYPES = ("AOBT", "AIBT", "ATOT", "ALDT")
+#: The height limit of the checks, in feet above the airport (EventConfig defaults).
+PLAUS_HEIGHT_LIMIT_FT = 1500
+
+
+@figure("plausibility-checks", "height")
+def plausibility_checks_height(root: Path) -> list[dict]:
+    """Height above the airport of the off-block and in-block times, with the 1,500 ft limit."""
+    src = f"{PLAUS_DIR}/context_by_type.csv"
+    ctx = read_csv(root, src)
+    ctx = ctx[ctx["measure"] == "height_ft"]
+    groups = (("all", "all"), ("confirmed", "confirmed"), ("record_far", "> 300 s off"))
+    rows_drawn = []
+    for t in ("AOBT", "AIBT"):
+        for subset, words in groups:
+            rows_drawn.append((f"{t}, {words}", _row(ctx, type=t, subset=subset)))
+    n_known = int(sum(int(r["n_known"]) for _, r in rows_drawn if r["subset"] == "all"))
+
+    fig, ax = new_figure(f"Height of the block times above the airport (n = {n_known:,})")
+    ys = list(range(len(rows_drawn)))[::-1]
+    for y, (label, r) in zip(ys, rows_drawn):
+        colour = ACCENT if r["type"] == "AOBT" else LIGHT
+        ax.plot([r["p05"], r["p95"]], [y, y], color=colour, linewidth=1.5)
+        ax.plot([r["p25"], r["p75"]], [y, y], color=colour, linewidth=7, solid_capstyle="butt")
+        ax.plot([r["p50"]], [y], marker="|", color="#333333", markersize=12)
+    ax.axvline(PLAUS_HEIGHT_LIMIT_FT, color=MUTED, linestyle="--", linewidth=1)
+    ax.set_yticks(ys)
+    ax.set_yticklabels([f"{label} (n = {int(r['n_known']):,})" for label, r in rows_drawn], fontsize=8)
+    ax.set_xlim(-1000, 10000)
+    ax.set_xlabel("Height above the airport (ft)")
+    fig.set_size_inches(FIGSIZE[0], 4.0)
+    save(fig, root / OUT_DIR / "plausibility-checks_height.svg")
+
+    page = "plausibility-checks"
+    common = dict(page=page, reference=PLAUS_REFERENCE, source_file=src, item="", kind="")
+    out = []
+    for t, words in (("AOBT", "off-block"), ("AIBT", "in-block")):
+        conf = _row(ctx, type=t, subset="confirmed")
+        far = _row(ctx, type=t, subset="record_far")
+        out += [
+            measure(measure_id=f"{t.lower()}_confirmed_height_p95", value=f"{float(conf['p95']):.0f}",
+                    unit="ft", n=int(conf["n_known"]),
+                    label=f"95th percentile of the height above the airport of the confirmed {words} times "
+                          f"with a known height",
+                    source_field=f"p95, row type = {t}, subset = confirmed, measure = height_ft", **common),
+            measure(measure_id=f"{t.lower()}_confirmed_height_known", value=int(conf["n_known"]),
+                    n=int(conf["n_events"]),
+                    label=f"Confirmed {words} times with a known height above the airport",
+                    source_field=f"n_known and n_events, row type = {t}, subset = confirmed, "
+                                 f"measure = height_ft", **common),
+            measure(measure_id=f"{t.lower()}_far_height_p95", value=f"{float(far['p95']):.0f}",
+                    unit="ft", n=int(far["n_known"]),
+                    label=f"95th percentile of the height above the airport of the {words} times more than "
+                          f"300 s from the record",
+                    source_field=f"p95, row type = {t}, subset = record_far, measure = height_ft", **common),
+        ]
+    return out
+
+
+@figure("plausibility-checks", "before_after")
+def plausibility_checks_before_after(root: Path) -> list[dict]:
+    """Block times compared with the airport records, with the checks and the two detector settings off and on."""
+    src = f"{PLAUS_DIR}/before_after.csv"
+    ba = read_csv(root, src)
+    off, on = _row(ba, type="AOBT"), _row(ba, type="AIBT")
+    metrics = (("coverage", "Records with an\nOPDI time"), ("share_60s", "Within 60 s"),
+               ("share_300s", "Within 300 s"))
+
+    fig, ax = new_figure(f"Block times against the records (n = {int(off['records_on_day_before']):,} "
+                         f"departures, {int(on['records_on_day_before']):,} arrivals)")
+    width = 0.2
+    labels = []
+    x = 0
+    for t, r in (("AOBT", off), ("AIBT", on)):
+        for key, words in metrics:
+            vb, va = float(r[f"{key}_before_pct"]), float(r[f"{key}_after_pct"])
+            ax.bar(x - width / 2, vb, width=width, color=LIGHT, label="Checks and the two detector settings off" if x == 0 else None)
+            ax.bar(x + width / 2, va, width=width, color=ACCENT, label="Default settings" if x == 0 else None)
+            for xx, v in ((x - width / 2, vb), (x + width / 2, va)):
+                ax.annotate(f"{v:.0f}", xy=(xx, v), xytext=(0, 2), textcoords="offset points",
+                            ha="center", fontsize=7, color="#333333")
+            labels.append(f"{t}\n{words}")
+            x += 1
+    ax.set_xticks(range(len(labels)))
+    ax.set_xticklabels(labels, fontsize=7)
+    ax.set_ylabel("Share (%)")
+    ax.set_ylim(0, 100)
+    ax.legend(frameon=False, fontsize=8, loc="upper center", bbox_to_anchor=(0.5, -0.3), ncol=2)
+    fig.set_size_inches(FIGSIZE[0], 4.0)
+    save(fig, root / OUT_DIR / "plausibility-checks_before_after.svg")
+
+    page = "plausibility-checks"
+    common = dict(page=page, reference=PLAUS_REFERENCE, source_file=src, item="", kind="")
+    out = []
+    names = {"AOBT": "Off-block time (AOBT)", "AIBT": "In-block time (AIBT)",
+             "ATOT": "Take-off time (ATOT)", "ALDT": "Landing time (ALDT)"}
+    for t in PLAUS_TYPES:
+        r = _row(ba, type=t)
+        n_rec = int(r["records_on_day_before"])
+        for side, words in (("before", "checks and the two detector settings off"),
+                            ("after", "default settings")):
+            out += [
+                measure(measure_id=f"{t.lower()}_confirmed_{side}", value=int(float(r[f"confirmed_60s_{side}"])),
+                        n=int(float(r[f"with_record_{side}"])),
+                        label=f"{names[t]}: events within 60 s of the record, {words}",
+                        source_field=f"confirmed_60s_{side} and with_record_{side}, row type = {t}", **common),
+                measure(measure_id=f"{t.lower()}_coverage_{side}", value=_fmt(r[f"coverage_{side}_pct"], 2),
+                        unit="%", n=n_rec,
+                        label=f"{names[t]}: share of the records of the day with an OPDI time, {words}",
+                        source_field=f"coverage_{side}_pct, row type = {t}", **common),
+                measure(measure_id=f"{t.lower()}_share60_{side}", value=_fmt(r[f"share_60s_{side}_pct"], 2),
+                        unit="%", n=int(float(r[f"with_record_{side}"])),
+                        label=f"{names[t]}: share of the events with a record that are within 60 s of it, {words}",
+                        source_field=f"share_60s_{side}_pct, row type = {t}", **common),
+                measure(measure_id=f"{t.lower()}_share300_{side}", value=_fmt(r[f"share_300s_{side}_pct"], 2),
+                        unit="%", n=int(float(r[f"with_record_{side}"])),
+                        label=f"{names[t]}: share of the events with a record that are within 300 s of it, {words}",
+                        source_field=f"share_300s_{side}_pct, row type = {t}", **common),
+                measure(measure_id=f"{t.lower()}_p90_{side}", value=f"{float(r[f'p90_abs_error_s_{side}']):.0f}",
+                        unit="s", n=int(float(r[f"with_record_{side}"])),
+                        label=f"{names[t]}: 90th percentile of the absolute difference from the record, {words}",
+                        source_field=f"p90_abs_error_s_{side}, row type = {t}", **common),
+            ]
+        out.append(measure(measure_id=f"{t.lower()}_records", value=n_rec, n=n_rec,
+                           label=f"{names[t]}: records of the day", source_field=f"records_on_day_before, row type = {t}",
+                           **common))
+        out.append(measure(measure_id=f"{t.lower()}_events_before", value=int(r["events_before"]),
+                           n=int(r["events_before"]),
+                           label=f"{names[t]}: events of the day, checks and the two detector settings off",
+                           source_field=f"events_before, row type = {t}", **common))
+        out.append(measure(measure_id=f"{t.lower()}_events_after", value=int(r["events_after"]),
+                           n=int(r["events_after"]),
+                           label=f"{names[t]}: events of the day, default settings",
+                           source_field=f"events_after, row type = {t}", **common))
+    return out
+
+
+@measure_set("plausibility-checks")
+def plausibility_checks_numbers(root: Path) -> list[dict]:
+    """Events removed by each check on the study day, and the confirmed events among them."""
+    rem_src = f"{PLAUS_DIR}/removed_by_rule.csv"
+    ba_src = f"{PLAUS_DIR}/before_after.csv"
+    rem = read_csv(root, rem_src)
+    ba = read_csv(root, ba_src)
+    page = "plausibility-checks"
+    common = dict(page=page, reference=PLAUS_REFERENCE, item="", kind="")
+    total = _row(rem, reject_rule="ALL", type="ALL")
+    events = int(ba["events_before"].sum())
+    timed = ba[ba["type"].isin(PLAUS_TYPES)]
+    confirmed = int(timed["confirmed_60s_before"].sum())
+    out = [
+        measure(measure_id="events_checked", value=events, n=events,
+                label="Events of the study day, all types, checks and the two detector settings off",
+                source_file=ba_src, source_field="sum of events_before", **common),
+        measure(measure_id="removed", value=int(total["removed"]), n=events,
+                label="Events removed by the checks on the study day",
+                source_file=rem_src, source_field="removed, row reject_rule = ALL", **common),
+        measure(measure_id="removed_with_record", value=int(total["removed_with_record"]),
+                n=int(total["removed"]),
+                label="Removed events for which an airport record of the same flight and milestone exists",
+                source_file=rem_src, source_field="removed_with_record, row reject_rule = ALL", **common),
+        measure(measure_id="removed_far", value=int(total["removed_far_300s"]),
+                n=int(total["removed_with_record"]),
+                label="Removed events with a record that are more than 300 s from it",
+                source_file=rem_src, source_field="removed_far_300s, row reject_rule = ALL", **common),
+        measure(measure_id="removed_far_pct",
+                value=_fmt(100 * total["removed_far_300s"] / total["removed_with_record"], 1), unit="%",
+                n=int(total["removed_with_record"]),
+                label="Share of the removed events with a record that are more than 300 s from it",
+                source_file=rem_src, source_field="removed_far_300s / removed_with_record, row reject_rule = ALL",
+                **common),
+        measure(measure_id="confirmed_total", value=confirmed, n=confirmed,
+                label="Events of the study day confirmed by a record (AOBT, AIBT, ATOT, ALDT within 60 s)",
+                source_file=ba_src, source_field="sum of confirmed_60s_before, rows AOBT, AIBT, ATOT, ALDT",
+                **common),
+        measure(measure_id="confirmed_removed", value=int(total["removed_confirmed_60s"]), n=confirmed,
+                headline=True,
+                label="Confirmed events removed by the checks",
+                source_file=rem_src, source_field="removed_confirmed_60s, row reject_rule = ALL "
+                                                  "(n: sum of confirmed_60s_before in before_after.csv)",
+                **common),
+    ]
+    for rule, words in (("airborne_ground_event", "ground event in flight"),
+                        ("runway_time_too_high", "take-off or landing time too high"),
+                        ("block_after_takeoff", "off-block time not before the take-off"),
+                        ("block_before_landing", "in-block time not after the landing")):
+        sel = rem[rem["reject_rule"] == rule]
+        out.append(measure(measure_id=f"removed_{rule}", value=int(sel["removed"].sum()), n=events,
+                           label=f"Events removed by the check '{words}'",
+                           source_file=rem_src, source_field=f"sum of removed, rows reject_rule = {rule}",
+                           **common))
+        out.append(measure(measure_id=f"removed_with_record_{rule}", value=int(sel["removed_with_record"].sum()),
+                           n=int(sel["removed"].sum()),
+                           label=f"Events removed by the check '{words}' that have a record",
+                           source_file=rem_src,
+                           source_field=f"sum of removed_with_record, rows reject_rule = {rule}", **common))
+    for t in ("AOBT", "AIBT", "entry-apron", "exit-apron", "entry-taxiway", "exit-taxiway", "ATOT"):
+        sel = rem[rem["type"] == t]
+        out.append(measure(measure_id=f"removed_type_{t}", value=int(sel["removed"].sum()), n=events,
+                           label=f"Events of type {t} removed by the checks",
+                           source_file=rem_src, source_field=f"sum of removed, rows type = {t}", **common))
+    xing = ba[ba["type"].str.startswith("xing")]
+    out += [
+        measure(measure_id="crossings_timed", value=int(ba["null_now_timed"].sum()),
+                n=int(ba["null_before"].sum()),
+                label="Crossings without a time when read from reports without a value, placed between known values",
+                source_file=ba_src, source_field="sum of null_now_timed (n: sum of null_before)", **common),
+        measure(measure_id="crossings_not_given", value=int(ba["null_not_emitted"].sum()),
+                n=int(ba["null_before"].sum()),
+                label="Crossings without a time whose known values are more than 30 minutes apart, not given",
+                source_file=ba_src, source_field="sum of null_not_emitted (n: sum of null_before)", **common),
+        measure(measure_id="crossings_shared_time", value=int(xing["crossings_sharing_time_before"].sum()),
+                n=int(xing["events_before"].sum()),
+                label="Crossings that carry the time of another crossing of the same level or ring "
+                      "when read from reports without a value",
+                source_file=ba_src, source_field="sum of crossings_sharing_time_before, rows xing-*",
+                **common),
+        measure(measure_id="aobt_same_time", value=int(_row(ba, type="AOBT")["confirmed_before_same_time_after"]),
+                n=int(_row(ba, type="AOBT")["confirmed_60s_before"]),
+                label="Confirmed off-block times published at the same time with the default settings",
+                source_file=ba_src, source_field="confirmed_before_same_time_after, row type = AOBT", **common),
+        measure(measure_id="aibt_same_time", value=int(_row(ba, type="AIBT")["confirmed_before_same_time_after"]),
+                n=int(_row(ba, type="AIBT")["confirmed_60s_before"]),
+                label="Confirmed in-block times published at the same time with the default settings",
+                source_file=ba_src, source_field="confirmed_before_same_time_after, row type = AIBT", **common),
+    ]
+    return out
+
+
 # ---------------------------------------------------------------------------
 # Command line
 # ---------------------------------------------------------------------------
