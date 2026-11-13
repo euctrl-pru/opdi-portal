@@ -519,7 +519,7 @@ events cannot be judged. None was adopted.
   missing one, so the coverage of the block times falls.
 - An event that the track does not contradict is kept even when it is wrong,
   for example a block time a few minutes off.
-- A `landing` event (the passage over the runway threshold) is not checked:
+- An `xing-runway-threshold` event (the passage over the runway threshold) is not checked:
   one in twenty is more than `r num(X("landing", "all", "height_ft", "p95"))` ft
   above the airport, and it is left as it is.
 - Tops of climb and descent, level segments, holding, point merge, FIR
@@ -540,4 +540,6 @@ fingerprint of the source files, and the input tables with their size and
 date. `candidate_rules.csv`, `context_by_type.csv`, `sequence_by_flight.csv`
 and `examples.csv` describe the events of the day without the checks;
 `before_after.csv` and `removed_by_rule.csv` compare them with the run with
-the default settings.
+the default settings. The files were measured before the passage over the
+runway threshold was named `xing-runway-threshold`, so they call that event
+`landing`.

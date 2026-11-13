@@ -16,7 +16,7 @@
 | `exit-{element}` | event | Not validated |  |  | [Validation](surface-events.qmd#validation-method), [Limitations](surface-events.qmd#limitations) |
 | `take-off-roll` | event | Not validated |  |  | [Validation](takeoff-landing.qmd#validation-method), [Limitations](takeoff-landing.qmd#limitations) |
 | `ATOT` | event | Take-off time as published: share of reference departures with an OPDI time within 60 s: 86.97% | Airport operator records (APDF) of the 20 best-received airports, matched on aircraft address, call sign and day, 2026-06-05 to 2026-06-07 | 11675 | [Validation](takeoff-landing.qmd#validation-method), [Limitations](takeoff-landing.qmd#limitations) |
-| `landing` | event | Not validated |  |  | [Validation](takeoff-landing.qmd#validation-method), [Limitations](takeoff-landing.qmd#limitations) |
+| `xing-runway-threshold` | event | Not validated |  |  | [Validation](takeoff-landing.qmd#validation-method), [Limitations](takeoff-landing.qmd#limitations) |
 | `ALDT` | event | Landing time as published: share of reference arrivals with an OPDI time within 60 s: 94.36% | Airport operator records (APDF) of the 20 best-received airports, matched on aircraft address, call sign and day, 2026-06-05 to 2026-06-07 | 11657 | [Validation](takeoff-landing.qmd#validation-method), [Limitations](takeoff-landing.qmd#limitations) |
 | `line-up` | event | Not validated |  |  | [Validation](runway-milestones.qmd#validation-method), [Limitations](runway-milestones.qmd#limitations) |
 | `runway-vacated` | event | Not validated |  |  | [Validation](runway-milestones.qmd#validation-method), [Limitations](runway-milestones.qmd#limitations) |

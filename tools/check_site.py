@@ -145,7 +145,7 @@ EVENT_TYPES = (
     # deicing_pad; the runway is covered by the runway events)
     "entry-{element}", "exit-{element}",
     # Runway events: take-off and landing
-    "take-off-roll", "ATOT", "landing", "ALDT",
+    "take-off-roll", "ATOT", "xing-runway-threshold", "ALDT",
     # Other runway milestones
     "line-up", "runway-vacated", "go-around",
     "runway-crossing-entry", "runway-crossing-vacated",

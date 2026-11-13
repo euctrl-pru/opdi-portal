@@ -12,15 +12,15 @@ four moments of that use as events:
 |---|---|---|
 | `take-off-roll` | The aircraft starts its take-off run: it begins to accelerate along the runway. | T07 |
 | `ATOT` | **Actual take-off time**: the wheels leave the runway. | T08 |
-| `landing` | The aircraft passes over the **runway threshold** on its way down. The threshold is the start of the part of the runway that may be used for landing, marked on the ground by white stripes. | T16 |
+| `xing-runway-threshold` | The aircraft passes over the **runway threshold** on its way down. The threshold is the start of the part of the runway that may be used for landing, marked on the ground by white stripes. | T16 |
 | `ALDT` | **Actual landing time**: the wheels touch the runway (touchdown). | T17 |
 
 The standard numbers come from airport collaborative decision making
 (**A-CDM**), a way of working in which the airport, the airlines and air
 traffic control share one set of times for each flight. OPDI writes the number
-in the `info` field of the event. Note that the event `landing` is the passage
-over the threshold, a few seconds before the touchdown, and not the touchdown
-itself. The touchdown is `ALDT`.
+in the `info` field of the event. Note that the event `xing-runway-threshold`
+is the passage over the threshold, a few seconds before the touchdown, and not
+the touchdown itself. The touchdown is `ALDT`.
 
 Each event carries, in its `info` field, the airport (`apt_icao`), the runway
 direction used (`runway`, for example `25R`) and the true bearing of that
@@ -105,7 +105,7 @@ sea level, from OurAirports).
    samples on either side of 15 ft. To avoid counting a short bounce twice,
    the height must first be below 10 ft and then above 20 ft (a dead band of
    5 ft on each side).
-8. **`landing`.** For an arrival pass, also take the samples up to 60 s before
+8. **`xing-runway-threshold`.** For an arrival pass, also take the samples up to 60 s before
    the pass. Compute the distance of each sample along the runway centre line
    from the threshold: negative before the threshold, positive after it. The
    event is the moment this distance changes sign, interpolated in the same
@@ -162,7 +162,7 @@ interpolated between the state vectors on either side within 10 s; the ground
 is the aircraft's own altitude on the ground at that airport, or the airport's
 elevation with 1,000 ft added to the limit for the error of barometric
 altitude (see [Plausibility checks](plausibility-checks.qmd#height-of-a-take-off-or-landing-time)).
-`landing` is not checked against the height.
+`xing-runway-threshold` is not checked against the height.
 
 The flight list then takes `atot` from the earliest `ATOT` at the departure
 airport and `aldt` from the latest `ALDT` at the destination airport, with
@@ -294,7 +294,7 @@ airport record. It names a landing runway for 80.37% of reference arrivals; 92.5
 these 9,369 runways are right. The runways named by the climb-and-descent
 method were not compared.
 
-`take-off-roll` and `landing` are not validated: the airport records hold no
+`take-off-roll` and `xing-runway-threshold` are not validated: the airport records hold no
 time for the start of the take-off run or for the passage over the threshold.
 The quality columns `superseded_dep`, `superseded_arr`, `movement_dep` and
 `movement_arr` are not validated either.
@@ -343,11 +343,11 @@ runways match the airport record.
   day with high or low air pressure, the 15 ft crossing moves slightly.
 - On a runway whose bearing is close to the north–south line (runways
   numbered 18 and 36), the median ground track can come out pointing the wrong way. The runway direction
-  can then be wrong, and `landing` can be missing although `ALDT` is present.
+  can then be wrong, and `xing-runway-threshold` can be missing although `ALDT` is present.
 - If an aircraft is first received when already faster than 50 kt,
   `take-off-roll` is placed at the first sample received, which is too late.
   Nothing in the data marks this case.
-- `landing` needs a sample less than 60 s before the aircraft enters the
+- `xing-runway-threshold` needs a sample less than 60 s before the aircraft enters the
   runway area. It is missing more often than `ALDT`.
 - The runway named by the climb-and-descent method has not been checked
   against the records.

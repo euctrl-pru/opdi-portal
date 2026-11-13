@@ -64,7 +64,7 @@ Release v2.0.0 adds these event families (all listed on the
 [Data dictionary](dictionary.qmd#event-types)):
 
 - **Runway milestones**: the start of the take-off roll, the take-off time
-  (`ATOT`), the passage over the runway threshold (`landing`), the touchdown
+  (`ATOT`), the passage over the runway threshold (`xing-runway-threshold`), the touchdown
   (`ALDT`), the line-up, the runway vacated, runway crossings and go-arounds.
 - **Block times**: off-block (`AOBT`) and in-block (`AIBT`), when the aircraft
   leaves and reaches its parking position.
@@ -120,7 +120,6 @@ them needs a check.
 
 | Name | In release v0.0.2 | In release v2.0.0 |
 |---|---|---|
-| `landing` | The first position on the ground after the descent. | The passage over the runway threshold, a few seconds before touchdown. The touchdown is `ALDT`. |
 | `top-of-climb`, `top-of-descent` | The start and end of the cruise, from flight phases. | The method of EUROCONTROL's vertical flight efficiency indicators (see [Vertical events](../methods/vertical-events.qmd)). |
 | `flight_id` (`ID`) | Built from the address, the call sign and the month. | Built from the address and the time of the first position (see [Dictionary](dictionary.qmd#identifiers)). The identifiers of the two releases do not match. |
 | `adep`, `ades` | Nearest airport within 30 NM, from positions below 4,000 ft. | A new method that can also leave an airport undecided (see [Departure and destination airports](../methods/airports.qmd)). |
@@ -144,7 +143,7 @@ replaces it in release v2.0.0.
 | Measurements with `type` = `Time Passed (s)` | Column `time_passed_s` |
 | Measurements `id`, `event_id`, `value`, `version` | Rebuilt by the `measurements` view: `id` is the `event_id` followed by `_d` (distance) or `_t` (time) |
 | Event `take-off` | `ATOT` |
-| Event `landing` (first position on the ground) | `ALDT` (touchdown). The name `landing` now means the passage over the threshold. |
+| Event `landing` (first position on the ground) | `ALDT` (touchdown). Release v2.0.0 has no event `landing`. Its new event `xing-runway-threshold` is the passage over the runway threshold, a few seconds before touchdown. |
 | Events `first-xing-fl{level}` and `last-xing-fl{level}` | `xing-fl{level}` for every crossing. The first crossing has `crossing_seq` 1 in `info`; the last has the highest `crossing_seq` of that level on the flight. `direction` in `info` says `up` or `down`. |
 | Events `entry-runway` and `exit-runway` | `line-up`, `runway-vacated`, `runway-crossing-entry` and `runway-crossing-vacated`, which say what the aircraft did on the runway |
 | Events `entry-taxiway`, `exit-taxiway`, `entry-parking_position`, `exit-parking_position` | The same names |

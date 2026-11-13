@@ -54,7 +54,7 @@ METHOD_PAGES: dict[str, dict[str, str]] = {
             "level-off-descent-start", "level-off-descent-end", "xing-fl{level}")},
         "xing-{radius}nm": "distance-rings",
         "entry-{element}": "surface-events", "exit-{element}": "surface-events",
-        **{t: "takeoff-landing" for t in ("take-off-roll", "ATOT", "landing", "ALDT")},
+        **{t: "takeoff-landing" for t in ("take-off-roll", "ATOT", "xing-runway-threshold", "ALDT")},
         **{t: "runway-milestones" for t in (
             "line-up", "runway-vacated", "go-around",
             "runway-crossing-entry", "runway-crossing-vacated")},
