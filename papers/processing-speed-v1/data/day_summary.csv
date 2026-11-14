@@ -1,0 +1,9 @@
+step,before_s,after_s,before_scope,after_scope,before_executors,after_executors,notes
+01,1092,396,"scaled from a 4 h slice (98.3M of 799.5M archive rows)","scaled from a 4 h slice; 8 executors scaled to 12 by core count","8","12","before: commit 1a8b35b (same pipeline as 70eaac7); after: commit ab7e130 (archive read once). Slice: 1,826 -> 994 executor-seconds"
+02,4173,2133,"scaled from 1 aircraft in 12 (all 59 h read)","scaled from 1 aircraft in 12; 8 executors scaled to 12 by core count","8","12","after: commit a702b2e (parallel write, aircraft filter). Sample: 423 -> 263 s"
+02a,1641,1225,"scaled from 1 aircraft in 12","scaled from 1 aircraft in 12; 8 executors scaled to 12 by core count","8","12","step 02a code unchanged for this measure; the difference at 8 executors is run-to-run noise (+12%) and the gain is the executor count"
+03,940,387,"full day measured","full day measured","8","12","after: HEAD code, zones as 8 files"
+04,4687,1741,"full day measured","full day measured","8","12","after: HEAD code"
+04b,196,55,"full day measured","full day measured","8","12",""
+09,322,246,"full day measured","full day measured","8","12",""
+total,13051,6183,"6,145 s measured + 6,906 s scaled","2,429 s measured + 3,754 s scaled","","","scaled full-day s = executor-seconds x scale factor / (16 cores x 0.85) + single-task stages x scale factor"
