@@ -273,9 +273,111 @@ equal. The one difference is the `info` text of
 all of them airport-surface events and block times
 (`r paste0("\x60", info_types, "\x60", collapse = ", ")`). Their `info` names the
 taxiway, apron or stand the aircraft is on. Where one map cell lies on two such
-parts of the airport, the event names one of them, and which one depends on
-the order in which Spark happens to process the rows. That choice also changes
-between two runs of unchanged code, so it is not caused by the changes.
+parts of the airport, the event names one of them, and which one depended on
+the order in which Spark happened to process the rows. That choice also
+changed between two runs of unchanged code, so it was not caused by the
+changes. The pipeline now always names the part with the smallest
+OpenStreetMap identifier (see the next section).
+
+## Are the results the same?
+
+The comparison above counts events and matches them on flight, type and time.
+Two further comparisons look at every value.
+
+```{r same-setup}
+#| include: false
+cc <- read.csv(file.path("data", "content_comparison.csv"), stringsAsFactors = FALSE)
+rr <- read.csv(file.path("data", "repeat_run_comparison.csv"), stringsAsFactors = FALSE)
+rf <- read.csv(file.path("data", "repeat_run_flight_list.csv"), stringsAsFactors = FALSE)
+# One value of a comparison table: the row of a part and an item.
+V <- function(df, part, item, col) df[df$part == part & df$item == item, col]
+# Columns compared, and columns with at least one matched row differing.
+n_cols <- function(df, part) sum(df$part == part & grepl("^column ", df$item))
+n_diff_cols <- function(df, part) {
+  x <- df[df$part == part & grepl("^column ", df$item), ]
+  sum(as.numeric(sub(" matched rows differ", "", x$note)) > 0)
+}
+# Matched rows with at least one column differing.
+n_diff_rows <- function(df, part) {
+  as.numeric(sub(" matched rows differ.*", "",
+                 V(df, part, "matched rows with a column differing", "note")))
+}
+rr_ev <- rr[rr$part == "events", ]
+adep_p_fl <- as.numeric(sub(" matched rows differ", "",
+                            V(rr, "flight_list content", "column adep_p", "note")))
+adep_p_ev <- as.numeric(sub(" matched rows differ", "",
+                            V(rr, "flight_events content", "column adep_p", "note")))
+info_rr <- as.numeric(sub(" matched events differ", "", V(rr, "event field", "info", "note")))
+```
+
+**Steps 01 to 02a, before and after the changes.** The code before the
+changes and the code after them were run on the same input, and the two
+outputs were matched row by row: the reports of step 01 on their aircraft
+address and time, the tracks of steps 02 and 02a on their track identifier and
+time. For every matched row, every other column was compared, exactly for
+text, whole numbers and times, and to within 0.000000001 for decimal numbers.
+Step 01 ran on the first 2 hours of 14 June 2026 for all aircraft; steps 02
+and 02a on one aircraft in 12, both versions building their tracks from the
+same reports.
+
+```{r tbl-same-before-after}
+#| echo: false
+parts <- c("osn_statevectors_v2", "osn_tracks", "osn_tracks_clean")
+what <- c("Step 01: position reports, first 2 hours, all aircraft",
+          "Step 02: tracks, one aircraft in 12",
+          "Step 02a: cleaned tracks, one aircraft in 12")
+g <- function(p, col) as.numeric(V(cc, p, "rows", col))
+t1 <- data.frame(
+  what = what,
+  before = num(sapply(parts, g, col = "before")),
+  after = num(sapply(parts, g, col = "after")),
+  matched = num(sapply(parts, g, col = "matched")),
+  only = paste(num(sapply(parts, g, col = "only_before")), "/",
+               num(sapply(parts, g, col = "only_after"))),
+  cols = sapply(parts, function(p) n_cols(cc, p)),
+  differ = sapply(parts, function(p) n_diff_cols(cc, p))
+)
+kable(t1, row.names = FALSE, align = "lrrrrrr",
+      col.names = c("Output", "Rows before", "Rows after", "Matched",
+                    "Only before / only after", "Columns compared", "Columns differing"),
+      caption = "The code before and after the changes on the same input, row by row.")
+```
+
+Every row is found in both outputs, and no value differs. The tracks also have
+the same identifiers: `r num(V(cc, "osn_tracks", "track ids", "before"))`
+before and `r num(V(cc, "osn_tracks", "track ids", "after"))` after, all of
+them in both.
+
+**Steps 03 to 09, two runs of the same code.** The comparison of the full day
+before and after the changes cannot be repeated with every value, because the
+tables of the run before were deleted for lack of storage. Instead, the code
+after the changes was run twice on the full day from the same tracks, and the
+two published files were compared value by value. Any difference between two
+runs of one code comes from the order in which Spark processes rows, and would
+also blur a comparison between two versions.
+
+In both runs the day has `r num(sum(rr_ev$before))` events of
+`r nrow(rr_ev)` types, all matched on flight, type and time, and
+`r num(V(rr, "flight list", "flights", "before"))` flights. Positions,
+altitudes and measurements are the same in all matched events, and the `info`
+text differs in `r num(info_rr)` of them: with the fixed choice of the airport
+part, it no longer changes from run to run. One
+column did differ: `adep_p`, the other airports that could be the departure
+airport, for `r num(adep_p_fl)` of the
+`r num(V(rr, "flight_list content", "rows", "matched"))` flights (and so in
+`r num(adep_p_ev)` events, which carry the flight's columns). The departure
+airport itself was the same; only the order of the other airports in the list
+changed, because the list was collected in the order Spark met the rows. The
+list is now sorted, nearest airport first. Two further runs of the flight list
+step with the sorted list gave
+`r num(V(rf, "opdi_flight_list", "rows", "matched"))` matched flights of
+`r num(V(rf, "opdi_flight_list", "rows", "before"))`, with
+`r num(n_diff_rows(rf, "opdi_flight_list"))` differing in any of the
+`r n_cols(rf, "opdi_flight_list")` columns compared.
+
+So two runs of the code now give the same flight list and the same events,
+value for value, and a future comparison of two versions of the code can be
+exact.
 
 ## Why one hour was not reached
 
@@ -338,7 +440,10 @@ Every number and table on this page is read from the CSV files in `data/` when
 the page is rendered; nothing is computed on a cluster, and the page needs no
 credentials. The files were written by `benchmarks/day_timing.py` (times per
 step and per Spark stage) and `benchmarks/day_compare.py` (comparison of the
-outputs) of the opdi repository. `data/_manifest.json` records, for each file,
+outputs) of the opdi repository. `content_comparison.csv` holds the row-by-row
+comparison of steps 01 to 02a, `repeat_run_comparison.csv` the two runs of
+steps 03 to 09, and `repeat_run_flight_list.csv` the two runs of step 03 with
+the sorted list of other airports. `data/_manifest.json` records, for each file,
 the script, the git commit, whether the working copy had uncommitted changes
 and a fingerprint of the source files. In `step_timings.csv` the run labels
 are: `base` the old code, `v1` the new code with 8 executors, `v2` the new

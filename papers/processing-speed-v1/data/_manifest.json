@@ -1,4 +1,81 @@
 {
+  "content_comparison.csv": {
+    "argv": [
+      [
+        "statevectors",
+        "--before",
+        "fxs2b",
+        "--after",
+        "fxs2a",
+        "--executors",
+        "12",
+        "--out",
+        "/home/jupyter/.claude/jobs/616d5918/tmp/speedfix/data/content_statevectors.csv",
+        "--notes",
+        "fxs2b = code of commit 1a8b35b (the pipeline of 70eaac7 with the hour helper of step 01), fxs2a = code of f576407; step 01 on the first 2 hours of 2026-06-14, all aircraft"
+      ],
+      [
+        "tracks",
+        "--day",
+        "2026-06-14",
+        "--before",
+        "fxb",
+        "--after",
+        "fxa",
+        "--executors",
+        "12",
+        "--out",
+        "/home/jupyter/.claude/jobs/616d5918/tmp/speedfix/data/content_tracks.csv",
+        "--notes",
+        "fxb = code of commit 1a8b35b (the pipeline of 70eaac7 with the hour helper of step 01), fxa = code of f576407; one aircraft in 12 (abs(hash(icao24)) % 12 == 0), both built from the reports written by fxa step 01"
+      ]
+    ],
+    "bytes": 5256,
+    "code_fingerprint": "3499d5e26039d77d",
+    "code_paths": [
+      "benchmarks/day_compare.py",
+      "src/opdi"
+    ],
+    "git_dirty": false,
+    "git_sha": "f576407",
+    "input_tables": {
+      "s3a://eurocontrol/opdi-world/research/speed/fxa/osn_tracks": {
+        "bytes": 787414240,
+        "newest": "2026-11-14T04:11:58.180000+00:00",
+        "objects": 27
+      },
+      "s3a://eurocontrol/opdi-world/research/speed/fxa/osn_tracks_clean": {
+        "bytes": 775980687,
+        "newest": "2026-11-14T04:21:59.010000+00:00",
+        "objects": 30
+      },
+      "s3a://eurocontrol/opdi-world/research/speed/fxb/osn_tracks": {
+        "bytes": 767774000,
+        "newest": "2026-11-14T04:18:34.666000+00:00",
+        "objects": 2
+      },
+      "s3a://eurocontrol/opdi-world/research/speed/fxb/osn_tracks_clean": {
+        "bytes": 775980687,
+        "newest": "2026-11-14T04:25:22.035000+00:00",
+        "objects": 30
+      },
+      "s3a://eurocontrol/opdi-world/research/speed/fxs2a/osn_statevectors_v2": {
+        "bytes": 464550034,
+        "newest": "2026-11-14T04:29:38.204000+00:00",
+        "objects": 26
+      },
+      "s3a://eurocontrol/opdi-world/research/speed/fxs2b/osn_statevectors_v2": {
+        "bytes": 464550036,
+        "newest": "2026-11-14T04:32:05.793000+00:00",
+        "objects": 26
+      }
+    },
+    "inputs": {},
+    "notes": "Rows of content_statevectors.csv (step 01, first 2 hours of 2026-06-14, all aircraft) followed by those of content_tracks.csv (steps 02 and 02a, one aircraft in 12), each written by the day_compare.py command in argv. fxs2b = code of commit 1a8b35b (the pipeline of 70eaac7 with the hour helper of step 01), fxs2a = code of f576407; step 01 on the first 2 hours of 2026-06-14, all aircraft | fxb = code of commit 1a8b35b (the pipeline of 70eaac7 with the hour helper of step 01), fxa = code of f576407; one aircraft in 12 (abs(hash(icao24)) % 12 == 0), both built from the reports written by fxa step 01",
+    "produced_utc": "2026-11-14T04:33:11+00:00",
+    "script": "benchmarks/day_compare.py",
+    "sha256_16": "65517864e0ef17de"
+  },
   "day_summary.csv": {
     "argv": [],
     "bytes": 1353,
@@ -17,6 +94,100 @@
     "script": "benchmarks/day_timing.py",
     "sha256_16": "3980356bb1909cf0"
   },
+  "repeat_run_comparison.csv": {
+    "argv": [
+      "events",
+      "--day",
+      "2026-06-14",
+      "--before",
+      "e2r1",
+      "--after",
+      "e2r2",
+      "--executors",
+      "12",
+      "--out",
+      "/home/jupyter/.claude/jobs/616d5918/tmp/speedfix/data/repeat_run_comparison.csv",
+      "--notes",
+      "e2r1 and e2r2: two runs of the code of commit f576407 (steps 03, 04, 04b and 09) on the full day 2026-06-14, worldwide, from the same tracks (opdi-world/osn_tracks_clean)"
+    ],
+    "bytes": 13728,
+    "code_fingerprint": "3dc9a7945d7cacd6",
+    "code_paths": [
+      "benchmarks/day_compare.py",
+      "src/opdi"
+    ],
+    "git_dirty": false,
+    "git_sha": "35207e7",
+    "input_tables": {
+      "s3a://eurocontrol/opdi-world/research/speed/e2r1/published/flight_events/flight_events_20260614.parquet": {
+        "bytes": 0,
+        "newest": "",
+        "objects": 0
+      },
+      "s3a://eurocontrol/opdi-world/research/speed/e2r1/published/flight_list/flight_list_20260614.parquet": {
+        "bytes": 0,
+        "newest": "",
+        "objects": 0
+      },
+      "s3a://eurocontrol/opdi-world/research/speed/e2r2/published/flight_events/flight_events_20260614.parquet": {
+        "bytes": 0,
+        "newest": "",
+        "objects": 0
+      },
+      "s3a://eurocontrol/opdi-world/research/speed/e2r2/published/flight_list/flight_list_20260614.parquet": {
+        "bytes": 0,
+        "newest": "",
+        "objects": 0
+      }
+    },
+    "inputs": {},
+    "notes": "e2r1 and e2r2: two runs of the code of commit f576407 (steps 03, 04, 04b and 09) on the full day 2026-06-14, worldwide, from the same tracks (opdi-world/osn_tracks_clean)",
+    "produced_utc": "2026-11-14T05:58:18+00:00",
+    "script": "benchmarks/day_compare.py",
+    "sha256_16": "466cb11ddbdceef1"
+  },
+  "repeat_run_flight_list.csv": {
+    "argv": [
+      "flightlist",
+      "--day",
+      "2026-06-14",
+      "--before",
+      "e3a",
+      "--after",
+      "e3b",
+      "--executors",
+      "12",
+      "--out",
+      "/home/jupyter/.claude/jobs/616d5918/tmp/speedfix/data/repeat_run_flight_list.csv",
+      "--notes",
+      "e3a and e3b: two runs of step 03 with the code of commit 45531db (candidate airports sorted) on the full day 2026-06-14, worldwide, from the same tracks (opdi-world/osn_tracks_clean)"
+    ],
+    "bytes": 1575,
+    "code_fingerprint": "aefd467ec950a301",
+    "code_paths": [
+      "benchmarks/day_compare.py",
+      "src/opdi"
+    ],
+    "git_dirty": false,
+    "git_sha": "45531db",
+    "input_tables": {
+      "s3a://eurocontrol/opdi-world/research/speed/e3a/opdi_flight_list": {
+        "bytes": 14228579,
+        "newest": "2026-11-14T06:10:33.880000+00:00",
+        "objects": 5
+      },
+      "s3a://eurocontrol/opdi-world/research/speed/e3b/opdi_flight_list": {
+        "bytes": 14232190,
+        "newest": "2026-11-14T06:17:17.306000+00:00",
+        "objects": 5
+      }
+    },
+    "inputs": {},
+    "notes": "e3a and e3b: two runs of step 03 with the code of commit 45531db (candidate airports sorted) on the full day 2026-06-14, worldwide, from the same tracks (opdi-world/osn_tracks_clean)",
+    "produced_utc": "2026-11-14T06:18:01+00:00",
+    "script": "benchmarks/day_compare.py",
+    "sha256_16": "4f88a2a6e80a364d"
+  },
   "result_comparison.csv": {
     "argv": [],
     "bytes": 5248,
@@ -30,7 +201,7 @@
     "git_sha": "9141821",
     "input_tables": {},
     "inputs": {},
-    "notes": "base = code of commit 1a8b35b (pipeline as at 70eaac7); scaled_base, s2base, s4base, m12base, m24base also. Other labels: code of the commit named in the notes column of day_summary.csv.",
+    "notes": "base = code of commit 1a8b35b (pipeline as at 70eaac7); scaled_base, s2base, s4base, m12base, m24base also. Other labels: code of the commit named in the notes column of day_summary.csv. The version of day_compare.py that wrote this file did not record its command line or input folders (argv and input_tables are empty). It compared the published files of the runs base and v2 under opdi-world/research/speed/ (deleted since). day_compare.py now records both.",
     "produced_utc": "2026-11-14T00:45:32+00:00",
     "script": "benchmarks/day_compare.py",
     "sha256_16": "ddf44f29d1898c6b"
