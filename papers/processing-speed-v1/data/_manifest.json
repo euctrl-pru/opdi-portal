@@ -76,23 +76,377 @@
     "script": "benchmarks/day_compare.py",
     "sha256_16": "65517864e0ef17de"
   },
+  "content_p1a_tracks.csv": {
+    "argv": [
+      "tracks",
+      "--day",
+      "2026-06-14",
+      "--before",
+      "p1b2",
+      "--after",
+      "p1a2",
+      "--executors",
+      "12",
+      "--out",
+      "/home/jupyter/.claude/jobs/616d5918/tmp/settings/data/content_p1a_tracks.csv",
+      "--notes",
+      "p1b2 = baseline (production S3 settings, 12 executors), p1a2 = H3 function through Arrow; steps 02 and 02a of one aircraft in 12, from the same reports (sv12)"
+    ],
+    "bytes": 4143,
+    "code_fingerprint": "aefd467ec950a301",
+    "code_paths": [
+      "benchmarks/day_compare.py",
+      "src/opdi"
+    ],
+    "git_dirty": false,
+    "git_sha": "48ff213",
+    "input_tables": {
+      "s3a://eurocontrol/opdi-world/research/speed/p1a2/osn_tracks": {
+        "bytes": 786595143,
+        "newest": "2026-11-14T09:48:22.273000+00:00",
+        "objects": 27
+      },
+      "s3a://eurocontrol/opdi-world/research/speed/p1a2/osn_tracks_clean": {
+        "bytes": 775980732,
+        "newest": "2026-11-14T09:50:35.114000+00:00",
+        "objects": 30
+      },
+      "s3a://eurocontrol/opdi-world/research/speed/p1b2/osn_tracks": {
+        "bytes": 789000350,
+        "newest": "2026-11-14T09:31:30.480000+00:00",
+        "objects": 27
+      },
+      "s3a://eurocontrol/opdi-world/research/speed/p1b2/osn_tracks_clean": {
+        "bytes": 775980732,
+        "newest": "2026-11-14T09:33:40.378000+00:00",
+        "objects": 30
+      }
+    },
+    "inputs": {},
+    "notes": "p1b2 = baseline (production S3 settings, 12 executors), p1a2 = H3 function through Arrow; steps 02 and 02a of one aircraft in 12, from the same reports (sv12)",
+    "produced_utc": "2026-11-14T09:52:32+00:00",
+    "script": "benchmarks/day_compare.py",
+    "sha256_16": "935bd9e5b8499e70"
+  },
+  "content_p1k_tracks.csv": {
+    "argv": [
+      "tracks",
+      "--day",
+      "2026-06-14",
+      "--before",
+      "p1b2",
+      "--after",
+      "p1k2",
+      "--executors",
+      "12",
+      "--out",
+      "/home/jupyter/.claude/jobs/616d5918/tmp/settings/data/content_p1k_tracks.csv",
+      "--notes",
+      "p1b2 = baseline (production S3 settings, 12 executors), p1k2 = Kryo serialiser; steps 02 and 02a of one aircraft in 12, from the same reports (sv12)"
+    ],
+    "bytes": 4143,
+    "code_fingerprint": "aefd467ec950a301",
+    "code_paths": [
+      "benchmarks/day_compare.py",
+      "src/opdi"
+    ],
+    "git_dirty": false,
+    "git_sha": "48ff213",
+    "input_tables": {
+      "s3a://eurocontrol/opdi-world/research/speed/p1b2/osn_tracks": {
+        "bytes": 789000350,
+        "newest": "2026-11-14T09:31:30.480000+00:00",
+        "objects": 27
+      },
+      "s3a://eurocontrol/opdi-world/research/speed/p1b2/osn_tracks_clean": {
+        "bytes": 775980732,
+        "newest": "2026-11-14T09:33:40.378000+00:00",
+        "objects": 30
+      },
+      "s3a://eurocontrol/opdi-world/research/speed/p1k2/osn_tracks": {
+        "bytes": 792296398,
+        "newest": "2026-11-14T09:56:23.589000+00:00",
+        "objects": 27
+      },
+      "s3a://eurocontrol/opdi-world/research/speed/p1k2/osn_tracks_clean": {
+        "bytes": 775980733,
+        "newest": "2026-11-14T09:58:37.485000+00:00",
+        "objects": 30
+      }
+    },
+    "inputs": {},
+    "notes": "p1b2 = baseline (production S3 settings, 12 executors), p1k2 = Kryo serialiser; steps 02 and 02a of one aircraft in 12, from the same reports (sv12)",
+    "produced_utc": "2026-11-14T10:00:39+00:00",
+    "script": "benchmarks/day_compare.py",
+    "sha256_16": "935bd9e5b8499e70"
+  },
   "day_summary.csv": {
-    "argv": [],
-    "bytes": 1353,
-    "code_fingerprint": "5d39f0e2ba080ea3",
+    "argv": [
+      "settings round: rows with round=settings, from the step_timings.csv rows of orch3 and orch1"
+    ],
+    "bytes": 3132,
+    "code_fingerprint": "bb1e307ce4b908fe",
     "code_paths": [
       "benchmarks/day_compare.py",
       "benchmarks/day_timing.py",
       "src/opdi"
     ],
-    "git_dirty": false,
-    "git_sha": "9141821",
+    "git_dirty": true,
+    "git_sha": "9a4d6e1",
     "input_tables": {},
     "inputs": {},
-    "notes": "base = code of commit 1a8b35b (pipeline as at 70eaac7); scaled_base, s2base, s4base, m12base, m24base also. Other labels: code of the commit named in the notes column of day_summary.csv.",
-    "produced_utc": "2026-11-14T00:45:41+00:00",
+    "notes": "base = code of commit 1a8b35b (pipeline as at 70eaac7); scaled_base, s2base, s4base, m12base, m24base also. Other labels: code of the commit named in the notes column of day_summary.csv. Rows with round=settings: after = the whole day measured through the orchestration (orch3, code 9a4d6e1); step 01 = the fetch of one day (2026-06-15).",
+    "produced_utc": "2026-11-14T21:56:33+00:00",
     "script": "benchmarks/day_timing.py",
-    "sha256_16": "3980356bb1909cf0"
+    "sha256_16": "e8a97879b85eacec"
+  },
+  "driver_memory.csv": {
+    "argv": [
+      "memwatch.sh mem_<label>.txt during the orchestration day runs"
+    ],
+    "bytes": 154,
+    "code_fingerprint": "bb1e307ce4b908fe",
+    "code_paths": [
+      "benchmarks/day_compare.py",
+      "benchmarks/day_timing.py",
+      "src/opdi"
+    ],
+    "git_dirty": true,
+    "git_sha": "9a4d6e1",
+    "input_tables": {},
+    "inputs": {},
+    "notes": "The pod that runs the driver (16 GiB limit); pod_anon includes the notebook server and other processes of the pod.",
+    "produced_utc": "2026-11-14T21:57:16+00:00",
+    "script": "settings/memwatch.sh (every 5 s: anon of /sys/fs/cgroup/memory.stat, RSS of the java processes)",
+    "sha256_16": "2aa60e36260ce1cb"
+  },
+  "executor_events.csv": {
+    "argv": [
+      "run --day 2026-06-14 --s3 production --out settings/data with: --steps 01 --sample-mod 12 --executors 12 --label sv12; --steps 02 02a --sample-mod 12 --statevectors-from sv12 --executors 12 --label p1{b,a,k}{1,2} [--arrow-udf | --conf spark.serializer=org.apache.spark.serializer.KryoSerializer --conf spark.kryoserializer.buffer.max=256m]; --steps 03 04 04b 09 --label pa{b,e,s}{1,2} (--executors 12 | 13 | 13 --conf spark.sql.shuffle.partitions=104); --steps 03 04 04b 09 --executors 13 --conf spark.executor.processTreeMetrics.enabled=true --conf spark.eventLog.logStageExecutorMetrics=true --label pak{1,2}; orch1-3: python -m opdi.orchestration day --day 2026-06-14 --warehouse s3a://eurocontrol/opdi-world/research/speed/orch<N> (OPDI_EVENTLOG_DIR set; rows built by orch_to_csv.py from the day log and the event logs)"
+    ],
+    "bytes": 838,
+    "code_fingerprint": "bb1e307ce4b908fe",
+    "code_paths": [
+      "benchmarks/day_compare.py",
+      "benchmarks/day_timing.py",
+      "src/opdi"
+    ],
+    "git_dirty": true,
+    "git_sha": "9a4d6e1",
+    "input_tables": {},
+    "inputs": {},
+    "notes": "Settings round of 2026-11-14. Labels: p1* steps 02/02a on one aircraft in 12 (b today's settings, a Arrow H3 function, k Kryo); pab/pae/pas/pak steps 03-09 full day from opdi-world/osn_tracks_clean (b today's settings: 12 executors, 12g, default overhead, 200 parts; e 13 executors; s 13 + 104 parts; k the kept settings 13 x (11g + 2560m), 104 parts, cluster settings, code a62317f..); orch1/2/3 whole day 01-09 from the raw archive through the orchestration (orch1: 10g + 3584m, step 09 failed and was continued; orch2: two executor pods deleted; orch3: undisturbed). pab/pae/pas ran the code of a135a74, pak the code of 07b583e, orch2/3 the code of 9a4d6e1.",
+    "produced_utc": "2026-11-14T21:57:16+00:00",
+    "script": "benchmarks/day_timing.py",
+    "sha256_16": "2429686d1f4b2f99"
+  },
+  "executor_memory.csv": {
+    "argv": [
+      "run --day 2026-06-14 --s3 production --out settings/data with: --steps 01 --sample-mod 12 --executors 12 --label sv12; --steps 02 02a --sample-mod 12 --statevectors-from sv12 --executors 12 --label p1{b,a,k}{1,2} [--arrow-udf | --conf spark.serializer=org.apache.spark.serializer.KryoSerializer --conf spark.kryoserializer.buffer.max=256m]; --steps 03 04 04b 09 --label pa{b,e,s}{1,2} (--executors 12 | 13 | 13 --conf spark.sql.shuffle.partitions=104); --steps 03 04 04b 09 --executors 13 --conf spark.executor.processTreeMetrics.enabled=true --conf spark.eventLog.logStageExecutorMetrics=true --label pak{1,2}; orch1-3: python -m opdi.orchestration day --day 2026-06-14 --warehouse s3a://eurocontrol/opdi-world/research/speed/orch<N> (OPDI_EVENTLOG_DIR set; rows built by orch_to_csv.py from the day log and the event logs)"
+    ],
+    "bytes": 719,
+    "code_fingerprint": "bb1e307ce4b908fe",
+    "code_paths": [
+      "benchmarks/day_compare.py",
+      "benchmarks/day_timing.py",
+      "src/opdi"
+    ],
+    "git_dirty": true,
+    "git_sha": "9a4d6e1",
+    "input_tables": {},
+    "inputs": {},
+    "notes": "Settings round of 2026-11-14. Labels: p1* steps 02/02a on one aircraft in 12 (b today's settings, a Arrow H3 function, k Kryo); pab/pae/pas/pak steps 03-09 full day from opdi-world/osn_tracks_clean (b today's settings: 12 executors, 12g, default overhead, 200 parts; e 13 executors; s 13 + 104 parts; k the kept settings 13 x (11g + 2560m), 104 parts, cluster settings, code a62317f..); orch1/2/3 whole day 01-09 from the raw archive through the orchestration (orch1: 10g + 3584m, step 09 failed and was continued; orch2: two executor pods deleted; orch3: undisturbed). pab/pae/pas ran the code of a135a74, pak the code of 07b583e, orch2/3 the code of 9a4d6e1.",
+    "produced_utc": "2026-11-14T21:57:16+00:00",
+    "script": "benchmarks/day_timing.py",
+    "sha256_16": "db67a44460c74d89"
+  },
+  "fault_injection_comparison.csv": {
+    "argv": [
+      "events",
+      "--day",
+      "2026-06-14",
+      "--before",
+      "orch3/v2.0.0",
+      "--after",
+      "orch2/v2.0.0",
+      "--executors",
+      "13",
+      "--out",
+      "/home/jupyter/.claude/jobs/616d5918/tmp/settings/data/fault_injection_comparison.csv",
+      "--notes",
+      "orch3 = the whole day 01-09 through python -m opdi.orchestration day, undisturbed; orch2 = the same with one executor pod deleted in the middle of step 02 and one in the middle of step 04; code of commit 9a4d6e1"
+    ],
+    "bytes": 13716,
+    "code_fingerprint": "87f270aa38c6011c",
+    "code_paths": [
+      "benchmarks/day_compare.py",
+      "src/opdi"
+    ],
+    "git_dirty": true,
+    "git_sha": "9a4d6e1",
+    "input_tables": {
+      "s3a://eurocontrol/opdi-world/research/speed/orch2/v2.0.0/published/flight_events/flight_events_20260614.parquet": {
+        "bytes": 0,
+        "newest": "",
+        "objects": 0
+      },
+      "s3a://eurocontrol/opdi-world/research/speed/orch2/v2.0.0/published/flight_list/flight_list_20260614.parquet": {
+        "bytes": 0,
+        "newest": "",
+        "objects": 0
+      },
+      "s3a://eurocontrol/opdi-world/research/speed/orch3/v2.0.0/published/flight_events/flight_events_20260614.parquet": {
+        "bytes": 0,
+        "newest": "",
+        "objects": 0
+      },
+      "s3a://eurocontrol/opdi-world/research/speed/orch3/v2.0.0/published/flight_list/flight_list_20260614.parquet": {
+        "bytes": 0,
+        "newest": "",
+        "objects": 0
+      }
+    },
+    "inputs": {},
+    "notes": "orch3 = the whole day 01-09 through python -m opdi.orchestration day, undisturbed; orch2 = the same with one executor pod deleted in the middle of step 02 and one in the middle of step 04; code of commit 9a4d6e1",
+    "produced_utc": "2026-11-14T21:47:39+00:00",
+    "script": "benchmarks/day_compare.py",
+    "sha256_16": "95030ac4220593c7"
+  },
+  "fault_injection_flight_list.csv": {
+    "argv": [
+      "flightlist",
+      "--day",
+      "2026-06-14",
+      "--before",
+      "orch3/v2.0.0",
+      "--after",
+      "orch2/v2.0.0",
+      "--executors",
+      "13",
+      "--out",
+      "/home/jupyter/.claude/jobs/616d5918/tmp/settings/data/fault_injection_flight_list.csv",
+      "--notes",
+      "orch3 undisturbed, orch2 with two executor pods deleted (steps 02 and 04); code of commit 9a4d6e1"
+    ],
+    "bytes": 3520,
+    "code_fingerprint": "87f270aa38c6011c",
+    "code_paths": [
+      "benchmarks/day_compare.py",
+      "src/opdi"
+    ],
+    "git_dirty": true,
+    "git_sha": "9a4d6e1",
+    "input_tables": {
+      "s3a://eurocontrol/opdi-world/research/speed/orch2/v2.0.0/opdi_flight_list": {
+        "bytes": 23572992,
+        "newest": "2026-11-14T19:56:17.589000+00:00",
+        "objects": 4
+      },
+      "s3a://eurocontrol/opdi-world/research/speed/orch3/v2.0.0/opdi_flight_list": {
+        "bytes": 23572998,
+        "newest": "2026-11-14T21:37:22.927000+00:00",
+        "objects": 4
+      }
+    },
+    "inputs": {},
+    "notes": "orch3 undisturbed, orch2 with two executor pods deleted (steps 02 and 04); code of commit 9a4d6e1",
+    "produced_utc": "2026-11-14T21:48:24+00:00",
+    "script": "benchmarks/day_compare.py",
+    "sha256_16": "61314a53121cdd3c"
+  },
+  "full_day_comparison.csv": {
+    "argv": [
+      "events",
+      "--day",
+      "2026-06-14",
+      "--before",
+      "pak2",
+      "--after",
+      "orch3/v2.0.0",
+      "--executors",
+      "13",
+      "--out",
+      "/home/jupyter/.claude/jobs/616d5918/tmp/settings/data/full_day_comparison.csv",
+      "--notes",
+      "pak2 = steps 03-09 from the warehouse tracks (opdi-world/osn_tracks_clean) with the kept settings; orch3 = the whole day 01-09 from the raw archive through python -m opdi.orchestration day, code of commit 9a4d6e1"
+    ],
+    "bytes": 16625,
+    "code_fingerprint": "87f270aa38c6011c",
+    "code_paths": [
+      "benchmarks/day_compare.py",
+      "src/opdi"
+    ],
+    "git_dirty": true,
+    "git_sha": "9a4d6e1",
+    "input_tables": {
+      "s3a://eurocontrol/opdi-world/research/speed/orch3/v2.0.0/published/flight_events/flight_events_20260614.parquet": {
+        "bytes": 0,
+        "newest": "",
+        "objects": 0
+      },
+      "s3a://eurocontrol/opdi-world/research/speed/orch3/v2.0.0/published/flight_list/flight_list_20260614.parquet": {
+        "bytes": 0,
+        "newest": "",
+        "objects": 0
+      },
+      "s3a://eurocontrol/opdi-world/research/speed/pak2/published/flight_events/flight_events_20260614.parquet": {
+        "bytes": 0,
+        "newest": "",
+        "objects": 0
+      },
+      "s3a://eurocontrol/opdi-world/research/speed/pak2/published/flight_list/flight_list_20260614.parquet": {
+        "bytes": 0,
+        "newest": "",
+        "objects": 0
+      }
+    },
+    "inputs": {},
+    "notes": "pak2 = steps 03-09 from the warehouse tracks (opdi-world/osn_tracks_clean) with the kept settings; orch3 = the whole day 01-09 from the raw archive through python -m opdi.orchestration day, code of commit 9a4d6e1",
+    "produced_utc": "2026-11-14T21:50:30+00:00",
+    "script": "benchmarks/day_compare.py",
+    "sha256_16": "d44d526252a4316c"
+  },
+  "full_day_flight_list.csv": {
+    "argv": [
+      "flightlist",
+      "--day",
+      "2026-06-14",
+      "--before",
+      "pak2",
+      "--after",
+      "orch3/v2.0.0",
+      "--executors",
+      "13",
+      "--out",
+      "/home/jupyter/.claude/jobs/616d5918/tmp/settings/data/full_day_flight_list.csv",
+      "--notes",
+      "pak2 = steps 03-09 from the warehouse tracks; orch3 = the whole day from the raw archive through the orchestration, code of commit 9a4d6e1"
+    ],
+    "bytes": 4398,
+    "code_fingerprint": "87f270aa38c6011c",
+    "code_paths": [
+      "benchmarks/day_compare.py",
+      "src/opdi"
+    ],
+    "git_dirty": true,
+    "git_sha": "9a4d6e1",
+    "input_tables": {
+      "s3a://eurocontrol/opdi-world/research/speed/orch3/v2.0.0/opdi_flight_list": {
+        "bytes": 23572998,
+        "newest": "2026-11-14T21:37:22.927000+00:00",
+        "objects": 4
+      },
+      "s3a://eurocontrol/opdi-world/research/speed/pak2/opdi_flight_list": {
+        "bytes": 24062675,
+        "newest": "2026-11-14T16:03:09.222000+00:00",
+        "objects": 4
+      }
+    },
+    "inputs": {},
+    "notes": "pak2 = steps 03-09 from the warehouse tracks; orch3 = the whole day from the raw archive through the orchestration, code of commit 9a4d6e1",
+    "produced_utc": "2026-11-14T21:51:19+00:00",
+    "script": "benchmarks/day_compare.py",
+    "sha256_16": "9d7836cb081e8470"
   },
   "repeat_run_comparison.csv": {
     "argv": [
@@ -206,40 +560,398 @@
     "script": "benchmarks/day_compare.py",
     "sha256_16": "ddf44f29d1898c6b"
   },
-  "stage_timings.csv": {
-    "argv": [],
-    "bytes": 167522,
-    "code_fingerprint": "5d39f0e2ba080ea3",
+  "resumed_day_comparison.csv": {
+    "argv": [
+      "events",
+      "--day",
+      "2026-06-14",
+      "--before",
+      "orch3/v2.0.0",
+      "--after",
+      "orch1/v2.0.0",
+      "--executors",
+      "13",
+      "--out",
+      "/home/jupyter/.claude/jobs/616d5918/tmp/settings/data/resumed_day_comparison.csv",
+      "--notes",
+      "orch3 undisturbed (11g heap); orch1 = steps 01-04b with 10g heap + 3.5 GiB, step 09 failed and was continued by a second run of the day command with 11g; code of commit 9a4d6e1"
+    ],
+    "bytes": 13724,
+    "code_fingerprint": "87f270aa38c6011c",
+    "code_paths": [
+      "benchmarks/day_compare.py",
+      "src/opdi"
+    ],
+    "git_dirty": true,
+    "git_sha": "9a4d6e1",
+    "input_tables": {
+      "s3a://eurocontrol/opdi-world/research/speed/orch1/v2.0.0/published/flight_events/flight_events_20260614.parquet": {
+        "bytes": 0,
+        "newest": "",
+        "objects": 0
+      },
+      "s3a://eurocontrol/opdi-world/research/speed/orch1/v2.0.0/published/flight_list/flight_list_20260614.parquet": {
+        "bytes": 0,
+        "newest": "",
+        "objects": 0
+      },
+      "s3a://eurocontrol/opdi-world/research/speed/orch3/v2.0.0/published/flight_events/flight_events_20260614.parquet": {
+        "bytes": 0,
+        "newest": "",
+        "objects": 0
+      },
+      "s3a://eurocontrol/opdi-world/research/speed/orch3/v2.0.0/published/flight_list/flight_list_20260614.parquet": {
+        "bytes": 0,
+        "newest": "",
+        "objects": 0
+      }
+    },
+    "inputs": {},
+    "notes": "orch3 undisturbed (11g heap); orch1 = steps 01-04b with 10g heap + 3.5 GiB, step 09 failed and was continued by a second run of the day command with 11g; code of commit 9a4d6e1",
+    "produced_utc": "2026-11-14T21:53:20+00:00",
+    "script": "benchmarks/day_compare.py",
+    "sha256_16": "bfb57fd7312aa601"
+  },
+  "settings_events_e.csv": {
+    "argv": [
+      "events",
+      "--day",
+      "2026-06-14",
+      "--before",
+      "pab2",
+      "--after",
+      "pae2",
+      "--executors",
+      "12",
+      "--out",
+      "/home/jupyter/.claude/jobs/616d5918/tmp/settings/data/settings_events_e.csv",
+      "--notes",
+      "pab2 = today's settings (12 executors, Hadoop's storage defaults); pae2 = 13 executors; steps 03-09 of 2026-06-14 from the warehouse tracks, code of commit 48ff213"
+    ],
+    "bytes": 13695,
+    "code_fingerprint": "aefd467ec950a301",
+    "code_paths": [
+      "benchmarks/day_compare.py",
+      "src/opdi"
+    ],
+    "git_dirty": false,
+    "git_sha": "48ff213",
+    "input_tables": {
+      "s3a://eurocontrol/opdi-world/research/speed/pab2/published/flight_events/flight_events_20260614.parquet": {
+        "bytes": 0,
+        "newest": "",
+        "objects": 0
+      },
+      "s3a://eurocontrol/opdi-world/research/speed/pab2/published/flight_list/flight_list_20260614.parquet": {
+        "bytes": 0,
+        "newest": "",
+        "objects": 0
+      },
+      "s3a://eurocontrol/opdi-world/research/speed/pae2/published/flight_events/flight_events_20260614.parquet": {
+        "bytes": 0,
+        "newest": "",
+        "objects": 0
+      },
+      "s3a://eurocontrol/opdi-world/research/speed/pae2/published/flight_list/flight_list_20260614.parquet": {
+        "bytes": 0,
+        "newest": "",
+        "objects": 0
+      }
+    },
+    "inputs": {},
+    "notes": "pab2 = today's settings (12 executors, Hadoop's storage defaults); pae2 = 13 executors; steps 03-09 of 2026-06-14 from the warehouse tracks, code of commit 48ff213",
+    "produced_utc": "2026-11-14T14:44:29+00:00",
+    "script": "benchmarks/day_compare.py",
+    "sha256_16": "fa0aa10b5fd4caaf"
+  },
+  "settings_events_k.csv": {
+    "argv": [
+      "events",
+      "--day",
+      "2026-06-14",
+      "--before",
+      "pab2",
+      "--after",
+      "pak2",
+      "--executors",
+      "13",
+      "--out",
+      "/home/jupyter/.claude/jobs/616d5918/tmp/settings/data/settings_events_k.csv",
+      "--notes",
+      "pab2 = today's settings (12 executors of 12g heap and Spark's default overhead, 200 shuffle partitions; code of b524a1c..a135a74); pak2 = the kept settings (13 executors of 11g + 2560m, 104 shuffle partitions, cluster settings) and kept frames held twice, code of commit b193a75; steps 03-09 of 2026-06-14 from the warehouse tracks"
+    ],
+    "bytes": 13705,
+    "code_fingerprint": "8fd53b0ed584c236",
+    "code_paths": [
+      "benchmarks/day_compare.py",
+      "src/opdi"
+    ],
+    "git_dirty": true,
+    "git_sha": "b193a75",
+    "input_tables": {
+      "s3a://eurocontrol/opdi-world/research/speed/pab2/published/flight_events/flight_events_20260614.parquet": {
+        "bytes": 0,
+        "newest": "",
+        "objects": 0
+      },
+      "s3a://eurocontrol/opdi-world/research/speed/pab2/published/flight_list/flight_list_20260614.parquet": {
+        "bytes": 0,
+        "newest": "",
+        "objects": 0
+      },
+      "s3a://eurocontrol/opdi-world/research/speed/pak2/published/flight_events/flight_events_20260614.parquet": {
+        "bytes": 0,
+        "newest": "",
+        "objects": 0
+      },
+      "s3a://eurocontrol/opdi-world/research/speed/pak2/published/flight_list/flight_list_20260614.parquet": {
+        "bytes": 0,
+        "newest": "",
+        "objects": 0
+      }
+    },
+    "inputs": {},
+    "notes": "pab2 = today's settings (12 executors of 12g heap and Spark's default overhead, 200 shuffle partitions; code of b524a1c..a135a74); pak2 = the kept settings (13 executors of 11g + 2560m, 104 shuffle partitions, cluster settings) and kept frames held twice, code of commit b193a75; steps 03-09 of 2026-06-14 from the warehouse tracks",
+    "produced_utc": "2026-11-14T16:08:04+00:00",
+    "script": "benchmarks/day_compare.py",
+    "sha256_16": "b1644d9d4a47c3a1"
+  },
+  "settings_events_s.csv": {
+    "argv": [
+      "events",
+      "--day",
+      "2026-06-14",
+      "--before",
+      "pab2",
+      "--after",
+      "pas2",
+      "--executors",
+      "12",
+      "--out",
+      "/home/jupyter/.claude/jobs/616d5918/tmp/settings/data/settings_events_s.csv",
+      "--notes",
+      "pab2 = today's settings (12 executors, Hadoop's storage defaults); pas2 = 13 executors, 104 shuffle partitions; steps 03-09 of 2026-06-14 from the warehouse tracks, code of commit 48ff213"
+    ],
+    "bytes": 13719,
+    "code_fingerprint": "aefd467ec950a301",
+    "code_paths": [
+      "benchmarks/day_compare.py",
+      "src/opdi"
+    ],
+    "git_dirty": false,
+    "git_sha": "48ff213",
+    "input_tables": {
+      "s3a://eurocontrol/opdi-world/research/speed/pab2/published/flight_events/flight_events_20260614.parquet": {
+        "bytes": 0,
+        "newest": "",
+        "objects": 0
+      },
+      "s3a://eurocontrol/opdi-world/research/speed/pab2/published/flight_list/flight_list_20260614.parquet": {
+        "bytes": 0,
+        "newest": "",
+        "objects": 0
+      },
+      "s3a://eurocontrol/opdi-world/research/speed/pas2/published/flight_events/flight_events_20260614.parquet": {
+        "bytes": 0,
+        "newest": "",
+        "objects": 0
+      },
+      "s3a://eurocontrol/opdi-world/research/speed/pas2/published/flight_list/flight_list_20260614.parquet": {
+        "bytes": 0,
+        "newest": "",
+        "objects": 0
+      }
+    },
+    "inputs": {},
+    "notes": "pab2 = today's settings (12 executors, Hadoop's storage defaults); pas2 = 13 executors, 104 shuffle partitions; steps 03-09 of 2026-06-14 from the warehouse tracks, code of commit 48ff213",
+    "produced_utc": "2026-11-14T14:47:25+00:00",
+    "script": "benchmarks/day_compare.py",
+    "sha256_16": "4a886c79f2e5e5fe"
+  },
+  "settings_flight_list_e.csv": {
+    "argv": [
+      "flightlist",
+      "--day",
+      "2026-06-14",
+      "--before",
+      "pab2",
+      "--after",
+      "pae2",
+      "--executors",
+      "12",
+      "--out",
+      "/home/jupyter/.claude/jobs/616d5918/tmp/settings/data/settings_flight_list_e.csv",
+      "--notes",
+      "pab2 = today's settings; pae2 = 13 executors; steps 03-09 from the warehouse tracks"
+    ],
+    "bytes": 3520,
+    "code_fingerprint": "aefd467ec950a301",
+    "code_paths": [
+      "benchmarks/day_compare.py",
+      "src/opdi"
+    ],
+    "git_dirty": false,
+    "git_sha": "48ff213",
+    "input_tables": {
+      "s3a://eurocontrol/opdi-world/research/speed/pab2/opdi_flight_list": {
+        "bytes": 23965594,
+        "newest": "2026-11-14T13:11:58.531000+00:00",
+        "objects": 4
+      },
+      "s3a://eurocontrol/opdi-world/research/speed/pae2/opdi_flight_list": {
+        "bytes": 24029904,
+        "newest": "2026-11-14T13:54:50.153000+00:00",
+        "objects": 4
+      }
+    },
+    "inputs": {},
+    "notes": "pab2 = today's settings; pae2 = 13 executors; steps 03-09 from the warehouse tracks",
+    "produced_utc": "2026-11-14T14:45:19+00:00",
+    "script": "benchmarks/day_compare.py",
+    "sha256_16": "5b3ddc89070ae075"
+  },
+  "settings_flight_list_k.csv": {
+    "argv": [
+      "flightlist",
+      "--day",
+      "2026-06-14",
+      "--before",
+      "pab2",
+      "--after",
+      "pak2",
+      "--executors",
+      "13",
+      "--out",
+      "/home/jupyter/.claude/jobs/616d5918/tmp/settings/data/settings_flight_list_k.csv",
+      "--notes",
+      "pab2 = today's settings; pak2 = the kept settings, code of commit b193a75; steps 03-09 from the warehouse tracks"
+    ],
+    "bytes": 3520,
+    "code_fingerprint": "8fd53b0ed584c236",
+    "code_paths": [
+      "benchmarks/day_compare.py",
+      "src/opdi"
+    ],
+    "git_dirty": true,
+    "git_sha": "b193a75",
+    "input_tables": {
+      "s3a://eurocontrol/opdi-world/research/speed/pab2/opdi_flight_list": {
+        "bytes": 23965594,
+        "newest": "2026-11-14T13:11:58.531000+00:00",
+        "objects": 4
+      },
+      "s3a://eurocontrol/opdi-world/research/speed/pak2/opdi_flight_list": {
+        "bytes": 24062675,
+        "newest": "2026-11-14T16:03:09.222000+00:00",
+        "objects": 4
+      }
+    },
+    "inputs": {},
+    "notes": "pab2 = today's settings; pak2 = the kept settings, code of commit b193a75; steps 03-09 from the warehouse tracks",
+    "produced_utc": "2026-11-14T16:08:54+00:00",
+    "script": "benchmarks/day_compare.py",
+    "sha256_16": "5b3ddc89070ae075"
+  },
+  "settings_flight_list_s.csv": {
+    "argv": [
+      "flightlist",
+      "--day",
+      "2026-06-14",
+      "--before",
+      "pab2",
+      "--after",
+      "pas2",
+      "--executors",
+      "12",
+      "--out",
+      "/home/jupyter/.claude/jobs/616d5918/tmp/settings/data/settings_flight_list_s.csv",
+      "--notes",
+      "pab2 = today's settings; pas2 = 13 executors, 104 shuffle partitions; steps 03-09 from the warehouse tracks"
+    ],
+    "bytes": 3520,
+    "code_fingerprint": "aefd467ec950a301",
+    "code_paths": [
+      "benchmarks/day_compare.py",
+      "src/opdi"
+    ],
+    "git_dirty": false,
+    "git_sha": "48ff213",
+    "input_tables": {
+      "s3a://eurocontrol/opdi-world/research/speed/pab2/opdi_flight_list": {
+        "bytes": 23965594,
+        "newest": "2026-11-14T13:11:58.531000+00:00",
+        "objects": 4
+      },
+      "s3a://eurocontrol/opdi-world/research/speed/pas2/opdi_flight_list": {
+        "bytes": 24062675,
+        "newest": "2026-11-14T14:33:30.137000+00:00",
+        "objects": 4
+      }
+    },
+    "inputs": {},
+    "notes": "pab2 = today's settings; pas2 = 13 executors, 104 shuffle partitions; steps 03-09 from the warehouse tracks",
+    "produced_utc": "2026-11-14T14:48:14+00:00",
+    "script": "benchmarks/day_compare.py",
+    "sha256_16": "5b3ddc89070ae075"
+  },
+  "settings_tests.csv": {
+    "argv": [
+      "run --day 2026-06-14 --s3 production --out settings/data with: --steps 01 --sample-mod 12 --executors 12 --label sv12; --steps 02 02a --sample-mod 12 --statevectors-from sv12 --executors 12 --label p1{b,a,k}{1,2} [--arrow-udf | --conf spark.serializer=org.apache.spark.serializer.KryoSerializer --conf spark.kryoserializer.buffer.max=256m]; --steps 03 04 04b 09 --label pa{b,e,s}{1,2} (--executors 12 | 13 | 13 --conf spark.sql.shuffle.partitions=104); --steps 03 04 04b 09 --executors 13 --conf spark.executor.processTreeMetrics.enabled=true --conf spark.eventLog.logStageExecutorMetrics=true --label pak{1,2}; orch1-3: python -m opdi.orchestration day --day 2026-06-14 --warehouse s3a://eurocontrol/opdi-world/research/speed/orch<N> (OPDI_EVENTLOG_DIR set; rows built by orch_to_csv.py from the day log and the event logs)"
+    ],
+    "bytes": 11031,
+    "code_fingerprint": "bb1e307ce4b908fe",
     "code_paths": [
       "benchmarks/day_compare.py",
       "benchmarks/day_timing.py",
       "src/opdi"
     ],
-    "git_dirty": false,
-    "git_sha": "9141821",
+    "git_dirty": true,
+    "git_sha": "9a4d6e1",
     "input_tables": {},
     "inputs": {},
-    "notes": "base = code of commit 1a8b35b (pipeline as at 70eaac7); scaled_base, s2base, s4base, m12base, m24base also. Other labels: code of the commit named in the notes column of day_summary.csv.",
-    "produced_utc": "2026-11-14T00:45:32+00:00",
+    "notes": "Settings round of 2026-11-14. Labels: p1* steps 02/02a on one aircraft in 12 (b today's settings, a Arrow H3 function, k Kryo); pab/pae/pas/pak steps 03-09 full day from opdi-world/osn_tracks_clean (b today's settings: 12 executors, 12g, default overhead, 200 parts; e 13 executors; s 13 + 104 parts; k the kept settings 13 x (11g + 2560m), 104 parts, cluster settings, code a62317f..); orch1/2/3 whole day 01-09 from the raw archive through the orchestration (orch1: 10g + 3584m, step 09 failed and was continued; orch2: two executor pods deleted; orch3: undisturbed). pab/pae/pas ran the code of a135a74, pak the code of 07b583e, orch2/3 the code of 9a4d6e1. Verdicts and reasons written by hand in the builder, from the stage tables.",
+    "produced_utc": "2026-11-14T21:57:16+00:00",
+    "script": "settings/build_settings_csv.py (from step_timings.csv, stage_timings.csv, executor_events.csv)",
+    "sha256_16": "3e161af0350207c4"
+  },
+  "stage_timings.csv": {
+    "argv": [
+      "run --day 2026-06-14 --s3 production --out settings/data with: --steps 01 --sample-mod 12 --executors 12 --label sv12; --steps 02 02a --sample-mod 12 --statevectors-from sv12 --executors 12 --label p1{b,a,k}{1,2} [--arrow-udf | --conf spark.serializer=org.apache.spark.serializer.KryoSerializer --conf spark.kryoserializer.buffer.max=256m]; --steps 03 04 04b 09 --label pa{b,e,s}{1,2} (--executors 12 | 13 | 13 --conf spark.sql.shuffle.partitions=104); --steps 03 04 04b 09 --executors 13 --conf spark.executor.processTreeMetrics.enabled=true --conf spark.eventLog.logStageExecutorMetrics=true --label pak{1,2}; orch1-3: python -m opdi.orchestration day --day 2026-06-14 --warehouse s3a://eurocontrol/opdi-world/research/speed/orch<N> (OPDI_EVENTLOG_DIR set; rows built by orch_to_csv.py from the day log and the event logs)"
+    ],
+    "bytes": 780033,
+    "code_fingerprint": "bb1e307ce4b908fe",
+    "code_paths": [
+      "benchmarks/day_compare.py",
+      "benchmarks/day_timing.py",
+      "src/opdi"
+    ],
+    "git_dirty": true,
+    "git_sha": "9a4d6e1",
+    "input_tables": {},
+    "inputs": {},
+    "notes": "Settings round of 2026-11-14. Labels: p1* steps 02/02a on one aircraft in 12 (b today's settings, a Arrow H3 function, k Kryo); pab/pae/pas/pak steps 03-09 full day from opdi-world/osn_tracks_clean (b today's settings: 12 executors, 12g, default overhead, 200 parts; e 13 executors; s 13 + 104 parts; k the kept settings 13 x (11g + 2560m), 104 parts, cluster settings, code a62317f..); orch1/2/3 whole day 01-09 from the raw archive through the orchestration (orch1: 10g + 3584m, step 09 failed and was continued; orch2: two executor pods deleted; orch3: undisturbed). pab/pae/pas ran the code of a135a74, pak the code of 07b583e, orch2/3 the code of 9a4d6e1.",
+    "produced_utc": "2026-11-14T21:57:16+00:00",
     "script": "benchmarks/day_timing.py",
-    "sha256_16": "5ece943f02ddba31"
+    "sha256_16": "a3c639eebaf29ed2"
   },
   "step_timings.csv": {
-    "argv": [],
-    "bytes": 10721,
-    "code_fingerprint": "5d39f0e2ba080ea3",
+    "argv": [
+      "run --day 2026-06-14 --s3 production --out settings/data with: --steps 01 --sample-mod 12 --executors 12 --label sv12; --steps 02 02a --sample-mod 12 --statevectors-from sv12 --executors 12 --label p1{b,a,k}{1,2} [--arrow-udf | --conf spark.serializer=org.apache.spark.serializer.KryoSerializer --conf spark.kryoserializer.buffer.max=256m]; --steps 03 04 04b 09 --label pa{b,e,s}{1,2} (--executors 12 | 13 | 13 --conf spark.sql.shuffle.partitions=104); --steps 03 04 04b 09 --executors 13 --conf spark.executor.processTreeMetrics.enabled=true --conf spark.eventLog.logStageExecutorMetrics=true --label pak{1,2}; orch1-3: python -m opdi.orchestration day --day 2026-06-14 --warehouse s3a://eurocontrol/opdi-world/research/speed/orch<N> (OPDI_EVENTLOG_DIR set; rows built by orch_to_csv.py from the day log and the event logs)"
+    ],
+    "bytes": 20520,
+    "code_fingerprint": "bb1e307ce4b908fe",
     "code_paths": [
       "benchmarks/day_compare.py",
       "benchmarks/day_timing.py",
       "src/opdi"
     ],
-    "git_dirty": false,
-    "git_sha": "9141821",
+    "git_dirty": true,
+    "git_sha": "9a4d6e1",
     "input_tables": {},
     "inputs": {},
-    "notes": "base = code of commit 1a8b35b (pipeline as at 70eaac7); scaled_base, s2base, s4base, m12base, m24base also. Other labels: code of the commit named in the notes column of day_summary.csv.",
-    "produced_utc": "2026-11-14T00:45:32+00:00",
+    "notes": "Settings round of 2026-11-14. Labels: p1* steps 02/02a on one aircraft in 12 (b today's settings, a Arrow H3 function, k Kryo); pab/pae/pas/pak steps 03-09 full day from opdi-world/osn_tracks_clean (b today's settings: 12 executors, 12g, default overhead, 200 parts; e 13 executors; s 13 + 104 parts; k the kept settings 13 x (11g + 2560m), 104 parts, cluster settings, code a62317f..); orch1/2/3 whole day 01-09 from the raw archive through the orchestration (orch1: 10g + 3584m, step 09 failed and was continued; orch2: two executor pods deleted; orch3: undisturbed). pab/pae/pas ran the code of a135a74, pak the code of 07b583e, orch2/3 the code of 9a4d6e1.",
+    "produced_utc": "2026-11-14T21:57:16+00:00",
     "script": "benchmarks/day_timing.py",
-    "sha256_16": "56eab05f716a97c4"
+    "sha256_16": "83e399a50d9b3aa3"
   }
 }

@@ -17,7 +17,9 @@ library(knitr)
 D <- function(f) read.csv(file.path("data", f), stringsAsFactors = FALSE,
                           colClasses = c(step = "character"))
 
-ds <- D("day_summary.csv")      # one row per step: before and after, how obtained
+ds_all <- D("day_summary.csv")  # one row per step and round: before and after, how obtained
+ds  <- ds_all[ds_all$round == "code", ]      # the round of code changes
+dsr <- ds_all[ds_all$round == "settings", ]  # the round of Spark settings
 st <- D("step_timings.csv")     # one row per run of a step (label = which run)
 sg <- D("stage_timings.csv")    # one row per Spark stage of each run of a step
 rc <- read.csv(file.path("data", "result_comparison.csv"), stringsAsFactors = FALSE)
@@ -27,6 +29,7 @@ num <- function(x, d = 0) formatC(as.numeric(x), format = "f", digits = d, big.m
 # One value of day_summary.csv, of step_timings.csv, and the executor-seconds
 # (sum of the run time of all tasks) of one run of one step.
 S  <- function(step, col) ds[ds$step == step, col]
+SR <- function(step, col) dsr[dsr$step == step, col]
 ST <- function(label, step, col = "seconds") st[st$label == label & st$step == step, col]
 ES <- function(label, step) sum(sg$executor_run_s[sg$label == label & sg$step == step])
 
@@ -79,6 +82,14 @@ or badly spread work, and from running 12 Spark executors instead of 8. The
 published results did not change, and the target of one hour per day was not
 reached: the work that remains needs more processors than the cluster has, or
 a different way of building tracks.
+
+A second round changed only Spark's settings, on the same hardware (one
+more executor, fewer shuffle parts, more memory outside each executor's
+heap), and made a day run without losing executors. The whole day was then
+measured for the first time, every step, through the daily command: about
+`r num(SR("total", "after_s"))` s (`r num(SR("total", "after_s") / 3600, 1)`
+hours), with the same results with and without executors deleted on purpose
+in the middle of it.
 
 ## What was measured
 
@@ -414,13 +425,193 @@ So a day in one hour needs one of two things:
   reports, with the tracks still open carried from one day to the next. This
   would remove most of the repeated reading in step 02.
 
+## Spark settings
+
+A second round changed no code of the steps, only the settings of Spark, on
+the same hardware: the same namespace allowance of 30 processors and 192 GiB.
+
+```{r settings-setup}
+#| include: false
+stt <- read.csv(file.path("data", "settings_tests.csv"), stringsAsFactors = FALSE,
+                colClasses = c(step = "character"))
+xe <- read.csv(file.path("data", "executor_events.csv"), stringsAsFactors = FALSE)
+# Wall seconds of each run of one step, and their mean.
+W  <- function(labels, step) sapply(labels, function(l) as.numeric(ST(l, step)))
+MW <- function(labels, step) mean(W(labels, step))
+base_runs <- c("pab1", "pab2"); e13_runs <- c("pae1", "pae2")
+s104_runs <- c("pas1", "pas2"); kept_runs <- c("pak1", "pak2")
+steps4 <- c("03", "04", "04b", "09")
+killed <- function(l) as.numeric(xe$killed_137[xe$label == l])
+# Comparisons: kept settings against today's (pab2 / pak2), the fault run
+# against the undisturbed one (orch3 / orch2), the whole day from the archive
+# against the run from the stored tracks (pak2 / orch3).
+sk <- read.csv(file.path("data", "settings_events_k.csv"), stringsAsFactors = FALSE)
+fi <- read.csv(file.path("data", "fault_injection_comparison.csv"), stringsAsFactors = FALSE)
+fu <- read.csv(file.path("data", "full_day_comparison.csv"), stringsAsFactors = FALSE)
+P  <- function(t, part, item, col) t[t$part == part & t$item == item, col]
+SK <- function(part, item, col) P(sk, part, item, col)
+FI <- function(part, item, col) P(fi, part, item, col)
+FU <- function(part, item, col) P(fu, part, item, col)
+evsum <- function(t, col) sum(as.numeric(t[t$part == "events", col]))
+# The tracks write of step 02 in the five runs on one aircraft in 12.
+p1 <- c("p1b1", "p1a1", "p1k1", "p1b2", "p1k2", "p1a2")
+wr <- sapply(p1, function(l) sg$seconds[sg$label == l & sg$step == "02" &
+                                          grepl("WriteFiles", sg$operators)])
+xm <- read.csv(file.path("data", "executor_memory.csv"), stringsAsFactors = FALSE,
+               colClasses = c(step = "character"))
+dm <- read.csv(file.path("data", "driver_memory.csv"), stringsAsFactors = FALSE)
+XM <- function(l, st, col) xm[xm$label == l & xm$step == st, col]
+spill02 <- sum(sg$spill_disk_bytes[sg$label == "orch3" & sg$step == "02"]) / 1e9
+```
+
+Each setting was run twice, alternating with the runs without it, on the same
+input: steps 03 to 09 on the full day from the existing tracks, or steps 02
+and 02a on one aircraft in 12. A single run proves little here, because the
+storage service varies from one run to the next: the same tracks write of
+step 02 took `r num(min(wr))` to `r num(sort(wr)[length(wr) - 1])` s in
+`r length(wr) - 1` runs and `r num(max(wr))` s in another, and step 03 of the
+same settings took `r num(ST("pab1", "03"))` and `r num(ST("pab2", "03"))` s.
+A setting was kept only when its gain was clearly larger than that spread,
+and only when the results stayed the same (compared event by event and
+flight by flight, as in the section above).
+
+```{r tbl-settings}
+#| echo: false
+s <- stt[stt$runs > 0, c("setting", "value", "step", "wall_s_each", "executor_s_each",
+                        "executors_killed_each", "verdict")]
+kable(s, row.names = FALSE,
+      col.names = c("Setting", "Value", "Step", "Time of each run (s)",
+                    "Executor-seconds of each run", "Executors killed (exit 137)", "Kept?"),
+      caption = "Settings tried on the cluster. Steps 02 and 02a: one aircraft in 12; steps 03 to 09: the full day. The reasons are in data/settings_tests.csv.")
+```
+
+What came out:
+
+- **13 executors instead of 12.** The comment in the configuration said a
+  13th would wait for memory; it does not. An executor's container is its
+  heap plus a share for everything outside it, and 13 containers fit. Step 04
+  took `r num(MW(e13_runs, "04"))` s instead of `r num(MW(base_runs, "04"))` s
+  (`r num(100 * (MW(e13_runs, "04") / MW(base_runs, "04") - 1))`%).
+- **104 shuffle parts instead of 200** (`spark.sql.shuffle.partitions`, 4
+  per core). Step 04 keeps each event family in that many parts, most of them
+  tiny. Step 04 then took `r num(MW(s104_runs, "04"))` s
+  (`r num(100 * (MW(s104_runs, "04") / MW(e13_runs, "04") - 1))`% against 13
+  executors with 200 parts).
+- **Memory outside the heap.** The configuration named 2 GiB for it, but
+  that value never reached the cluster, so Spark used its default of 10% of
+  the heap, 1.2 GiB. In every full-day run every executor was killed for
+  memory (exit code 137) in step 09, when the Python workers that compute H3
+  cells start (`r killed("pab1")` and `r killed("pab2")` executors in the two
+  runs with today's settings), and one run failed in step 04b after Spark had
+  tried a stage four times. With 11 GiB of heap and 2.5 GiB outside it no
+  executor was killed, and step 09 took `r num(MW(kept_runs, "09"))` s instead
+  of `r num(MW(base_runs, "09"))` s. The highest use, in step 09, was
+  `r num(XM("pak1", "09", "total_rss"))` MiB (Java `r num(XM("pak1", "09", "java_rss"))`,
+  Python `r num(XM("pak1", "09", "python_rss"))`) of the 13,824 MiB container;
+  over the whole day, `r num(max(xm$total_rss[xm$label == "orch3"]))` MiB. Moving 1 GiB more out of the heap (10 GiB +
+  3.5 GiB) made the single task that writes the day's events file run out of
+  heap, so 11 + 2.5 GiB stays.
+- **Not kept:** the Arrow form of the H3 function (it saves 25 of about
+  3,900 executor-seconds of step 02, less than the spread) and the Kryo
+  serialiser (no change: the steps work on Spark's own row format). Not run,
+  with the reason in `settings_tests.csv`: file packing for reads,
+  broadcast thresholds, memory fractions, locality waits and speculative
+  copies of slow tasks. The output committer needed no change: Spark 4
+  already uses the S3A "magic" committer, which writes without renames.
+
+With all kept settings steps 03 to 09 took
+`r num(sum(sapply(steps4, function(s) MW(kept_runs, s))))` s against
+`r num(sum(sapply(steps4, function(s) MW(base_runs, s))))` s with today's
+settings, and the results were the same: `r num(SK("flight list", "flights", "matched"))`
+flights and `r num(evsum(sk, "matched"))` events of
+`r sum(sk$part == "events")` types, all matched.
+
+## A whole day, measured
+
+With room in the storage, the whole day was then run from the raw archive,
+every step 01 to 09, through the command the daily schedule runs
+(`python -m opdi.orchestration day`), with the kept settings. Each working
+table was deleted as soon as no later step read it. The reports of the last
+11 hours of 13 June, which a daily run finds left by the day before, were
+written first; step 01 then fetched 14 and 15 June, so the table below gives
+its time per day fetched.
+
+```{r tbl-fullday}
+#| echo: false
+full <- c("01", "02", "02a", "03", "04", "04b", "09")
+fd <- data.frame(step = full,
+                 est = sapply(full, function(s) as.numeric(S(s, "after_s"))),
+                 run1 = sapply(full, function(s) as.numeric(SR(s, "after_s"))),
+                 run2 = sapply(full, function(s) as.numeric(ST("orch2", s))))
+# Step 01 of a day fetches one new day; the runs fetched two (14 and 15 June).
+fd$run2[1] <- as.numeric(ST("orch2", "01-d1"))
+fd <- rbind(fd, data.frame(step = "all", est = sum(fd$est), run1 = sum(fd$run1), run2 = sum(fd$run2)))
+kable(transform(fd, est = num(est), run1 = num(run1), run2 = num(run2)), row.names = FALSE,
+      align = "lrrr",
+      col.names = c("Step", "Estimate after the code changes (s)", "Undisturbed run (s)",
+                    "Run with two executors deleted (s)"),
+      caption = "One worldwide day, 14 June 2026, every step. Step 01: one day of reports fetched (the daily case). The estimate is the 'after' figure of the first round (12 executors, today's settings; steps 01 to 02a scaled).")
+```
+
+A day now takes `r num(SR("total", "after_s"))` s
+(`r num(SR("total", "after_s") / 3600, 1)` hours), against the
+`r num(S("total", "after_s"))` s estimated after the code changes; a second
+undisturbed run gave `r num(ST("orch1", "02"))` s for step 02 and
+`r num(ST("orch1", "04"))` s for step 04. Step 01 was estimated well
+(`r num(S("01", "after_s"))` s against `r num(SR("01", "after_s"))` s). Steps
+02 and 02a were estimated too high, by
+`r num(100 * (S("02", "after_s") / SR("02", "after_s") - 1))`% and
+`r num(100 * (S("02a", "after_s") / SR("02a", "after_s") - 1))`%. Part of that
+is the settings (one more executor, fewer shuffle parts), which were not
+measured on these two steps on their own; most of it in step 02a is the
+scaling from one aircraft in 12. Step 02 spills about `r num(spill02)` GB to the
+executors' local disks with 104 shuffle parts; whether more parts help that
+step alone was not tested.
+
+The whole day from the archive does not give the same flight list as the
+runs above, which started from the tracks stored in the warehouse on 17
+October: `r num(FU("flight list", "flights", "after"))` flights against
+`r num(FU("flight list", "flights", "before"))`, of which
+`r num(FU("flight list", "flights", "matched"))` match, and
+`r num(evsum(fu, "matched"))` of `r num(evsum(fu, "before"))` events match.
+The differences are at the ends of the tracks (the last report, the landing
+and the arrival airport), which points at the tracks stored in October,
+built by the code of that time; they were not traced further here. The
+comparisons of settings above all start from the same stored tracks.
+
+## Does a day finish unattended?
+
+The same full-day command was run with faults put in on purpose: one
+executor was deleted (`kubectl delete pod`) in the middle of step 02 and
+another in the middle of step 04. Both steps finished without being
+restarted, Spark re-ran the lost work, and the outputs were the same as those
+of the undisturbed run: `r num(FI("flight list", "flights", "matched"))`
+flights and `r num(evsum(fi, "matched"))` events, all matched, with
+`r num(evsum(fi, "only_before") + evsum(fi, "only_after"))` events in one run
+only. The two deletions cost
+`r num(ST("orch2", "02") - ST("orch3", "02"))` s in step 02 and
+`r num(ST("orch2", "04") - ST("orch3", "04"))` s in step 04.
+
+What made that possible, besides the memory above: the frames step 04 keeps
+in the executors' memory are now held twice, so losing one executor no longer
+loses them (before, the step failed); each step that fails for a passing
+reason (the storage refusing requests, a lost upload, lost executors) is run
+again by the command, up to twice, in a new Spark session; a day of reports
+counts as fetched only when its fetch is recorded as finished; and reading a
+table left empty by a failed write says so instead of failing on its columns.
+A first full-day run with the 10 + 3.5 GiB split stopped in step 09; run
+again, the command skipped the six finished steps and published the day, with
+the same results as the undisturbed run. The process that directs the work
+used at most `r num(max(dm$driver_java_rss_max_mib))` MiB, and its pod at most
+`r num(max(dm$pod_anon_max_mib))` of `r num(dm$pod_limit_mib[1])` MiB.
+
 ## Limits
 
 - One day was measured. A busier day takes longer.
-- Steps 01, 02 and 02a are scaled, not measured, and they are about
+- In the first round steps 01, 02 and 02a were scaled, not measured (about
   `r num(100 * (S("01", "after_s") + S("02", "after_s") + S("02a", "after_s")) / after_total)`%
-  of the time after the changes. They should be timed again on a full day
-  when there is enough storage.
+  of the time after the changes). They were measured on the whole day in the
+  settings round, above.
 - The scaled figure for step 01 may be too low. In a separate study, reading
   `r num(3 * 24)` hours of the archive for only the
   `r num(ar$value[ar$metric == "study_aircraft"])` aircraft that sent ADS-C
@@ -450,3 +641,24 @@ are: `base` the old code, `v1` the new code with 8 executors, `v2` the new
 code with 12 executors; `s2`/`s4` are the 2- and 4-hour slices and `m12`/`m24`
 the aircraft samples (`base` and `new` for old and new code). The caution on
 step 01 reads `papers/adsc-effect-v1/data/processing_time.csv`.
+
+The settings round adds: `settings_tests.csv` (every setting tried or set
+aside, with its runs, times, executor-seconds, executors killed and the
+reason for the verdict), `executor_events.csv` (executors added, removed and
+killed for memory in each run), `executor_memory.csv` and
+`driver_memory.csv` (the highest memory use of an executor per step, and of
+the process that directs the work), and the comparisons
+`settings_events_*.csv` and `settings_flight_list_*.csv` (each setting
+against today's settings), `content_p1a_tracks.csv` and
+`content_p1k_tracks.csv` (tracks with the Arrow function and with Kryo),
+`fault_injection_*.csv` (the day with two executors deleted against the
+undisturbed day), `resumed_day_comparison.csv` (the day that stopped in step
+09 and was continued) and `full_day_*.csv` (the day from the archive against
+the run from the stored tracks). Its labels in `step_timings.csv`: `p1b`,
+`p1a`, `p1k` (steps 02 and 02a, one aircraft in 12: today's settings, Arrow,
+Kryo); `pab`, `pae`, `pas`, `pak` (steps 03 to 09 from the stored tracks:
+today's settings, 13 executors, 13 executors and 104 parts, all kept
+settings); `orch1`, `orch2`, `orch3` (the whole day through the daily
+command: first try, with two executors deleted, undisturbed); `01-d0`,
+`01-d1` and `01-seed` are the fetches of 14 June, of 15 June and of the last
+hours of 13 June inside step 01.

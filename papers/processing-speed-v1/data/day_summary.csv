@@ -1,9 +1,17 @@
-step,before_s,after_s,before_scope,after_scope,before_executors,after_executors,notes
-01,1092,396,"scaled from a 4 h slice (98.3M of 799.5M archive rows)","scaled from a 4 h slice; 8 executors scaled to 12 by core count","8","12","before: commit 1a8b35b (same pipeline as 70eaac7); after: commit ab7e130 (archive read once). Slice: 1,826 -> 994 executor-seconds"
-02,4173,2133,"scaled from 1 aircraft in 12 (all 59 h read)","scaled from 1 aircraft in 12; 8 executors scaled to 12 by core count","8","12","after: commit a702b2e (parallel write, aircraft filter). Sample: 423 -> 263 s"
-02a,1641,1225,"scaled from 1 aircraft in 12","scaled from 1 aircraft in 12; 8 executors scaled to 12 by core count","8","12","step 02a code unchanged for this measure; the difference at 8 executors is run-to-run noise (+12%) and the gain is the executor count"
-03,940,387,"full day measured","full day measured","8","12","after: HEAD code, zones as 8 files"
-04,4687,1741,"full day measured","full day measured","8","12","after: HEAD code"
-04b,196,55,"full day measured","full day measured","8","12",""
-09,322,246,"full day measured","full day measured","8","12",""
-total,13051,6183,"6,145 s measured + 6,906 s scaled","2,429 s measured + 3,754 s scaled","","","scaled full-day s = executor-seconds x scale factor / (16 cores x 0.85) + single-task stages x scale factor"
+step,before_s,after_s,before_scope,after_scope,before_executors,after_executors,notes,round
+01,1092,396,scaled from a 4 h slice (98.3M of 799.5M archive rows),scaled from a 4 h slice; 8 executors scaled to 12 by core count,8,12,"before: commit 1a8b35b (same pipeline as 70eaac7); after: commit ab7e130 (archive read once). Slice: 1,826 -> 994 executor-seconds",code
+02,4173,2133,scaled from 1 aircraft in 12 (all 59 h read),scaled from 1 aircraft in 12; 8 executors scaled to 12 by core count,8,12,"after: commit a702b2e (parallel write, aircraft filter). Sample: 423 -> 263 s",code
+02a,1641,1225,scaled from 1 aircraft in 12,scaled from 1 aircraft in 12; 8 executors scaled to 12 by core count,8,12,step 02a code unchanged for this measure; the difference at 8 executors is run-to-run noise (+12%) and the gain is the executor count,code
+03,940,387,full day measured,full day measured,8,12,"after: HEAD code, zones as 8 files",code
+04,4687,1741,full day measured,full day measured,8,12,after: HEAD code,code
+04b,196,55,full day measured,full day measured,8,12,,code
+09,322,246,full day measured,full day measured,8,12,,code
+total,13051,6183,"6,145 s measured + 6,906 s scaled","2,429 s measured + 3,754 s scaled",,,scaled full-day s = executor-seconds x scale factor / (16 cores x 0.85) + single-task stages x scale factor,code
+01,396,384,scaled from a 4 h slice; 8 executors scaled to 12 by core count,"measured on the whole day from the raw archive, through python -m opdi.orchestration day (orch3)",12,13,step 01 of a day fetches one new day of reports; here the fetch of 2026-06-15; second undisturbed run (orch1): 396 s,settings
+02,2133,1677,scaled from 1 aircraft in 12; 8 executors scaled to 12 by core count,"measured on the whole day from the raw archive, through python -m opdi.orchestration day (orch3)",12,13,second undisturbed run (orch1): 1738 s,settings
+02a,1225,744,scaled from 1 aircraft in 12; 8 executors scaled to 12 by core count,"measured on the whole day from the raw archive, through python -m opdi.orchestration day (orch3)",12,13,second undisturbed run (orch1): 751 s,settings
+03,387,356,full day measured,"measured on the whole day from the raw archive, through python -m opdi.orchestration day (orch3)",12,13,second undisturbed run (orch1): 359 s,settings
+04,1741,1550,full day measured,"measured on the whole day from the raw archive, through python -m opdi.orchestration day (orch3)",12,13,"steps 03-09 from the warehouse tracks with the same settings: 1,515 and 1,479 s (pak1, pak2); second undisturbed run (orch1): 1542 s",settings
+04b,55,79,full day measured,"measured on the whole day from the raw archive, through python -m opdi.orchestration day (orch3)",12,13,second undisturbed run (orch1): 97 s,settings
+09,246,209,full day measured,"measured on the whole day from the raw archive, through python -m opdi.orchestration day (orch3)",12,13,second undisturbed run (orch1): 234 s,settings
+total,6183,4999,"2,429 s measured + 3,754 s scaled",every step measured on the whole day (orch3),,13,"orch1 (steps 01-04b with 10g heap, step 09 continued after a failure): 5117 s",settings
