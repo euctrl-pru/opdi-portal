@@ -19,6 +19,39 @@ flight events versions 1–2 pre-date the change.
 
 :::: {.publication-card}
 ::: {.publication-info}
+**[How long one worldwide day takes to process — version 1](processing-speed-v1/index.qmd)**
+
+A short study note. One worldwide day, 14 June 2026, took about 13,051 s
+(3.6 hours) on 8 Spark executors before this work and about 6,183 s
+(1.7 hours) on 12 after it. Four steps were measured on the full day; three
+were scaled from part of the day, because their full-day output did not fit
+in the storage available, and the note gives the scaling rule. It names the
+causes found (work computed twice, look-aheads repeated for every report,
+whole-day tables written by one task, a reference table of thousands of
+small files, the archive read three times), shows that the published results
+did not change, and explains why one hour per day was not reached. The page
+renders from the committed CSV files; it needs no cluster.
+:::
+::::
+
+:::: {.publication-card}
+::: {.publication-info}
+**[Does ADS-C improve the OPDI results? — version 1](adsc-effect-v1/index.qmd)**
+
+A short study note. The same day, 14 June 2026, was run twice for the 1,884
+aircraft that sent ADS-C reports (satellite position reports, mainly over the
+oceans): without and with those reports. With ADS-C, 87.5% of 1,172
+reference flights come out as one track (85.2% without) and the time not
+covered by any report falls from 5,016 h to 4,131 h. But the FIR crossings
+it adds over the ocean can be many minutes late, it creates small separate
+pieces of track, and it changes flight identifiers, so ADS-C stays off in
+release v2.0.0. The page renders from the committed CSV files; it needs no
+cluster.
+:::
+::::
+
+:::: {.publication-card}
+::: {.publication-info}
 **[Plausibility checks for flight milestones — version 1](milestone-plausibility-v1/index.qmd)**
 
 A short study note. Five checks compare each milestone with what the

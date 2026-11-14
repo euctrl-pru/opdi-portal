@@ -1,0 +1,288 @@
+---
+title: "Does ADS-C improve the OPDI results?"
+subtitle: "One day run twice, without and with ADS-C position reports"
+author: "EUROCONTROL Performance Review Unit"
+date: last-modified
+---
+
+```{r setup}
+#| include: false
+library(knitr)
+
+# Read-only. Every number and table on this page comes from a CSV file in
+# data/, written by benchmarks/adsc_effect.py of the opdi repository. Nothing
+# here reads S3, a database or a Spark cluster: data/_manifest.json records,
+# for each file, the command, the git commit, a fingerprint of the source
+# files and the tables it read.
+D <- function(f, ...) read.csv(file.path("data", f), stringsAsFactors = FALSE, ...)
+isT <- function(x) toupper(as.character(x)) == "TRUE"
+
+ad   <- D("adsc_reports.csv")             # ADS-C reports and where they lie
+tpf  <- D("tracks_per_flight.csv")        # reference flights by number of tracks, per run and flow
+tpc  <- D("tracks_per_flight_changes.csv")
+fg   <- D("flight_gaps.csv")              # time of the reference flights not covered by any report
+gp   <- D("gaps.csv")                     # gaps inside tracks, by length
+af   <- D("airports_found.csv")           # departure and destination airport against the reference
+dst  <- D("distance.csv")                 # published distance flown against the reference route
+ebt  <- D("events_by_type.csv")           # events matched between the two runs
+fir  <- D("fir_crossings.csv")            # FIR crossings per FIR entered
+eb   <- D("event_brackets.csv")           # time between the two reports around a crossing
+fj   <- D("false_joins.csv")              # tracks holding two reference flights
+pt   <- D("processing_time.csv", colClasses = c(step = "character"))
+
+num <- function(x, d = 0) formatC(as.numeric(x), format = "f", digits = d, big.mark = ",")
+pct <- function(x, d = 1) paste0(num(100 * x, d), "%")
+
+A <- function(metric, col = "value") ad[ad$metric == metric, col]
+
+# Totals over the four flows of the reference flights.
+tot <- function(df, run, col) sum(df[df$run == run, col])
+flights_ref <- tot(tpf, "base", "flights")
+one_b <- tot(tpf, "base", "one_track");  one_m <- tot(tpf, "merged", "one_track")
+unc_b <- tot(fg, "base", "uncovered_hours"); unc_m <- tot(fg, "merged", "uncovered_hours")
+apt_b <- sum(af$base_both_right); apt_m <- sum(af$merged_both_right)
+DI <- function(run, col) dst[dst$run == run & dst$population == "all", col]
+
+# FIR crossings into oceanic FIRs, and crossings placed between two reports
+# more than 300 s apart.
+oce <- fir[isT(fir$oceanic), ]
+B <- function(type, run, col) eb[eb$type == type & eb$run == run, col]
+
+# New events inside the gaps of the run without ADS-C.
+hole_new <- ebt[isT(ebt$in_base_hole), c("type", "only_merged")]
+hole_new <- aggregate(only_merged ~ type, data = hole_new, FUN = sum)
+hole_new <- hole_new[order(-hole_new$only_merged), ]
+fir_new <- hole_new$only_merged[hole_new$type == "xing-fir"]
+
+added <- function(step) pt$added_s[pt$step == step]
+```
+
+## Summary
+
+ADS-C reports fill part of the long silences that ADS-B leaves over the oceans,
+and on one day they made a few more long-haul flights come out as a single
+track, with a distance flown closer to the reference. But the events they add
+over the ocean have uncertain times, they create small separate pieces of
+track, and they change the flight identifiers. ADS-C therefore stays switched
+off in release v2.0.0; this note lists what would have to change first.
+
+## What ADS-C is
+
+OPDI is built from **ADS-B** reports, radio messages in which an aircraft
+broadcasts its position, heard only by receivers within a few hundred
+kilometres. **ADS-C** is a second source of position reports, sent by
+satellite link, mainly over the oceans, at about one report every several
+minutes per aircraft. The OpenSky Network publishes the ADS-C reports it
+receives, and the pipeline can merge them into the ADS-B reports before it
+builds tracks; this is switched off by default. An earlier study,
+[ADS-C in the OPDI trajectory](../adsc-fusion-v1/index.qmd), described the
+ADS-C data and the merge itself.
+
+## How it was tested
+
+- **One day**, 14 June 2026, worldwide.
+- **The aircraft that sent ADS-C reports that day**:
+  `r num(A("study_aircraft"))` aircraft. An aircraft without ADS-C gets the
+  same tracks either way, so leaving it out changes nothing in the comparison.
+- **The same pipeline run twice** on the same ADS-B reports, once without and
+  once with the ADS-C reports. Nothing else differs between the two runs.
+- **Reference flights**: the `r num(flights_ref)` flights of these aircraft
+  that day recorded by EUROCONTROL's Network Manager, with their airports,
+  times and route length. All of them touch Europe or its surroundings, so
+  they are mostly flights to, from or within Europe.
+
+A **gap** is a silence of more than 30 minutes between two reports of the same
+aircraft. Inside a gap, no event is placed and a flight can be split into
+several tracks.
+
+## Where the ADS-C reports fall
+
+Of the `r num(A("input_reports_on_day"))` ADS-C reports of the day,
+`r num(A("kept_in_merged_tracks"))` ended up in tracks of the run with ADS-C.
+
+```{r tbl-position}
+#| echo: false
+lab <- c(position_in_hole = "inside an ADS-B gap of more than 30 minutes",
+         position_in_gap = "inside an ADS-B gap of 5 to 30 minutes",
+         position_near_adsb = "less than 5 minutes from an ADS-B report",
+         position_before_first_adsb = "before the first ADS-B report of the aircraft",
+         position_after_last_adsb = "after the last ADS-B report of the aircraft",
+         position_no_adsb = "aircraft with no ADS-B report")
+p <- ad[ad$metric %in% names(lab), ]
+kable(data.frame(where = lab[p$metric], n = num(p$value), share = pct(p$share)),
+      row.names = FALSE, align = "lrr",
+      col.names = c("Where the ADS-C report lies", "Reports", "Share"),
+      caption = paste0("The ", num(A("kept_in_merged_tracks")),
+                       " ADS-C reports kept in the tracks, by distance in time to the ADS-B reports."))
+```
+
+So `r pct(A("position_in_hole", "share"))` of the ADS-C reports lie where ADS-B
+says nothing for more than half an hour: they bring new information. The gaps
+inside tracks become shorter (@fig-gaps).
+
+```{r fig-gaps}
+#| echo: false
+#| fig-cap: "Time inside reception gaps of the tracks, by length of the gap, without and with ADS-C, in hours. Long gaps are cut into shorter ones."
+#| fig-height: 4
+cls <- unique(gp$gap_class)
+m <- rbind(without = gp$gap_hours[gp$run == "base"][match(cls, gp$gap_class[gp$run == "base"])],
+           with = gp$gap_hours[gp$run == "merged"][match(cls, gp$gap_class[gp$run == "merged"])])
+colnames(m) <- cls
+par(mar = c(4, 4, 1, 1))
+barplot(m, beside = TRUE, col = c("grey70", "steelblue"), border = NA,
+        xlab = "Length of the gap", ylab = "Time in gaps (hours)", las = 1, cex.names = 0.8,
+        legend.text = c("without ADS-C", "with ADS-C"),
+        args.legend = list(x = "topleft", bty = "n"))
+```
+
+## Results
+
+```{r tbl-results}
+#| echo: false
+res <- data.frame(
+  what = c(paste0("Reference flights rebuilt as exactly one track (of ", num(flights_ref), ")"),
+           "Time of the reference flights not covered by any report",
+           paste0("Reference flights with both airports right (of ", num(flights_ref), ")"),
+           paste0("Distance flown within 5% of the reference route length (",
+                  num(DI("base", "flights")), " flights with uncovered time)"),
+           "Crossings into oceanic FIRs",
+           "FIR crossings placed between two reports more than 5 minutes apart",
+           "Tracks holding two reference flights"),
+  base = c(pct(one_b / flights_ref), paste(num(unc_b), "h"), num(apt_b),
+           pct(DI("base", "share_within_5pct_of_reference")),
+           num(sum(oce$crossings_base)), num(B("xing-fir", "base", "over_limit")),
+           num(fj$false_joins[fj$run == "base"])),
+  merged = c(pct(one_m / flights_ref), paste(num(unc_m), "h"), num(apt_m),
+             pct(DI("merged", "share_within_5pct_of_reference")),
+             num(sum(oce$crossings_merged)), num(B("xing-fir", "merged", "over_limit")),
+             num(fj$false_joins[fj$run == "merged"]))
+)
+kable(res, row.names = FALSE, align = "lrr",
+      col.names = c("", "Without ADS-C", "With ADS-C"),
+      caption = "The two runs compared, 14 June 2026.")
+```
+
+### Tracks
+
+With ADS-C, `r num(one_m)` of the `r num(flights_ref)` reference flights come
+out as exactly one track, against `r num(one_b)` without. In detail,
+`r num(sum(tpc$became_one_track))` flights became one track and
+`r num(sum(tpc$stopped_being_one_track))` stopped being one. Of those
+`r num(sum(tpc$stopped_being_one_track))`, `r num(sum(tpc$no_track_left_on_the_day))`
+have no track left on the day: an ADS-C report before midnight joined them to
+a track that starts the day before. The other
+`r num(sum(tpc$stopped_being_one_track) - sum(tpc$no_track_left_on_the_day))`
+became two tracks. Reading these flights during the run showed that 7 of them
+gained a separate small piece made only of ADS-C reports, which has no call
+sign, and 3 were real splits; this reading is not recorded in the committed
+files.
+
+No track holds two reference flights in either run, so the ADS-C reports did
+not wrongly join two flights. The number of tracks of these aircraft went from
+`r num(fj$tracks[fj$run == "base"])` to `r num(fj$tracks[fj$run == "merged"])`,
+and `r num(fj$tracks_with_adsc[fj$run == "merged"])` tracks contain ADS-C
+reports. The flight identifier (`flight_id`) depends on the aircraft and on
+the reports that make up its track, so wherever ADS-C moves the start of a
+track, joins two tracks or splits one, the identifier differs from the one
+without ADS-C.
+
+### Coverage, airports and distance
+
+The time of the reference flights that no report covers fell from
+`r num(unc_b)` h to `r num(unc_m)` h. Departure and destination airports
+barely change: `r num(apt_m)` flights have both airports right with ADS-C,
+against `r num(apt_b)` without, because ADS-C reports are almost all at cruise
+height, far from airports.
+
+The published distance flown is the sum of the distances between consecutive
+reports, so a long gap shortens it. Over the `r num(DI("base", "flights"))`
+reference flights with uncovered time, the share within 5% of the route length
+recorded by the Network Manager rose from
+`r pct(DI("base", "share_within_5pct_of_reference"))` to
+`r pct(DI("merged", "share_within_5pct_of_reference"))`.
+
+### Events
+
+New events appear inside the former gaps:
+
+```{r tbl-new-events}
+#| echo: false
+h <- hole_new[hole_new$only_merged >= 10, ]
+other <- sum(hole_new$only_merged[hole_new$only_merged < 10])
+tab <- data.frame(type = c(paste0("`", h$type, "`"), "other types"),
+                  n = num(c(h$only_merged, other)))
+kable(tab, row.names = FALSE, align = "lr",
+      col.names = c("Event type", "New events"),
+      caption = "Events found only with ADS-C, inside a gap of the run without ADS-C.")
+```
+
+They are mostly the start and end of level segments, `r num(fir_new)` FIR
+crossings (an **FIR**, flight information region, is a block of airspace under
+one air traffic service) and tops of climb and descent. Crossings into oceanic
+FIRs rose from `r num(sum(oce$crossings_base))` to
+`r num(sum(oce$crossings_merged))`.
+
+The times of these events are uncertain. A FIR crossing is placed on the first
+report inside the new region, and its `info` records the time since the
+report before it. With ADS-B, reports are about 5 s apart; with ADS-C they can
+be many minutes apart, so the crossing can be many minutes late. The FIR
+crossings placed between two reports more than 5 minutes apart rose from
+`r num(B("xing-fir", "base", "over_limit"))`
+(`r pct(B("xing-fir", "base", "over_limit_share"))` of all FIR crossings) to
+`r num(B("xing-fir", "merged", "over_limit"))`
+(`r pct(B("xing-fir", "merged", "over_limit_share"))`); one crossing in ten now
+has at least `r num(B("xing-fir", "merged", "p90_bracket_s"))` s between its
+two reports, against `r num(B("xing-fir", "base", "p90_bracket_s"))` s without
+ADS-C.
+
+### Processing time
+
+Reading the ADS-C reports took `r num(pt$shared_inputs[pt$step == "01b"])` s.
+The later steps took `r num(sum(pt$merged, na.rm = TRUE))` s with ADS-C and
+`r num(sum(pt$base, na.rm = TRUE))` s without; step 04 was even
+`r num(-added("04"), 1)` s faster with ADS-C, which is most likely the usual
+variation between two runs. The extra time is small.
+
+## Recommendation
+
+ADS-C helps long oceanic flights a little: slightly more of them are one track,
+less of their time is uncovered, and their distance flown is closer to the
+reference. But:
+
+- the events it adds over the ocean have uncertain times, up to many minutes;
+- it creates small separate pieces of track made only of ADS-C reports,
+  without a call sign;
+- it changes the flight identifiers of the tracks whose start it moves, or
+  that it joins or splits, so data with and without ADS-C cannot be joined on
+  `flight_id`.
+
+ADS-C reports are therefore **not used in release v2.0.0**. Before they could
+be, the following would have to change:
+
+1. An event placed between two reports far apart, such as a FIR crossing, gets
+   an estimated time and a stated uncertainty, or is left out.
+2. A piece of track made only of ADS-C reports is attached to the flight it
+   belongs to, or dropped.
+3. The change of flight identifiers is published as a new track rule, so users
+   know that identifiers before and after it do not match.
+4. The effect is measured again on several days and on all aircraft, not only
+   those with ADS-C.
+
+## Limits
+
+- One day was measured.
+- Only aircraft that sent ADS-C that day were run. The totals describe these
+  aircraft, not the whole fleet.
+- The reference flights all touch Europe or its surroundings; flights
+  elsewhere, for example over the Pacific, are not checked against a
+  reference.
+
+## Provenance
+
+Every number and table on this page is read from the CSV files in `data/` when
+the page is rendered; nothing is computed on a cluster, and the page needs no
+credentials. The files were written by `benchmarks/adsc_effect.py` of the opdi
+repository. `data/_manifest.json` records, for each file, the command and its
+arguments, the git commit, whether the working copy had uncommitted changes, a
+fingerprint of the source files and the tables it read. In the files, `base`
+is the run without ADS-C and `merged` the run with it.

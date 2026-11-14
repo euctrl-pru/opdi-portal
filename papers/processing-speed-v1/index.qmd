@@ -1,0 +1,347 @@
+---
+title: "How long one worldwide day takes to process"
+subtitle: "Where the time went on 14 June 2026, what was changed, and what is left"
+author: "EUROCONTROL Performance Review Unit"
+date: last-modified
+---
+
+```{r setup}
+#| include: false
+library(knitr)
+
+# Read-only. Every number and table on this page comes from a CSV file in
+# data/, written by benchmarks/day_timing.py and benchmarks/day_compare.py of
+# the opdi repository. Nothing here reads S3, a database or a Spark cluster:
+# data/_manifest.json records, for each file, the script, the git commit and a
+# fingerprint of the source files.
+D <- function(f) read.csv(file.path("data", f), stringsAsFactors = FALSE,
+                          colClasses = c(step = "character"))
+
+ds <- D("day_summary.csv")      # one row per step: before and after, how obtained
+st <- D("step_timings.csv")     # one row per run of a step (label = which run)
+sg <- D("stage_timings.csv")    # one row per Spark stage of each run of a step
+rc <- read.csv(file.path("data", "result_comparison.csv"), stringsAsFactors = FALSE)
+
+num <- function(x, d = 0) formatC(as.numeric(x), format = "f", digits = d, big.mark = ",")
+
+# One value of day_summary.csv, of step_timings.csv, and the executor-seconds
+# (sum of the run time of all tasks) of one run of one step.
+S  <- function(step, col) ds[ds$step == step, col]
+ST <- function(label, step, col = "seconds") st[st$label == label & st$step == step, col]
+ES <- function(label, step) sum(sg$executor_run_s[sg$label == label & sg$step == step])
+
+before_total <- S("total", "before_s")
+after_total  <- S("total", "after_s")
+
+# The share of the cores at work, from the scaling rule written in the notes
+# of the "total" row ("... / (16 cores x 0.85) ...").
+busy <- as.numeric(sub(".*x ([0-9.]+)\\).*", "\\1", S("total", "notes")))
+
+# Scale factors: the 4-hour slice by rows (from step_timings.csv), the
+# aircraft sample by its modulus ("hash(icao24) % 12 == 0").
+sf_slice <- as.numeric(ST("scaled_new", "01", "scale_factor"))
+sample_m <- as.numeric(sub(".*% ([0-9]+) ==.*", "\\1", ST("m12new", "02", "scope")))
+
+# Executor-seconds of a full day with the new code, step by step.
+work <- c(
+  "01"  = ES("s4new", "01") * sf_slice,
+  "02"  = ES("m12new", "02") * sample_m,
+  "02a" = ES("m12new", "02a") * sample_m,
+  "03"  = ES("v2", "03"),
+  "04"  = ES("v2", "04"),
+  "04b" = ES("v2", "04b"),
+  "09"  = ES("v2", "09")
+)
+cores_now <- as.numeric(ST("v2", "03", "executors")) * as.numeric(ST("v2", "03", "cores"))
+cores_old <- as.numeric(ST("base", "03", "executors")) * as.numeric(ST("base", "03", "cores"))
+work_total <- sum(work)
+
+# Result comparison.
+R <- function(part, item, col) rc[rc$part == part & rc$item == item, col]
+ev <- rc[rc$part == "events", ]
+info_n <- as.numeric(sub(" matched events differ", "", R("event field", "info", "note")))
+info_types <- ev$item[grepl("info differs", ev$note)]
+
+# The ingestion time of the ADS-C study, for the caution at the end.
+pt <- read.csv(file.path("..", "adsc-effect-v1", "data", "processing_time.csv"),
+               stringsAsFactors = FALSE, colClasses = c(step = "character"))
+ar <- read.csv(file.path("..", "adsc-effect-v1", "data", "adsc_reports.csv"),
+               stringsAsFactors = FALSE)
+```
+
+## Summary
+
+Processing one worldwide day of OpenSky data, 14 June 2026, took about
+`r num(before_total)` s (`r num(before_total / 3600, 1)` hours) before this
+work and about `r num(after_total)` s (`r num(after_total / 3600, 1)` hours)
+after it. The gain came from five changes to the code, which removed repeated
+or badly spread work, and from running 12 Spark executors instead of 8. The
+published results did not change, and the target of one hour per day was not
+reached: the work that remains needs more processors than the cluster has, or
+a different way of building tracks.
+
+## What was measured
+
+The pipeline turns OpenSky position reports into tracks, a flight list and
+flight events in a chain of numbered steps (see
+[Processing steps](../../content/methods/pipeline.qmd)). It runs on Apache
+Spark, which splits each step into **stages** and each stage into **tasks**
+that run in parallel. A task runs on an **executor**, a worker process with 2
+processor cores and 14 GiB of memory.
+
+The day measured is 14 June 2026, worldwide: `r num(R("flight list", "flights", "after"))`
+flights and `r num(R("file flight_events", "rows", "after"))` events. The same
+day was run before and after the changes on the OpenSky cluster. "Before" is
+the code as it was, with `r ST("base", "03", "executors")` executors
+(`r cores_old` cores). "After" is the changed code with
+`r ST("v2", "03", "executors")` executors (`r cores_now` cores), the most the
+cluster's allowance holds: 30 processors and 192 GiB of memory, of which the
+process that directs the work takes 4 processors and 16 GiB.
+
+### Four steps measured, three scaled
+
+Steps 03, 04, 04b and 09 were measured on the full day. Steps 01, 02 and 02a
+were not: their full-day output did not fit in the storage available. They were run on part of the day and scaled up:
+
+- Step 01 (read and thin the reports) ran on the first 2 and the first 4
+  hours of the day.
+- Steps 02 (build the tracks) and 02a (clean them) ran on all the hours that
+  step 02 reads, but only for one aircraft in `r sample_m` (and, as a check,
+  one in 24), chosen by a hash of the aircraft address.
+
+A small part of a day runs in one or two rounds of tasks, so its own run time
+says little about a full day. The scaling therefore uses the
+**executor-seconds** of the part: the sum of the run times of all its tasks.
+The rule is
+
+> full-day time = executor-seconds of the part × scale factor ÷ (cores × `r busy`)
+> \+ time of the stages that run as a single task × scale factor
+
+The scale factor is the share of the day the part stands for:
+`r num(sf_slice, 2)` for the 4-hour slice (the day has
+`r num(sf_slice, 2)` times as many reports) and `r sample_m` for one aircraft
+in `r sample_m`. The cores are those of the run (`r cores_old` before); on
+average `r num(100 * busy)`% of them were at work in the full-day steps. For
+example, the 4-hour slice of step 01 used `r num(ES("s4base", "01"))`
+executor-seconds before the changes, which gives
+`r num(ES("s4base", "01"))` × `r num(sf_slice, 2)` ÷ (`r cores_old` × `r busy`) =
+`r num(S("01", "before_s"))` s. Steps 01 to 02a were timed with
+`r ST("base", "03", "executors")` executors in both versions; the "after"
+figure assumes that 12 executors do the same work 1.5 times as fast.
+
+## Time per step
+
+```{r tbl-steps}
+#| echo: false
+names_ <- c("01" = "read and thin the reports", "02" = "build the tracks",
+            "02a" = "clean the tracks", "03" = "flight list",
+            "04" = "events and measurements", "04b" = "milestones into the flight list",
+            "09" = "published files", "total" = "all steps")
+how <- ifelse(grepl("full day", ds$after_scope), "measured on the full day",
+       ifelse(grepl("4 h", ds$after_scope), "scaled from a 4-hour slice",
+       ifelse(grepl("aircraft", ds$after_scope), paste("scaled from one aircraft in", sample_m),
+              ds$after_scope)))
+tab <- data.frame(step = ds$step, what = names_[ds$step],
+                  before = num(ds$before_s), after = num(ds$after_s), how = how)
+kable(tab, row.names = FALSE, align = "llrrl",
+      col.names = c("Step", "What it does", "Before (s)", "After (s)", "How the figure was obtained"),
+      caption = paste0("Time of each step for 14 June 2026, worldwide. Before: ",
+                       ST("base", "03", "executors"), " executors; after: ",
+                       ST("v2", "03", "executors"), " executors."))
+```
+
+```{r fig-steps}
+#| echo: false
+#| fig-cap: "Time of each step before and after the changes, in seconds. Steps 01, 02 and 02a are scaled from part of the day; the others are measured on the full day."
+#| fig-height: 4
+x <- ds[ds$step != "total", ]
+m <- rbind(before = x$before_s, after = x$after_s)
+colnames(m) <- x$step
+par(mar = c(4, 4, 1, 1))
+barplot(m, beside = TRUE, col = c("grey70", "steelblue"), border = NA,
+        xlab = "Step", ylab = "Time (s)", las = 1,
+        legend.text = c("before", "after"),
+        args.legend = list(x = "topright", bty = "n"))
+```
+
+Steps 04 and 02 took most of the time before, and still do.
+
+## What was slow, and what was changed
+
+The Spark log of each run gives one row per stage, with its run time, number
+of tasks and longest task. Reading these rows step by step showed five
+causes.
+
+1. **Holding patterns were computed twice.** The start and the end of a
+   holding pattern were produced by two branches of one query, and Spark
+   computed the whole holding calculation once for each branch. Both events
+   are now read from one computation.
+2. **A look-ahead to the end of each track was repeated for every report.**
+   The holding and FIR-crossing steps asked, for each report, a question
+   about all the later reports of its track. Spark re-reads that whole range
+   for every report, so the cost grows with the square of the track length.
+   The same question is now asked by reading the track backwards, where the
+   range grows by one report at a time.
+3. **Whole-day tables were written by a single task.** The tracks, the events
+   and the measurements of a day were each sent to one task before writing,
+   so one task did the work of the whole day. They are now spread over many
+   tasks.
+4. **A reference table was stored as thousands of small files.** The table of
+   airport zones (the map cells around each airport) was 7,783 small files,
+   and the flight-list step read it three times, opening every file each
+   time. It is now 8 files, read once per step and kept in memory.
+5. **The raw archive was read three times.** Step 01 counted the rows, then
+   listed the days, then wrote them: three reads of the archive. It now reads
+   it once.
+
+Two smaller changes go with these: step 02 now leaves out, before building
+tracks, the aircraft that have no report on the day (they cannot have a track
+that starts on it), and the flight-list step sends the two end reports of each
+track to the airport zones instead of moving both tables.
+
+Finally, the number of executors went from 8 to 12. @tbl-runs separates the
+two effects for the steps measured on the full day: the middle column is the
+new code with the old number of executors.
+
+```{r tbl-runs}
+#| echo: false
+steps <- c("03", "04", "04b", "09")
+r <- data.frame(
+  step = steps,
+  base = num(sapply(steps, function(s) ST("base", s))),
+  v1 = num(sapply(steps, function(s) ST("v1", s))),
+  v2 = num(sapply(steps, function(s) ST("v2", s))),
+  es_base = num(sapply(steps, function(s) ES("base", s))),
+  es_v2 = num(sapply(steps, function(s) ES("v2", s)))
+)
+kable(r, row.names = FALSE, align = "lrrrrr",
+      col.names = c("Step",
+                    paste0("Old code, ", ST("base", "03", "executors"), " executors (s)"),
+                    paste0("New code, ", ST("v1", "03", "executors"), " executors (s)"),
+                    paste0("New code, ", ST("v2", "03", "executors"), " executors (s)"),
+                    "Executor-seconds, old code", "Executor-seconds, new code"),
+      caption = "The steps measured on the full day, in three runs.")
+```
+
+With the same 8 executors, the new code took step 04 from
+`r num(ST("base", "04"))` s to `r num(ST("v1", "04"))` s and step 03 from
+`r num(ST("base", "03"))` s to `r num(ST("v1", "03"))` s; the 12 executors
+then brought them to `r num(ST("v2", "04"))` s and `r num(ST("v2", "03"))` s.
+Step 09 took longer in the middle run (`r num(ST("v1", "09"))` s); this was not
+looked into, and it took `r num(ST("v2", "09"))` s in the last run. For the
+scaled steps, the 4-hour slice of step 01 fell from
+`r num(ES("s4base", "01"))` to `r num(ES("s4new", "01"))` executor-seconds,
+and step 02 on one aircraft in `r sample_m` from `r num(ST("m12base", "02"))` s
+to `r num(ST("m12new", "02"))` s. Step 02a was not changed; its gain is the
+number of executors.
+
+## The results did not change
+
+The outputs of the day before and after the changes were matched flight by
+flight and event by event.
+
+```{r tbl-results}
+#| echo: false
+fl <- rc[rc$part == "flight list" & rc$item == "flights", ]
+ms <- rc[rc$part == "measurement", ]
+evf <- rc[rc$part == "event field", ]
+res <- data.frame(
+  what = c("Flights in the flight list",
+           "Flights with a different departure or destination airport",
+           "Events (all types)",
+           "Events matched on flight, type and time",
+           "Matched events with a measurement differing by more than 0.000001",
+           "Matched events with a different position or altitude",
+           "Matched events with a different info text"),
+  value = c(num(fl$after),
+            num(sum(as.numeric(regmatches(fl$note, gregexpr("[0-9]+", fl$note))[[1]]))),
+            num(sum(ev$after)),
+            num(sum(ev$matched)),
+            num(sum(as.numeric(sub(" matched.*", "", ms$note)))),
+            num(sum(as.numeric(sub(" matched.*", "", evf$note[evf$item != "info"])))),
+            num(info_n))
+)
+kable(res, row.names = FALSE, align = "lr", col.names = c("", "After the changes"),
+      caption = paste0("The day after the changes compared with the day before. Before: ",
+                       num(fl$before), " flights and ", num(sum(ev$before)), " events."))
+```
+
+Every flight has the same departure and destination airports, every event is
+found again with the same flight, type and time, and every measurement is
+equal. The one difference is the `info` text of
+`r num(info_n)` events (`r num(100 * info_n / R("event field", "info", "matched"), 1)`%),
+all of them airport-surface events and block times
+(`r paste0("\x60", info_types, "\x60", collapse = ", ")`). Their `info` names the
+taxiway, apron or stand the aircraft is on. Where one map cell lies on two such
+parts of the airport, the event names one of them, and which one depends on
+the order in which Spark happens to process the rows. That choice also changes
+between two runs of unchanged code, so it is not caused by the changes.
+
+## Why one hour was not reached
+
+Adding up the executor-seconds of each step gives the work a day needs with
+the new code:
+
+```{r tbl-work}
+#| echo: false
+w <- data.frame(step = names(work), es = num(work),
+                share = paste0(num(100 * work / work_total), "%"))
+w <- rbind(w, data.frame(step = "all", es = num(work_total), share = "100%"))
+kable(w, row.names = FALSE, align = "lrr",
+      col.names = c("Step", "Executor-seconds", "Share"),
+      caption = paste0("Work of one worldwide day with the new code. Steps 01 to 02a are scaled as ",
+                       "described above, the others measured."))
+```
+
+That is about `r num(round(work_total, -3))` executor-seconds. With
+`r cores_now` cores at work `r num(100 * busy)`% of the time, it takes about
+`r num(work_total / (cores_now * busy))` s, well over the 3,600 s of one hour.
+The largest part is step 02, which builds the tracks
+(`r num(100 * work[["02"]] / work_total)`%; with the cleaning of step 02a,
+`r num(100 * (work[["02"]] + work[["02a"]]) / work_total)`%). To give each
+day's tracks their full length, step 02 reads 59 hours of reports for each
+day, so every report is split into tracks on two or three different days.
+
+So a day in one hour needs one of two things:
+
+- **More cores.** The work alone asks for about
+  `r num(work_total / (3600 * busy))` cores busy `r num(100 * busy)`% of the
+  time, against `r cores_now` today; the stages that run as a single task do
+  not get faster with more cores, so in practice about twice today's number.
+- **A track step that works incrementally**: tracks built once per hour of
+  reports, with the tracks still open carried from one day to the next. This
+  would remove most of the repeated reading in step 02.
+
+## Limits
+
+- One day was measured. A busier day takes longer.
+- Steps 01, 02 and 02a are scaled, not measured, and they are about
+  `r num(100 * (S("01", "after_s") + S("02", "after_s") + S("02a", "after_s")) / after_total)`%
+  of the time after the changes. They should be timed again on a full day
+  when there is enough storage.
+- The scaled figure for step 01 may be too low. In a separate study, reading
+  `r num(3 * 24)` hours of the archive for only the
+  `r num(ar$value[ar$metric == "study_aircraft"])` aircraft that sent ADS-C
+  reports that day took `r num(pt$shared_inputs[pt$step == "01"])` s on 12
+  executors ([ADS-C study](../adsc-effect-v1/index.qmd)). That run is not a
+  daily step 01, which reads one day for all aircraft, but it suggests that
+  reading the archive costs more than the 4-hour slice shows.
+- The "after" figures of the scaled steps assume that 12 executors are 1.5
+  times as fast as 8. For step 02 on one aircraft in 24, 12 executors took
+  `r num(ST("m24e12", "02"))` s against `r num(ST("m24new", "02"))` s with 8:
+  on a part that small, more executors do not help, which is why the scaling
+  goes by cores and not by measured time.
+
+## Provenance
+
+Every number and table on this page is read from the CSV files in `data/` when
+the page is rendered; nothing is computed on a cluster, and the page needs no
+credentials. The files were written by `benchmarks/day_timing.py` (times per
+step and per Spark stage) and `benchmarks/day_compare.py` (comparison of the
+outputs) of the opdi repository. `data/_manifest.json` records, for each file,
+the script, the git commit, whether the working copy had uncommitted changes
+and a fingerprint of the source files. In `step_timings.csv` the run labels
+are: `base` the old code, `v1` the new code with 8 executors, `v2` the new
+code with 12 executors; `s2`/`s4` are the 2- and 4-hour slices and `m12`/`m24`
+the aircraft samples (`base` and `new` for old and new code). The caution on
+step 01 reads `papers/adsc-effect-v1/data/processing_time.csv`.
