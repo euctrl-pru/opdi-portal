@@ -23,6 +23,7 @@ ctx  <- D("context_by_type.csv")     # percentiles of the facts near each event
 ex   <- D("examples.csv")            # removed events read by hand, 50 per check
 fly  <- D("in_flight_before_after.csv")  # block times placed in flight, per run
 lc   <- D("lost_confirmed.csv")      # confirmed milestones not at the same time after, read one by one
+tol  <- D("takeoff_on_landing_roll.csv")  # the take-off read on the landing roll: before and after its correction
 
 # The first measurement, on the tracks stored on 17 October (earlier track
 # rule), kept for comparison, and the flight counts of both kinds of tracks
@@ -36,6 +37,10 @@ fdc  <- read.csv(file.path("..", "processing-speed-v1", "data", "full_day_compar
                  stringsAsFactors = FALSE)
 flights_old <- as.numeric(fdc$before[fdc$part == "flight list" & fdc$item == "flights"])
 flights_new <- as.numeric(fdc$after[fdc$part == "flight list" & fdc$item == "flights"])
+# One number of takeoff_on_landing_roll.csv.
+TL <- function(part, item, col = "after") as.numeric(tol[tol$part == part & tol$item == item, col])
+# How many of the 30 tracks read one by one fell in a class (the note says "read in a sample of 30: n").
+TL30 <- function(item) as.numeric(sub(".*: ", "", tol$note[tol$part == "tracks still with a take-off after the landing" & tol$item == item]))
 # Confirmed milestones lost between the runs, by type and outcome.
 LC <- function(type, outcome) sum(lc$type == type & lc$outcome == outcome)
 LCshift <- function(type, outcome) {
@@ -119,9 +124,11 @@ tracks of the same day stored in the warehouse on 17 October 2026, which an
 earlier rule had built: it split a flight into two tracks at every long gap in
 reception, and gave `r num(flights_old)` flights. Its "before" events were also
 computed by the code of that time, before the checks and the detector rules
-existed; here "before" is today's code with the three settings
-`plausibility_checks`, `block_times_on_ground_only` and
-`interpolate_crossings_over_missing_values` turned off. The files of the first
+existed; here "before" is the code of release v2.0.0 as it was before the
+take-off rule described [below](#a-take-off-read-on-the-landing-roll), with
+the three settings `plausibility_checks`, `block_times_on_ground_only` and
+`interpolate_crossings_over_missing_values` turned off. "After" is the code
+with that rule and the default settings. The files of the first
 measurement are kept in `data/tracks_of_17_october/`.
 
 ```{r tbl-two-rules}
@@ -377,6 +384,112 @@ Two of the patterns above come from the detectors, and were corrected there.
   the runway), no crossing is given, because its time and position cannot be
   placed.
 
+## A take-off read on the landing roll
+
+Reading the confirmed take-off times one by one showed a fifth pattern.
+`r num(TL("tracks", "take-off after the landing of the same track", "before"))`
+tracks of the day had a take-off time later than their own landing time. Many
+are real: an aircraft that lands and departs again within one track, or flies
+circuits. But in some the take-off time lay up to a minute and a half after
+the landing, at the destination, on the landing roll. These tracks were first received just
+after the take-off, so no report lay below the 15 ft that defines the take-off
+at the departure airport. At the destination, the reports of the landing roll
+are flagged on the ground by the transponder but still carry a barometric
+height of 20 to 60 ft above the airport (the altitude is measured against
+standard pressure, not the pressure of the day). Read from the far end of the
+runway, with no approach before it, the roll then starts below 15 ft just
+after the touchdown and ends above it: the shape of a take-off. The take-off
+time, a `line-up` and a `take-off-roll` were placed on it, and, as the
+runway-pass method is preferred, the take-off time of the other method near
+the first report of the track was dropped. Eight such take-off times had been
+within 60 s of their record before the crossing rule placed the 15 ft crossing
+over reports without altitude.
+
+A take-off ends in the air, so the detector now reads a runway pass as a
+take-off only if it ends in the air: the last report with an altitude is not
+flagged on the ground, and neither is the last report of the pass. A pass
+that ends on the ground but holds at least two reports in the air 100 to
+3,000 ft above the airport is still a take-off: these are light aircraft
+flying circuits, whose take-off and next landing on the same runway fall in
+one pass. On the study day, without this exception, or with a lower bound of
+300 ft, the rule removed real circuit take-offs; the bound of 100 ft is well
+above the 25 ft that the reports not flagged on the ground reached after the
+landing rolls.
+
+```{r tbl-landing-roll}
+#| echo: false
+rows <- list(
+  c("Tracks with a take-off after their own landing", "tracks", "take-off after the landing of the same track"),
+  c("of which within 120 s of the landing", "tracks", "take-off after the landing, within 120 s of it"),
+  c("Take-off times (ATOT)", "events", "ATOT"),
+  c("Line-up events", "events", "line-up"),
+  c("Take-off roll events", "events", "take-off-roll"),
+  c("Runway vacated events", "events", "runway-vacated"),
+  c("Threshold crossings", "events", "xing-runway-threshold"),
+  c("Go-arounds", "events", "go-around"),
+  c("Landing times (ALDT)", "events", "ALDT"),
+  c("Off-block times (AOBT)", "events", "AOBT"),
+  c("In-block times (AIBT)", "events", "AIBT"),
+  c("Confirmed take-off times", "ATOT", "confirmed_60s"),
+  c("Confirmed landing times", "ALDT", "confirmed_60s"),
+  c("Confirmed off-block times", "AOBT", "confirmed_60s"),
+  c("Confirmed in-block times", "AIBT", "confirmed_60s"),
+  c("Departure airport equal to the destination, set from a runway event", "flight list",
+    "departure airport equal to the destination, set from a runway event")
+)
+lr <- do.call(rbind, lapply(rows, function(r) data.frame(
+  measure = r[1], before = num(TL(r[2], r[3], "before")), after = num(TL(r[2], r[3], "after")))))
+kable(lr, row.names = FALSE, align = "lrr", col.names = c("", "Before the rule", "With the rule"),
+      caption = "The day with the default settings, before and with the rule that a take-off ends in the air.")
+```
+
+With the rule, `r num(TL("tracks", "take-off after the landing no longer given", "before"))`
+tracks no longer have a take-off after their landing; in every one of them
+the reports in the five minutes after the old take-off time are on the
+ground and the aircraft slows down. All eight take-off times above are now
+within 60 s of their record again: each track gets the take-off time of the
+runway window method at its departure airport, near its first report. The
+number of confirmed take-off times rose from
+`r num(TL("ATOT", "confirmed_60s", "before"))` to
+`r num(TL("ATOT", "confirmed_60s", "after"))`, and every take-off, landing,
+off-block and in-block time confirmed before is published at the same time.
+`r num(TL("removed line-ups", "on a landing roll"))` `line-up` events on a
+landing roll are no longer published, and the take-off roll with each. The
+rule also removed the `line-up` and `take-off-roll` of
+`r num(TL("removed line-ups", "of a real take-off"))` real take-offs and the
+take-off time of two of them: light aircraft flying circuits at small
+airfields in North America and Australia, whose barometric altitude on the
+ground read 370 to 400 ft below the airport, so that their climb never
+reached 100 ft above it inside the runway area. None has an airport record.
+
+In the flight list, `r num(TL("flight list", "flights whose ATOT changes"))`
+flights change their take-off time and
+`r num(TL("flight list", "flights whose RWY_DEP changes"))` their take-off
+runway; no landing time, landing runway or block time changes. The take-off
+read on the landing roll had also set the departure airport to the
+destination: `r num(TL("flight list", "flights whose ADEP changes"))` flights
+get their departure airport back
+(`r num(TL("flight list", "departure airport changed, source runway_event -> runway_event"))`
+from the take-off at the departure,
+`r num(TL("flight list", "departure airport changed, source runway_event -> aerodrome"))`
+from the flight list's own reading, and
+`r num(TL("flight list", "departure airport changed, source runway_event -> undetermined"))`
+are left without one, as the track gives none).
+
+Of the `r num(TL("tracks", "take-off after the landing of the same track"))`
+tracks that still have a take-off after their landing,
+`r num(TL("tracks still with a take-off after the landing", "second departure after a stop"))`
+stop on the ground between the two (a turnaround within one track),
+`r num(TL("tracks still with a take-off after the landing", "touch-and-go or low approach"))`
+take off again without stopping (touch-and-go, circuits), and
+`r num(TL("tracks still with a take-off after the landing", "landing roll read as a take-off"))`
+are landing rolls still read as a take-off, at airports where the transponder
+did not flag the last reports of the roll on the ground. Thirty of them,
+drawn at random, were read one by one:
+`r num(TL30("second departure after a stop"))` departures after a stop,
+`r num(TL30("touch-and-go or low approach"))` touch-and-goes and
+`r num(TL30("landing roll read as a take-off"))` landing rolls.
+
 ## Results
 
 The day was computed again with the default settings: the five checks and the
@@ -451,9 +564,9 @@ to `r num(B("AOBT", "p90_abs_error_s_after"))` s and from
 `r num(B("AIBT", "p90_abs_error_s_before"))` s to
 `r num(B("AIBT", "p90_abs_error_s_after"))` s.
 
-The number of confirmed off-block, in-block and landing times did not fall;
-that of the take-off times fell by
-`r num(B("ATOT", "confirmed_60s_before") - B("ATOT", "confirmed_60s_after"))`.
+The number of confirmed off-block, in-block and landing times did not fall,
+and that of the take-off times rose by
+`r num(B("ATOT", "confirmed_60s_after") - B("ATOT", "confirmed_60s_before"))`.
 Every confirmed milestone of the first run that is not published again at the
 same time was read one by one in its track (`data/lost_confirmed.csv`, with
 the reason for each).
@@ -479,20 +592,11 @@ the reason for each).
   by at most `r num(LCshift("ALDT", "moved, still confirmed"))` s, and are still
   confirmed.
 - **Take-off times.** `r num(B("ATOT", "confirmed_before_same_time_after"))` of
-  `r num(B("ATOT", "confirmed_60s_before"))` are at the same time, and
-  `r num(LC("ATOT", "moved, still confirmed"))` were moved by the crossing rule
-  (placed between two reports instead of at one) and are still confirmed. The
-  other `r num(LC("ATOT", "moved, no longer confirmed"))` belong to tracks
-  first received just after the take-off: without the rule, the take-off time
-  was placed at the first report, 75 to 950 ft above the airport at 152 to
-  167 kt, close enough to the record to count as confirmed. With the rule, the
-  departure gives no take-off time, because no report lies below the 15 ft
-  that defines it, and the take-off time of the track is then one read 20 to
-  60 s after the landing at the destination, on the landing roll. That time is
-  wrong. A take-off after the landing of the same track occurs
-  `r num(C("takeoff_after_landing", "remove=ATOT", "ALL", "n_removed"))` times
-  in the run without the checks; the check that would remove it was not
-  adopted, because it also removes confirmed take-off times (see below).
+  `r num(B("ATOT", "confirmed_60s_before"))` are at the same time, and the
+  other `r num(LC("ATOT", "moved, still confirmed"))` were moved by the
+  crossing rule (placed between two reports instead of at one), by at most
+  `r num(LCshift("ATOT", "moved, still confirmed"))` s, and are still
+  confirmed.
 
 ```{r tbl-in-flight}
 #| echo: false
@@ -582,7 +686,9 @@ kable(na, row.names = FALSE, align = "llrrr",
   at 1,000 ft and `r num(Cs("runway_time_too_high", "height_ft=500", RUNWAY_TIMES, "n_confirmed_removed"))`
   at 500 ft.
 - **Take-off after landing in one track.** Such a track often holds a real
-  arrival followed by a real departure of the same aircraft. Removing the
+  arrival followed by a real departure of the same aircraft. The take-off
+  read on the landing roll is corrected in the detector instead (see
+  [above](#a-take-off-read-on-the-landing-roll)). Removing the
   take-off time removes `r num(C("takeoff_after_landing", "remove=ATOT", "ALL", "n_confirmed_removed"))`
   confirmed ones, removing the landing time
   `r num(C("takeoff_after_landing", "remove=ALDT", "ALL", "n_confirmed_removed"))`.
@@ -611,9 +717,12 @@ events cannot be judged. None was adopted.
 - The checks only remove events. They do not correct a wrong time or find a
   missing one, so the coverage of the block times falls.
 - An event that the track does not contradict is kept even when it is wrong,
-  for example a block time a few minutes off, or a take-off time read on the
-  landing roll at the destination when the departure has no report below
-  15 ft.
+  for example a block time a few minutes off.
+- A landing roll is still read as a take-off when the transponder does not
+  flag its last reports on the ground
+  (`r num(TL("tracks still with a take-off after the landing", "landing roll read as a take-off"))`
+  tracks on the day). A light aircraft whose barometric altitude reads far
+  below the airport can lose a circuit take-off to the same rule.
 - An `xing-runway-threshold` event (the passage over the runway threshold) is not checked:
   one in twenty is more than `r num(X("xing-runway-threshold", "all", "height_ft", "p95"))` ft
   above the airport, and it is left as it is.
@@ -637,7 +746,9 @@ and `examples.csv` describe the events of the day without the checks;
 `before_after.csv`, `removed_by_rule.csv` and `in_flight_before_after.csv`
 compare them with the run with the default settings, and `lost_confirmed.csv`
 lists every confirmed milestone of the first run that the second does not
-publish at the same time, with the reason read from its track. All were
+publish at the same time, with the reason read from its track.
+`takeoff_on_landing_roll.csv` compares the default settings before and with
+the rule that a take-off ends in the air, on the same tracks. All were
 measured on the tracks of 14 June 2026 built from the raw archive with the
 current track rule (see [Which tracks](#which-tracks)); the passage over the
 runway threshold is called `xing-runway-threshold` in them.

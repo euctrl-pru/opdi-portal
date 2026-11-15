@@ -7,20 +7,20 @@
       "--executors",
       "13",
       "--results-dir",
-      "/home/jupyter/.claude/jobs/616d5918/tmp/spill/plaus_data",
+      "/home/jupyter/.claude/jobs/616d5918/tmp/atot/plaus_data4",
       "--events",
-      "s3a://eurocontrol/opdi-world/research/speed/bef/opdi_flight_events",
+      "s3a://eurocontrol/opdi-world/research/speed/sbef/opdi_flight_events",
       "--flight-list",
-      "s3a://eurocontrol/opdi-world/research/speed/pb/opdi_flight_list",
+      "s3a://eurocontrol/opdi-world/research/speed/trk/opdi_flight_list",
       "--tracks",
-      "s3a://eurocontrol/opdi-world/research/speed/c104a/osn_tracks_clean",
+      "s3a://eurocontrol/opdi-world/research/speed/trk/osn_tracks_clean",
       "--after-root",
-      "s3a://eurocontrol/opdi-world/research/speed/aft",
+      "s3a://eurocontrol/opdi-world/research/speed/aft4",
       "--notes",
-      "Tracks built from the raw archive with the current track rule (step 02 of commit 39c3702); before = step 04 with plausibility_checks, block_times_on_ground_only and interpolate_crossings_over_missing_values off, after = defaults; flight list of step 03 (run pb)."
+      "Tracks built from the raw archive with the current track rule (steps 01 to 03 of commit b237a48, run trk); before = step 04 of commit b237a48 with plausibility_checks, block_times_on_ground_only and interpolate_crossings_over_missing_values off (run sbef); after = step 04 of commit cc2604a with the defaults (run aft4), which include runway_take_off_needs_air_report; flight list of step 03 (run trk)."
     ],
     "bytes": 4595,
-    "code_fingerprint": "1fea9d4db0781a32",
+    "code_fingerprint": "5603ea4f5f421db9",
     "code_paths": [
       "/home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/industrialisation/benchmarks/events_gt.py",
       "/home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/industrialisation/benchmarks/milestone_plausibility.py",
@@ -34,32 +34,32 @@
       "/home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/industrialisation/src/opdi/utils/geometry.py"
     ],
     "git_dirty": false,
-    "git_sha": "39c3702",
+    "git_sha": "cc2604a",
     "input_tables": {
-      "s3a://eurocontrol/opdi-world/research/speed/aft/opdi_flight_events": {
-        "bytes": 483398410,
-        "newest": "2026-11-15T04:55:19.925000+00:00",
+      "s3a://eurocontrol/opdi-world/research/speed/aft4/opdi_flight_events": {
+        "bytes": 483628551,
+        "newest": "2026-11-15T12:52:16.382000+00:00",
         "objects": 32
       },
-      "s3a://eurocontrol/opdi-world/research/speed/aft/opdi_flight_events_rejected": {
-        "bytes": 50641,
-        "newest": "2026-11-15T04:55:24.952000+00:00",
+      "s3a://eurocontrol/opdi-world/research/speed/aft4/opdi_flight_events_rejected": {
+        "bytes": 50361,
+        "newest": "2026-11-15T12:52:22.248000+00:00",
         "objects": 2
       },
-      "s3a://eurocontrol/opdi-world/research/speed/bef/opdi_flight_events": {
-        "bytes": 474825686,
-        "newest": "2026-11-15T04:27:08.468000+00:00",
+      "s3a://eurocontrol/opdi-world/research/speed/sbef/opdi_flight_events": {
+        "bytes": 474455023,
+        "newest": "2026-11-15T08:29:10.543000+00:00",
         "objects": 32
       },
-      "s3a://eurocontrol/opdi-world/research/speed/c104a/osn_tracks_clean": {
-        "bytes": 9151356227,
-        "newest": "2026-11-15T02:56:53.936000+00:00",
-        "objects": 105
-      },
-      "s3a://eurocontrol/opdi-world/research/speed/pb/opdi_flight_list": {
-        "bytes": 13620077,
-        "newest": "2026-11-15T04:03:26.878000+00:00",
+      "s3a://eurocontrol/opdi-world/research/speed/trk/opdi_flight_list": {
+        "bytes": 13623688,
+        "newest": "2026-11-15T07:56:37.851000+00:00",
         "objects": 5
+      },
+      "s3a://eurocontrol/opdi-world/research/speed/trk/osn_tracks_clean": {
+        "bytes": 9151356053,
+        "newest": "2026-11-15T07:50:36.826000+00:00",
+        "objects": 105
       }
     },
     "inputs": {
@@ -91,43 +91,35 @@
         "lost confirmed: 72093ba15069144d_1781424689 AOBT 2026-06-14 08:11:29 record at ENGM error 29 s",
         "lost confirmed: b639fcfdfe5eef4d_1781472634 AOBT 2026-06-14 21:30:34 record at LDZA error 34 s",
         "lost confirmed: b64caf60d04aed51_1781449714 AOBT 2026-06-14 15:08:44 record at ENGM error 44 s",
-        "lost confirmed: 125d8109002954fc_1781461239 ATOT 2026-06-14 18:20:39 record at LIRA error 39 s",
         "lost confirmed: 166a3ead8eb2b45e_1781474874 ATOT 2026-06-14 22:22:54 record at UGTB error -6 s",
         "lost confirmed: 1abcae3e667ca838_1781453984 ATOT 2026-06-14 16:26:24.349999 record at LFBO error 24 s",
-        "lost confirmed: 2c40dffe1d57eb62_1781472754 ATOT 2026-06-14 21:44:49 record at LGAV error 49 s",
         "lost confirmed: 313ff4a25956fc05_1781459869 ATOT 2026-06-14 18:00:14 record at EDDW error 7 s",
         "lost confirmed: 325938f92ef249b2_1781457294 ATOT 2026-06-14 17:27:27.057141 record at LSZH error 8 s",
         "lost confirmed: 33f1869896424eca_1781454839 ATOT 2026-06-14 16:45:54 record at UGTB error -6 s",
-        "lost confirmed: 389102f7c9dc590f_1781470119 ATOT 2026-06-14 20:48:39 record at EGLL error 39 s",
         "lost confirmed: 3a5d71ae844161a3_1781426994 ATOT 2026-06-14 09:00:14 record at LIML error 14 s",
         "lost confirmed: 3c262490f8185233_1781421804 ATOT 2026-06-14 07:32:29 record at UGTB error 29 s",
         "lost confirmed: 5b2f44eaad314392_1781440779 ATOT 2026-06-14 12:49:14 record at UGTB error 14 s",
         "lost confirmed: 6a9ae8366f96663d_1781425874 ATOT 2026-06-14 08:43:54 record at UGTB error -6 s",
         "lost confirmed: 88f0423fdbf96d47_1781428379 ATOT 2026-06-14 09:21:34 record at UGTB error 34 s",
         "lost confirmed: 933bcbd15f496a38_1781441764 ATOT 2026-06-14 12:57:39 record at UGTB error 39 s",
-        "lost confirmed: 947c92ef4c9bbeda_1781470549 ATOT 2026-06-14 21:00:04 record at LOWW error 4 s",
         "lost confirmed: 961481aca611c395_1781408484 ATOT 2026-06-14 03:43:09 record at LIPZ error 9 s",
         "lost confirmed: a0c30f91d1ff783b_1781433639 ATOT 2026-06-14 10:51:29 record at UGTB error 29 s",
         "lost confirmed: ba4dccf43a7eb96c_1781438144 ATOT 2026-06-14 12:01:55.799998 record at LEMD error 12 s",
         "lost confirmed: bc8589d913bc71f4_1781430009 ATOT 2026-06-14 10:00:24 record at LIMC error 24 s",
-        "lost confirmed: c93dfb1e022a915b_1781413399 ATOT 2026-06-14 05:03:19 record at LFPG error 19 s",
-        "lost confirmed: ca08908f7bc22820_1781454054 ATOT 2026-06-14 16:29:24 record at ENVA error 24 s",
         "lost confirmed: cfe5106f7527b4d0_1781416964 ATOT 2026-06-14 06:02:44 record at EGBB error 8 s",
         "lost confirmed: d034650e21c26445_1781462419 ATOT 2026-06-14 19:03:59 record at LFBO error -1 s",
         "lost confirmed: d1c9301c47a86cb8_1781410764 ATOT 2026-06-14 04:29:34 record at EDDS error -2 s",
         "lost confirmed: d4465b0334060f48_1781478529 ATOT 2026-06-14 23:11:24.349998 record at UGTB error 24 s",
         "lost confirmed: de8f24996598b7ae_1781420869 ATOT 2026-06-14 07:44:49.699997 record at UGTB error -10 s",
-        "lost confirmed: e0525b242e62c21a_1781415339 ATOT 2026-06-14 05:35:49 record at ENZV error 49 s",
         "lost confirmed: f76a3e6b8052cd96_1781444179 ATOT 2026-06-14 13:46:24 record at UGTB error 24 s",
-        "lost confirmed: f9aa93365af1173a_1781468344 ATOT 2026-06-14 20:19:04 record at EPWA error -14 s",
         "lost confirmed: ffb4a9fd8a11eb4f_1781453219 ATOT 2026-06-14 16:18:34.466665 record at UGTB error 34 s"
       ],
       "rows": 49
     },
-    "notes": "Before: s3a://eurocontrol/opdi-world/research/speed/bef/opdi_flight_events. After: s3a://eurocontrol/opdi-world/research/speed/aft. Tracks built from the raw archive with the current track rule (step 02 of commit 39c3702); before = step 04 with plausibility_checks, block_times_on_ground_only and interpolate_crossings_over_missing_values off, after = defaults; flight list of step 03 (run pb).",
-    "produced_utc": "2026-11-15T05:20:32+00:00",
+    "notes": "Before: s3a://eurocontrol/opdi-world/research/speed/sbef/opdi_flight_events. After: s3a://eurocontrol/opdi-world/research/speed/aft4. Tracks built from the raw archive with the current track rule (steps 01 to 03 of commit b237a48, run trk); before = step 04 of commit b237a48 with plausibility_checks, block_times_on_ground_only and interpolate_crossings_over_missing_values off (run sbef); after = step 04 of commit cc2604a with the defaults (run aft4), which include runway_take_off_needs_air_report; flight list of step 03 (run trk).",
+    "produced_utc": "2026-11-15T13:00:23+00:00",
     "script": "benchmarks/milestone_plausibility.py",
-    "sha256_16": "845ccf1bfc631057"
+    "sha256_16": "2fe15ce4babbf125"
   },
   "candidate_rules.csv": {
     "argv": [
@@ -350,20 +342,20 @@
       "--executors",
       "13",
       "--results-dir",
-      "/home/jupyter/.claude/jobs/616d5918/tmp/spill/plaus_data",
+      "/home/jupyter/.claude/jobs/616d5918/tmp/atot/plaus_data4",
       "--events",
-      "s3a://eurocontrol/opdi-world/research/speed/bef/opdi_flight_events",
+      "s3a://eurocontrol/opdi-world/research/speed/sbef/opdi_flight_events",
       "--flight-list",
-      "s3a://eurocontrol/opdi-world/research/speed/pb/opdi_flight_list",
+      "s3a://eurocontrol/opdi-world/research/speed/trk/opdi_flight_list",
       "--tracks",
-      "s3a://eurocontrol/opdi-world/research/speed/c104a/osn_tracks_clean",
+      "s3a://eurocontrol/opdi-world/research/speed/trk/osn_tracks_clean",
       "--after-root",
-      "s3a://eurocontrol/opdi-world/research/speed/aft",
+      "s3a://eurocontrol/opdi-world/research/speed/aft4",
       "--notes",
-      "Tracks built from the raw archive with the current track rule (step 02 of commit 39c3702); before = step 04 with plausibility_checks, block_times_on_ground_only and interpolate_crossings_over_missing_values off, after = defaults; flight list of step 03 (run pb)."
+      "Tracks built from the raw archive with the current track rule (steps 01 to 03 of commit b237a48, run trk); before = step 04 of commit b237a48 with plausibility_checks, block_times_on_ground_only and interpolate_crossings_over_missing_values off (run sbef); after = step 04 of commit cc2604a with the defaults (run aft4), which include runway_take_off_needs_air_report; flight list of step 03 (run trk)."
     ],
     "bytes": 359,
-    "code_fingerprint": "1fea9d4db0781a32",
+    "code_fingerprint": "5603ea4f5f421db9",
     "code_paths": [
       "/home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/industrialisation/benchmarks/events_gt.py",
       "/home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/industrialisation/benchmarks/milestone_plausibility.py",
@@ -377,32 +369,32 @@
       "/home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/industrialisation/src/opdi/utils/geometry.py"
     ],
     "git_dirty": false,
-    "git_sha": "39c3702",
+    "git_sha": "cc2604a",
     "input_tables": {
-      "s3a://eurocontrol/opdi-world/research/speed/aft/opdi_flight_events": {
-        "bytes": 483398410,
-        "newest": "2026-11-15T04:55:19.925000+00:00",
+      "s3a://eurocontrol/opdi-world/research/speed/aft4/opdi_flight_events": {
+        "bytes": 483628551,
+        "newest": "2026-11-15T12:52:16.382000+00:00",
         "objects": 32
       },
-      "s3a://eurocontrol/opdi-world/research/speed/aft/opdi_flight_events_rejected": {
-        "bytes": 50641,
-        "newest": "2026-11-15T04:55:24.952000+00:00",
+      "s3a://eurocontrol/opdi-world/research/speed/aft4/opdi_flight_events_rejected": {
+        "bytes": 50361,
+        "newest": "2026-11-15T12:52:22.248000+00:00",
         "objects": 2
       },
-      "s3a://eurocontrol/opdi-world/research/speed/bef/opdi_flight_events": {
-        "bytes": 474825686,
-        "newest": "2026-11-15T04:27:08.468000+00:00",
+      "s3a://eurocontrol/opdi-world/research/speed/sbef/opdi_flight_events": {
+        "bytes": 474455023,
+        "newest": "2026-11-15T08:29:10.543000+00:00",
         "objects": 32
       },
-      "s3a://eurocontrol/opdi-world/research/speed/c104a/osn_tracks_clean": {
-        "bytes": 9151356227,
-        "newest": "2026-11-15T02:56:53.936000+00:00",
-        "objects": 105
-      },
-      "s3a://eurocontrol/opdi-world/research/speed/pb/opdi_flight_list": {
-        "bytes": 13620077,
-        "newest": "2026-11-15T04:03:26.878000+00:00",
+      "s3a://eurocontrol/opdi-world/research/speed/trk/opdi_flight_list": {
+        "bytes": 13623688,
+        "newest": "2026-11-15T07:56:37.851000+00:00",
         "objects": 5
+      },
+      "s3a://eurocontrol/opdi-world/research/speed/trk/osn_tracks_clean": {
+        "bytes": 9151356053,
+        "newest": "2026-11-15T07:50:36.826000+00:00",
+        "objects": 105
       }
     },
     "inputs": {
@@ -434,68 +426,63 @@
         "lost confirmed: 72093ba15069144d_1781424689 AOBT 2026-06-14 08:11:29 record at ENGM error 29 s",
         "lost confirmed: b639fcfdfe5eef4d_1781472634 AOBT 2026-06-14 21:30:34 record at LDZA error 34 s",
         "lost confirmed: b64caf60d04aed51_1781449714 AOBT 2026-06-14 15:08:44 record at ENGM error 44 s",
-        "lost confirmed: 125d8109002954fc_1781461239 ATOT 2026-06-14 18:20:39 record at LIRA error 39 s",
         "lost confirmed: 166a3ead8eb2b45e_1781474874 ATOT 2026-06-14 22:22:54 record at UGTB error -6 s",
         "lost confirmed: 1abcae3e667ca838_1781453984 ATOT 2026-06-14 16:26:24.349999 record at LFBO error 24 s",
-        "lost confirmed: 2c40dffe1d57eb62_1781472754 ATOT 2026-06-14 21:44:49 record at LGAV error 49 s",
         "lost confirmed: 313ff4a25956fc05_1781459869 ATOT 2026-06-14 18:00:14 record at EDDW error 7 s",
         "lost confirmed: 325938f92ef249b2_1781457294 ATOT 2026-06-14 17:27:27.057141 record at LSZH error 8 s",
         "lost confirmed: 33f1869896424eca_1781454839 ATOT 2026-06-14 16:45:54 record at UGTB error -6 s",
-        "lost confirmed: 389102f7c9dc590f_1781470119 ATOT 2026-06-14 20:48:39 record at EGLL error 39 s",
         "lost confirmed: 3a5d71ae844161a3_1781426994 ATOT 2026-06-14 09:00:14 record at LIML error 14 s",
         "lost confirmed: 3c262490f8185233_1781421804 ATOT 2026-06-14 07:32:29 record at UGTB error 29 s",
         "lost confirmed: 5b2f44eaad314392_1781440779 ATOT 2026-06-14 12:49:14 record at UGTB error 14 s",
         "lost confirmed: 6a9ae8366f96663d_1781425874 ATOT 2026-06-14 08:43:54 record at UGTB error -6 s",
         "lost confirmed: 88f0423fdbf96d47_1781428379 ATOT 2026-06-14 09:21:34 record at UGTB error 34 s",
         "lost confirmed: 933bcbd15f496a38_1781441764 ATOT 2026-06-14 12:57:39 record at UGTB error 39 s",
-        "lost confirmed: 947c92ef4c9bbeda_1781470549 ATOT 2026-06-14 21:00:04 record at LOWW error 4 s",
         "lost confirmed: 961481aca611c395_1781408484 ATOT 2026-06-14 03:43:09 record at LIPZ error 9 s",
         "lost confirmed: a0c30f91d1ff783b_1781433639 ATOT 2026-06-14 10:51:29 record at UGTB error 29 s",
         "lost confirmed: ba4dccf43a7eb96c_1781438144 ATOT 2026-06-14 12:01:55.799998 record at LEMD error 12 s",
         "lost confirmed: bc8589d913bc71f4_1781430009 ATOT 2026-06-14 10:00:24 record at LIMC error 24 s",
-        "lost confirmed: c93dfb1e022a915b_1781413399 ATOT 2026-06-14 05:03:19 record at LFPG error 19 s",
-        "lost confirmed: ca08908f7bc22820_1781454054 ATOT 2026-06-14 16:29:24 record at ENVA error 24 s",
         "lost confirmed: cfe5106f7527b4d0_1781416964 ATOT 2026-06-14 06:02:44 record at EGBB error 8 s",
         "lost confirmed: d034650e21c26445_1781462419 ATOT 2026-06-14 19:03:59 record at LFBO error -1 s",
         "lost confirmed: d1c9301c47a86cb8_1781410764 ATOT 2026-06-14 04:29:34 record at EDDS error -2 s",
         "lost confirmed: d4465b0334060f48_1781478529 ATOT 2026-06-14 23:11:24.349998 record at UGTB error 24 s",
         "lost confirmed: de8f24996598b7ae_1781420869 ATOT 2026-06-14 07:44:49.699997 record at UGTB error -10 s",
-        "lost confirmed: e0525b242e62c21a_1781415339 ATOT 2026-06-14 05:35:49 record at ENZV error 49 s",
         "lost confirmed: f76a3e6b8052cd96_1781444179 ATOT 2026-06-14 13:46:24 record at UGTB error 24 s",
-        "lost confirmed: f9aa93365af1173a_1781468344 ATOT 2026-06-14 20:19:04 record at EPWA error -14 s",
         "lost confirmed: ffb4a9fd8a11eb4f_1781453219 ATOT 2026-06-14 16:18:34.466665 record at UGTB error 34 s"
       ],
       "rows": 2
     },
-    "notes": "Before: s3a://eurocontrol/opdi-world/research/speed/bef/opdi_flight_events. After: s3a://eurocontrol/opdi-world/research/speed/aft. Tracks built from the raw archive with the current track rule (step 02 of commit 39c3702); before = step 04 with plausibility_checks, block_times_on_ground_only and interpolate_crossings_over_missing_values off, after = defaults; flight list of step 03 (run pb).",
-    "produced_utc": "2026-11-15T05:20:33+00:00",
+    "notes": "Before: s3a://eurocontrol/opdi-world/research/speed/sbef/opdi_flight_events. After: s3a://eurocontrol/opdi-world/research/speed/aft4. Tracks built from the raw archive with the current track rule (steps 01 to 03 of commit b237a48, run trk); before = step 04 of commit b237a48 with plausibility_checks, block_times_on_ground_only and interpolate_crossings_over_missing_values off (run sbef); after = step 04 of commit cc2604a with the defaults (run aft4), which include runway_take_off_needs_air_report; flight list of step 03 (run trk).",
+    "produced_utc": "2026-11-15T13:00:25+00:00",
     "script": "benchmarks/milestone_plausibility.py",
     "sha256_16": "d7162c60ed061703"
   },
   "lost_confirmed.csv": {
     "argv": [
-      "lost_new.py OUT s3a://eurocontrol/opdi-world/research/speed/bef/opdi_flight_events s3a://eurocontrol/opdi-world/research/speed/aft s3a://eurocontrol/opdi-world/research/speed/pb/opdi_flight_list s3a://eurocontrol/opdi-world/research/speed/c104a/osn_tracks_clean"
+      "lost_new.py OUT s3a://eurocontrol/opdi-world/research/speed/sbef/opdi_flight_events s3a://eurocontrol/opdi-world/research/speed/aft4 s3a://eurocontrol/opdi-world/research/speed/trk/opdi_flight_list s3a://eurocontrol/opdi-world/research/speed/trk/osn_tracks_clean"
     ],
-    "bytes": 12376,
-    "code_fingerprint": "b26684bed142fd73",
+    "bytes": 8549,
+    "code_fingerprint": "1b715e9fb2a29540",
     "code_paths": [
       "/home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/industrialisation/benchmarks/milestone_plausibility.py",
-      "/home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/industrialisation/src/opdi/pipeline/plausibility.py"
+      "/home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/industrialisation/src/opdi/pipeline/plausibility.py",
+      "/home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/industrialisation/src/opdi/pipeline/runway_ops.py"
     ],
     "git_dirty": false,
-    "git_sha": "39c3702",
+    "git_sha": "cc2604a",
     "input_tables": {},
     "inputs": {
       "lost_AIBT": 2,
       "lost_ALDT": 4,
       "lost_AOBT": 5,
-      "lost_ATOT": 30,
-      "rows": 41
+      "lost_ATOT": 22,
+      "outcome_gone": 6,
+      "outcome_moved, still confirmed": 27,
+      "rows": 33
     },
-    "notes": "Every event confirmed before (within 60 s of its airport record) with no event of the same flight, type and time after: the same list as 'lost_confirmed' in the manifest entry of before_after.csv. event_time_after / error_after_s: the event of the same flight and type after that is nearest to the record. The reason was written by hand after reading the reports of each track around both times (height above the airport, ground speed, on-ground flag, first and last report).",
-    "produced_utc": "2026-11-15T05:26:01+00:00",
-    "script": "spill/stage_lost.py (from spill/lost_new.py)",
-    "sha256_16": "684fac6e55337c8b"
+    "notes": "Before: run sbef (step 04 of commit b237a48 with plausibility_checks, block_times_on_ground_only and interpolate_crossings_over_missing_values off). After: run aft4 (step 04 of commit cc2604a with the default settings, runway_take_off_needs_air_report included). Tracks and flight list of run trk (steps 01 to 03 of commit b237a48). Every event confirmed before (within 60 s of its airport record) with no event of the same flight, type and time after. event_time_after / error_after_s: the event of the same flight and type after that is nearest to the record. The reason was written by hand after reading the reports of each track around both times.",
+    "produced_utc": "2026-11-15T13:33:54+00:00",
+    "script": "atot/stage.py (from spill/lost_new.py)",
+    "sha256_16": "88ec46f1f2caf14d"
   },
   "removed_by_rule.csv": {
     "argv": [
@@ -505,20 +492,20 @@
       "--executors",
       "13",
       "--results-dir",
-      "/home/jupyter/.claude/jobs/616d5918/tmp/spill/plaus_data",
+      "/home/jupyter/.claude/jobs/616d5918/tmp/atot/plaus_data4",
       "--events",
-      "s3a://eurocontrol/opdi-world/research/speed/bef/opdi_flight_events",
+      "s3a://eurocontrol/opdi-world/research/speed/sbef/opdi_flight_events",
       "--flight-list",
-      "s3a://eurocontrol/opdi-world/research/speed/pb/opdi_flight_list",
+      "s3a://eurocontrol/opdi-world/research/speed/trk/opdi_flight_list",
       "--tracks",
-      "s3a://eurocontrol/opdi-world/research/speed/c104a/osn_tracks_clean",
+      "s3a://eurocontrol/opdi-world/research/speed/trk/osn_tracks_clean",
       "--after-root",
-      "s3a://eurocontrol/opdi-world/research/speed/aft",
+      "s3a://eurocontrol/opdi-world/research/speed/aft4",
       "--notes",
-      "Tracks built from the raw archive with the current track rule (step 02 of commit 39c3702); before = step 04 with plausibility_checks, block_times_on_ground_only and interpolate_crossings_over_missing_values off, after = defaults; flight list of step 03 (run pb)."
+      "Tracks built from the raw archive with the current track rule (steps 01 to 03 of commit b237a48, run trk); before = step 04 of commit b237a48 with plausibility_checks, block_times_on_ground_only and interpolate_crossings_over_missing_values off (run sbef); after = step 04 of commit cc2604a with the defaults (run aft4), which include runway_take_off_needs_air_report; flight list of step 03 (run trk)."
     ],
     "bytes": 385,
-    "code_fingerprint": "1fea9d4db0781a32",
+    "code_fingerprint": "5603ea4f5f421db9",
     "code_paths": [
       "/home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/industrialisation/benchmarks/events_gt.py",
       "/home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/industrialisation/benchmarks/milestone_plausibility.py",
@@ -532,32 +519,32 @@
       "/home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/industrialisation/src/opdi/utils/geometry.py"
     ],
     "git_dirty": false,
-    "git_sha": "39c3702",
+    "git_sha": "cc2604a",
     "input_tables": {
-      "s3a://eurocontrol/opdi-world/research/speed/aft/opdi_flight_events": {
-        "bytes": 483398410,
-        "newest": "2026-11-15T04:55:19.925000+00:00",
+      "s3a://eurocontrol/opdi-world/research/speed/aft4/opdi_flight_events": {
+        "bytes": 483628551,
+        "newest": "2026-11-15T12:52:16.382000+00:00",
         "objects": 32
       },
-      "s3a://eurocontrol/opdi-world/research/speed/aft/opdi_flight_events_rejected": {
-        "bytes": 50641,
-        "newest": "2026-11-15T04:55:24.952000+00:00",
+      "s3a://eurocontrol/opdi-world/research/speed/aft4/opdi_flight_events_rejected": {
+        "bytes": 50361,
+        "newest": "2026-11-15T12:52:22.248000+00:00",
         "objects": 2
       },
-      "s3a://eurocontrol/opdi-world/research/speed/bef/opdi_flight_events": {
-        "bytes": 474825686,
-        "newest": "2026-11-15T04:27:08.468000+00:00",
+      "s3a://eurocontrol/opdi-world/research/speed/sbef/opdi_flight_events": {
+        "bytes": 474455023,
+        "newest": "2026-11-15T08:29:10.543000+00:00",
         "objects": 32
       },
-      "s3a://eurocontrol/opdi-world/research/speed/c104a/osn_tracks_clean": {
-        "bytes": 9151356227,
-        "newest": "2026-11-15T02:56:53.936000+00:00",
-        "objects": 105
-      },
-      "s3a://eurocontrol/opdi-world/research/speed/pb/opdi_flight_list": {
-        "bytes": 13620077,
-        "newest": "2026-11-15T04:03:26.878000+00:00",
+      "s3a://eurocontrol/opdi-world/research/speed/trk/opdi_flight_list": {
+        "bytes": 13623688,
+        "newest": "2026-11-15T07:56:37.851000+00:00",
         "objects": 5
+      },
+      "s3a://eurocontrol/opdi-world/research/speed/trk/osn_tracks_clean": {
+        "bytes": 9151356053,
+        "newest": "2026-11-15T07:50:36.826000+00:00",
+        "objects": 105
       }
     },
     "inputs": {
@@ -589,41 +576,33 @@
         "lost confirmed: 72093ba15069144d_1781424689 AOBT 2026-06-14 08:11:29 record at ENGM error 29 s",
         "lost confirmed: b639fcfdfe5eef4d_1781472634 AOBT 2026-06-14 21:30:34 record at LDZA error 34 s",
         "lost confirmed: b64caf60d04aed51_1781449714 AOBT 2026-06-14 15:08:44 record at ENGM error 44 s",
-        "lost confirmed: 125d8109002954fc_1781461239 ATOT 2026-06-14 18:20:39 record at LIRA error 39 s",
         "lost confirmed: 166a3ead8eb2b45e_1781474874 ATOT 2026-06-14 22:22:54 record at UGTB error -6 s",
         "lost confirmed: 1abcae3e667ca838_1781453984 ATOT 2026-06-14 16:26:24.349999 record at LFBO error 24 s",
-        "lost confirmed: 2c40dffe1d57eb62_1781472754 ATOT 2026-06-14 21:44:49 record at LGAV error 49 s",
         "lost confirmed: 313ff4a25956fc05_1781459869 ATOT 2026-06-14 18:00:14 record at EDDW error 7 s",
         "lost confirmed: 325938f92ef249b2_1781457294 ATOT 2026-06-14 17:27:27.057141 record at LSZH error 8 s",
         "lost confirmed: 33f1869896424eca_1781454839 ATOT 2026-06-14 16:45:54 record at UGTB error -6 s",
-        "lost confirmed: 389102f7c9dc590f_1781470119 ATOT 2026-06-14 20:48:39 record at EGLL error 39 s",
         "lost confirmed: 3a5d71ae844161a3_1781426994 ATOT 2026-06-14 09:00:14 record at LIML error 14 s",
         "lost confirmed: 3c262490f8185233_1781421804 ATOT 2026-06-14 07:32:29 record at UGTB error 29 s",
         "lost confirmed: 5b2f44eaad314392_1781440779 ATOT 2026-06-14 12:49:14 record at UGTB error 14 s",
         "lost confirmed: 6a9ae8366f96663d_1781425874 ATOT 2026-06-14 08:43:54 record at UGTB error -6 s",
         "lost confirmed: 88f0423fdbf96d47_1781428379 ATOT 2026-06-14 09:21:34 record at UGTB error 34 s",
         "lost confirmed: 933bcbd15f496a38_1781441764 ATOT 2026-06-14 12:57:39 record at UGTB error 39 s",
-        "lost confirmed: 947c92ef4c9bbeda_1781470549 ATOT 2026-06-14 21:00:04 record at LOWW error 4 s",
         "lost confirmed: 961481aca611c395_1781408484 ATOT 2026-06-14 03:43:09 record at LIPZ error 9 s",
         "lost confirmed: a0c30f91d1ff783b_1781433639 ATOT 2026-06-14 10:51:29 record at UGTB error 29 s",
         "lost confirmed: ba4dccf43a7eb96c_1781438144 ATOT 2026-06-14 12:01:55.799998 record at LEMD error 12 s",
         "lost confirmed: bc8589d913bc71f4_1781430009 ATOT 2026-06-14 10:00:24 record at LIMC error 24 s",
-        "lost confirmed: c93dfb1e022a915b_1781413399 ATOT 2026-06-14 05:03:19 record at LFPG error 19 s",
-        "lost confirmed: ca08908f7bc22820_1781454054 ATOT 2026-06-14 16:29:24 record at ENVA error 24 s",
         "lost confirmed: cfe5106f7527b4d0_1781416964 ATOT 2026-06-14 06:02:44 record at EGBB error 8 s",
         "lost confirmed: d034650e21c26445_1781462419 ATOT 2026-06-14 19:03:59 record at LFBO error -1 s",
         "lost confirmed: d1c9301c47a86cb8_1781410764 ATOT 2026-06-14 04:29:34 record at EDDS error -2 s",
         "lost confirmed: d4465b0334060f48_1781478529 ATOT 2026-06-14 23:11:24.349998 record at UGTB error 24 s",
         "lost confirmed: de8f24996598b7ae_1781420869 ATOT 2026-06-14 07:44:49.699997 record at UGTB error -10 s",
-        "lost confirmed: e0525b242e62c21a_1781415339 ATOT 2026-06-14 05:35:49 record at ENZV error 49 s",
         "lost confirmed: f76a3e6b8052cd96_1781444179 ATOT 2026-06-14 13:46:24 record at UGTB error 24 s",
-        "lost confirmed: f9aa93365af1173a_1781468344 ATOT 2026-06-14 20:19:04 record at EPWA error -14 s",
         "lost confirmed: ffb4a9fd8a11eb4f_1781453219 ATOT 2026-06-14 16:18:34.466665 record at UGTB error 34 s"
       ],
       "rows": 8
     },
-    "notes": "Before: s3a://eurocontrol/opdi-world/research/speed/bef/opdi_flight_events. After: s3a://eurocontrol/opdi-world/research/speed/aft. Tracks built from the raw archive with the current track rule (step 02 of commit 39c3702); before = step 04 with plausibility_checks, block_times_on_ground_only and interpolate_crossings_over_missing_values off, after = defaults; flight list of step 03 (run pb).",
-    "produced_utc": "2026-11-15T05:20:33+00:00",
+    "notes": "Before: s3a://eurocontrol/opdi-world/research/speed/sbef/opdi_flight_events. After: s3a://eurocontrol/opdi-world/research/speed/aft4. Tracks built from the raw archive with the current track rule (steps 01 to 03 of commit b237a48, run trk); before = step 04 of commit b237a48 with plausibility_checks, block_times_on_ground_only and interpolate_crossings_over_missing_values off (run sbef); after = step 04 of commit cc2604a with the defaults (run aft4), which include runway_take_off_needs_air_report; flight list of step 03 (run trk).",
+    "produced_utc": "2026-11-15T13:00:24+00:00",
     "script": "benchmarks/milestone_plausibility.py",
     "sha256_16": "cffd7eaa45015ba6"
   },
@@ -697,5 +676,28 @@
     "produced_utc": "2026-11-15T05:17:42+00:00",
     "script": "benchmarks/milestone_plausibility.py",
     "sha256_16": "289d4588682e4fc2"
+  },
+  "takeoff_on_landing_roll.csv": {
+    "argv": [
+      "atot_cmp.py OUT aft4",
+      "milestone_plausibility.py before-after --day 2026-06-14 --events s3a://eurocontrol/opdi-world/research/speed/bef/opdi_flight_events --after-root s3a://eurocontrol/opdi-world/research/speed/aft4 --flight-list s3a://eurocontrol/opdi-world/research/speed/trk/opdi_flight_list --tracks s3a://eurocontrol/opdi-world/research/speed/trk/osn_tracks_clean"
+    ],
+    "bytes": 4627,
+    "code_fingerprint": "3ee594b309125960",
+    "code_paths": [
+      "/home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/industrialisation/benchmarks/milestone_plausibility.py",
+      "/home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/industrialisation/src/opdi/config/events.py",
+      "/home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/industrialisation/src/opdi/pipeline/runway_ops.py"
+    ],
+    "git_dirty": false,
+    "git_sha": "cc2604a",
+    "input_tables": {},
+    "inputs": {
+      "rows": 75
+    },
+    "notes": "The take-off read on the landing roll, and its correction. Before: run bef, step 04 of commit b237a48 with the default settings. After: run aft4, step 04 of commit cc2604a with the default settings; the only difference is that a runway pass is read as a take-off only when it ends in the air (runway_take_off_needs_air_report). Tracks and flight list of run trk. The readings of the tracks ('second departure after a stop', ...) come from the reports of each track between the landing and 5 minutes after the take-off: lowest speed and reports on the ground between them, highest height and share of reports on the ground after the take-off; the 30 sampled tracks were read one by one.",
+    "produced_utc": "2026-11-15T13:33:54+00:00",
+    "script": "atot/stage.py (from atot/atot_cmp.py, milestone_plausibility.py before-after, atot/classify_removed.py)",
+    "sha256_16": "cec0c34e086b96cd"
   }
 }

@@ -78,13 +78,27 @@ sea level, from OurAirports).
    line) or on the approach to that direction (short of the threshold).
 3. **Runway pass.** The kept samples of one runway direction, in time order,
    form a **runway pass**. A silence of more than 300 s starts a new pass.
-4. **Classify the pass.** Three measurements are made over the pass: the angle
+4. **Classify the pass.** Four measurements are made over the pass: the angle
    between the runway's bearing and the median of the aircraft's direction of
    travel over the ground (its ground track), the highest
-   ground speed, and the height above the airport at the first and the last
-   sample that has an altitude.
+   ground speed, the height above the airport at the first and the last
+   sample that has an altitude, and whether the pass ends on the ground (the
+   transponder flags a sample as on the ground or not).
    - **Departure**: angle at most 30°, ground speed above 50 kt, height below
-     15 ft at the start and at least 15 ft at the end.
+     15 ft at the start and at least 15 ft at the end, and the pass ends in
+     the air: the last sample with an altitude is not flagged on the ground,
+     and neither is the last sample of the pass. A take-off ends in the air.
+     On the ground, the barometric altitude can read 20 to 60 ft above the
+     airport, because it is measured against standard pressure, not the
+     pressure of the day. A landing roll read in the opposite direction of the
+     runway (from the far end, with no approach before it) starts low just
+     after the touchdown and ends "above 15 ft" on such samples; the flag
+     tells it apart from a take-off. One exception keeps the take-offs of
+     aircraft flying circuits: when the take-off and the next landing on the
+     same runway fall in one pass (less than 300 s apart), the pass ends on
+     the ground after a climb, and it is still a departure if it holds at
+     least two samples in the air between 300 and 3,000 ft above the airport.
+     A sample without the flag counts as not on the ground.
    - **Arrival**: angle at most 30°, ground speed above 50 kt, height at least
      15 ft at the start and below 15 ft at the end.
    - A taxiing aircraft crossing the runway is a third class, described on
@@ -341,6 +355,12 @@ runways match the airport record.
   receiver close enough.
 - The height above the airport uses the uncorrected barometric altitude. On a
   day with high or low air pressure, the 15 ft crossing moves slightly.
+- A landing roll is still read as a take-off when the transponder does not
+  flag its last samples on the ground (8 tracks on 14 June 2026). A light
+  aircraft flying circuits whose barometric altitude reads far below the
+  airport can lose its take-off to the same rule (2 take-off times on that
+  day). See the
+  [plausibility study](../../papers/milestone-plausibility-v1/index.html#a-take-off-read-on-the-landing-roll).
 - On a runway whose bearing is close to the north–south line (runways
   numbered 18 and 36), the median ground track can come out pointing the wrong way. The runway direction
   can then be wrong, and `xing-runway-threshold` can be missing although `ALDT` is present.
