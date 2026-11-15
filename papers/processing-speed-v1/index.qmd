@@ -565,8 +565,79 @@ undisturbed run gave `r num(ST("orch1", "02"))` s for step 02 and
 is the settings (one more executor, fewer shuffle parts), which were not
 measured on these two steps on their own; most of it in step 02a is the
 scaling from one aircraft in 12. Step 02 spills about `r num(spill02)` GB to the
-executors' local disks with 104 shuffle parts; whether more parts help that
-step alone was not tested.
+executors' local disks with 104 shuffle parts; the next section measures what
+that costs.
+
+## Shuffle parts of the track step
+
+```{r partitions-setup}
+#| include: false
+pt <- read.csv(file.path("data", "partition_tests.csv"), stringsAsFactors = FALSE,
+               colClasses = c(step = "character"))
+PT <- function(step, n, col) as.numeric(pt[pt$step == step & pt$shuffle_partitions == n, col])
+MP <- function(step, n, col = "wall_s") mean(PT(step, n, col))
+```
+
+Step 02 sorts the position reports of each aircraft in time for its window
+functions. Spark splits that work into as many parts as
+`spark.sql.shuffle.partitions` says, 104 in the settings above, chosen for
+step 04. With 104 parts each part of the largest sort is too large for the
+memory one task gets, so Spark writes the overflow to the executor's local
+disk and reads it back ("spill"). Spilling does not change the result, but
+costs time.
+
+The whole day was run through step 02 again from the same reports, with
+104, 208, 416 and 832 parts, and the 104, 208 and 416 runs twice. Step 02a
+(cleaning), which runs the same kind of sort, was run twice with 104 and
+twice with 416 parts on the same tracks. Every run's output was compared row
+by row with the first run with 104 parts: the same
+`r sub("identical: ([0-9,]+) rows.*", "\\1", pt$content[2])` reports and
+`r sub(".* rows, ([0-9,]+) track ids.*", "\\1", pt$content[2])` tracks, every
+column equal, in each case (column `content` of the table's file).
+
+```{r tbl-partitions}
+#| echo: false
+tab <- data.frame(step = pt$step, parts = pt$shuffle_partitions, run = pt$run,
+                  wall = num(pt$wall_s), exec = num(pt$executor_s),
+                  spill = num(pt$spill_disk_gb, 1),
+                  task = paste0(num(pt$largest_stage_task_max_s), " / ", num(pt$largest_stage_task_median_s)),
+                  mem = num(pt$peak_executor_memory_mib), disk = num(pt$peak_local_disk_gb, 1),
+                  lost = pt$executors_lost)
+kable(tab, row.names = FALSE, align = "lrrrrrrrrr",
+      col.names = c("Step", "Shuffle parts", "Run", "Time (s)", "Executor-seconds", "Spilled to disk (GB)",
+                    "Largest sort: longest / median task (s)", "Highest executor memory (MiB)",
+                    "Highest local disk of one executor (GB)", "Executors lost"),
+      caption = "Steps 02 and 02a of the worldwide day 2026-06-14 with different numbers of shuffle parts, 13 executors. Memory: the container holds 13,824 MiB.")
+```
+
+With 104 parts step 02 spilled `r num(PT("02", 104, "spill_disk_gb")[1])` GB to
+disk and took `r num(PT("02", 104)[1])` and `r num(PT("02", 104)[2])` s. With
+416 parts nothing was spilled and it took `r num(PT("02", 416)[1])` and
+`r num(PT("02", 416)[2])` s:
+`r num(MP("02", 104) - MP("02", 416))` s or
+`r num(100 * (1 - MP("02", 416) / MP("02", 104)))`% less, four times the
+difference between two runs with the same setting. 208 parts were as fast
+(`r num(PT("02", 208)[1])` and `r num(PT("02", 208)[2])` s), but the busiest
+executor came within `r num(13824 - max(PT("02", 208, "peak_executor_memory_mib")))` MiB
+of its container's limit, against `r num(13824 - max(PT("02", 416, "peak_executor_memory_mib")))` MiB
+with 416; 832 parts were slower again (`r num(PT("02", 832))` s), because the
+many small parts cost more to start than they save. Step 02 therefore runs with
+416 parts; the other steps keep 104 (`OPENSKY_STEP_SETTINGS` in the
+configuration of the opdi repository). Step 02a does not spill with 104 parts,
+and with 416 it took `r num(MP("02a", 416))` s instead of `r num(MP("02a", 104))` s,
+so it keeps 104.
+
+The spill was a cost in time, not a risk for the disks. An executor's local
+folder is a temporary folder of its pod with no size limit of its own; it
+lies on the disk of the machine that runs the pod, 527 GB, which every pod on
+that machine shares. The most one executor held there, the shuffle files of
+the step with or without the spill, was
+`r num(max(pt$peak_local_disk_gb), 1)` GB, and the most any of these machines had
+in use was `r num(max(pt$node_disk_used_max_gb))` GB. Kubernetes removes pods from
+a machine only when its disk is nearly full (by default, less than 10% free,
+about 53 GB here), which is far from what a day needs. The local disk was
+measured every 15 s, so a spill file written and removed between two readings
+is not seen.
 
 The whole day from the archive does not give the same flight list as the
 runs above, which started from the tracks stored in the warehouse on 17
@@ -654,7 +725,13 @@ against today's settings), `content_p1a_tracks.csv` and
 `fault_injection_*.csv` (the day with two executors deleted against the
 undisturbed day), `resumed_day_comparison.csv` (the day that stopped in step
 09 and was continued) and `full_day_*.csv` (the day from the archive against
-the run from the stored tracks). Its labels in `step_timings.csv`: `p1b`,
+the run from the stored tracks). The round on the shuffle parts of steps 02 and 02a adds
+`partition_tests.csv` (one row per run: the number of parts, time,
+executor-seconds, spill, shuffle, the largest sort's longest and median task,
+the highest memory and local disk of one executor, the highest disk use of the
+machine, executors lost, and the comparison of its output with the first run
+with 104 parts); its labels are `p<parts><a|b>` for step 02 and `c<parts><a|b>`
+for step 02a. Its labels in `step_timings.csv`: `p1b`,
 `p1a`, `p1k` (steps 02 and 02a, one aircraft in 12: today's settings, Arrow,
 Kryo); `pab`, `pae`, `pas`, `pak` (steps 03 to 09 from the stored tracks:
 today's settings, 13 executors, 13 executors and 104 parts, all kept

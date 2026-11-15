@@ -448,6 +448,30 @@
     "script": "benchmarks/day_compare.py",
     "sha256_16": "9d7836cb081e8470"
   },
+  "partition_tests.csv": {
+    "argv": [
+      "run --day 2026-06-14 --s3 production --executors 13 --conf spark.eventLog.logStageExecutorMetrics=true with: --steps 01 --full --label sv; --steps 02 --full --statevectors-from sv --conf spark.sql.shuffle.partitions=N --label p<N><a|b>; --steps 02a --full --read-tables osn_tracks@p104a --conf spark.sql.shuffle.partitions=N --label c<N><a|b>; content: day_compare.py tracks --tables osn_tracks|osn_tracks_clean --before p104a|c104a --after <label>"
+    ],
+    "bytes": 1764,
+    "code_fingerprint": "564ad526f85a1e7c",
+    "code_paths": [
+      "/home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/industrialisation/benchmarks/day_compare.py",
+      "/home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/industrialisation/benchmarks/day_timing.py",
+      "/home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/industrialisation/src/opdi"
+    ],
+    "git_dirty": false,
+    "git_sha": "39c3702",
+    "input_tables": {},
+    "inputs": {
+      "rows_of_tracks": 157821819,
+      "runs": 11,
+      "track_ids": 163108
+    },
+    "notes": "Partition round of 2026-11-14/15, code of aeb7e45 (step-02 runs) with the shuffle partition count set per run by --conf. Peak executor memory: largest sum of the Java, Python and other resident memory of one executor over the step's stages (spark.executor.processTreeMetrics). Peak local disk: largest 'du' of the Spark local folder of one executor, sampled every 15 s with kubectl exec (a spill file written and removed between two samples is not seen). Node disk: largest 'df' used of the node file system holding that folder (527.3 GB, shared by every pod on the node). executors_lost: executors removed during the run.",
+    "produced_utc": "2026-11-15T04:04:13+00:00",
+    "script": "spill/stage_partitions.py (from step_timings.csv, stage_timings.csv, executor_events.csv, the event logs and the disk samples of each run)",
+    "sha256_16": "d1cf1d97358da5b3"
+  },
   "repeat_run_comparison.csv": {
     "argv": [
       "events",
