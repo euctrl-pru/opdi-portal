@@ -22,6 +22,26 @@ cand <- D("candidate_rules.csv")     # one row per candidate check, limit and ty
 ctx  <- D("context_by_type.csv")     # percentiles of the facts near each event
 ex   <- D("examples.csv")            # removed events read by hand, 50 per check
 fly  <- D("in_flight_before_after.csv")  # block times placed in flight, per run
+lc   <- D("lost_confirmed.csv")      # confirmed milestones not at the same time after, read one by one
+
+# The first measurement, on the tracks stored on 17 October (earlier track
+# rule), kept for comparison, and the flight counts of both kinds of tracks
+# from the processing speed note (full_day_comparison.csv: before = the stored
+# tracks, after = the tracks built from the raw archive with the current rule).
+D0 <- function(f) read.csv(file.path("data", "tracks_of_17_october", f), stringsAsFactors = FALSE)
+ba0  <- D0("before_after.csv")
+rem0 <- D0("removed_by_rule.csv")
+fly0 <- D0("in_flight_before_after.csv")
+fdc  <- read.csv(file.path("..", "processing-speed-v1", "data", "full_day_comparison.csv"),
+                 stringsAsFactors = FALSE)
+flights_old <- as.numeric(fdc$before[fdc$part == "flight list" & fdc$item == "flights"])
+flights_new <- as.numeric(fdc$after[fdc$part == "flight list" & fdc$item == "flights"])
+# Confirmed milestones lost between the runs, by type and outcome.
+LC <- function(type, outcome) sum(lc$type == type & lc$outcome == outcome)
+LCshift <- function(type, outcome) {
+  sel <- lc$type == type & lc$outcome == outcome
+  max(abs(lc$error_after_s[sel] - lc$error_before_s[sel]))
+}
 
 num <- function(x, d = 0) formatC(as.numeric(x), format = "f", digits = d, big.mark = ",")
 
@@ -88,6 +108,52 @@ on one day. The method itself is described on the methods page
   matched to the record of the same flight (same aircraft address, call sign
   and day) and the same milestone. It is **confirmed** when it is within 60 s
   of the record.
+
+### Which tracks
+
+The figures on this page are measured on tracks built from the raw OpenSky
+archive of that day with the track rule of release v2.0.0, which keeps one
+track across a long gap in reception. The day then has
+`r num(flights_new)` flights. A first measurement of this study used the
+tracks of the same day stored in the warehouse on 17 October 2026, which an
+earlier rule had built: it split a flight into two tracks at every long gap in
+reception, and gave `r num(flights_old)` flights. Its "before" events were also
+computed by the code of that time, before the checks and the detector rules
+existed; here "before" is today's code with the three settings
+`plausibility_checks`, `block_times_on_ground_only` and
+`interpolate_crossings_over_missing_values` turned off. The files of the first
+measurement are kept in `data/tracks_of_17_october/`.
+
+```{r tbl-two-rules}
+#| echo: false
+side <- function(b, r, f) c(
+  sum(b$events_before), sum(b$events_after),
+  f$in_flight_before[f$type == "AOBT"], f$in_flight_before[f$type == "AIBT"],
+  sapply(MILESTONES, function(t) b$confirmed_60s_before[b$type == t]),
+  r$removed[r$reject_rule == "ALL"], r$removed_confirmed_60s[r$reject_rule == "ALL"])
+two <- data.frame(
+  measure = c("Flights of the day", "Events, checks and detector rules off", "Events, default settings",
+              "Off-block times placed in flight, before", "In-block times placed in flight, before",
+              paste("Confirmed", MILESTONES, "times, before"),
+              "Events removed by the checks", "Confirmed events removed by the checks"),
+  old = num(c(flights_old, side(ba0, rem0, fly0))),
+  new = num(c(flights_new, side(ba, rem, fly))))
+kable(two, row.names = FALSE, align = "lrr",
+      col.names = c("", "Tracks of 17 October (earlier rule)", "Tracks from the archive (current rule)"),
+      caption = "The study day measured on the two kinds of tracks. Placed in flight: more than 500 ft above the airport and faster than 80 kt.")
+```
+
+The earlier rule cut one flight into two tracks wherever reception stopped
+for long, and each part was counted as a flight with its own first and last
+report, its own block times and crossings, which is why that day had
+`r num(flights_old - flights_new)` more flights and
+`r num(sum(ba0$events_before) - sum(ba$events_before))` more events. The checks
+and the detector rules look at each milestone and the reports around it, not
+at where a track is cut, so the shares measured hardly change (off-block times
+placed in flight before the checks:
+`r num(fly0$in_flight_before_pct[fly0$type == "AOBT"], 1)`% and
+`r num(fly$in_flight_before_pct[fly$type == "AOBT"], 1)`%) and the confirmed
+counts differ by a few dozen at most.
 
 On that day, `r num(confirmed_total)` events were confirmed:
 `r num(B("AOBT", "confirmed_60s_before"))` off-block,
@@ -251,11 +317,12 @@ kable(ge, row.names = FALSE, align = "lrrrr",
 ```
 
 Height alone removes confirmed block times; adding the speed and the
-on-ground flag leaves two. Both are off-block times placed at the first
-report of a track that was already about 3,000 ft above its departure
-airport at more than 150 kt (they are in `data/examples.csv`). The aircraft
-cannot have left its stand at that moment: the times match the record by
-chance. The block-time rule described below no longer produces them, so the
+on-ground flag leaves
+`r num(Cs("airborne_ground_event", "height_ft=1500;speed_kt=80;on_ground_max=0.0", GROUND_EVENTS, "n_confirmed_removed"))`.
+All are off-block times placed at the first report of a track, or 10 s after
+it, when the aircraft was already about 3,000 ft above its departure airport
+at more than 150 kt (they are in `data/examples.csv`). The aircraft cannot
+have left its stand at that moment: the times match the record by chance. The block-time rule described below no longer produces them, so the
 check removes no confirmed time on the day. The limit of 1,500 ft is the same
 as for the take-off and landing times.
 
@@ -384,22 +451,48 @@ to `r num(B("AOBT", "p90_abs_error_s_after"))` s and from
 `r num(B("AIBT", "p90_abs_error_s_before"))` s to
 `r num(B("AIBT", "p90_abs_error_s_after"))` s.
 
-The number of confirmed events did not fall for any milestone. Of the
-`r num(B("AOBT", "confirmed_60s_before"))` confirmed off-block times of the
-first run, `r num(B("AOBT", "confirmed_before_same_time_after"))` are
-published again at the same time. The
-`r num(B("AOBT", "confirmed_60s_before") - B("AOBT", "confirmed_before_same_time_after"))`
-others were each read one by one: three were placed at the first report of a
-track already in flight (at ENGM, LDZA and ENBR, the last at 1,025 ft and
-152 kt), one during the take-off roll at LEVC at 119 kt, 17 s before the
-lift-off. None is the start of a movement from a standstill, and each matched
-its record by chance. Of the `r num(B("AIBT", "confirmed_60s_before"))`
-confirmed in-block times, `r num(B("AIBT", "confirmed_before_same_time_after"))`
-are published again at the same time. Of the other two, one (ESSA) is
-published 5 s earlier and is still confirmed: the report it was taken from
-carried a garbled altitude. The other was placed at the last report with a
-position of a track still flying at 146 kt, about 300 km from its destination
-UGKO, and matched the record by chance.
+The number of confirmed off-block, in-block and landing times did not fall;
+that of the take-off times fell by
+`r num(B("ATOT", "confirmed_60s_before") - B("ATOT", "confirmed_60s_after"))`.
+Every confirmed milestone of the first run that is not published again at the
+same time was read one by one in its track (`data/lost_confirmed.csv`, with
+the reason for each).
+
+- **Off-block times.** Of the `r num(B("AOBT", "confirmed_60s_before"))`
+  confirmed ones, `r num(B("AOBT", "confirmed_before_same_time_after"))` are
+  published again at the same time. Of the other
+  `r num(LC("AOBT", "gone"))`, four were placed at the first report of a
+  track already in flight, or 10 s after it (twice at ENGM, at LDZA and at
+  ENBR, between 1,025 and 3,775 ft and at 152 to 190 kt), and one during the
+  take-off roll at LEVC at 119 kt, 17 s before the lift-off. None is the start
+  of a movement from a standstill, and each matched its record by chance.
+- **In-block times.** Of the `r num(B("AIBT", "confirmed_60s_before"))`
+  confirmed ones, `r num(B("AIBT", "confirmed_before_same_time_after"))` are
+  published again at the same time. Of the other two, one (ESSA) is published
+  5 s earlier and is still confirmed: the report it was taken from carried a
+  garbled altitude. The other was placed at the end of a track still flying at
+  about 146 kt with no report on the ground, and matched its record at UGKO by
+  chance.
+- **Landing times.** `r num(B("ALDT", "confirmed_before_same_time_after"))` of
+  `r num(B("ALDT", "confirmed_60s_before"))` are at the same time; the other
+  `r num(LC("ALDT", "moved, still confirmed"))` were moved by the crossing rule,
+  by at most `r num(LCshift("ALDT", "moved, still confirmed"))` s, and are still
+  confirmed.
+- **Take-off times.** `r num(B("ATOT", "confirmed_before_same_time_after"))` of
+  `r num(B("ATOT", "confirmed_60s_before"))` are at the same time, and
+  `r num(LC("ATOT", "moved, still confirmed"))` were moved by the crossing rule
+  (placed between two reports instead of at one) and are still confirmed. The
+  other `r num(LC("ATOT", "moved, no longer confirmed"))` belong to tracks
+  first received just after the take-off: without the rule, the take-off time
+  was placed at the first report, 75 to 950 ft above the airport at 152 to
+  167 kt, close enough to the record to count as confirmed. With the rule, the
+  departure gives no take-off time, because no report lies below the 15 ft
+  that defines it, and the take-off time of the track is then one read 20 to
+  60 s after the landing at the destination, on the landing roll. That time is
+  wrong. A take-off after the landing of the same track occurs
+  `r num(C("takeoff_after_landing", "remove=ATOT", "ALL", "n_removed"))` times
+  in the run without the checks; the check that would remove it was not
+  adopted, because it also removes confirmed take-off times (see below).
 
 ```{r tbl-in-flight}
 #| echo: false
@@ -435,8 +528,8 @@ The crossing rule gave a time to `r num(sum(ba$null_now_timed))` crossings
 that had none, and gave no crossing in
 `r num(sum(ba$null_not_emitted))` cases, where the two known values are more
 than 30 minutes apart. These include the crossings of the 15 ft height that
-define `r num(B("ATOT", "null_before"))` take-off and
-`r num(B("ALDT", "null_before"))` landing times. The
+define `r num(B("ATOT", "null_before"))` take-off times and
+`r if (B("ALDT", "null_before") == 0) "no landing time" else paste(num(B("ALDT", "null_before")), "landing times")`. The
 `r num(sum(xing$crossings_sharing_time_before))` crossings that carried the
 time of another crossing no longer do.
 
@@ -518,9 +611,11 @@ events cannot be judged. None was adopted.
 - The checks only remove events. They do not correct a wrong time or find a
   missing one, so the coverage of the block times falls.
 - An event that the track does not contradict is kept even when it is wrong,
-  for example a block time a few minutes off.
+  for example a block time a few minutes off, or a take-off time read on the
+  landing roll at the destination when the departure has no report below
+  15 ft.
 - An `xing-runway-threshold` event (the passage over the runway threshold) is not checked:
-  one in twenty is more than `r num(X("landing", "all", "height_ft", "p95"))` ft
+  one in twenty is more than `r num(X("xing-runway-threshold", "all", "height_ft", "p95"))` ft
   above the airport, and it is left as it is.
 - Tops of climb and descent, level segments, holding, point merge, FIR
   crossings and go-arounds have no check other than the missing time.
@@ -539,7 +634,13 @@ the git commit, whether the working copy had uncommitted changes, a
 fingerprint of the source files, and the input tables with their size and
 date. `candidate_rules.csv`, `context_by_type.csv`, `sequence_by_flight.csv`
 and `examples.csv` describe the events of the day without the checks;
-`before_after.csv` and `removed_by_rule.csv` compare them with the run with
-the default settings. The files were measured before the passage over the
-runway threshold was named `xing-runway-threshold`, so they call that event
+`before_after.csv`, `removed_by_rule.csv` and `in_flight_before_after.csv`
+compare them with the run with the default settings, and `lost_confirmed.csv`
+lists every confirmed milestone of the first run that the second does not
+publish at the same time, with the reason read from its track. All were
+measured on the tracks of 14 June 2026 built from the raw archive with the
+current track rule (see [Which tracks](#which-tracks)); the passage over the
+runway threshold is called `xing-runway-threshold` in them.
+`data/tracks_of_17_october/` holds the files of the first measurement, on the
+tracks stored on 17 October 2026, in which that event is still called
 `landing`.

@@ -1302,6 +1302,17 @@ def plausibility_checks_numbers(root: Path) -> list[dict]:
         out.append(measure(measure_id=f"removed_type_{t}", value=int(sel["removed"].sum()), n=events,
                            label=f"Events of type {t} removed by the checks",
                            source_file=rem_src, source_field=f"sum of removed, rows type = {t}", **common))
+    lost_src = f"{PLAUS_DIR}/lost_confirmed.csv"
+    lost = read_csv(root, lost_src)
+    for t, words in (("AOBT", "off-block"), ("AIBT", "in-block"), ("ATOT", "take-off"), ("ALDT", "landing")):
+        confirmed_t = int(_row(ba, type=t)["confirmed_60s_before"])
+        for outcome, key in (("gone", "gone"), ("moved, still confirmed", "moved_confirmed"),
+                             ("moved, no longer confirmed", "moved_unconfirmed")):
+            n_out = int(((lost["type"] == t) & (lost["outcome"] == outcome)).sum())
+            out.append(measure(measure_id=f"{t.lower()}_lost_{key}", value=n_out, n=confirmed_t,
+                               label=f"Confirmed {words} times of the run with the checks off that are not published at "
+                                     f"the same time with the default settings: {outcome}",
+                               source_file=lost_src, source_field=f"rows type = {t}, outcome = {outcome}", **common))
     fly_src = f"{PLAUS_DIR}/in_flight_before_after.csv"
     fly = read_csv(root, fly_src)
     for t, words in (("AOBT", "off-block"), ("AIBT", "in-block")):

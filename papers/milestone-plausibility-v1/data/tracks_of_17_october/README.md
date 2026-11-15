@@ -1,0 +1,1 @@
+The first measurement of this study (12 November 2026), on the tracks of 2026-06-14 stored in the warehouse on 17 October 2026, which were built with an earlier track rule that split a flight at every long reception gap (175,615 flights); the page now reads the files one folder up, measured on tracks built from the raw archive with the current rule.

@@ -173,8 +173,9 @@ that send them.
 
 ## Validation method
 
-The day of 14 June 2026 was computed twice from the same position reports:
-once with the default settings, and once with the checks and the two detector
+The day of 14 June 2026 was computed twice from the same tracks, built from
+the raw position reports of the day with the track rule of the current
+release, once with the default settings, and once with the checks and the two detector
 rules above turned off. Each `AOBT`, `ATOT`, `ALDT` and `AIBT` event of both
 runs was matched to the airport record of the same flight (same aircraft
 address, call sign and day) and the same milestone.
@@ -195,25 +196,25 @@ in the [full study](../../papers/milestone-plausibility-v1/index.html).
 
 ## Results
 
-The day, 2026-06-14, holds 6,775,827 events with the checks and the two
-detector settings off. With the default settings, the checks removed 312
+The day, 2026-06-14, holds 6,739,440 events with the checks and the two
+detector settings off. With the default settings, the checks removed 332
 events:
 
 | Check | Events removed | Of which with a record |
 |---|---:|---:|
-| Ground event while flying | 121 | 3 |
+| Ground event while flying | 123 | 3 |
 | Take-off or landing time too high | 0 | 0 |
 | Off-block after take-off | 12 | 5 |
-| In-block before landing | 179 | 76 |
+| In-block before landing | 197 | 81 |
 
-By event type, they removed 12 `AOBT`, 186 `AIBT`, 38 `entry-apron`,
-44 `exit-apron`, 16 `entry-taxiway` and 16 `exit-taxiway`. Most implausible
+By event type, they removed 12 `AOBT`, 204 `AIBT`, 38 `entry-apron`,
+44 `exit-apron`, 17 `entry-taxiway` and 17 `exit-taxiway`. Most implausible
 block times are no longer produced at all, because the detector reads them
 only from a movement on the ground that starts or ends at a standstill (see
 [Two detector rules](#two-detector-rules-that-remove-the-same-kind-of-error-at-the-source)).
 
-Of the 84 removed events that have a record, 47 (56.0%) are more than 300 s
-from it. None is within 60 s of it: the checks removed **0** of the 33,854
+Of the 89 removed events that have a record, 51 (57.3%) are more than 300 s
+from it. None is within 60 s of it: the checks removed **0** of the 33,889
 confirmed events.
 
 **Block times placed in flight.** Among the block times with a known height
@@ -221,9 +222,9 @@ and speed, those more than 500 ft above the airport and faster than 80 kt:
 
 | | `AOBT` | `AIBT` |
 |---|---:|---:|
-| Checks and the two detector settings off | 4,470 of 9,711 (46.03%) | 2,934 of 14,860 (19.74%) |
-| Default detector, before the checks | 31 of 777 (3.99%) | 163 of 7,754 (2.10%) |
-| Default settings | 27 of 765 (3.53%) | 106 of 7,568 (1.40%) |
+| Checks and the two detector settings off | 4,947 of 10,737 (46.07%) | 3,127 of 15,902 (19.66%) |
+| Default detector, before the checks | 35 of 804 (4.35%) | 169 of 8,039 (2.10%) |
+| Default settings | 31 of 792 (3.91%) | 111 of 7,835 (1.42%) |
 
 Compared with the airport records, with the checks and the two detector
 settings off and with the default settings:
@@ -231,37 +232,49 @@ settings off and with the default settings:
 | | `AOBT` off | `AOBT` default | `AIBT` off | `AIBT` default |
 |---|---:|---:|---:|---:|
 | Records of the day | 19,349 | 19,349 | 19,514 | 19,514 |
-| Coverage | 47.92% | 32.50% | 46.96% | 36.75% |
-| Within 60 s | 23.00% | 34.37% | 23.07% | 31.48% |
-| Within 300 s | 41.09% | 61.01% | 65.70% | 80.59% |
-| 90th percentile of the absolute difference | 1,159 s | 614 s | 721 s | 407 s |
-| Confirmed events | 2,167 | 2,172 | 2,204 | 2,319 |
+| Coverage | 48.90% | 32.84% | 46.44% | 36.31% |
+| Within 60 s | 22.66% | 34.02% | 22.94% | 31.01% |
+| Within 300 s | 40.52% | 60.45% | 65.79% | 79.87% |
+| 90th percentile of the absolute difference | 1,150 s | 624 s | 645 s | 416 s |
+| Confirmed events | 2,169 | 2,173 | 2,201 | 2,320 |
 
 | | `ATOT` off | `ATOT` default | `ALDT` off | `ALDT` default |
 |---|---:|---:|---:|---:|
 | Records of the day | 19,342 | 19,342 | 19,520 | 19,520 |
-| Coverage | 77.60% | 77.82% | 83.76% | 83.78% |
-| Within 60 s | 90.78% | 90.72% | 94.00% | 94.00% |
+| Coverage | 77.77% | 77.81% | 81.45% | 81.45% |
+| Within 60 s | 90.79% | 90.72% | 94.01% | 94.01% |
 | 90th percentile of the absolute difference | 59 s | 59 s | 49 s | 49 s |
-| Confirmed events | 13,737 | 13,768 | 15,746 | 15,750 |
+| Confirmed events | 13,767 | 13,764 | 15,752 | 15,752 |
 
 Fewer block times are published with the default settings, because wrong ones
 are no longer produced or are left out, and those that remain are closer to
-the records. The number of confirmed events did not fall for any of the four
-milestones. Of the 2,167 confirmed off-block times of the first run, 2,163
-are published at the same time with the default settings. The other four
-were not at the start of a movement from a standstill: three were placed at
-the first report of a track already in flight, and one during the take-off
-roll; each matched its record by chance. Of the 2,204
-confirmed in-block times, 2,202 are published at the same time. Of the other
-two, one is published 5 s earlier and still within 60 s of its record; the
-other was placed at the last report of a track still in flight, hundreds of
-kilometres from its airport.
+the records. The number of confirmed off-block, in-block and landing times did
+not fall; that of the take-off times fell by 3. Every confirmed time of the
+first run that is not published at the same time with the default settings
+was read in its track:
 
-The crossing rule over missing values gave a time to 101,898 crossings that
+- Of the 2,169 confirmed off-block times, 2,164 are published at the same
+  time. The other five were not at the start of a movement from a standstill:
+  four were placed at or just after the first report of a track already in
+  flight, and one during the take-off roll; each matched its record by chance.
+- Of the 2,201 confirmed in-block times, 2,199 are published at the same time.
+  Of the other two, one is published 5 s earlier and still within 60 s of its
+  record; the other was placed at the end of a track still in flight.
+- The landing times that moved (4) and 22 of the take-off times that moved
+  were placed between two reports by the crossing rule and are still within
+  60 s of their record.
+- 8 take-off times belonged to tracks first received just after the take-off.
+  With the checks and the detector settings off, the take-off time was placed
+  at the first report, a few hundred feet up, close to the record. With the
+  default settings the departure gives no take-off time, because no report
+  lies below the height that defines it, and the track's take-off time is then
+  one read on the landing roll at the destination, which is wrong (see
+  Limitations).
+
+The crossing rule over missing values gave a time to 100,467 crossings that
 have none when they are read from a report without a value. It gave no
-crossing in 7,471 cases, where the known values are too far apart. Read from
-such reports, 30,164 crossings of a flight level or a ring carry the time of
+crossing in 21,438 cases, where the known values are too far apart. Read from
+such reports, 33,964 crossings of a flight level or a ring carry the time of
 another crossing; with the rule, none does.
 
 ## Error distribution
@@ -272,11 +285,11 @@ another crossing; with the rule, none does.
 
 @fig-height shows why the height limit removes no confirmed time. The
 confirmed block times lie close to the airport's elevation: 95% of the
-confirmed off-block times with a known height are less than 26 ft above it,
-and 95% of the confirmed in-block times less than 152 ft. The block times far
+confirmed off-block times with a known height are less than 36 ft above it,
+and 95% of the confirmed in-block times less than 144 ft. The block times far
 from their record spread up to several thousand feet. Most confirmed block
-times have no known height at all (292 of 2,167 off-block times and 228 of
-2,204 in-block times have one), because reports sent on the ground usually
+times have no known height at all (293 of 2,169 off-block times and 230 of
+2,201 in-block times have one), because reports sent on the ground usually
 carry no altitude. Such events are never removed by the height checks.
 
 @fig-before-after shows the trade: the coverage of the block times falls, and
@@ -284,7 +297,7 @@ their agreement with the records rises.
 
 ## Headline accuracy
 
-Confirmed milestones removed by the checks: **0** of 33,854 off-block,
+Confirmed milestones removed by the checks: **0** of 33,889 off-block,
 in-block, take-off and landing times that are within 60 s of an airport
 record, on 2026-06-14.
 
@@ -298,7 +311,11 @@ record, on 2026-06-14.
   the block times is therefore lower with the checks.
 - An event that the track does not contradict is kept, even when it is wrong.
   A block time that is a few minutes off, or an off-block time at the wrong
-  stand, passes every check.
+  stand, passes every check. So does a take-off time read on the landing roll
+  at the destination, which happens when the track was first received after
+  the take-off, so that no report lies below 15 ft at the departure; a check
+  that removes a take-off after the landing of the same track also removes
+  correct take-off times, and is not used.
 - An `xing-runway-threshold` event (the passage over the runway threshold) is not compared
   with the track's height. Some are found more than 500 ft above the airport
   and are kept as they are.
