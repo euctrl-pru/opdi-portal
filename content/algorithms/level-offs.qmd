@@ -1,0 +1,77 @@
+---
+title: "Level-offs in climb and descent"
+description: "How OPDI finds periods of level flight below the cruise, during the climb and the descent (level-off-climb-start/end, level-off-descent-start/end)."
+---
+
+## In one sentence
+
+A level-off is a period of level flight during the climb or the descent,
+below the cruise, published as a pair of events at its start and end.
+
+## What it needs
+
+- The geometric level segments of the track (see
+  [Level segments](level-segments.qmd#pru-level-segments)).
+- A `top-of-climb` and a `top-of-descent` on the track (see
+  [Top of climb and top of descent](tops.qmd)).
+- The departure and destination airports and their elevations.
+
+## How it is computed
+
+1. A level segment is a **climb level-off** when all of these hold:
+   - it ends before the top of climb;
+   - its altitude is at least 3,000 ft above the departure airport;
+   - it starts within 200 NM of the departure airport;
+   - it is not cruise: it is not both at or above 90% of the altitude of the
+     top of climb and longer than 300 s.
+2. A level segment is a **descent level-off** under the mirror conditions: it
+   starts after the top of descent, its altitude is at least 1,800 ft above
+   the destination airport (lower than in the climb, because an aircraft on
+   final approach is close to level), it ends within 200 NM of the
+   destination airport, and it is not cruise.
+3. Each level-off gives a start event and an end event, with the altitude of
+   the segment. Each takes the position of the report with a position nearest
+   in time to it, within 60 s.
+
+## Based on
+
+The definition of level flight and the cruise exclusion box follow the
+vertical flight efficiency method of the EUROCONTROL Performance Review Unit
+(PRU). The level-offs are those counted by ICAO's vertical efficiency
+indicators KPI17 (level-off during climb) and KPI19 (level-off during
+descent), written in `info.kpi`.
+
+## What is published
+
+Event types `level-off-climb-start`, `level-off-climb-end`,
+`level-off-descent-start` and `level-off-descent-end`, with position, altitude,
+`distance_flown_nm` and `time_passed_s`. Their `info` holds `kpi`,
+`duration_s`, `distance_nm` and `level_ft` (see the
+[Data dictionary](../data/dictionary.qmd#info-fields)).
+
+## Use cases
+
+- **Time flown level in the descent** per arrival airport, the measure behind
+  continuous descent operations (CDO) indicators.
+- **Level-offs in the climb** per departure airport and runway, for
+  continuous climb operations (CCO).
+- **Where level-offs happen**: the altitudes (`info.level_ft`) and positions
+  that come back most often around an airport.
+
+## Limitations
+
+A flight without both tops has no level-off, and the cruise of light aircraft
+splits into many level-offs. See
+[Limitations: vertical profile](../limitations.qmd#lim-vertical).
+
+## Availability and accuracy
+
+Not validated: no reference data record level-offs. The table gives the
+number found on one day.
+
+{{< include _generated/figures_level-offs.md >}}
+
+## Full study
+
+- [Flight events from ADS-B, version 4](../../papers/flight-events-v4/index.html):
+  chapter "Level segments".

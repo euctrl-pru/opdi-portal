@@ -1,0 +1,81 @@
+---
+title: "Flight-level crossings"
+description: "How OPDI finds every crossing of flight levels 50, 70, 100 and 245 (xing-fl50, xing-fl70, xing-fl100, xing-fl245)."
+---
+
+## In one sentence
+
+An `xing-fl{level}` event marks each moment the aircraft climbs or descends
+through flight level 50, 70, 100 or 245.
+
+## What it needs
+
+- The cleaned barometric altitude of the track's reports, with the same
+  plausibility limits as the [tops](tops.qmd). A **flight level** is the
+  altitude in hundreds of feet on the standard pressure of 1013.25 hPa:
+  flight level 100 (FL100) is 10,000 ft on the altimeter.
+- Positions near the crossing, for its position.
+
+## How it is computed
+
+1. For each level, follow the altitude of the track in time order.
+2. **Dead band.** To ignore small movements around a level, a band of 300 ft
+   on each side is used: the aircraft counts as above FL100 only once it is
+   above 10,300 ft, and as below only once it is below 9,700 ft; inside the
+   band it keeps the side it was last on. A crossing is the moment the side
+   changes. A flight that levels off at the level itself never leaves the
+   band and has no crossing of it.
+3. **Time.** The time is interpolated in a straight line between the two
+   reports either side of the level itself; the event's altitude is exactly
+   the level. Reports without an altitude are skipped. When the two reports
+   are more than 30 minutes apart, no crossing is given, because its time
+   cannot be placed.
+4. **Position.** One of the two reports often has no position. It then takes
+   the position interpolated between the nearest reports with a position
+   before and after it, each at most 30 s away; otherwise the position stays
+   empty.
+5. **Position jumps.** A position that jumps away from the track and back
+   (one or two reports whose steps to their neighbours imply more than
+   1,000 kt, with 2 NM of tolerance) is treated as missing. A crossing whose
+   two reports still imply more than 1,000 kt is not given.
+6. Every crossing is kept and numbered in time order (`info.crossing_seq`).
+
+## Based on
+
+Developed for OPDI. The same crossing method serves the
+[distance circles](distance-rings.qmd) and the runway threshold crossing.
+
+## What is published
+
+Event types `xing-fl50`, `xing-fl70`, `xing-fl100` and `xing-fl245` (the
+family `xing-fl{level}`), with position, altitude, `distance_flown_nm` and
+`time_passed_s`. Their `info` holds `crossing_seq`, `direction` (`up` or
+`down`) and `bracket_s`, the time between the two reports the crossing was
+placed between (see the [Data dictionary](../data/dictionary.qmd#info-fields)).
+
+## Use cases
+
+- **Climb and descent times**: from `ATOT` to the first `xing-fl100` up, or
+  from the last `xing-fl100` down to `ALDT`.
+- **Interrupted climbs**: several crossings of the same level on one flight
+  show a climb or descent that went back through it.
+- **Traffic in the upper airspace**: counts of `xing-fl245` crossings per
+  region.
+
+## Limitations
+
+A crossing between reports far apart in time is an estimate (see
+`info.bracket_s`). See
+[Limitations: vertical profile](../limitations.qmd#lim-vertical).
+
+## Availability and accuracy
+
+Not validated: no reference data record flight-level crossings. The table
+gives the number found on one day.
+
+{{< include _generated/figures_flight-level-crossings.md >}}
+
+## Full study
+
+- [Flight events from ADS-B, version 4](../../papers/flight-events-v4/index.html):
+  chapter "Flight-level crossings".

@@ -1,0 +1,110 @@
+---
+title: "Level segments"
+description: "How OPDI finds periods of level flight, cruise included (level-start and level-end)."
+---
+
+## In one sentence
+
+`level-start` and `level-end` mark the start and the end of each period in
+which the aircraft flies level, cruise included.
+
+## What it needs
+
+- The cleaned barometric altitude, vertical rate and ground speed of the
+  track's reports (see [Cleaning of position reports](cleaning.qmd)), with the
+  same plausibility limits as the [tops](tops.qmd).
+- The elevation of the departure and destination airports, to tell flight
+  from the ground.
+
+## How it is computed
+
+### Flight phases (`level-start`, `level-end`)
+
+1. **Phase of each report.** Each report is given one of five phases by
+   **fuzzy logic**: each phase has a rule that scores, between 0 and 1, how
+   well the report fits it on three inputs, and keeps the lowest of the three
+   scores. A rule is used only when all three inputs are known.
+
+   | Phase | Altitude | Vertical rate | Ground speed |
+   |---|---|---|---|
+   | Ground | near the airport (score 0 from 200 ft above it) | near 0 ft/min | near 0 kt |
+   | Climb | around 10,000 ft (wide) | climbing (full score from 1,000 ft/min) | around 300 kt |
+   | Descent | around 10,000 ft (wide) | descending (full score from 1,000 ft/min) | around 300 kt |
+   | Cruise | around 35,000 ft (wide) | near 0 ft/min | around 600 kt |
+   | Level | around 10,000 ft (wide) | near 0 ft/min | around 300 kt |
+
+   The phase with the highest score wins. The ground membership is measured
+   from the lower of the heights above the departure and destination
+   airports.
+2. **Smoothing.** Each report takes the phase that is most common within 30 s
+   before and after it (a 60 s window), which removes single misclassified
+   reports.
+3. **Events.** `level-start` is placed at a report in cruise or level flight
+   whose previous report had another phase, and `level-end` at a report in
+   cruise or level flight whose next report has another phase.
+4. **Checks.** A segment shorter than 20 s (a single report, for instance) is
+   not published. A report flagged on the ground, or less than 200 ft above
+   the departure or destination airport, is never level flight, so there are
+   no level segments on the ground or on the take-off or landing roll.
+
+### Level segments of the vertical flight efficiency method {#pru-level-segments}
+
+The tops and the [level-offs](level-offs.qmd) use a second, geometric
+definition of level flight. These segments are not published as events of
+their own.
+
+1. Interpolate the altitude in a straight line onto a grid of one point every
+   10 s, only between the first and the last measured altitude of each piece
+   of the track.
+2. A grid point is **level** when the altitude stays within a band of 50 ft
+   over the next 10 s (a vertical speed of at most 300 ft/min). A point that
+   lies between two measured altitudes more than 60 s apart is not level: the
+   altitude there was not measured.
+3. Consecutive level points form a segment, which ends 10 s after its last
+   level point. Its altitude is its mean altitude. Segments shorter than 20 s
+   are dropped.
+
+Nothing is computed across a reception gap of more than 30 minutes kept
+inside a track: each piece is handled on its own.
+
+## Based on
+
+- The fuzzy-logic flight phases use the rules and membership values of
+  [OpenAP](https://openap.dev/), the open aircraft performance model of Junzi
+  Sun (TU Delft). The smoothing window, the use of complete rules only and
+  the checks of step 4 were added for OPDI.
+- The geometric level segments follow the vertical flight efficiency method
+  of the EUROCONTROL Performance Review Unit (PRU), with its 10 s window and
+  300 ft/min.
+
+## What is published
+
+Event types `level-start` and `level-end`, with position, altitude,
+`distance_flown_nm` and `time_passed_s`. Their `info` is empty.
+
+## Use cases
+
+- **Time and distance in cruise**: pairs of `level-start` and `level-end` at
+  the highest altitude of the flight.
+- **Step climbs**: several level segments at increasing altitudes in cruise.
+- **Level flight at low altitude** around an airport, from segments below
+  `top-of-climb` or after `top-of-descent`.
+
+## Limitations
+
+The phases of slow aircraft (turboprops, light aircraft) are less reliable,
+because the cruise rule centres on 600 kt; a light aircraft's cruise can split
+into many segments. See
+[Limitations: vertical profile](../limitations.qmd#lim-vertical).
+
+## Availability and accuracy
+
+Not validated: no reference data record level segments. The table gives the
+number of segments found on one day.
+
+{{< include _generated/figures_level-segments.md >}}
+
+## Full study
+
+- [Flight events from ADS-B, version 4](../../papers/flight-events-v4/index.html):
+  chapter "Level segments".

@@ -1,0 +1,138 @@
+---
+title: "Airport surface events"
+description: "How OPDI finds when an aircraft enters and leaves a taxiway, an apron, a stand, a runway threshold area, a hangar or a de-icing pad."
+---
+
+## In one sentence
+
+An `entry-{element}` event marks when an aircraft enters an area of an
+airport, and the matching `exit-{element}` event when it leaves it, where
+`{element}` is the kind of area.
+
+## What it needs
+
+- The airport layout from OpenStreetMap, the open map of the world, for the
+  large and medium airports: the areas mapped there as taxiways, aprons,
+  stands, threshold markings, hangars and de-icing pads.
+- Reports of the track with a position on the airport surface, at an airport
+  that the flight list names for the flight (the departure or destination
+  airport, or one of the other close airports listed).
+
+## How it is computed
+
+### The layout
+
+1. Each area is read from OpenStreetMap. An area mapped as a line (a taxiway
+   centre line) or a point (a stand) is widened into a surface, with the
+   width given in OpenStreetMap or a default width for its kind (for example
+   30 m for a taxiway and 25 m for a stand).
+2. Each surface is covered with H3 cells of resolution 12, each about 300 m²
+   (about 20 m across). H3 is an open grid that divides the Earth into
+   hexagons.
+
+### Passages
+
+3. **Reports used.** A report flagged on the ground by the transponder is
+   always used. A report not flagged on the ground is used only when it is at
+   most 300 ft above the airport and at most 50 kt fast (the speed is the
+   largest of the reported speed and the speeds from its positions to the
+   reports just before and after it, when at most 30 s apart; a report with no
+   known speed is used). Aircraft on approach, climbing out or passing low
+   over the airport are left out.
+4. **Match.** A report is in an area when its H3 cell is one of the area's
+   cells.
+5. **Passage.** The matched reports of one track in one area, in time order,
+   form a passage. A silence of more than 300 s starts a new passage. A
+   passage of a single report, or whose first and last reports fall in the
+   same second, is dropped.
+6. **One area per passage.** Areas of one kind often overlap (a taxiway drawn
+   as several lines, a stand drawn over a taxi lane). The area is chosen once
+   per passage, so every entry has its exit on the same area: of passages of
+   one kind that start (or end) at the same report, the longest is kept, but
+   of stands the shortest (the stand itself rather than a larger area drawn
+   around it). Where a stand is drawn inside a larger stand area, both
+   passages are published, and the larger one is marked
+   `info.encloses_stand`.
+7. **Parked aircraft.** Two consecutive passages of one area are joined when
+   the aircraft moved less than 165 ft (about 50 m) between them and entered
+   no other area in between. A parked aircraft whose position jitters across
+   the edge of an area then gives one passage. Stand passages are not joined:
+   the exit before a silence at the stand is often the off-block.
+8. **Events.** The first report of a passage gives the `entry-` event and the
+   last gives the `exit-` event, each with that report's position, altitude
+   and measurements.
+9. **Marks.** `info.at_track_start` is set on an entry made at the track's
+   first report with a position, and `info.at_track_end` on an exit made at
+   its last: reception started or stopped there, the aircraft did not move.
+   `info.ground_only` is set on the events of a track that never leaves the
+   ground and whose aircraft type is unknown or a vehicle type, in practice
+   an airport vehicle.
+10. The [plausibility checks](plausibility-checks.qmd) remove an entry or exit
+    made while the aircraft flies (more than 1,500 ft above the airport,
+    faster than 80 kt and no report on the ground within 60 s).
+
+The runway itself has no surface event: its use is described by the
+[runway events](take-off-landing.qmd).
+
+### By kind of area
+
+| `{element}` | Area | What a passage usually means |
+|---|---|---|
+| `taxiway` | A path between runways and parking areas | Taxiing; one aircraft passes several taxiways in a row. |
+| `apron` | An area where aircraft park, board and load | Arriving at or leaving the parking area. |
+| `parking_position` | One stand | Parked at a stand; the passages are used for the [block times](block-times.qmd). |
+| `threshold` | The threshold markings at a runway end | An aircraft on the ground near the threshold, usually lining up. Not the landing crossing of the threshold, which is `xing-runway-threshold`. |
+| `hangar` | A building for keeping or maintaining aircraft | Into or out of a hangar, often with few reports inside. |
+| `deicing_pad` | An area where ice is removed before take-off | The pad area was passed; it does not show that the aircraft was de-iced. |
+
+## Based on
+
+- The airport areas come from [OpenStreetMap](https://www.openstreetmap.org/)
+  (its `aeroway` features), turned into H3 cells as in
+  [HexAeroPy](https://github.com/euctrl-pru/HexAeroPy), the EUROCONTROL tool
+  that finds the airports, runways, taxiways and stands used by a flight from
+  its positions.
+- The grid is [H3](https://h3geo.org/).
+- The passage rules (steps 3 to 9) were developed for OPDI.
+
+## What is published
+
+Event types `entry-taxiway`, `exit-taxiway`, `entry-apron`, `exit-apron`,
+`entry-parking_position`, `exit-parking_position`, `entry-threshold`,
+`exit-threshold`, `entry-hangar`, `exit-hangar`, `entry-deicing_pad` and
+`exit-deicing_pad`, with position, altitude, `distance_flown_nm` and
+`time_passed_s`. Their `info` holds `osm_id` (identifier of the area in
+OpenStreetMap), `osm_aeroway` (its kind), `osm_ref` (its name or number, when
+it has one), `osm_airport`, `opdi_time_in_use_s` (time spent in the area, in
+seconds), `osn_icao24`, `osn_flight_id` and, where they apply,
+`at_track_start`, `at_track_end`, `ground_only` and `encloses_stand` (see the
+[Data dictionary](../data/dictionary.qmd#info-fields)).
+
+## Use cases
+
+- **Taxi routes**: the sequence of `entry-taxiway` events of one flight, from
+  stand to runway, for example to compare routes per runway direction.
+- **Apron and stand occupancy**: aircraft present per apron or stand and
+  hour, from the pairs of entry and exit and `opdi_time_in_use_s`.
+- **Time spent at a de-icing pad** in winter, from the pairs of
+  `entry-deicing_pad` and `exit-deicing_pad`.
+
+## Limitations
+
+The events exist only where the airport has ground reception and a mapped
+layout; vehicles also carry transponders. See
+[Limitations: airport surface](../limitations.qmd#lim-surface).
+
+## Availability and accuracy
+
+No record gives the passages themselves. The stand passages are compared with
+the recorded block times, which they should be close to.
+
+{{< include _generated/figures_surface-events.md >}}
+
+Per airport: see [Accuracy and availability](../accuracy/index.qmd).
+
+## Full study
+
+- [Flight events from ADS-B, version 4](../../papers/flight-events-v4/index.html):
+  chapter "Airport surface events".

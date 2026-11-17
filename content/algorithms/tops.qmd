@@ -1,0 +1,94 @@
+---
+title: "Top of climb and top of descent"
+description: "How OPDI finds the end of the climb to cruise (top-of-climb) and the start of the final descent (top-of-descent)."
+---
+
+## In one sentence
+
+`top-of-climb` marks where the climb to cruise ends and `top-of-descent`
+where the final descent starts, by the method of EUROCONTROL's vertical flight
+efficiency indicators.
+
+## What it needs
+
+- The barometric altitude of the track after cleaning (see
+  [Cleaning of position reports](cleaning.qmd)). Altitudes below −2,000 ft or
+  above 60,000 ft, and altitudes of reports flagged on the ground, are not
+  used: transponders on the ground sometimes send altitudes of 9,800 to
+  126,000 ft.
+- The departure and destination airports of the flight list, for the 200 NM
+  circles around them. Without one of them, the start or end of the track is
+  used instead.
+- The level segments of the track (see [Level segments](level-segments.qmd#pru-level-segments)).
+
+## How it is computed
+
+1. **Analysis area.** For each report, compute the great-circle distance to
+   the departure and destination airports. Find the first moment the aircraft
+   is 200 NM or more from the departure airport (D200; the end of the track if
+   it never is) and the last moment it is more than 200 NM from the
+   destination airport (A200; the start of the track if it never is). A step
+   climb further than 200 NM out is cruise, not climb.
+2. **First estimate.** The top of climb is the first moment the aircraft
+   reaches its highest altitude between the start of the track and D200. The
+   top of descent is the last moment it is at its highest altitude between
+   A200 and the end of the track. `info.d200_time` and `info.d200_altitude_ft`
+   keep this estimate.
+3. **Exclusion box.** The box runs from the estimated top's altitude down to
+   90% of it. A level segment inside the box that lasts more than 300 s is
+   cruise. If one starts before the estimated top of climb, the top of climb
+   moves to the start of the first such segment, at its altitude; the top of
+   descent likewise moves to the end of the last such segment after its
+   estimate. `info.relocated` says whether the top moved.
+4. **Position.** The top takes the position of the report with a position
+   nearest in time to it, within 60 s; without one it has no position.
+5. **Observed or at the edge of reception.** `info.observed` is true on a top
+   of climb when the track has an altitude at least 3,000 ft lower before it,
+   and on a top of descent when it has one at least 3,000 ft lower after it.
+   Otherwise the top sits where reception starts or ends (a track first
+   received in cruise) and `info.observed` is false.
+
+Each track has at most one top of climb and one top of descent.
+
+## Based on
+
+The vertical flight efficiency method of the EUROCONTROL Performance Review
+Unit (PRU): the 200 NM radius, the first and last points of highest
+altitude, and the exclusion box at 90% of the top with 300 s. The position
+rule (step 4) and `info.observed` (step 5) were added for OPDI. The study is
+[Flight events from ADS-B, version 4](../../papers/flight-events-v4/index.html).
+
+## What is published
+
+Event types `top-of-climb` and `top-of-descent`, with position, altitude,
+`distance_flown_nm` and `time_passed_s`. Their `info` holds `d200_time`,
+`d200_altitude_ft`, `relocated`, `analysis_radius_nm` (200), `method` (`pru`)
+and `observed` (see the [Data dictionary](../data/dictionary.qmd#info-fields)).
+
+## Use cases
+
+- **Cruise altitude and its share of the flight**: the altitude of the tops,
+  and the distance flown between them.
+- **Vertical flight efficiency**: with the level-offs, the climb and descent
+  profiles below the tops, per airport pair.
+- **Descent planning**: the distance from `top-of-descent` to `ALDT`, from
+  `distance_flown_nm`.
+
+## Limitations
+
+A flight without a real cruise (a short flight, a training flight) gets its
+highest report as tops, and a track holding several flights gets only one
+pair. Use `info.observed` to leave out tops at the edge of reception. See
+[Limitations: vertical profile](../limitations.qmd#lim-vertical).
+
+## Availability and accuracy
+
+Not validated: no reference data record a top of climb or a top of descent.
+The table gives the number of events found on one day.
+
+{{< include _generated/figures_tops.md >}}
+
+## Full study
+
+- [Flight events from ADS-B, version 4](../../papers/flight-events-v4/index.html):
+  chapter "Top of climb and top of descent".
