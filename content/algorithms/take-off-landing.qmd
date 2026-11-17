@@ -127,18 +127,26 @@ at the departure and destination airports of the flight list only.
 
 ## Based on
 
-- The runway-window method follows the runway detection of the open-source
-  [`traffic`](https://traffic-viz.github.io/) library (Xavier Olive), including
-  its 5 NM search radius around the airport. The checks of step 4 and the height
-  above the track's ground altitude were added for OPDI.
-- The runway-pass method was developed for OPDI. Its moments follow the
-  milestone numbers of Airport Collaborative Decision Making (A-CDM), the
-  shared set of times of airports, airlines and air traffic control: `ATOT`
-  is T08 and `ALDT` T17 (`info.milestone`).
-- Runway positions come from [OurAirports](https://ourairports.com/data/)
-  and the runway grid uses the [H3](https://h3geo.org/) grid.
-- The comparison of the two methods is the OPDI study
-  [Flight events from ADS-B, version 4](../../papers/flight-events-v4/index.html).
+- **Runway-window method**: a port of the take-off runway detection of the
+  [`traffic`](../resources.qmd#ref-olive-2019) library (`TrackBasedRunwayDetection`), with
+  its limits: within 5 NM of the airport, below 1,500 ft, faster than 30 kt,
+  climbing faster than 257 ft/min, at least 4 reports and runways within 10°.
+  `traffic` detects take-offs only; OPDI applies the mirror rule to landings,
+  measures height above the track's ground altitude and adds the checks of
+  step 4.
+- **Runway-pass method**: developed for OPDI. Cutting a track into its runs
+  over a runway is comparable to the runway alignment of `traffic`
+  (`RunwayAlignment`), which, unlike OPDI, does not tell a take-off from a
+  landing or time either.
+- **Definitions**: `ATOT` and `ALDT` are the take-off (milestone 16) and
+  landing (milestone 6) of the [A-CDM Implementation Manual](../resources.qmd#ref-acdm-manual).
+  The codes `T08` and `T17` in `info.milestone` are not the manual's
+  numbers; see [Milestones of a flight](index.qmd#milestones-of-a-flight).
+- **Related work**: [Schultz, Rosenow and Olive (2022)](../resources.qmd#ref-schultz-2022)
+  derive `ATOT` and `ALDT` from ADS-B by the change of the "on the ground"
+  flag, a simpler rule than either OPDI method.
+- **Data**: runways from [OurAirports](../resources.qmd#ref-ourairports), runway grid on
+  [H3](../resources.qmd#ref-h3). Study: [Flight events from ADS-B, version 4](../../papers/flight-events-v4/index.html).
 
 ## What is published
 

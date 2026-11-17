@@ -85,22 +85,26 @@ rates in feet per minute and times in UTC.
 ## Milestones of a flight {#milestones-of-a-flight}
 
 Airports, airlines and air traffic control describe a flight, from one stand
-to the next, by a sequence of standard moments, numbered T00 to T25 in airport
-collaborative decision making (A-CDM). @fig-flight-phases shows them with the
-phases of flight between them. Several are published by OPDI as event types:
+to the next, by a sequence of moments. @fig-flight-phases shows them,
+numbered T00 to T25, with the phases of flight between them. These T numbers
+are not those of airport collaborative decision making (A-CDM): the
+[A-CDM Implementation Manual](../resources.qmd#ref-acdm-manual) numbers its
+own 16 milestones 1 to 16, of which OPDI publishes four: landing (6),
+in-block (7), off-block (15) and take-off (16). Several moments of the
+figure are published by OPDI as event types:
 
-| Number | Moment | OPDI event type | Page |
-|---|---|---|---|
-| T04 | Off-block: the aircraft leaves its stand | `AOBT` | [Off-block and in-block times](block-times.qmd) |
-| T06 | The aircraft enters the runway to take off | `line-up` | [Line-up and take-off roll](line-up-take-off-roll.qmd) |
-| T07 | Start of the take-off roll | `take-off-roll` | [Line-up and take-off roll](line-up-take-off-roll.qmd) |
-| T08 | Take-off: the wheels leave the runway | `ATOT` | [Take-off and landing times](take-off-landing.qmd) |
-| T12 | Top of climb | `top-of-climb` | [Top of climb and top of descent](tops.qmd) |
-| T13 | Top of descent | `top-of-descent` | [Top of climb and top of descent](tops.qmd) |
-| T16 | The aircraft passes over the runway threshold | `xing-runway-threshold` | [Runway threshold crossing](xing-runway-threshold.qmd) |
-| T17 | Touchdown | `ALDT` | [Take-off and landing times](take-off-landing.qmd) |
-| T19 | The aircraft leaves the runway | `runway-vacated` | [Runway vacated](runway-vacated.qmd) |
-| T21 | In-block: the aircraft stops at its stand | `AIBT` | [Off-block and in-block times](block-times.qmd) |
+| Number | A-CDM milestone | Moment | OPDI event type | Page |
+|---|---|---|---|---|
+| T04 | 15 | Off-block: the aircraft leaves its stand | `AOBT` | [Off-block and in-block times](block-times.qmd) |
+| T06 | none | The aircraft enters the runway to take off | `line-up` | [Line-up and take-off roll](line-up-take-off-roll.qmd) |
+| T07 | none | Start of the take-off roll | `take-off-roll` | [Line-up and take-off roll](line-up-take-off-roll.qmd) |
+| T08 | 16 | Take-off: the wheels leave the runway | `ATOT` | [Take-off and landing times](take-off-landing.qmd) |
+| T12 | none | Top of climb | `top-of-climb` | [Top of climb and top of descent](tops.qmd) |
+| T13 | none | Top of descent | `top-of-descent` | [Top of climb and top of descent](tops.qmd) |
+| T16 | none | The aircraft passes over the runway threshold | `xing-runway-threshold` | [Runway threshold crossing](xing-runway-threshold.qmd) |
+| T17 | 6 | Touchdown | `ALDT` | [Take-off and landing times](take-off-landing.qmd) |
+| T19 | none | The aircraft leaves the runway | `runway-vacated` | [Runway vacated](runway-vacated.qmd) |
+| T21 | 7 | In-block: the aircraft stops at its stand | `AIBT` | [Off-block and in-block times](block-times.qmd) |
 
 ![Phases of a flight (boxes) and the standard moments between them (T labels). Simplified.](../../assets/img/aircraft_state_diagram.png){#fig-flight-phases width="100%"}
 

@@ -93,15 +93,22 @@ other after the landing.
 
 ## Based on
 
-- The detection of movement follows the start-of-movement rule of the
-  [`traffic`](https://traffic-viz.github.io/) library (Xavier Olive): moving
-  above 2 kt for a sustained time, with the speed worked out from positions
-  and smoothed over three reports.
-- The stands come from [OpenStreetMap](https://www.openstreetmap.org/), as
-  for the [airport surface events](surface-events.qmd).
-- The parts of the track, the stand stop and the checks were developed for
-  OPDI. The names `AOBT` and `AIBT` are those of Airport Collaborative
-  Decision Making (A-CDM).
+- **Movement on the ground**: derived in part from the start-of-movement
+  rule of the [`traffic`](../resources.qmd#ref-olive-2019) library (`StartMoving`): moving
+  above 2 kt for at least 30 s, with the speed worked out from positions and
+  smoothed over three reports. OPDI also uses the reported speed where there
+  is one, and adds the parts of the track, the stand stop and the checks.
+  `traffic`'s push-back and parking-position detection is not used.
+- **Definitions**: `AOBT` and `AIBT` are the off-block (milestone 15) and
+  in-block (milestone 7) times of the [A-CDM Implementation
+  Manual](../resources.qmd#ref-acdm-manual); taxi-out time is `ATOT` minus `AOBT` and taxi-in
+  time `AIBT` minus `ALDT`, as in ICAO's indicators KPI02 and KPI13
+  ([GANP KPI overview](../resources.qmd#ref-ganp-kpi)).
+- **Related work**: [Schultz, Rosenow and Olive (2022)](../resources.qmd#ref-schultz-2022) set
+  off-block when the aircraft is more than 40 m from its first position on
+  the stand, and in-block when within 40 m of its last one.
+- **Data**: stands from [OpenStreetMap](../resources.qmd#ref-osm-aeroway), as for the
+  [airport surface events](surface-events.qmd).
 
 ## What is published
 
