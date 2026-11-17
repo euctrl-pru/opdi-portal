@@ -1,0 +1,67 @@
+---
+title: "First seen and last seen"
+description: "How OPDI defines the first and last report of a track (first_seen and last_seen events and columns) and the track duration."
+---
+
+## In one sentence
+
+`first_seen` and `last_seen` are the first and last time the aircraft of a
+track was really heard, as events and as columns of the flight list.
+
+## What it needs
+
+The cleaned reports of the track (see
+[Cleaning of position reports](cleaning.qmd)).
+
+## How it is computed
+
+1. Take the reports of the track with a **measured position**: one that the
+   cleaning did not empty. OpenSky keeps sending an aircraft's last state for
+   about 300 s after it was last heard; cleaning empties these repeated values,
+   so the last measured position is the last time the aircraft was heard.
+2. `first_seen` is the first of these reports and `last_seen` the last.
+3. A track with no measured position at all uses its first and last report
+   with any measured value (altitude, speed, heading or vertical rate); a
+   track with none of these uses its first and last report.
+4. Each event takes the position, altitude and measurements of its report.
+5. `track_duration_min` is `last_seen` minus `first_seen`, in minutes.
+
+The same definition is used in the flight list and in the events, so the two
+always agree. Every track has one `first_seen` and one `last_seen` event.
+
+## Based on
+
+Developed for OPDI.
+
+## What is published
+
+Event types `first_seen` and `last_seen`, with position, altitude,
+`distance_flown_nm` and `time_passed_s`; their `info` is empty. Flight list
+columns `first_seen`, `last_seen` and `track_duration_min`.
+
+## Use cases
+
+- **Where reception starts and ends**: maps of `first_seen` and `last_seen`
+  positions show where the receivers lose aircraft.
+- **Filter fragments**: a very short `track_duration_min` is often a piece of
+  a flight on the ground; choose your own limit.
+- **Time passed**: every event's `time_passed_s` counts from `first_seen` (see
+  [Time passed](time-passed.qmd)).
+
+## Limitations
+
+They describe reception, not the flight: an aircraft is first seen where a
+receiver first hears it, at the stand, on the runway or in the air. See
+[Limitations: first and last seen](../limitations.qmd#lim-first-last-seen).
+
+## Availability and accuracy
+
+Every track has both. They are not compared with a reference, because no
+record gives when a receiver heard an aircraft.
+
+{{< include _generated/figures_first-last-seen.md >}}
+
+## Full study
+
+- [Flight events from ADS-B, version 4](../../papers/flight-events-v4/index.html):
+  chapter "First seen and last seen".

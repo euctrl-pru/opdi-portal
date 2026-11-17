@@ -1,0 +1,52 @@
+---
+title: "Time passed"
+description: "How OPDI gives the time from the first report of the track to each event (time_passed_s)."
+---
+
+## In one sentence
+
+`time_passed_s` is the time from the track's `first_seen` event to the event,
+in seconds.
+
+## What it needs
+
+The `first_seen` event of the track (see
+[First seen and last seen](first-last-seen.qmd)) and the time of the event.
+
+## How it is computed
+
+1. Take the time of the track's `first_seen` event.
+2. Subtract it from the time of the event: whole seconds for an event at a
+   report, a fraction for an interpolated event.
+3. An event earlier than `first_seen` gets no value.
+
+## Based on
+
+Developed for OPDI.
+
+## What is published
+
+Column `time_passed_s` of the flight events file, on every event that has a
+value.
+
+## Use cases
+
+- **Time between two events** of one flight: the difference of their
+  `time_passed_s`, for example taxi-out from `AOBT` to `ATOT`.
+- **Time in a region**: the difference between two consecutive `xing-fir`
+  events.
+
+## Limitations
+
+It counts from the first report received, not from the off-block or take-off.
+See [Limitations: measurements](../limitations.qmd#lim-measurements).
+
+## Availability and accuracy
+
+Exact by definition: it is the difference of two published times. Not
+compared with a reference.
+
+## Full study
+
+- [Flight events from ADS-B, version 4](../../papers/flight-events-v4/index.html):
+  chapter "Measurements".

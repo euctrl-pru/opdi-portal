@@ -1,0 +1,65 @@
+---
+title: "Counting movements"
+description: "How the quality columns superseded_dep, superseded_arr, movement_dep and movement_arr tell which flight-list rows count as departures and arrivals."
+---
+
+## In one sentence
+
+The movement columns say which rows of the flight list count as a departure
+or an arrival, so that a flight cut into several tracks is counted once.
+
+## What it needs
+
+- The departure and destination airports of each row, and the aircraft
+  address.
+- The take-off and landing times, distance-circle crossings and highest
+  altitude of the track's events.
+
+## How it is computed
+
+A departure is often cut into two tracks: a short piece on the ground at the
+stand, then the flight itself. Both start at the airport.
+
+1. **`superseded_dep`** is true when the row names a departure airport, has no
+   take-off time, did not fly more than 1,000 ft above that airport, and the
+   same aircraft departs again from the same airport within 3 hours
+   (10,800 s). **`superseded_arr`** is the mirror for arrivals: no landing
+   time, and the same aircraft arrived at the same airport within the 3 hours
+   before.
+2. **`movement_dep`** is true when the row names a departure airport, is not
+   superseded, and there is evidence that the aircraft flew: a take-off time,
+   a destination airport, a crossing of a distance circle, a climb of more
+   than 1,000 ft above the airport, or a last position more than 40 NM from
+   it. **`movement_arr`** is the mirror for arrivals.
+3. No row is removed: the columns let users count, and choose.
+
+## Based on
+
+Developed for OPDI.
+
+## What is published
+
+Flight list columns `superseded_dep`, `superseded_arr`, `movement_dep` and
+`movement_arr` (true or false), together with `track_duration_min` (see
+[First seen and last seen](first-last-seen.qmd)).
+
+## Use cases
+
+- **Daily departures and arrivals per airport**: count the rows with
+  `movement_dep` (or `movement_arr`) true.
+- **Compare with official counts**, keeping in mind that airports with little
+  reception on the ground have fewer detected take-offs.
+
+## Limitations
+
+The rules have not been checked against reference counts, and the 3-hour
+window can merge two real short flights of one aircraft. See
+[Limitations: milestone columns](../limitations.qmd#lim-flight-list-milestones).
+
+## Availability and accuracy
+
+Every row has the four columns. Not validated against reference counts.
+
+## Full study
+
+- [Departure and destination aerodromes in the OPDI flight list](../../papers/adep-ades-detection-v7/index.html).

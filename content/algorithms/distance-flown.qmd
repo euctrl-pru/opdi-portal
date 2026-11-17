@@ -1,0 +1,75 @@
+---
+title: "Distance flown"
+description: "How OPDI measures the distance flown from the start of the track to each event (distance_flown_nm)."
+---
+
+## In one sentence
+
+`distance_flown_nm` is the distance the aircraft flew from the start of its
+track to the event, along its received positions, in nautical miles
+(1 NM = 1,852 m).
+
+## What it needs
+
+The cleaned positions of the track's reports (see
+[Cleaning of position reports](cleaning.qmd)).
+
+## How it is computed
+
+1. Sort the track's reports by time.
+2. For each report with a position, compute the great-circle distance from
+   the last earlier report with a position (Earth radius 6,371 km; altitude is
+   not taken into account).
+3. **Jumps.** A step that implies more than 1,000 kt (with 2 NM of tolerance)
+   is not added: the position jumped (a spoofed or shifted position, or two
+   aircraft under one address). A position that jumps away and back is
+   treated as missing. The next step starts from the new position.
+4. Add up the steps from the start of the track. Across a gap, the straight
+   line between its two sides is added: the shortest distance the aircraft
+   could have flown.
+5. **At the event.** An event on a report with a position takes the sum
+   there. An event between reports, or on a report without a position, gets
+   the distance interpolated in time between the positioned reports before
+   and after it in the same piece of track. Events whose family gives no
+   distance (block times, for example) get the distance interpolated between
+   the events before and after them.
+6. Before the first known position the distance is empty, not 0. No value is
+   written when there is none.
+
+## Based on
+
+Developed for OPDI.
+
+## What is published
+
+Column `distance_flown_nm` of the flight events file, on every event that
+has a value.
+
+## Use cases
+
+- **Distance between two events** of one flight: the difference of their
+  `distance_flown_nm`, for example from `xing-40nm` inbound to `ALDT`.
+- **Horizontal flight efficiency**: the distance flown between two points
+  compared with the great-circle distance between them.
+- **Distance per FIR**: the difference between two consecutive `xing-fir`
+  events.
+
+## Limitations
+
+Counted from the start of the track, not from the departure airport: a track
+first received in the air starts later. Gaps add a straight line, so the
+distance is a lower bound. See
+[Limitations: measurements](../limitations.qmd#lim-measurements).
+
+## Availability and accuracy
+
+The distance of the last event of a flight is compared with the route length
+the Network Manager records for that flight. A ratio below 1 means part of
+the flight was not received.
+
+{{< include _generated/figures_distance-flown.md >}}
+
+## Full study
+
+- [Flight events from ADS-B, version 4](../../papers/flight-events-v4/index.html):
+  chapter "Measurements".

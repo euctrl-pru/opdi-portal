@@ -1,0 +1,102 @@
+---
+title: "Cleaning of position reports"
+description: "How OPDI removes repeated, impossible and isolated values from the position reports before any flight-list column or event is computed."
+---
+
+## In one sentence
+
+Cleaning finds the values of the position reports that cannot be trusted and
+**empties** them (the value becomes missing, the report is kept) before any
+column of the flight list or any event is computed.
+
+## What it needs
+
+The tracks (see [Tracks and flight identity](tracks.qmd)): seven fields of
+each report are cleaned, namely latitude, longitude, barometric altitude
+(from air pressure), geometric altitude (from satellite navigation), ground
+speed, heading and vertical rate. The identity fields (address, call sign,
+time) are never changed.
+
+## How it is computed
+
+Six stages run on each track, in this order.
+
+1. **Duplicates.** Of two reports of one track at the same time, the one
+   received last is kept.
+2. **Impossible coordinates.** A latitude outside −90° to 90° or a longitude
+   outside −180° to 180° is emptied.
+3. **Repeated values.** ADS-B sends position and speed in separate messages,
+   and OpenSky repeats the last value until a new one arrives, so a value equal
+   to the one before was often not measured again:
+   - latitude and longitude are emptied when the position was not updated
+     (each state vector records when its position was last updated; without
+     that time, when neither changed);
+   - the barometric altitude is emptied when neither the position was updated
+     nor the altitude changed;
+   - ground speed, heading and vertical rate are emptied together when none of
+     the three changed.
+
+   The first report of a track is never a repeat.
+4. **Spikes.** For each field, the rate of change between two consecutive
+   values still present (first difference) and the change of that rate
+   (second difference) are compared with a limit. A value is emptied when it
+   takes part in at least **two** over-limit changes of the same kind: the
+   middle of a spike takes part in the jump up and the jump down, while a real
+   step change takes part in only one and is kept.
+
+   | Field | Limit on first difference | Limit on second difference |
+   |---|---|---|
+   | Barometric altitude | 200 ft/s | 50 ft/s |
+   | Geometric altitude | 200 ft/s | 150 ft/s |
+   | Vertical rate | 1,500 ft/min per second | 1,000 ft/min per second |
+   | Ground speed | 12 kt/s | 10 kt/s |
+   | Heading | 12°/s | 10°/s |
+   | Latitude and longitude | 0.01°/s | 0.06°/s |
+
+5. **Isolated values.** A value with no other value of the same field within
+   20 s on either side cannot be confirmed and is emptied.
+6. **Silences.** A silence of 300 s or more starts a new segment of the
+   track, so that later steps never interpolate across it.
+
+The event detectors then also leave aside a barometric altitude below
+−2,000 ft or above 60,000 ft.
+
+Three things are deliberately **not** done, because the PRC Data Challenges
+found that they made results worse: filling gaps with invented positions,
+removing positions disturbed by satellite-navigation jamming, and correcting
+speeds with weather-model wind.
+
+## Based on
+
+The trajectory cleaning of the winning solution of the
+[2024 PRC Data Challenge](../data-challenges.qmd), by Alligier and Gianazza
+(ENAC, team likable_jelly): the stages, the two-vote rule for spikes and the 20 s
+rule for isolated values. The three things not done are documented negative
+results of the 2024 and 2025 challenges.
+
+## What is published
+
+Nothing directly: the cleaned reports are not published. Every flight-list
+column, event and measurement is computed from them.
+
+## Use cases
+
+- **Reading OPDI events**: a missing altitude or position on an event often
+  comes from a value emptied here; it is "no data", not an estimate.
+- **Reproducing OPDI** from the OpenSky archive with the same cleaning.
+
+## Limitations
+
+A spoofed position that does not jump (a frozen position) passes the
+cleaning, and a value emptied here is not replaced. See
+[Limitations: tracks](../limitations.qmd#lim-tracks).
+
+## Availability and accuracy
+
+Not measured as a published item: cleaning affects the availability and
+accuracy of every other item.
+
+## Full study
+
+- [Departure and destination aerodromes in the OPDI flight list](../../papers/adep-ades-detection-v7/index.html#sec-cleaning):
+  what cleaning costs and buys.

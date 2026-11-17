@@ -1,0 +1,78 @@
+---
+title: "Milestone columns of the flight list"
+description: "How the flight list takes its take-off and landing times, block times, runways, stands and distance-circle times from the flight events."
+---
+
+## In one sentence
+
+The milestone columns put the main events of a flight on its flight-list row,
+taken from the events of the same track at the row's own departure and
+destination airports.
+
+## What it needs
+
+- The flight events of the track (see each event's page).
+- The departure and destination airports of the row, after the correction by
+  runway events (see [Departure and destination airports](airports.qmd)).
+
+## How it is computed
+
+1. **Take-off and landing.** `atot` is the earliest `ATOT` event at the
+   departure airport, and `rwy_dep` and `rwy_dep_bearing_deg` the runway and
+   its bearing from the same event. `aldt` is the latest `ALDT` at the
+   destination airport, with `rwy_arr` and `rwy_arr_bearing_deg`.
+2. **Block times.** `aobt` is the latest `AOBT` at the departure airport that
+   is not after `atot`; `aibt` the earliest `AIBT` at the destination airport
+   that is not before `aldt`.
+3. **Stands.** `stnd_dep` is the stand named by that `AOBT`, otherwise the
+   stand of the last `exit-parking_position` at the departure airport before
+   `atot`. `stnd_arr` is the stand named by that `AIBT`, otherwise that of the
+   first `entry-parking_position` at the destination airport after `aldt`.
+4. **Distance circles.** For each radius (40, 50, 60, 100, 110 and 120 NM),
+   `c{radius}_dep` is the first outbound crossing around the departure
+   airport after `atot`, and `c{radius}_arr` the last inbound crossing around
+   the destination airport before `aldt`.
+5. Where the take-off or landing time is unknown, the time limit of steps 2
+   to 4 is not applied. An event that names no airport is accepted. A column
+   is empty when no event qualifies.
+
+## Based on
+
+Developed for OPDI. The events behind each column are described on their own
+pages: [Take-off and landing times](take-off-landing.qmd),
+[Off-block and in-block times](block-times.qmd),
+[Airport surface events](surface-events.qmd) and
+[Distance circle crossings](distance-rings.qmd).
+
+## What is published
+
+Flight list columns `atot`, `aldt`, `aobt`, `aibt`, `rwy_dep`,
+`rwy_dep_bearing_deg`, `rwy_arr`, `rwy_arr_bearing_deg`, `stnd_dep`,
+`stnd_arr`, `c40_arr`, `c50_arr`, `c60_arr`, `c100_arr`, `c110_arr`,
+`c120_arr`, `c40_dep`, `c50_dep`, `c60_dep`, `c100_dep`, `c110_dep` and
+`c120_dep`.
+
+## Use cases
+
+- **One row per flight**: taxi times, time in the air and time from the 40 NM
+  circle to landing without reading the events file.
+- **Runway and stand statistics per airport**, from `rwy_dep`, `rwy_arr`,
+  `stnd_dep` and `stnd_arr`.
+
+## Limitations
+
+A column is only as available as its event, and on a track holding several
+flights the events at the middle stop are not on the row. See
+[Limitations: milestone columns](../limitations.qmd#lim-flight-list-milestones).
+
+## Availability and accuracy
+
+{{< include _generated/figures_flight-list-milestones.md >}}
+
+The runway and stand comparisons count every recorded flight, so an empty
+column counts against them. Per airport: see
+[Accuracy and availability](../accuracy/index.qmd).
+
+## Full study
+
+- [Flight events from ADS-B, version 4](../../papers/flight-events-v4/index.html).

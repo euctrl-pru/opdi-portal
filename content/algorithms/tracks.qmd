@@ -1,0 +1,108 @@
+---
+title: "Tracks and flight identity"
+description: "How OPDI groups the position reports of one aircraft into tracks, one per flight, and gives each its identifier (flight_id), aircraft address, call sign and date of flight."
+---
+
+## In one sentence
+
+A **track** is the run of position reports of one aircraft that OPDI treats
+as one flight; each track is one row of the flight list, identified by
+`flight_id`.
+
+## What it needs
+
+- The **state vectors** of the OpenSky Network: one row per aircraft and
+  second, built from the ADS-B messages (Automatic Dependent
+  Surveillance–Broadcast) that aircraft send about once a second, with
+  position, altitude, speed, heading and vertical rate.
+- Two fields of each state vector identify the aircraft: the **ICAO 24-bit
+  address** (`icao24`), six hexadecimal characters set in the transponder,
+  which normally stays with one aircraft for years; and the **call sign**
+  (`flt_id`), the radio name of the flight, which changes from flight to
+  flight and is sometimes blank or garbled.
+
+## How it is computed
+
+1. **Thin.** When the state vectors are read, each aircraft's reports are
+   thinned to one per 5 seconds: in each 5-second window the newest report is
+   kept.
+2. **Group by aircraft.** All reports with the same ICAO 24-bit address are
+   taken together, in time order. The call sign is not part of the grouping,
+   so a blank call sign does not start a track of its own.
+3. **A new call sign starts a new track** only when it lasts: blank call
+   signs are skipped, and a new call sign counts only if it stays the same for
+   at least 30 s before the next change. It is compared with the last call
+   sign heard in the previous 30 minutes. A call sign that flickers to a
+   garbled value and back does not split the flight.
+4. **A short silence at low altitude starts a new track.** If no report
+   arrives for more than 15 minutes and the aircraft is below 5,000 ft when it
+   is heard again, a new track starts: it may have landed and taken off again
+   out of reception.
+5. **A long silence starts a new track unless both sides fit one flight.** A
+   silence of more than 30 minutes is a **gap**. The gap stays inside one
+   track only when every check below passes; a check that lacks a value fails.
+
+   | Check | Setting | Why |
+   |---|---|---|
+   | Gap not too long | at most 600 minutes | A longer silence leaves room for anything. |
+   | En route before the gap | lowest of the 5 nearest altitudes within 5 minutes before the gap at or above 18,000 ft; if lower, climbing faster than 500 ft/min on at least 3 values | Lost at cruise or still climbing out. |
+   | En route after the gap | the same at the other side; between 5,000 and 18,000 ft, descending faster than 500 ft/min on at least 3 values | Reappears in cruise or on its descent. |
+   | No descent then climb | not both descending faster than 500 ft/min before and climbing faster than 500 ft/min after | That is what a stop inside the gap looks like. |
+   | Call sign agrees | the last call sign before (at most 60 minutes old) and the first after (within 10 minutes) are not both present and different | A different call sign is a different flight. |
+   | Straight-line speed | between 400 and 750 kt: the great-circle distance between the two sides divided by the time between them | A stop uses up time; faster than 750 kt means two aircraft share one address. |
+   | Real address | not `000000`, `000001` or `ffffff` | These placeholder values are used by many aircraft. |
+
+   The values at each side are read past blank reports, within 5 minutes of
+   the gap, because position and altitude arrive in separate messages. A gap
+   kept inside a track stays empty: no position is invented, and the event
+   detectors work on each piece between gaps.
+6. **Name the track.** `flight_id` is the first 16 characters of the SHA-256
+   hash of the ICAO address, an underscore, and the time of the track's first
+   report in seconds since 1970-01-01 (Unix time).
+7. **Date and call sign.** `dof` is the date of the track's first report: a
+   track belongs to the day it starts, with all its reports even when it ends
+   the next day. A day's run reads 11 hours of the previous day, so a gap near
+   midnight is decided in the same way on both days. `flt_id` is the call sign
+   the track broadcast most often, without the spaces OpenSky pads it with.
+
+## Based on
+
+Developed for OPDI and measured in the track construction studies, the last
+of which is [One flight, one track across a reception
+gap](../../papers/track-construction-v5/index.html). The thinning to 5 s is
+studied in [Thinning state
+vectors](../../papers/statevector-decimation/index.html). The state vectors
+come from the [OpenSky Network](https://opensky-network.org/).
+
+## What is published
+
+Flight list columns `flight_id`, `icao24`, `flt_id` and `dof`. The same
+`flight_id` is on every event of the track in the flight events file.
+
+## Use cases
+
+- **Join the two files**: `flight_id` links each event to its flight-list row.
+- **Join with other data**: `icao24` with the date and the call sign, for
+  example with aircraft registries or airline schedules (the call sign is
+  often the airline code plus a flight number).
+- **Daily traffic counts** per airport, with the movement columns (see
+  [Counting movements](movements.qmd)).
+
+## Limitations
+
+A track can hold several flights (a turnaround under one call sign with
+continuous ground reception) or only part of one (reception lost), and
+placeholder addresses can merge aircraft. See
+[Limitations: tracks](../limitations.qmd#lim-tracks).
+
+## Availability and accuracy
+
+{{< include _generated/figures_tracks.md >}}
+
+How well the tracks match flights is measured in the track construction
+studies (Full study).
+
+## Full study
+
+- [One flight, one track across a reception gap](../../papers/track-construction-v5/index.html).
+- [Thinning state vectors, and what the archive actually contains](../../papers/statevector-decimation/index.html).

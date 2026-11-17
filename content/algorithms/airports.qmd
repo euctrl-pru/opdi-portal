@@ -1,0 +1,129 @@
+---
+title: "Departure and destination airports"
+description: "How OPDI names the departure airport (adep) and the destination airport (ades) of each flight from its trajectory alone, and what adep_p, ades_p and the source columns say."
+---
+
+## In one sentence
+
+`adep` is the airport the flight left from and `ades` the airport it flew
+to, as four-letter ICAO codes, worked out from the trajectory alone, without
+flight plan or schedule.
+
+## What it needs
+
+- The cleaned reports of the track (see
+  [Cleaning of position reports](cleaning.qmd)): the first reports for the
+  departure, the reports near airports below 6,000 ft for the destination.
+- **Candidate airports**: the large and medium airports of OurAirports, an
+  open list of the world's airports with position, elevation and whether they
+  have scheduled passenger service. Small airfields and heliports are not
+  candidates; records named as duplicates of another airport are left out.
+- For the correction (last part below): the runway events of the track.
+
+## How it is computed
+
+Departures and arrivals use two methods, because the evidence differs. A
+departing aircraft is usually first received on or near the runway; an
+arriving aircraft is often lost by the receivers before it lands.
+
+### Ranking candidates
+
+1. Candidates near a report are found with a grid of H3 cells of resolution 7
+   (each about 5 km²); the distance to each is then measured along the great
+   circle.
+2. An airport without scheduled service gets 10 NM added to its distance, so
+   that a military or private field wins only when it is clearly nearest. The
+   addition is not made when the aircraft is at that airport (flagged on the
+   ground, or within 2 NM of it and at most 1,500 ft above it), unless an
+   airport with scheduled service also lies within 2 NM.
+
+### Departure airport: the first report
+
+3. Take the track's first report and the nearest candidate (ranked as above).
+4. Name it when the report is at most **30 NM** from it and the aircraft is on
+   the ground or at most **15,000 ft** above the airport's elevation.
+5. A first report in the air (more than 1,000 ft above the airport and not
+   flagged on the ground) names no airport when the track descends in its
+   first 180 s (the altitude changes by less than −200 ft): it is an arrival
+   first received on its descent.
+6. `adep_p` lists the other candidates within 30 NM of the first report, in
+   the order of the ranking.
+
+### Destination airport: the altitude trend
+
+7. Take every report within **30 NM** of a candidate and at most
+   **6,000 ft** above its elevation.
+8. Smooth the barometric altitude over 5 consecutive reports (about 25 s).
+9. Each report votes: climbing if the smoothed altitude went up since the
+   previous report, descending if it went down. When descending votes
+   outnumber climbing ones, the flight landed at that airport.
+10. Of the airports it landed at, only those whose last nearby report is
+    within 600 s of the latest landing compete (a stop earlier in the track
+    does not). Among them the nearest wins, ranked as above; when two are less
+    than 2 NM apart, the one the aircraft's course points at wins.
+11. `ades_p` lists other candidate airports near the end of the track,
+    nearest first.
+
+### Correction from the runway events
+
+12. After the events are computed, a runway event can replace an airport.
+    The airport of a departure runway event (`ATOT`, `line-up` or
+    `take-off-roll`) replaces `adep` only if it is the first departure event of
+    the track and lies within 30 NM of the track's first report with a
+    position. The airport of an arrival runway event (`ALDT` or
+    `runway-vacated`) replaces `ades` only if it is the last arrival event,
+    comes after every departure event, and lies within 30 NM of the last
+    report with a position. A runway-window time (`info.method` = `legacy`)
+    never replaces an airport.
+13. The source columns say how each airport was decided: `aerodrome` (from the
+    trajectory), `runway_event` (from step 12), `out_of_area` or
+    `undetermined` (no airport, as for an overflight).
+
+`OOA` (out of area) is written only in data built for the European area: it
+means the track began (or ended) within 30 NM of the edge of that area, so
+the flight came from (or went to) outside it. With the default worldwide
+coverage the area has no edge, and such a flight has no airport.
+
+## Based on
+
+Developed for OPDI and measured in the series of studies on departure and
+destination aerodromes, the last of which is
+[Departure and destination aerodromes in the OPDI flight list](../../papers/adep-ades-detection-v7/index.html).
+Airports come from [OurAirports](https://ourairports.com/data/) and the
+search grid is [H3](https://h3geo.org/).
+
+## What is published
+
+Flight list columns `adep`, `ades`, `adep_p`, `ades_p`, `adep_source` and
+`ades_source` (see the [Data dictionary](../data/dictionary.qmd#flight-list)).
+The same columns are repeated on every row of the flight events file.
+
+## Use cases
+
+- **Traffic between airport pairs**: count flights per `adep` and `ades`,
+  using the movement columns to avoid counting pieces twice.
+- **Choose by confidence**: `adep_source` = `runway_event` means the aircraft
+  was seen on a runway of that airport, the most reliable case.
+- **Check alternatives**: near airports close together (a city with several
+  airports), `adep_p` and `ades_p` show the other candidates.
+
+## Limitations
+
+Small airfields and heliports are never named; an arrival lost far from its
+destination gets no `ades`; a track holding several flights names only its
+first and last airports. See
+[Limitations: airports](../limitations.qmd#lim-airports).
+
+## Availability and accuracy
+
+Availability is the share of flights with an airport; accuracy is the share
+of the flights the Network Manager records whose OPDI airport equals the
+recorded one.
+
+{{< include _generated/figures_airports.md >}}
+
+Per airport: see [Accuracy and availability](../accuracy/index.qmd).
+
+## Full study
+
+- [Departure and destination aerodromes in the OPDI flight list](../../papers/adep-ades-detection-v7/index.html).

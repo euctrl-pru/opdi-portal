@@ -1,0 +1,78 @@
+---
+title: "Plausibility checks"
+description: "How OPDI leaves out events that the aircraft's own track clearly contradicts, before anything is published."
+---
+
+## In one sentence
+
+The plausibility checks remove, before publication, the events that the
+aircraft's own position reports clearly contradict, such as an in-block time
+while the aircraft is still flying.
+
+## What it needs
+
+- All events of the track, once every detector has run.
+- The reports of the same track within 60 s before and after each event: the
+  height above the airport, the ground speed and the ground flag.
+
+## How it is computed
+
+1. **What the aircraft was doing.** For each event read by a check, take the
+   height above the airport of the nearest report with an altitude, the
+   ground speed of the nearest report with a speed, and whether any report
+   within 60 s is flagged on the ground. The airport is the one the event
+   names; otherwise the departure airport for `AOBT` and `ATOT`, the
+   destination airport for `AIBT` and `ALDT`, and the nearer of the two for
+   the others.
+2. **The checks**, in this order; the first that fires removes the event:
+
+   | Check | Events read | Removed when |
+   |---|---|---|
+   | No time | every event type | the event has no time |
+   | Ground event while flying | `AOBT`, `AIBT`, `entry-{element}`, `exit-{element}` | more than 1,500 ft above the airport (15,000 ft altitude when the airport is unknown), faster than 80 kt, and no report on the ground within 60 s |
+   | Runway time too high | `ATOT`, `ALDT` | more than 1,500 ft above the ground at the airport |
+   | Off-block after take-off | `AOBT` | at or after the take-off of its own part of the track |
+   | In-block before landing | `AIBT` | at or before the landing of its own part of the track |
+
+3. **Height of a take-off or landing time.** The event's altitude, or the
+   altitude interpolated between the nearest reports either side within 10 s,
+   minus the track's own altitude on the ground at that airport (the median of
+   its reports flagged on the ground with an altitude, within 30 minutes and
+   5 NM). Without such reports the airport's elevation is used and 1,000 ft is
+   added to the limit, for the error of barometric altitude on a day of low
+   pressure (about 27 ft per hPa).
+4. **Only clear evidence removes an event.** A check fires only when every
+   fact it needs is known; when one is unknown, the event is kept.
+
+A removed event is not published, its measurements go with it, and it is not
+used for the milestone columns of the flight list.
+
+## Based on
+
+Developed for OPDI and measured in
+[Plausibility checks for flight milestones](../../papers/milestone-plausibility-v1/index.html).
+
+## What is published
+
+Nothing of its own: the checks decide which events are published.
+
+## Use cases
+
+- **Trust the order of milestones**: in the published data an off-block time
+  never follows the take-off of its own leg, nor an in-block time precede its
+  landing.
+
+## Limitations
+
+The checks cannot see an event that is wrong but plausible, such as a block
+time a few minutes off. See
+[Limitations: general](../limitations.qmd#general-limits).
+
+## Availability and accuracy
+
+Not an item of its own; the study below measures how many events the checks
+remove and how many of them the airport records confirm.
+
+## Full study
+
+- [Plausibility checks for flight milestones](../../papers/milestone-plausibility-v1/index.html).

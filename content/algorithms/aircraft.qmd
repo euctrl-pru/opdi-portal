@@ -1,0 +1,61 @@
+---
+title: "Aircraft details"
+description: "Where the registration, model, type designator, aircraft class and operator of each flight come from."
+---
+
+## In one sentence
+
+The aircraft columns of the flight list (registration, model, type, class
+and operator) are looked up by the aircraft's ICAO 24-bit address in the
+OpenSky aircraft database.
+
+## What it needs
+
+- The `icao24` of the track (see [Tracks and flight identity](tracks.qmd)).
+- The OpenSky aircraft database, a table that gives, per ICAO 24-bit address,
+  the registration, model, ICAO type designator, ICAO aircraft description and
+  operator. OPDI uses the edition of October 2024.
+
+## How it is computed
+
+1. Join the flight list row to the aircraft database on `icao24`.
+2. Copy the registration, model, type designator (`typecode`), ICAO aircraft
+   description (`icao_aircraft_class`, for example `L2J` for a landplane with
+   two jet engines) and operator code (`icao_operator`).
+3. When the address is not in the database, the columns are empty.
+
+Nothing is inferred from the trajectory.
+
+## Based on
+
+The [OpenSky Network](https://opensky-network.org/) aircraft database.
+
+## What is published
+
+Flight list columns `registration`, `model`, `typecode`,
+`icao_aircraft_class` and `icao_operator`.
+
+## Use cases
+
+- **Traffic by aircraft type** at an airport or in a region, with `typecode`.
+- **Fleet studies**: flights per registration, for example aircraft use per
+  day.
+- **Split by engine type** with `icao_aircraft_class`, for example jets
+  against turboprops.
+
+## Limitations
+
+The database is a snapshot: aircraft registered or re-registered later, or
+an address that moved to another aircraft, give missing or wrong details. See
+[Limitations: aircraft details](../limitations.qmd#lim-aircraft).
+
+## Availability and accuracy
+
+Accuracy is the share of flights the Network Manager records whose OPDI type
+equals the recorded type.
+
+{{< include _generated/figures_aircraft.md >}}
+
+## Full study
+
+No separate study: the columns are copied from the database.
