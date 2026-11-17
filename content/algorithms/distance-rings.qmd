@@ -1,0 +1,95 @@
+---
+title: "Distance circle crossings"
+description: "How OPDI finds the crossings of circles of 40, 50, 60, 100, 110 and 120 NM around the departure and destination airports (xing-{radius}nm), and the circle columns of the flight list."
+---
+
+## In one sentence
+
+An `xing-{radius}nm` event marks each moment a flight crosses a circle of
+fixed radius (40, 50, 60, 100, 110 or 120 NM) around its own departure or
+destination airport.
+
+## What it needs
+
+- The departure and destination airports of the flight list, after the
+  correction by runway events (see
+  [Departure and destination airports](airports.qmd)), and their positions
+  from OurAirports. Circles are drawn only around these two airports.
+- The cleaned positions of the track's reports.
+
+## How it is computed
+
+1. For each report with a position, compute the great-circle distance to the
+   departure airport and to the destination airport.
+2. **Dead band.** A track running along a circle would cross it many times. A
+   band of 1 NM on each side is used: the aircraft counts as outside the 40 NM
+   circle only once it is more than 41 NM away, and inside only once it is
+   less than 39 NM away. A crossing is the moment the side changes.
+3. **Interpolation.** The time, position and measurements of the crossing are
+   interpolated in a straight line between the two reports either side of the
+   circle itself. Reports without a position are skipped. When the two
+   reports are more than 30 minutes apart, no crossing is given. A report
+   without an altitude takes its last known altitude, at most 30 s old.
+4. **Position jumps.** A position that jumps away from the track and back
+   (one or two reports whose steps to their neighbours imply more than
+   1,000 kt, with 2 NM of tolerance) is treated as missing. A crossing whose
+   two reports still imply more than 1,000 kt is not given, unless no other
+   circle lies between the two distances: the position then stepped and stayed
+   (as near areas of GPS spoofing), and the crossing is kept with
+   `info.position_jump` = true.
+5. The bearing of the crossing point is computed from the airport.
+6. Every crossing is kept and numbered in time order.
+
+The flight list takes, for each radius, the first outbound crossing around
+the departure airport after the take-off (`c40_dep` to `c120_dep`) and the
+last inbound crossing around the destination airport before the landing
+(`c40_arr` to `c120_arr`). When the take-off or landing time is unknown, that
+time limit is not applied.
+
+## Based on
+
+The 40 NM circle is the area of ICAO's indicator of additional time in the
+arrival sequencing and metering area (ASMA, KPI08), and the 100 NM circle the
+variant used by EUROCONTROL for airports where aircraft wait further out. The
+crossing method (dead band, interpolation) was developed for OPDI and is the
+same as for the [flight-level crossings](flight-level-crossings.qmd).
+
+## What is published
+
+Event types `xing-40nm`, `xing-50nm`, `xing-60nm`, `xing-100nm`,
+`xing-110nm` and `xing-120nm` (the family `xing-{radius}nm`), with position,
+altitude, `distance_flown_nm` and `time_passed_s`. Their `info` holds
+`apt_icao`, `direction` (`inbound` or `outbound`), `crossing_seq`, `bearing`,
+`flight_level`, `bracket_s` and, where it applies, `position_jump` (see the
+[Data dictionary](../data/dictionary.qmd#info-fields)).
+
+Flight list columns `c40_arr`, `c50_arr`, `c60_arr`, `c100_arr`, `c110_arr`,
+`c120_arr`, `c40_dep`, `c50_dep`, `c60_dep`, `c100_dep`, `c110_dep` and
+`c120_dep` (UTC).
+
+## Use cases
+
+- **Additional time in the terminal area**: `aldt` minus `c40_arr` (or
+  `c100_arr`), compared with an unimpeded time per entry sector
+  (`info.bearing`).
+- **Where arrivals come from**: the bearing of the inbound crossings around
+  an airport, per hour.
+- **Departure climb-out**: the time from `atot` to `c40_dep`.
+
+## Limitations
+
+The circles are drawn only around the two airports of the flight-list row,
+so on a track holding several flights the middle stop has none. See
+[Limitations: distance circles](../limitations.qmd#lim-rings).
+
+## Availability and accuracy
+
+{{< include _generated/figures_distance-rings.md >}}
+
+The other circles are not in the airport records and are not validated. Per airport: see
+[Accuracy and availability](../accuracy/index.qmd).
+
+## Full study
+
+- [Flight events from ADS-B, version 4](../../papers/flight-events-v4/index.html):
+  chapter "Ring crossings".

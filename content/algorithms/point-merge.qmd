@@ -1,0 +1,104 @@
+---
+title: "Point merge"
+description: "How OPDI finds the sequencing legs of point merge arrival procedures (pms-leg-entry, pms-leg-exit) and the passage of the merge point (pms-merge-point)."
+---
+
+## In one sentence
+
+A **point merge system** is an arrival procedure in which aircraft fly along
+an arc, called a sequencing leg, at a nearly constant distance from a merge
+point until they are sent directly to it; OPDI publishes the entry and exit of
+each leg and the passage of the merge point.
+
+## What it needs
+
+- A table of point merge systems kept with the pipeline: one row per merge
+  point, with its coordinates, the distance band and levels of its legs and
+  the dates it has been in use (136 merge points at 61 airports).
+- An arrival at one of these airports (the destination of the flight list),
+  with positions within 60 NM of a merge point.
+
+## How it is computed
+
+1. **Candidates.** Keep the reports within 60 NM of one of the airport's merge
+   points and at or below 25,000 ft; compute the distance and the bearing to
+   the merge point.
+2. **On a leg.** A report is on a leg when, over a 90 s window centred on it:
+   - the distance to the merge point varies by at most 1.5 NM;
+   - the mean distance lies within the listed band of leg distances, give or
+     take 2 NM;
+   - the bearing from the merge point turns by at least 8° (the aircraft
+     moves around the merge point);
+   - at least 80% of the reports have a ground track 60° to 120° off the
+     bearing to the merge point (moving along the arc, not towards it).
+3. **Leg.** Consecutive reports on a leg form a run. Two runs of one merge
+   point at most 120 s apart, turning the same way about it, are one leg. The
+   exit is moved forward report by report while the aircraft still moves
+   along the arc and stays within 0.5 NM of the distance of the last accepted
+   report.
+4. **Keep the leg** when it lasts at least 90 s, ends at least 6 NM from the
+   merge point, and the aircraft then comes within 3 NM of the merge point
+   within 600 s. A leg shorter than 180 s must turn with the arc (a heading
+   change of at least 30% of its bearing sweep), and no leg may climb more than
+   500 ft from entry to exit.
+5. **Direct.** `info.direct_aligned` records whether the aircraft then flew
+   straight to the merge point (ground track within 5° of the bearing for at
+   least 60 s); it does not decide whether the leg is kept.
+6. **Merge point.** `pms-merge-point` is placed at the closest approach to a
+   merge point within 3 NM, once per approach, only after every take-off of
+   the track, descending or level (at most 500 ft/min of climb), at 150 kt or
+   more, and, where the system's name and the landing say which, for a system
+   that serves the runway landed on (within 30°).
+
+Nothing is computed across a reception gap kept inside a track.
+
+## Based on
+
+Developed for OPDI. The merge points and leg dimensions come from published
+navigation data and the EUROCONTROL Point Merge catalogue (each row of the
+table names its source). See
+[Holding, point merge and FIR crossings as flight events](../../papers/airspace-events-v1/index.html).
+
+## What is published
+
+Event types `pms-leg-entry`, `pms-leg-exit` and `pms-merge-point`, with
+position, altitude, `distance_flown_nm` and `time_passed_s`. The two leg
+events carry in `info`: `apt_icao`, `pms_id`, `merge_point`, `leg_seq`,
+`direction` (`cw` or `ccw`), `leg_distance_nm`, `leg_level_ft`, `duration_s`,
+`distance_nm`, `direct_to_distance_nm` and `direct_aligned`;
+`pms-merge-point` carries `apt_icao`, `pms_id`, `merge_point`, `closest_nm`
+and `via_leg` (see the [Data dictionary](../data/dictionary.qmd#info-fields)).
+
+Three measurements are set on `pms-leg-exit` only:
+
+| Measurement | Meaning |
+|---|---|
+| `pms_leg_time_s` | Time on the leg, in seconds. |
+| `pms_leg_distance_nm` | Distance flown along the leg, in NM. |
+| `pms_direct_to_distance_nm` | Distance to the merge point when the aircraft left the leg, in NM. |
+
+## Use cases
+
+- **Delay absorbed on the legs** per airport and hour: the sum of
+  `pms_leg_time_s`.
+- **Share of arrivals sent direct** without flying a leg: `pms-merge-point`
+  with `info.via_leg` false, against those with a leg.
+- **Path stretching**: `pms_leg_distance_nm` per arrival, by entry leg.
+
+## Limitations
+
+Only the airports in the table are examined, and a leg cut by a reception
+gap can be missed. See
+[Limitations: point merge](../limitations.qmd#lim-point-merge).
+
+## Availability and accuracy
+
+Not validated on the figures of one day; see the study below. The table gives
+the number of events found on one day.
+
+{{< include _generated/figures_point-merge.md >}}
+
+## Full study
+
+- [Holding, point merge and FIR crossings as flight events](../../papers/airspace-events-v1/index.html):
+  point merge.

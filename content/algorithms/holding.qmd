@@ -1,0 +1,117 @@
+---
+title: "Holding patterns"
+description: "How OPDI finds holding patterns (holding-start, holding-end) and measures their duration, distance and number of circuits."
+---
+
+## In one sentence
+
+A holding pattern is a loop flown while the aircraft waits for permission to
+continue, usually before landing; OPDI publishes each one as a pair of events,
+`holding-start` and `holding-end`, with three measurements.
+
+## What it needs
+
+- The cleaned positions, barometric altitude, heading and ground speed of the
+  track's reports, about one every 5 s.
+- The elevation of the destination airport, and the go-arounds, take-off and
+  landing times of the same track.
+
+## How it is computed
+
+A hold turns through at least one nearly complete circle, always in the same
+direction, stays in a small area and keeps roughly one level. Turns given by
+controllers to space aircraft alternate left and right, a go-around climbs
+away, and a circuit flown by a light aircraft is low and slow.
+
+1. **Turn per report.** For each report, take the change of heading since the
+   last report with a heading, between −180° and +180°. A change across a
+   silence of more than 60 s, or faster than 6° per second, is ignored. A
+   report is **turning** at 0.4° per second or more.
+2. **Window test.** Over a sliding window of 360 s (6 minutes), the window is
+   flagged when all of these hold:
+   - the turn, counted with its sign, adds up to at least 300° in one
+     direction;
+   - at least 80% of all turning is in that direction;
+   - the first and last positions of the window are at most 8 NM apart;
+   - the aircraft flew at least 15 NM in the window;
+   - the altitude changed by at most 2,500 ft in total (the sum of all ups and
+     downs).
+
+   The window is placed three ways (ending at the report, starting at it and
+   centred on it), so an orbit shorter than the window is still seen whole. A
+   window whose two ends are not 0.8 to 1.25 window lengths apart in time,
+   because of a silence inside it, is not judged.
+3. **Height and speed.** A flagged report counts only at least 2,500 ft above
+   the airport and at least 140 kt over the ground.
+4. **Episodes.** Flagged reports less than 120 s apart form one episode. It
+   starts and ends at its first and last report turning in its main
+   direction, so a lead-in turn the other way is not counted.
+5. **Keep or drop.** An episode is kept when it lasts at least 240 s and its
+   turn adds up to at least 330°. It is dropped when it starts or ends within
+   180 s of a `go-around` of the same track: repeated approaches are not holds.
+6. **Pattern.** The hold is an `orbit` when less than 15% of its reports are
+   straight, otherwise a `racetrack` (two straight legs joined by two half
+   circles).
+7. **Context.** `info.context` is `arrival` when the flight lands at its
+   destination at most 60 minutes after the hold, which ends at most 150 NM
+   from that airport; `en-route` when it lands, but later or further away;
+   and `other` for a local flight (departure equal to destination, or no
+   destination), no landing after the hold, three or more holds on the track,
+   or holds making up more than half of the time in the air. Aerial work,
+   survey, firefighting and training flights that circle fall under `other`.
+8. **Altitude.** The altitude of the two events comes from the first and last
+   report of the hold that has one.
+
+## Based on
+
+Developed for OPDI. The thresholds follow the timing of holding patterns in
+ICAO Doc 8168 (PANS-OPS) and the turn rates airliners fly. The rule was
+checked against the open set of hand-corrected holding labels of Olive and
+co-authors; see
+[Holding, point merge and FIR crossings as flight events](../../papers/airspace-events-v1/index.html).
+
+## What is published
+
+Event types `holding-start` (first report of the hold) and `holding-end`
+(last report), with position, altitude, `distance_flown_nm` and
+`time_passed_s`. Both carry in `info`: `holding_seq`, `pattern`, `direction`
+(`R` or `L`), `circuits`, `duration_s`, `distance_nm`, `altitude_start_ft`,
+`altitude_end_ft`, `straight_pct` and `context` (see the
+[Data dictionary](../data/dictionary.qmd#info-fields)).
+
+Three measurements are set on `holding-end` only:
+
+| Measurement | Meaning |
+|---|---|
+| `holding_duration_s` | Time in the hold, in seconds. |
+| `holding_distance_nm` | Distance flown in the hold, in NM. |
+| `holding_circuits` | Number of loops: the total turn divided by 360°, to one decimal. |
+
+## Use cases
+
+- **Holding delay before landing per airport**: the sum of
+  `holding_duration_s` of the holds with `info.context` = `arrival`, per day.
+- **Where aircraft hold**: the positions and altitudes of `holding-start`,
+  which show the holding stacks of an airport.
+- **Extra fuel**: `holding_distance_nm` per aircraft type, as an input to fuel
+  estimates.
+
+## Limitations
+
+Circling for other reasons (aerial work, training) meets the definition: use
+`info.context`. Holds below 2,500 ft above the airport or flown slower than
+140 kt are not found. See
+[Limitations: holding](../limitations.qmd#lim-holding).
+
+## Availability and accuracy
+
+Not validated on the figures of one day; the comparison with hand-corrected
+labels is in the study below. The table gives the number of holds found on
+one day.
+
+{{< include _generated/figures_holding.md >}}
+
+## Full study
+
+- [Holding, point merge and FIR crossings as flight events](../../papers/airspace-events-v1/index.html):
+  holding against hand-corrected labels.

@@ -1,0 +1,88 @@
+---
+title: "FIR crossings"
+description: "How OPDI finds each passage of a flight from one flight information region to another (xing-fir)."
+---
+
+## In one sentence
+
+An `xing-fir` event marks each moment a flight passes from one flight
+information region (FIR), or upper information region (UIR), to another.
+
+## What it needs
+
+- The FIR and UIR volumes of the EUROCONTROL Network Manager airspace model,
+  for AIRAC cycle 524 (valid 2024-11-28 to 2024-12-26). An **AIRAC cycle** is
+  the 28-day period in which aeronautical data such as airspace boundaries
+  take effect. Each volume has a lateral boundary and a lowest and highest
+  flight level.
+- The cleaned positions and barometric altitudes of the track's reports.
+
+## How it is computed
+
+1. **Grid.** Before any flight is processed, every volume is filled with H3
+   cells: as small as resolution 7 (about 5 km² each) along the boundaries,
+   larger inside.
+2. **Lookup.** Each report whose position survived cleaning is placed in the
+   volume whose cells contain its position and whose flight-level band
+   contains its altitude. Where two volumes overlap, the one with the
+   narrowest level band wins, then the one with the smallest area.
+3. **Short stays.** A stay in one volume shorter than 60 s is counted as part
+   of the volume before it, so a flight along a boundary does not cross it at
+   every cell.
+4. **Crossing.** A crossing is a change of volume between two consecutive
+   stays. A stretch with no volume in between (for example where the altitude
+   was removed by cleaning) does not count as leaving and entering again. The
+   event sits on the first report in the new volume.
+5. A crossing whose two reports imply more than 1,000 kt (a position that
+   jumped) is not given.
+6. `info.vertical` is true when the two volumes lie one above the other (their
+   flight-level bands do not overlap), as a FIR and the UIR above it: the
+   crossing is then a climb or descent through the boundary level, not a
+   lateral crossing.
+
+Nothing is computed across a reception gap of more than 30 minutes kept
+inside a track.
+
+## Based on
+
+The volumes are those of the EUROCONTROL Network Manager airspace model. The
+grid is [H3](https://h3geo.org/). The lookup and the rules of steps 3 to 6
+were developed for OPDI; see
+[Holding, point merge and FIR crossings as flight events](../../papers/airspace-events-v1/index.html).
+
+## What is published
+
+Event type `xing-fir`, with position, altitude, `distance_flown_nm` and
+`time_passed_s`. Its `info` holds `crossing_seq`, `fir_from`, `fir_to`, `fl`,
+`bracket_s`, `airac_cfmu` (524), `airac_validity_start`,
+`airac_validity_end` and `vertical` (see the
+[Data dictionary](../data/dictionary.qmd#info-fields)).
+
+## Use cases
+
+- **Flights and distance per region**: the difference of `distance_flown_nm`
+  between two consecutive crossings of a flight is the distance flown in one
+  region.
+- **Traffic entering a region per hour**, for example to compare with
+  capacity.
+- **Lateral crossings only**: leave out the crossings with `info.vertical`
+  true.
+
+## Limitations
+
+The same AIRAC cycle is used for every day, so a boundary changed since then
+is not followed. See
+[Limitations: FIR crossings](../limitations.qmd#lim-fir).
+
+## Availability and accuracy
+
+Not validated on the figures of one day; the first comparison with the Network
+Manager's own regions is in the study below. The table gives the number of
+crossings found on one day.
+
+{{< include _generated/figures_fir-crossings.md >}}
+
+## Full study
+
+- [Holding, point merge and FIR crossings as flight events](../../papers/airspace-events-v1/index.html):
+  FIR crossings.
