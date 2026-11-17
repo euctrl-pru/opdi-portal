@@ -95,6 +95,17 @@ ALGORITHM_HEADINGS = (
 #: Pages of content/algorithms/ that are not on the template.
 ALGORITHM_PAGES_WITHOUT_TEMPLATE = ("index.qmd", "processing-steps.qmd")
 
+#: Pages whose every number, outside the tables they include, must be a row
+#: of PAGE_NUMBERS_CSV for that page (key: path under content/ without suffix).
+ACCURACY_DIR = Path("content/accuracy")
+
+#: Numbers written in the prose of the accuracy pages, and in [...]{.measured}
+#: spans on any page, written by tools/gen_accuracy_tables.py.
+PAGE_NUMBERS_CSV = Path("assets/pages/accuracy_numbers.csv")
+
+#: A measured figure in the prose of a page: [about 24.2 %]{.measured}.
+MEASURED = re.compile(r"\[([^\[\]]*)\]\{\.measured\}")
+
 #: Section of an algorithm page whose numbers must be rows of FIGURES_CSV.
 FIGURE_SECTIONS = ("Availability and accuracy",)
 
@@ -683,6 +694,45 @@ def check_numbers(root: Path) -> list[Failure]:
                             failures.append(Failure(
                                 "numbers", rel(root, source), number,
                                 f"{written} in '{heading}' is not in {csv_path} for page '{page.stem}'"))
+    failures += check_registered_numbers(root)
+    return failures
+
+
+def page_key(root: Path, page: Path) -> str:
+    """The key of a page in PAGE_NUMBERS_CSV: its path under content/, without suffix."""
+    try:
+        return page.relative_to(root / "content").with_suffix("").as_posix()
+    except ValueError:
+        return page.relative_to(root).with_suffix("").as_posix()
+
+
+def check_registered_numbers(root: Path) -> list[Failure]:
+    """Numbers in the prose of the accuracy pages and in .measured spans.
+
+    On a page under content/accuracy/, every number the page itself writes
+    (not those of the tables it includes, which the generator writes) must
+    be a row of PAGE_NUMBERS_CSV for that page. On any page, every number in
+    a [...]{.measured} span must be too.
+    """
+    failures = []
+    rows = read_measures(root, PAGE_NUMBERS_CSV)
+    accuracy = (root / ACCURACY_DIR).resolve()
+    for page in pages(root):
+        whole = accuracy in page.resolve().parents
+        key = page_key(root, page)
+        allowed = None
+        for line, source, number in expanded_body(page):
+            if source.resolve() != page.resolve():
+                continue
+            texts = [line] if whole else MEASURED.findall(line)
+            for text in texts:
+                for written in numbers_in(text):
+                    if allowed is None:
+                        allowed = allowed_numbers([r for r in rows if r.get("page") == key])
+                    if not number_matches(written, allowed):
+                        failures.append(Failure(
+                            "numbers", rel(root, source), number,
+                            f"{written} is not in {PAGE_NUMBERS_CSV} for page '{key}'"))
     return failures
 
 

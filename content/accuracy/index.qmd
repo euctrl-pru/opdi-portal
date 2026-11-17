@@ -1,13 +1,191 @@
 ---
 title: "Accuracy and availability"
-description: "How often each OPDI item exists and how close it is to airport and Network Manager records, overall and per airport."
+description: "How often each OPDI item exists and how close it is to airport and Network Manager records: every item, the three days measured, and what it means for a study."
 ---
 
-This page is being prepared. It will give, for every published item, how
-often it exists (availability) and how close it is to independent records
-(accuracy), overall and for the busiest airports in Europe and worldwide.
+This page answers two questions for every item OPDI publishes: how often
+does it exist, and when it exists, how close is it to an independent record?
+The figures come from three days processed worldwide with the current
+methods. For the figures at each airport, see
+[the 100 busiest European airports](europe.qmd) and
+[the 100 busiest airports worldwide](world.qmd).
 
-Until then, each page under [Algorithms](../algorithms/index.qmd) gives the
-figures of one measured day under "Availability and accuracy", and
-[Limitations](../limitations.qmd) says when each item is missing or can be
-wrong.
+How each item is computed is on [Algorithms](../algorithms/index.qmd); when
+it is missing or can be wrong is on [Limitations](../limitations.qmd).
+
+## Two measures: availability and accuracy
+
+The two are kept apart and never merged into one figure. An item can be
+available and wrong, or rare and exact. **Found is not the same as correct.**
+
+**Availability** is how often an item exists. It is measured in two ways.
+
+- *Among OPDI's own flights.* Of the flights in OPDI's flight list that
+  could carry the item, the share that do. A departure item (take-off time,
+  off-block time, line-up, ...) counts among the flights with a departure
+  airport, an arrival item among those with a destination airport, and the
+  other items among all flights. This needs no reference, so it is given
+  for every item and every airport in the world.
+- *Against a reference.* Of the movements in an independent record, the
+  share for which OPDI has the item. This also counts the flights that OPDI
+  did not receive at all, so it is the better measure of what a study will
+  miss where a reference exists.
+
+**Accuracy** is how close the item is to the reference when both exist. For
+a time, it is the share of OPDI's times within 60 s of the recorded time,
+with the median and the 90th percentile of the difference. For an airport,
+runway, stand or aircraft type, it is the share equal to the record. For the
+distance flown, it is the share within 10 % of the route length that Network
+Manager records.
+
+## What OPDI is compared with
+
+- **Airport records.** The movement records that airport operators send to
+  EUROCONTROL: off-block, take-off, landing and in-block times, runway, stand,
+  and the times at which the flight crossed the 40 NM and 100 NM circles
+  around the airport. Of the 100 busiest European airports,
+  72 send them. Many give times to the
+  whole minute, so a difference of less than about half a minute cannot be
+  judged; the labels therefore use 60 s, not 30 s.
+- **Network Manager records.** EUROCONTROL's records of every flight in or
+  through European airspace: departure and destination airport, aircraft
+  type, route length, and a take-off and landing time. Network Manager
+  derives its take-off time from the off-block time plus a taxi time, so its
+  times are themselves estimates. They are used for times only at European
+  airports that send no airport records.
+- **No reference.** For many items there is nothing to compare with (no
+  record gives a top of climb or a holding pattern), and outside Europe
+  there are no airport records at all; Network Manager knows only the flights
+  to and from Europe there. In those cases only availability among OPDI's
+  own flights is given.
+
+A record is matched to an OPDI flight by the aircraft address (the
+transponder's 24-bit code), the call sign and the airport, taking the
+nearest flight within 6 hours. Records without an aircraft address cannot
+be matched and are not counted. A movement whose OPDI flight belongs to the
+day before (for example a landing just after midnight) counts as not found,
+so availability against a reference is slightly low at the ends of each day.
+
+## The three days
+
+Wednesday 10 June, Sunday 14 June and Wednesday 17 June 2026, processed
+worldwide from the OpenSky archive with the current settings of the
+pipeline. Three days rather than one give the smaller airports enough
+movements to be scored; the figures below are for the three days together.
+The airport records exist for all three days.
+
+## How to read the labels
+
+Every share has a label beside it. The labels are words, so a table can be
+searched for them, and they never replace the number.
+
+| Measure | Label | Rule |
+|---|---|---|
+| Availability | high | at least 80 % |
+| | partial | 50 % to under 80 % |
+| | low | under 50 % |
+| Accuracy | good | at least 80 % of the compared values within 60 s (or equal, or within 10 % of the route length) |
+| | fair | 50 % to under 80 % |
+| | limited | under 50 % |
+| | too few compared | the reference has at least 30 movements, but fewer than 30 OPDI values could be compared: the item is mostly missing, read its availability |
+| | no reference | no reference, or fewer than 30 reference movements |
+
+: The labels. {.striped}
+
+A label is computed over the count beside it: a figure built on a few dozen
+movements is less certain than one built on thousands, even with the same
+label.
+
+## In brief
+
+- **Take-off and landing times** are the most reliable times. At the
+  European airports that send airport records,
+  80.8 % of the recorded take-offs and
+  81.7 % of the recorded landings have an OPDI time,
+  and 93.2 % and 94.5 % of those times are
+  within 60 s of the record.
+- **Block times** are limited by reception on the ground. Only
+  35.0 % of the recorded off-blocks and
+  33.4 % of the recorded in-blocks have an OPDI time;
+  40.3 % of the off-block times and
+  72.0 % of the in-block times are within 60 s.
+- **Departure and destination airports, runways and aircraft type** agree
+  with the records in most cases where they exist; the destination airport
+  is missing more often than the departure airport: a track that ends
+  before the aircraft descends near an airport gets none.
+- **Distance circle crossings** at 40 and 100 NM are close to the records:
+  most of them within a few seconds.
+- **Events in the air with no reference** (tops of climb and descent, level
+  segments, flight-level and FIR crossings, holds, point merge) are given
+  with their availability only.
+
+## Every item
+
+{{< include _generated/overall_items.md >}}
+
+Counts are given to four significant figures, as in the staged tables.
+`ATOT` and `ALDT` have two rows: against the airport records at the airports
+that send them, and against Network Manager at the other European airports.
+The rows with `info.method` show the two methods that produce these times
+separately. The runway and stand rows have no availability of their own
+among OPDI's flights; read the row of the event that names them.
+
+## Items with no reference
+
+These items are published without any comparison. The table gives how many
+there are on each day and what a reference would have to be.
+
+{{< include _generated/overall_no_reference.md >}}
+
+## From one day to the next
+
+Of the 209 day-to-day measures in the staged tables (each share and median
+of each item, on each day), 193 move by less than 5 points
+(or, for a time, less than 10 s) between the days. The table gives the
+shares of the items that have a reference.
+
+::: {.callout-note collapse="true"}
+## Day-to-day table of the items with a reference
+
+{{< include _generated/overall_stability.md >}}
+:::
+
+The shares that do move are the availability of the distance circle
+crossings at 100 NM and beyond, which are higher on the Sunday than on the
+two Wednesdays:
+
+{{< include _generated/overall_unstable.md >}}
+
+## What this means for your study
+
+- **Taxi-out and taxi-in times** need a block time and a runway time of the
+  same flight. Block times exist for about one recorded movement in three,
+  and off-block times are often late. Restrict a taxi-time study to the
+  airports labelled good or fair for off-block (or in-block) on the
+  [European airport page](europe.qmd#off-block), and report how many flights
+  remain.
+- **Block times are limited by reception at the stand.** Where no receiver
+  hears aircraft on the ground, they are missing, not wrong. The
+  [European airport page](europe.qmd#ground-reception) names the airports
+  where ground events are nearly absent.
+- **Runway times and runway use** can be studied at most European airports
+  that send records. Separate the two methods with `info.method` when
+  comparing airports: they have different errors.
+- **Arrival flows at 40 and 100 NM** (for example additional time in the
+  terminal area) can use the circle crossings; they are close to the
+  records.
+- **Outside Europe**, only availability can be measured. A high availability
+  there says the item exists, not that it is right.
+- **Events with no reference** (vertical profile, holds, point merge, FIR
+  crossings) are useful for comparisons between airports, days or airlines
+  computed in the same way, but no figure says how close they are to the
+  truth.
+
+## Download
+
+- [Every item, overall and per day](../../assets/accuracy/item_accuracy.csv) (CSV)
+- [The 100 busiest European airports, every item](../../assets/accuracy/airport_accuracy_europe.csv) (CSV)
+- [The 100 busiest airports worldwide, every item](../../assets/accuracy/airport_accuracy_world.csv) (CSV)
+- [The airports of both lists, with their reception on the ground](../../assets/accuracy/airports.csv) (CSV)
+- [Each measure on each day](../../assets/accuracy/day_spread.csv) (CSV)
+- [What every file and column means](../../assets/accuracy/README.md)

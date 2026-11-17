@@ -91,3 +91,35 @@ def test_item_figure_labels_follow_the_thresholds():
 def test_item_figures_are_up_to_date():
     import gen_item_figures as g
     assert g.main(["--check"]) == 0
+
+
+def test_accuracy_tables_are_up_to_date():
+    import gen_accuracy_tables as g
+    assert g.main(["--check"]) == 0
+
+
+def test_accuracy_summary_cell_keeps_both_labels():
+    import gen_accuracy_tables as g
+    r = {"availability_own_label": "low", "availability_own_pct": "0.35", "accuracy_label": "too few compared"}
+    assert g.summary_cell(r, True) == "low · too few compared"
+    assert g.summary_cell(r, False) == "0.3 % low"
+    assert g.summary_cell(dict(r, availability_own_label="", availability_own_pct=""), True).startswith("no flights")
+
+
+def test_every_staged_item_has_a_name_and_a_page():
+    import gen_accuracy_tables as g
+    items = {r["item"] for r in g.read(g.ROOT, "item_accuracy.csv")}
+    assert items <= set(g.ITEM_NAME)
+    for page in set(g.ITEM_PAGE.values()):
+        assert (g.ROOT / "content" / "algorithms" / f"{page}.qmd").is_file(), page
+
+
+def test_every_airport_appears_once_in_each_summary():
+    import gen_accuracy_tables as g
+    for name, staged in (("europe_summary", "airport_accuracy_europe.csv"),
+                         ("world_summary", "airport_accuracy_world.csv")):
+        text = (g.ROOT / g.OUT_DIR / f"{name}.md").read_text(encoding="utf-8")
+        codes = {r["airport"] for r in g.read(g.ROOT, staged)}
+        assert len(codes) == 100
+        for code in codes:
+            assert text.count(f"| `{code}` |") == 1, (name, code)

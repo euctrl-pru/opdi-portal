@@ -286,3 +286,35 @@ def test_pointer_page_is_exempt_from_methods_template(algo_site):
     (algo_site / "content" / "methods" / "holding.qmd").write_text(
         "---\ntitle: Holding\nmoved-to: ../algorithms/nothing.qmd\n---\n\nMoved.\n")
     assert "pointer" in kinds(algo_site)
+
+
+def accuracy_site(site, prose):
+    (site / "content" / "accuracy" / "_generated").mkdir(parents=True)
+    (site / "assets" / "pages").mkdir(parents=True)
+    (site / "assets" / "pages" / "accuracy_numbers.csv").write_text(
+        "page,measure_id,label,value,n,source_file\n"
+        "accuracy/index,atot_ref,recorded take-offs with an ATOT,80.8,,x.csv\n"
+        "limitations,adep_missing,flights without adep,24.2,,x.csv\n")
+    (site / "content" / "accuracy" / "_generated" / "t.md").write_text("| a |\n|---|\n| 12.5 % |\n")
+    (site / "content" / "accuracy" / "index.qmd").write_text(
+        f"---\ntitle: Accuracy\n---\n\n{prose}\n\n{{{{< include _generated/t.md >}}}}\n")
+    return site
+
+
+def test_registered_number_on_accuracy_page_passes(site):
+    assert kinds(accuracy_site(site, "Of the take-offs, 80.8 % have a time.")) == []
+
+
+def test_unregistered_number_on_accuracy_page_fails(site):
+    assert "numbers" in kinds(accuracy_site(site, "Of the take-offs, 81.3 % have a time."))
+
+
+def test_measured_span_must_be_registered(site):
+    accuracy_site(site, "Text.")
+    page = site / "content" / "about.qmd"
+    page.write_text(page.read_text() + "\nA threshold of 30 minutes is not checked.\n")
+    assert kinds(site) == []
+    (site / "content" / "limitations.qmd").write_text(
+        "---\ntitle: Limitations\n---\n\nAbout [24.2 %]{.measured} of flights, [7.7 %]{.measured} of others.\n")
+    failures = [f for f in check_site.run_checks(site) if f.kind == "numbers"]
+    assert len(failures) == 1 and "7.7" in str(failures[0])
