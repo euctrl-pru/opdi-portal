@@ -714,7 +714,7 @@ movements, and the reachable share is itself under 100% — see
 Every milestone chapter has the same five parts, so it can be skimmed or read
 in full:
 
-**What it is** — in operational terms, with its A-CDM/ICAO milestone number
+**What it is** — in operational terms, with its label in the PRU flight diagram
 where it has one. **How it is detected** — the question the algorithm answers,
 then the mechanism. **Parameters** — each with its value, unit and *source*:
 ICAO's published value, PRU's, `traffic`'s, OpenAP's, or ours. **Compared with
@@ -1016,7 +1016,7 @@ flag for exactly this reason, and a bias read without it is a bias read wrong.
 
 # Line-up
 
-**What it is.** A-CDM **T06**: the moment the aircraft enters the runway to
+**What it is.** Flight-diagram label **T06**: the moment the aircraft enters the runway to
 depart. Published as `line-up`.
 
 **How it is detected.** The question this family answers first is not "when did
@@ -1151,7 +1151,7 @@ sampled one, so it carries up to one sample interval of error by construction.
 
 # Take-off roll
 
-**What it is.** A-CDM **T07**: the start of the take-off run. Published as
+**What it is.** Flight-diagram label **T07**: the start of the take-off run. Published as
 `take-off-roll`.
 
 **How it is detected.** The question is *when did the aircraft stop taxiing and
@@ -1207,7 +1207,7 @@ not at the real start, and nothing in the output distinguishes the two. The
 
 # Airborne
 
-**What it is.** A-CDM **T08**: wheels off the ground. Published as `airborne`.
+**What it is.** Flight-diagram label **T08**: wheels off the ground. Published as `airborne`.
 This is the milestone `ATOT` was trying to be. It is published *alongside* `ATOT`, not in place of it — see [`ATOT`/`ALDT` are retained, not retired].
 
 **How it is detected.** The question is *when did the height above the field
@@ -1283,7 +1283,7 @@ abstention band.
 
 # Landing
 
-**What it is.** A-CDM **T16**: the aircraft crosses the landing threshold. This
+**What it is.** Flight-diagram label **T16**: the aircraft crosses the landing threshold. This
 is the milestone the type string `landing` now carries, and **it is not what
 `landing` meant under `events_v0.0.2` or `events_v0.1.0`** — see
 [Breaking changes for consumers], which leads with exactly this.
@@ -1377,7 +1377,7 @@ reception before the threshold is more than 60 s old falls outside
 
 # Touchdown
 
-**What it is.** A-CDM **T17**: the wheels meet the runway. Published as
+**What it is.** Flight-diagram label **T17**: the wheels meet the runway. Published as
 `touchdown`, published *alongside* `ALDT` rather than in place of it (see [`ATOT`/`ALDT` are retained, not retired]).
 
 **How it is detected.** The mirror of [Airborne]: the same height-above-field
@@ -1442,7 +1442,7 @@ Requires an arrival traversal. And the identity comparison is only as good as
 
 # Runway vacated
 
-**What it is.** A-CDM **T19**: the aircraft leaves the runway. Published as
+**What it is.** Flight-diagram label **T19**: the aircraft leaves the runway. Published as
 `runway-vacated`.
 
 **How it is detected.** The **exit sample** of an `arrival` traversal — the
@@ -1601,7 +1601,7 @@ but counting crossings per runway *direction* would be reading noise.
 
 # Off-block and on-block
 
-**What it is.** A-CDM **T04** (off-block) and **T21** (on-block) — the inputs
+**What it is.** Flight-diagram label **T04** (off-block) and **T21** (on-block) — the inputs
 to ICAO's KPI02 and KPI13. Published as `off-block` and `on-block`.
 
 **These are the events V3 published as `AOBT` and `AIBT`.** One detector, two
@@ -2501,7 +2501,7 @@ leads.
 | | Under `events_v0.0.2` / `v0.1.0` | Under `events_v0.2.0` |
 |---|---|---|
 | Question | did the fuzzy phase go descent → ground | when did the aircraft cross the landing threshold |
-| ICAO | — | **T16** |
+| PRU flight-diagram label | — | **T16** |
 | Instant | a sampled state vector | interpolated to the threshold plane |
 | Scored against | APDF ALDT | **nothing** — ALDT is [Touchdown]'s |
 

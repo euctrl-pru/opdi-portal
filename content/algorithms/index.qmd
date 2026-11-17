@@ -88,9 +88,10 @@ rates in feet per minute and times in UTC.
 
 Airports, airlines and air traffic control describe a flight, from one stand
 to the next, by a sequence of moments. @fig-flight-phases shows them,
-numbered T00 to T25, with the phases of flight between them. These T numbers
-are not those of airport collaborative decision making (A-CDM): the
-[A-CDM Implementation Manual](../resources.qmd#ref-acdm-manual) numbers its
+numbered T00 to T25, with the phases of flight between them. The Performance
+Review Unit (PRU) made this numbering for this diagram only. It has no
+official status, and it is not the numbering of airport collaborative decision
+making (A-CDM): the [A-CDM Implementation Manual](../resources.qmd#ref-acdm-manual) numbers its
 own 16 milestones 1 to 16, of which OPDI publishes four: landing (6),
 in-block (7), off-block (15) and take-off (16). Several moments of the
 figure are published by OPDI as event types:
@@ -108,12 +109,12 @@ figure are published by OPDI as event types:
 | T19 | none | The aircraft leaves the runway | `runway-vacated` | [Runway vacated](runway-vacated.qmd) |
 | T21 | 7 | In-block: the aircraft stops at its stand | `AIBT` | [Off-block and in-block times](block-times.qmd) |
 
-![Phases of a flight (boxes) and the standard moments between them (T labels). Simplified.](../../assets/img/aircraft_state_diagram.png){#fig-flight-phases width="100%"}
+![Phases of a flight (boxes) and the moments between them (T labels, a numbering made by the PRU for this diagram only). Simplified.](../../assets/img/aircraft_state_diagram.png){#fig-flight-phases width="100%"}
 
 The time between two milestones measures one part of the flight. For
 example, the time from `AOBT` to `ATOT` is the taxi-out time, from `ALDT` to
 `AIBT` the taxi-in time, and from `ATOT` to `ALDT` the time in the air.
-OPDI also publishes moments that have no standard number, such as the
+OPDI also publishes moments that have no label in the diagram, such as the
 crossing of a flight level, of a distance ring or of a flight information
 region, the start and end of a holding pattern, a go-around and a runway
 crossing. All event types are listed in the
