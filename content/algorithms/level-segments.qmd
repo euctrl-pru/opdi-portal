@@ -69,13 +69,19 @@ inside a track: each piece is handled on its own.
 
 ## Based on
 
-- The fuzzy-logic flight phases use the rules and membership values of
-  [OpenAP](https://openap.dev/), the open aircraft performance model of Junzi
-  Sun (TU Delft). The smoothing window, the use of complete rules only and
+- **Flight phases**: the fuzzy-logic phase identification of
+  [Sun, Ellerbroek and Hoekstra (2017)](../resources.qmd#ref-sun-2017), with the rules and
+  membership values of its code in [OpenAP](../resources.qmd#ref-sun-2020). OpenAP labels
+  60 s windows from the mean altitude, speed and vertical rate of each window;
+  OPDI labels each report and then takes the most common phase within 60 s.
+  The use of complete rules only, the ground height above the airports and
   the checks of step 4 were added for OPDI.
-- The geometric level segments follow the vertical flight efficiency method
-  of the EUROCONTROL Performance Review Unit (PRU), with its 10 s window and
-  300 ft/min.
+- **Geometric level segments**: the rolling window of the vertical flight
+  efficiency method of the EUROCONTROL Performance Review Unit
+  ([Peeters and Guastalla, 2017](../resources.qmd#ref-pru-vfe)): a window of 10 s and 50 ft
+  (300 ft/min) over altitudes interpolated in a straight line. The shortest
+  segment, 20 s, is the minimum level time of ICAO's KPI17 and KPI19
+  ([GANP KPI overview](../resources.qmd#ref-ganp-kpi)).
 
 ## What is published
 
