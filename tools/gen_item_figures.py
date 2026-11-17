@@ -49,227 +49,222 @@ ROOT = Path(__file__).resolve().parent.parent
 OUT_CSV = Path("assets/algorithms/item_figures.csv")
 OUT_DIR = Path("content/algorithms/_generated")
 
-#: The study of 14 June 2026 (one worldwide day, after the corrections of the
-#: spot checks). Scorecard rows: section, item, measure, value, count.
-DAY = "papers/spot-check-corrections-v1/data/scorecard_day_final.csv"
-DAY_TEXT = "2026-06-14"
+#: The three-day accuracy tables (10, 14 and 17 June 2026, worldwide, current
+#: settings); see assets/accuracy/README.md. Rows with days = "all three days".
+SOURCE = "assets/accuracy/item_accuracy.csv"
+POOLED = "all three days"
+DAYS_TEXT = "10, 14 and 17 June 2026"
 
-AIRPORT = "airport operator records (Europe), {d}".format(d=DAY_TEXT)
-NM = "Network Manager flight records (Europe), {d}".format(d=DAY_TEXT)
-OWN = "OPDI flight list, {d}".format(d=DAY_TEXT)
-OWN_EVENTS = "OPDI flight events, {d}".format(d=DAY_TEXT)
+AIRPORT = "airport operator records (Europe)"
+NM = "Network Manager flight records (Europe)"
+OWN = "OPDI flight list"
+OWN_EVENTS = "OPDI flight events"
+REF_KEY = {AIRPORT: "airport records", NM: "Network Manager"}
 
 CSV_COLUMNS = ("page", "measure_id", "label", "value", "unit", "n", "kind",
                "badge", "reference", "source_file", "source_field")
 
+#: Which count each column is computed over, and which label goes with it.
+COUNT_OF = {
+    "availability_own_pct": "flights_eligible",
+    "availability_ref_pct": "reference_movements",
+    "within_60s_pct": "compared",
+    "within_10pct_pct": "compared",
+    "share_equal_pct": "compared",
+    "median_abs_diff_s": "compared",
+    "p90_abs_diff_s": "compared",
+    "median_ratio": "compared",
+    "values_per_day": "",
+}
+LABEL_OF = {
+    "availability_own_pct": "availability_own_label",
+    "availability_ref_pct": "availability_ref_label",
+    "within_60s_pct": "accuracy_label",
+    "within_10pct_pct": "accuracy_label",
+    "share_equal_pct": "accuracy_label",
+}
+
 
 @dataclass(frozen=True)
 class Fig:
-    """One number of one page."""
+    """One number of one page: a column of one row of SOURCE."""
     page: str
     measure_id: str
     label: str          # what the number is, in words
-    item: str           # scorecard item
-    measure: str        # scorecard measure
-    kind: str           # availability, accuracy or count
-    reference: str
-    unit: str = "%"     # %, s, events, flights, or "" for a ratio
-    section: str = ""   # scorecard section; "" matches any
-    badge: str = ""     # availability, accuracy, or "" for no label
-    source: str = DAY
+    item: str           # item of SOURCE
+    column: str         # column of SOURCE
+    kind: str           # availability, accuracy, timing or count
+    reference: str      # AIRPORT, NM, OWN or OWN_EVENTS
+    unit: str = "%"     # %, s, per day, or "" for a ratio
+    labelled: bool = True   # show the label of the staged table beside it
 
 
-def share(page, mid, label, item, measure, kind, reference, badge="", section=""):
-    return Fig(page, mid, label, item, measure, kind, reference, "%", section, badge)
+def own(page, mid, label, item, events=False):
+    """Share of OPDI's flights that could carry the item that do."""
+    return Fig(page, mid, label, item, "availability_own_pct", "availability", OWN_EVENTS if events else OWN)
+
+
+def found(page, mid, label, item, ref=AIRPORT):
+    """Share of the reference movements for which OPDI has the item."""
+    return Fig(page, mid, label, item, "availability_ref_pct", "availability", ref)
+
+
+def w60(page, mid, label, item, ref=AIRPORT):
+    return Fig(page, mid, label, item, "within_60s_pct", "accuracy", ref)
+
+
+def equal(page, mid, label, item, ref=AIRPORT):
+    return Fig(page, mid, label, item, "share_equal_pct", "accuracy", ref)
+
+
+def median(page, mid, label, item, ref=AIRPORT, kind="accuracy"):
+    return Fig(page, mid, label, item, "median_abs_diff_s", kind, ref, "s", False)
+
+
+def p90(page, mid, label, item, ref=AIRPORT):
+    return Fig(page, mid, label, item, "p90_abs_diff_s", "accuracy", ref, "s", False)
+
+
+def per_day(page, mid, label, item, list_=False):
+    return Fig(page, mid, label, item, "values_per_day", "count", OWN if list_ else OWN_EVENTS, "per day", False)
 
 
 FIGURES: tuple[Fig, ...] = (
     # --- flight list ----------------------------------------------------
-    Fig("tracks", "rows", "Flights in the flight list", "flight list", "flights", "count", OWN, "flights"),
-    share("tracks", "flt_id", "Flights with a call sign (flt_id)", "flight list FLT_ID",
-          "share filled", "availability", OWN, "availability"),
-    share("airports", "adep_filled", "Flights with a departure airport (adep)", "flight list ADEP",
-          "share filled", "availability", OWN, "availability"),
-    share("airports", "ades_filled", "Flights with a destination airport (ades)", "flight list ADES",
-          "share filled", "availability", OWN, "availability"),
-    share("airports", "adep_right", "Departure airport equal to the record", "ADEP source all",
-          "share right", "accuracy", NM),
-    share("airports", "adep_wrong", "Departure airport different from the record", "ADEP source all",
-          "share wrong", "accuracy", NM),
-    share("airports", "adep_none", "No departure airport for a recorded flight", "ADEP source all",
-          "share none", "availability", NM),
-    share("airports", "ades_right", "Destination airport equal to the record", "ADES source all",
-          "share right", "accuracy", NM),
-    share("airports", "ades_wrong", "Destination airport different from the record", "ADES source all",
-          "share wrong", "accuracy", NM),
-    share("airports", "ades_none", "No destination airport for a recorded flight", "ADES source all",
-          "share none", "availability", NM),
-    share("airports", "adep_runway_right", "Departure airport equal to the record, when taken from a runway event",
-          "ADEP source runway_event", "share right", "accuracy", NM),
-    share("airports", "ades_runway_right", "Destination airport equal to the record, when taken from a runway event",
-          "ADES source runway_event", "share right", "accuracy", NM),
-    share("aircraft", "typecode_filled", "Flights with an aircraft type (typecode)", "flight list TYPECODE",
-          "share filled", "availability", OWN, "availability"),
-    share("aircraft", "registration_filled", "Flights with a registration", "flight list REGISTRATION",
-          "share filled", "availability", OWN, "availability"),
-    share("aircraft", "operator_filled", "Flights with an operator code (icao_operator)", "flight list ICAO_OPERATOR",
-          "share filled", "availability", OWN, "availability"),
-    share("aircraft", "type_agrees", "Aircraft type equal to the record", "aircraft type",
-          "share agrees", "accuracy", NM),
-    share("aircraft", "type_differs", "Aircraft type different from the record", "aircraft type",
-          "share differs", "accuracy", NM),
-    Fig("first-last-seen", "events", "first_seen events (one per track)", "first_seen", "events",
-        "count", OWN_EVENTS, "events", "iv"),
-    share("flight-list-milestones", "atot_filled", "Flights with atot", "flight list ATOT",
-          "share filled", "availability", OWN, "availability"),
-    share("flight-list-milestones", "aldt_filled", "Flights with aldt", "flight list ALDT",
-          "share filled", "availability", OWN, "availability"),
-    share("flight-list-milestones", "aobt_filled", "Flights with aobt", "flight list AOBT",
-          "share filled", "availability", OWN, "availability"),
-    share("flight-list-milestones", "aibt_filled", "Flights with aibt", "flight list AIBT",
-          "share filled", "availability", OWN, "availability"),
-    share("flight-list-milestones", "stnd_dep_filled", "Flights with stnd_dep", "flight list STND_DEP",
-          "share filled", "availability", OWN, "availability"),
-    share("flight-list-milestones", "c40_arr_filled", "Flights with c40_arr", "flight list C40_ARR",
-          "share filled", "availability", OWN, "availability"),
-    share("flight-list-milestones", "rwy_dep_exact", "rwy_dep equal to the recorded runway", "RWY_DEP (flight list)",
-          "runway exact", "accuracy", AIRPORT),
-    share("flight-list-milestones", "rwy_arr_exact", "rwy_arr equal to the recorded runway", "RWY_ARR (flight list)",
-          "runway exact", "accuracy", AIRPORT),
-    share("flight-list-milestones", "stnd_dep_equal", "stnd_dep equal to the recorded stand", "STND_DEP (flight list)",
-          "stand equal", "accuracy", AIRPORT),
-    share("flight-list-milestones", "stnd_arr_equal", "stnd_arr equal to the recorded stand", "STND_ARR (flight list)",
-          "stand equal", "accuracy", AIRPORT),
+    per_day("tracks", "rows", "Flights in the flight list, per day", "flight list: FIRST_SEEN", True),
+    own("airports", "adep_filled", "Flights with a departure airport (adep)", "flight list: ADEP"),
+    own("airports", "ades_filled", "Flights with a destination airport (ades)", "flight list: ADES"),
+    found("airports", "adep_found", "Recorded flights with a departure airport", "flight list: ADEP", NM),
+    equal("airports", "adep_right", "Departure airport equal to the record", "flight list: ADEP", NM),
+    found("airports", "ades_found", "Recorded flights with a destination airport", "flight list: ADES", NM),
+    equal("airports", "ades_right", "Destination airport equal to the record", "flight list: ADES", NM),
+    own("aircraft", "typecode_filled", "Flights with an aircraft type (typecode)", "flight list: TYPECODE"),
+    found("aircraft", "type_found", "Recorded flights with an aircraft type", "flight list: TYPECODE", NM),
+    equal("aircraft", "type_agrees", "Aircraft type equal to the record", "flight list: TYPECODE", NM),
+    per_day("first-last-seen", "events", "first_seen events (one per track), per day", "first_seen"),
+    own("flight-list-milestones", "atot_filled", "Departures with atot", "flight list: ATOT"),
+    own("flight-list-milestones", "aldt_filled", "Arrivals with aldt", "flight list: ALDT"),
+    own("flight-list-milestones", "aobt_filled", "Departures with aobt", "flight list: AOBT"),
+    own("flight-list-milestones", "aibt_filled", "Arrivals with aibt", "flight list: AIBT"),
+    own("flight-list-milestones", "stnd_dep_filled", "Departures with stnd_dep", "flight list: STND_DEP"),
+    own("flight-list-milestones", "c40_arr_filled", "Arrivals with c40_arr", "flight list: C40_ARR"),
+    w60("flight-list-milestones", "atot_w60", "atot within 60 s of the record", "flight list: ATOT"),
+    w60("flight-list-milestones", "aobt_w60", "aobt within 60 s of the record", "flight list: AOBT"),
+    equal("flight-list-milestones", "rwy_dep_exact", "rwy_dep equal to the recorded runway", "flight list: RWY_DEP"),
+    equal("flight-list-milestones", "rwy_arr_exact", "rwy_arr equal to the recorded runway", "flight list: RWY_ARR"),
+    equal("flight-list-milestones", "stnd_dep_equal", "stnd_dep equal to the recorded stand",
+          "flight list: STND_DEP"),
+    equal("flight-list-milestones", "stnd_arr_equal", "stnd_arr equal to the recorded stand",
+          "flight list: STND_ARR"),
     # --- take-off and landing -----------------------------------------
-    share("take-off-landing", "atot_found", "Recorded take-offs with an ATOT", "ATOT", "share of records found",
-          "availability", AIRPORT, "availability"),
-    share("take-off-landing", "atot_w60", "ATOT within 60 s of the record", "ATOT", "share within 60 s",
-          "accuracy", AIRPORT, "accuracy"),
-    Fig("take-off-landing", "atot_median", "ATOT: median difference from the record", "ATOT",
-        "median absolute difference s", "accuracy", AIRPORT, "s"),
-    Fig("take-off-landing", "atot_p90", "ATOT: 90th percentile of the difference", "ATOT",
-        "p90 absolute difference s", "accuracy", AIRPORT, "s"),
-    share("take-off-landing", "aldt_found", "Recorded landings with an ALDT", "ALDT", "share of records found",
-          "availability", AIRPORT, "availability"),
-    share("take-off-landing", "aldt_w60", "ALDT within 60 s of the record", "ALDT", "share within 60 s",
-          "accuracy", AIRPORT, "accuracy"),
-    Fig("take-off-landing", "aldt_median", "ALDT: median difference from the record", "ALDT",
-        "median absolute difference s", "accuracy", AIRPORT, "s"),
-    Fig("take-off-landing", "aldt_p90", "ALDT: 90th percentile of the difference", "ALDT",
-        "p90 absolute difference s", "accuracy", AIRPORT, "s"),
-    share("take-off-landing", "atot_acdm_w60", "ATOT from the runway pass (method acdm) within 60 s", "ATOT (acdm)",
-          "share within 60 s", "accuracy", AIRPORT, "accuracy"),
-    share("take-off-landing", "atot_legacy_w60", "ATOT from the runway window (method legacy) within 60 s",
-          "ATOT (legacy)", "share within 60 s", "accuracy", AIRPORT, "accuracy"),
-    share("take-off-landing", "aldt_acdm_w60", "ALDT from the runway pass (method acdm) within 60 s", "ALDT (acdm)",
-          "share within 60 s", "accuracy", AIRPORT, "accuracy"),
-    share("take-off-landing", "aldt_legacy_w60", "ALDT from the runway window (method legacy) within 60 s",
-          "ALDT (legacy)", "share within 60 s", "accuracy", AIRPORT, "accuracy"),
-    share("take-off-landing", "atot_runway", "Take-off runway equal to the record", "ATOT event runway (departures)",
-          "runway exact", "accuracy", AIRPORT),
-    share("take-off-landing", "aldt_runway", "Landing runway equal to the record", "ALDT event runway (arrivals)",
-          "runway exact", "accuracy", AIRPORT),
+    own("take-off-landing", "atot_own", "Departures with an ATOT", "ATOT", True),
+    found("take-off-landing", "atot_found", "Recorded take-offs with an ATOT", "ATOT"),
+    w60("take-off-landing", "atot_w60", "ATOT within 60 s of the record", "ATOT"),
+    median("take-off-landing", "atot_median", "ATOT: median difference from the record", "ATOT"),
+    p90("take-off-landing", "atot_p90", "ATOT: 90th percentile of the difference", "ATOT"),
+    own("take-off-landing", "aldt_own", "Arrivals with an ALDT", "ALDT", True),
+    found("take-off-landing", "aldt_found", "Recorded landings with an ALDT", "ALDT"),
+    w60("take-off-landing", "aldt_w60", "ALDT within 60 s of the record", "ALDT"),
+    median("take-off-landing", "aldt_median", "ALDT: median difference from the record", "ALDT"),
+    p90("take-off-landing", "aldt_p90", "ALDT: 90th percentile of the difference", "ALDT"),
+    w60("take-off-landing", "atot_acdm_w60", "ATOT from the runway pass (method acdm) within 60 s", "ATOT (acdm)"),
+    w60("take-off-landing", "atot_legacy_w60", "ATOT from the runway window (method legacy) within 60 s",
+        "ATOT (legacy)"),
+    w60("take-off-landing", "aldt_acdm_w60", "ALDT from the runway pass (method acdm) within 60 s", "ALDT (acdm)"),
+    w60("take-off-landing", "aldt_legacy_w60", "ALDT from the runway window (method legacy) within 60 s",
+        "ALDT (legacy)"),
+    w60("take-off-landing", "atot_nm_w60", "ATOT within 60 s of Network Manager, at airports without records",
+        "ATOT", NM),
+    w60("take-off-landing", "aldt_nm_w60", "ALDT within 60 s of Network Manager, at airports without records",
+        "ALDT", NM),
+    equal("take-off-landing", "atot_runway", "Take-off runway equal to the record", "ATOT runway (info.runway)"),
+    equal("take-off-landing", "aldt_runway", "Landing runway equal to the record", "ALDT runway (info.runway)"),
     # --- other runway events -------------------------------------------
-    share("line-up-take-off-roll", "found", "Recorded take-offs with a line-up and a take-off-roll",
-          "take-off-roll (vs take-off record)", "share of records found", "availability", AIRPORT, "availability"),
-    Fig("line-up-take-off-roll", "lineup_median", "line-up: median time to the recorded take-off",
-        "line-up (vs take-off record)", "median absolute difference s", "count", AIRPORT, "s"),
-    Fig("line-up-take-off-roll", "roll_median", "take-off-roll: median time to the recorded take-off",
-        "take-off-roll (vs take-off record)", "median absolute difference s", "count", AIRPORT, "s"),
-    share("xing-runway-threshold", "found", "Recorded landings with an xing-runway-threshold",
-          "xing-runway-threshold (vs landing record)", "share of records found", "availability", AIRPORT,
-          "availability"),
-    share("xing-runway-threshold", "w60", "xing-runway-threshold within 60 s of the recorded landing",
-          "xing-runway-threshold (vs landing record)", "share within 60 s", "accuracy", AIRPORT, "accuracy"),
-    Fig("xing-runway-threshold", "median", "Median difference from the recorded landing",
-        "xing-runway-threshold (vs landing record)", "median absolute difference s", "accuracy", AIRPORT, "s"),
-    share("runway-vacated", "found", "Recorded landings with a runway-vacated",
-          "runway-vacated (vs landing record)", "share of records found", "availability", AIRPORT, "availability"),
-    Fig("runway-vacated", "median", "Median time from the recorded landing",
-        "runway-vacated (vs landing record)", "median absolute difference s", "count", AIRPORT, "s"),
-    Fig("go-around", "events", "go-around events", "go-around", "events", "count", OWN_EVENTS, "events", "iv"),
-    Fig("runway-crossings", "events", "runway-crossing-entry events", "runway-crossing-entry", "events",
-        "count", OWN_EVENTS, "events", "iv"),
+    own("line-up-take-off-roll", "lineup_own", "Departures with a line-up", "line-up", True),
+    own("line-up-take-off-roll", "roll_own", "Departures with a take-off-roll", "take-off-roll", True),
+    found("line-up-take-off-roll", "found", "Recorded take-offs with a take-off-roll", "take-off-roll"),
+    median("line-up-take-off-roll", "lineup_median", "line-up: median time to the recorded take-off",
+           "line-up", kind="timing"),
+    median("line-up-take-off-roll", "roll_median", "take-off-roll: median time to the recorded take-off",
+           "take-off-roll", kind="timing"),
+    own("xing-runway-threshold", "own", "Arrivals with an xing-runway-threshold", "xing-runway-threshold", True),
+    found("xing-runway-threshold", "found", "Recorded landings with an xing-runway-threshold",
+          "xing-runway-threshold"),
+    w60("xing-runway-threshold", "w60", "xing-runway-threshold within 60 s of the recorded landing",
+        "xing-runway-threshold"),
+    median("xing-runway-threshold", "median", "Median difference from the recorded landing",
+           "xing-runway-threshold"),
+    own("runway-vacated", "own", "Arrivals with a runway-vacated", "runway-vacated", True),
+    found("runway-vacated", "found", "Recorded landings with a runway-vacated", "runway-vacated"),
+    median("runway-vacated", "median", "Median time from the recorded landing", "runway-vacated", kind="timing"),
+    per_day("go-around", "events", "go-around events, per day", "go-around"),
+    per_day("runway-crossings", "events", "runway-crossing-entry events, per day", "runway-crossing-entry"),
     # --- block times ---------------------------------------------------
-    share("block-times", "aobt_found", "Recorded off-blocks with an AOBT", "AOBT", "share of records found",
-          "availability", AIRPORT, "availability"),
-    share("block-times", "aobt_w60", "AOBT within 60 s of the record", "AOBT", "share within 60 s",
-          "accuracy", AIRPORT, "accuracy"),
-    Fig("block-times", "aobt_median", "AOBT: median difference from the record", "AOBT",
-        "median absolute difference s", "accuracy", AIRPORT, "s"),
-    share("block-times", "aibt_found", "Recorded in-blocks with an AIBT", "AIBT", "share of records found",
-          "availability", AIRPORT, "availability"),
-    share("block-times", "aibt_w60", "AIBT within 60 s of the record", "AIBT", "share within 60 s",
-          "accuracy", AIRPORT, "accuracy"),
-    Fig("block-times", "aibt_median", "AIBT: median difference from the record", "AIBT",
-        "median absolute difference s", "accuracy", AIRPORT, "s"),
-    share("block-times", "aobt_stand", "AOBT naming the recorded stand", "AOBT event stand", "stand equal",
-          "accuracy", AIRPORT),
-    share("block-times", "aibt_stand", "AIBT naming the recorded stand", "AIBT event stand", "stand equal",
-          "accuracy", AIRPORT),
+    own("block-times", "aobt_own", "Departures with an AOBT", "AOBT", True),
+    found("block-times", "aobt_found", "Recorded off-blocks with an AOBT", "AOBT"),
+    w60("block-times", "aobt_w60", "AOBT within 60 s of the record", "AOBT"),
+    median("block-times", "aobt_median", "AOBT: median difference from the record", "AOBT"),
+    own("block-times", "aibt_own", "Arrivals with an AIBT", "AIBT", True),
+    found("block-times", "aibt_found", "Recorded in-blocks with an AIBT", "AIBT"),
+    w60("block-times", "aibt_w60", "AIBT within 60 s of the record", "AIBT"),
+    median("block-times", "aibt_median", "AIBT: median difference from the record", "AIBT"),
+    equal("block-times", "aobt_stand", "AOBT naming the recorded stand", "AOBT stand (info.stand)"),
+    equal("block-times", "aibt_stand", "AIBT naming the recorded stand", "AIBT stand (info.stand)"),
     # --- vertical profile ----------------------------------------------
-    Fig("tops", "toc", "top-of-climb events", "top-of-climb", "events", "count", OWN_EVENTS, "events", "iv"),
-    Fig("tops", "tod", "top-of-descent events", "top-of-descent", "events", "count", OWN_EVENTS, "events", "iv"),
-    Fig("level-segments", "events", "level-start events", "level-start", "events", "count", OWN_EVENTS,
-        "events", "iv"),
-    Fig("level-offs", "climb", "level-off-climb-start events", "level-off-climb-start", "events", "count",
-        OWN_EVENTS, "events", "iv"),
-    Fig("level-offs", "descent", "level-off-descent-start events", "level-off-descent-start", "events", "count",
-        OWN_EVENTS, "events", "iv"),
-    Fig("flight-level-crossings", "fl100", "xing-fl100 events", "xing-fl100", "events", "count", OWN_EVENTS,
-        "events", "iv"),
-    Fig("flight-level-crossings", "fl245", "xing-fl245 events", "xing-fl245", "events", "count", OWN_EVENTS,
-        "events", "iv"),
+    own("tops", "toc_own", "Flights with a top-of-climb", "top-of-climb", True),
+    per_day("tops", "toc", "top-of-climb events, per day", "top-of-climb"),
+    per_day("tops", "tod", "top-of-descent events, per day", "top-of-descent"),
+    own("level-segments", "own", "Flights with a level-start", "level-start", True),
+    per_day("level-segments", "events", "level-start events, per day", "level-start"),
+    per_day("level-offs", "climb", "level-off-climb-start events, per day", "level-off-climb-start"),
+    per_day("level-offs", "descent", "level-off-descent-start events, per day", "level-off-descent-start"),
+    own("flight-level-crossings", "fl100_own", "Flights with an xing-fl100", "xing-fl100", True),
+    per_day("flight-level-crossings", "fl100", "xing-fl100 events, per day", "xing-fl100"),
+    per_day("flight-level-crossings", "fl245", "xing-fl245 events, per day", "xing-fl245"),
     # --- distance rings ------------------------------------------------
-    share("distance-rings", "c40_arr_found", "Recorded 40 NM inbound crossings found", "xing-40nm inbound",
-          "share of records found", "availability", AIRPORT, "availability"),
-    share("distance-rings", "c40_arr_w60", "40 NM inbound crossing within 60 s of the record", "xing-40nm inbound",
-          "share within 60 s", "accuracy", AIRPORT, "accuracy"),
-    Fig("distance-rings", "c40_arr_median", "40 NM inbound: median difference", "xing-40nm inbound",
-        "median absolute difference s", "accuracy", AIRPORT, "s"),
-    share("distance-rings", "c40_dep_found", "Recorded 40 NM outbound crossings found", "xing-40nm outbound",
-          "share of records found", "availability", AIRPORT, "availability"),
-    share("distance-rings", "c40_dep_w60", "40 NM outbound crossing within 60 s of the record",
-          "xing-40nm outbound", "share within 60 s", "accuracy", AIRPORT, "accuracy"),
-    share("distance-rings", "c100_arr_found", "Recorded 100 NM inbound crossings found", "xing-100nm inbound",
-          "share of records found", "availability", AIRPORT, "availability"),
-    share("distance-rings", "c100_arr_w60", "100 NM inbound crossing within 60 s of the record",
-          "xing-100nm inbound", "share within 60 s", "accuracy", AIRPORT, "accuracy"),
-    share("distance-rings", "c100_dep_found", "Recorded 100 NM outbound crossings found", "xing-100nm outbound",
-          "share of records found", "availability", AIRPORT, "availability"),
-    share("distance-rings", "c100_dep_w60", "100 NM outbound crossing within 60 s of the record",
-          "xing-100nm outbound", "share within 60 s", "accuracy", AIRPORT, "accuracy"),
+    found("distance-rings", "c40_arr_found", "Recorded 40 NM inbound crossings found", "xing-40nm inbound"),
+    w60("distance-rings", "c40_arr_w60", "40 NM inbound crossing within 60 s of the record", "xing-40nm inbound"),
+    median("distance-rings", "c40_arr_median", "40 NM inbound: median difference", "xing-40nm inbound"),
+    found("distance-rings", "c40_dep_found", "Recorded 40 NM outbound crossings found", "xing-40nm outbound"),
+    w60("distance-rings", "c40_dep_w60", "40 NM outbound crossing within 60 s of the record", "xing-40nm outbound"),
+    found("distance-rings", "c100_arr_found", "Recorded 100 NM inbound crossings found", "xing-100nm inbound"),
+    w60("distance-rings", "c100_arr_w60", "100 NM inbound crossing within 60 s of the record", "xing-100nm inbound"),
+    found("distance-rings", "c100_dep_found", "Recorded 100 NM outbound crossings found", "xing-100nm outbound"),
+    w60("distance-rings", "c100_dep_w60", "100 NM outbound crossing within 60 s of the record",
+        "xing-100nm outbound"),
     # --- airspace ------------------------------------------------------
-    Fig("fir-crossings", "events", "xing-fir events", "xing-fir", "events", "count", OWN_EVENTS, "events", "iv"),
-    Fig("holding", "events", "holding-start events", "holding-start", "events", "count", OWN_EVENTS, "events",
-        "iv"),
-    Fig("point-merge", "legs", "pms-leg-entry events", "pms-leg-entry", "events", "count", OWN_EVENTS, "events",
-        "iv"),
-    Fig("point-merge", "merge", "pms-merge-point events", "pms-merge-point", "events", "count", OWN_EVENTS,
-        "events", "iv"),
+    own("fir-crossings", "own", "Flights with an xing-fir", "xing-fir", True),
+    per_day("fir-crossings", "events", "xing-fir events, per day", "xing-fir"),
+    per_day("holding", "events", "holding-start events, per day", "holding-start"),
+    per_day("point-merge", "legs", "pms-leg-entry events, per day", "pms-leg-entry"),
+    per_day("point-merge", "merge", "pms-merge-point events, per day", "pms-merge-point"),
     # --- airport surface -----------------------------------------------
-    Fig("surface-events", "taxiway", "entry-taxiway events", "entry-taxiway", "events", "count", OWN_EVENTS,
-        "events", "iv"),
-    Fig("surface-events", "stand", "entry-parking_position events", "entry-parking_position", "events", "count",
-        OWN_EVENTS, "events", "iv"),
-    share("surface-events", "stand_entry_w60",
-          "entry-parking_position within 60 s of the recorded in-block (nearest per record)",
-          "entry-parking_position (vs in-block record, nearest per record)", "share within 60 s", "accuracy",
-          AIRPORT, "accuracy"),
-    share("surface-events", "stand_exit_w60",
-          "exit-parking_position within 60 s of the recorded off-block (nearest per record)",
-          "exit-parking_position (vs off-block record, nearest per record)", "share within 60 s", "accuracy",
-          AIRPORT, "accuracy"),
+    per_day("surface-events", "taxiway", "entry-taxiway events, per day", "entry-taxiway"),
+    per_day("surface-events", "stand", "entry-parking_position events, per day", "entry-parking_position"),
+    w60("surface-events", "stand_entry_w60",
+        "entry-parking_position within 60 s of the recorded in-block (nearest per record)",
+        "entry-parking_position"),
+    w60("surface-events", "stand_exit_w60",
+        "exit-parking_position within 60 s of the recorded off-block (nearest per record)",
+        "exit-parking_position"),
     # --- measurements --------------------------------------------------
+    found("distance-flown", "found", "Recorded flights with a distance flown", "measurement: Distance flown (NM)",
+          NM),
     Fig("distance-flown", "ratio_p50", "Distance flown over the recorded route length: median",
-        "distance flown / route length", "p50", "accuracy", NM, ""),
-    Fig("distance-flown", "ratio_p25", "Distance flown over the recorded route length: 25th percentile",
-        "distance flown / route length", "p25", "accuracy", NM, ""),
-    share("distance-flown", "ratio_below_half", "Flights whose distance flown is under half the route length",
-          "distance flown / route length", "share below 0.5", "availability", NM),
-    share("distance-flown", "ratio_above", "Flights whose distance flown is over 1.5 times the route length",
-          "distance flown / route length", "share above 1.5", "accuracy", NM),
+        "measurement: Distance flown (NM)", "median_ratio", "accuracy", NM, "", False),
+    Fig("distance-flown", "within_10pct", "Flights whose distance flown is within 10 % of the route length",
+        "measurement: Distance flown (NM)", "within_10pct_pct", "accuracy", NM),
+    own("time-passed", "own", "Flights with a time_passed_s", "measurement: Time Passed (s)", True),
 )
+
+#: Algorithm page -> anchors of its items on the airport pages.
+AIRPORT_ANCHORS = {
+    "take-off-landing": (("take-off times", "take-off"), ("landing times", "landing")),
+    "block-times": (("off-block times", "off-block"), ("in-block times", "in-block")),
+    "flight-list-milestones": (("rwy_dep", "runway-dep"), ("rwy_arr", "runway-arr"),
+                               ("stnd_dep", "stand-dep"), ("stnd_arr", "stand-arr")),
+    "airports": (("adep", "adep"), ("ades", "ades")),
+}
 
 
 def read_rows(root: Path, source: str) -> list[dict]:
@@ -278,20 +273,23 @@ def read_rows(root: Path, source: str) -> list[dict]:
 
 
 def lookup(rows: list[dict], fig: Fig) -> dict:
-    found = [r for r in rows if r["item"] == fig.item and r["measure"] == fig.measure
-             and (not fig.section or r["section"] == fig.section)]
-    if len(found) != 1:
-        raise KeyError(f"{fig.page}/{fig.measure_id}: {len(found)} rows for "
-                       f"({fig.section!r}, {fig.item!r}, {fig.measure!r}) in {fig.source}")
-    return found[0]
+    ref = REF_KEY.get(fig.reference)
+    found_ = [r for r in rows if r["days"] == POOLED and r["item"] == fig.item
+              and (ref is None or r["reference"] == ref)]
+    if ref is None and len(found_) > 1:
+        found_ = found_[:1]  # availability among OPDI's flights is the same on every reference row
+    if len(found_) != 1 or not found_[0].get(fig.column):
+        raise KeyError(f"{fig.page}/{fig.measure_id}: no single value of {fig.column!r} for "
+                       f"({fig.item!r}, {ref!r}) in {SOURCE}")
+    return found_[0]
 
 
 def shown(value: float, unit: str) -> str:
     if unit == "%":
-        return f"{value * 100:.1f} %"
+        return f"{value:.1f} %"
     if unit == "s":
         return f"{value:.0f} s"
-    if unit in ("events", "flights"):
+    if unit == "per day":
         return f"{value:,.0f}"
     return f"{value:.2f}"
 
@@ -299,53 +297,67 @@ def shown(value: float, unit: str) -> str:
 def recorded(value: float, unit: str) -> str:
     """The value as written in the CSV, in the unit shown on the page."""
     if unit == "%":
-        return f"{value * 100:.1f}"
-    if unit == "s":
-        return f"{value:.0f}"
-    if unit in ("events", "flights"):
+        return f"{value:.1f}"
+    if unit in ("s", "per day"):
         return f"{value:.0f}"
     return f"{value:.2f}"
 
 
-def badge(fig: Fig, value: float, n: int) -> str:
-    if fig.badge == "availability":
-        return "high" if value >= 0.8 else "partial" if value >= 0.5 else "low"
-    if fig.badge == "accuracy":
-        if n < 30:
-            return "no reference"
-        return "good" if value >= 0.8 else "fair" if value >= 0.5 else "limited"
-    return ""
+def badge(fig: Fig, row: dict) -> str:
+    """The label of the staged table for this figure, or ""."""
+    if not fig.labelled or fig.column not in LABEL_OF:
+        return ""
+    return row.get(LABEL_OF[fig.column], "")
+
+
+def airport_line(page: str) -> str:
+    """The sentence that links a page to its rows on the airport pages."""
+    anchors = AIRPORT_ANCHORS.get(page)
+    if not anchors:
+        return ("Per airport: every item at the [100 busiest European airports]"
+                "(../accuracy/europe.qmd#all-items) and the [100 busiest airports worldwide]"
+                "(../accuracy/world.qmd#all-items), as files to download.")
+    europe = ", ".join(f"[{w}](../accuracy/europe.qmd#{a})" for w, a in anchors)
+    world = ", ".join(f"[{w}](../accuracy/world.qmd#{a})" for w, a in anchors)
+    return (f"Per airport: at the 100 busiest European airports ({europe}) and at the "
+            f"100 busiest airports worldwide ({world}).")
 
 
 def build(root: Path) -> tuple[str, dict[str, str]]:
-    cache: dict[str, list[dict]] = {}
+    rows = read_rows(root, SOURCE)
     out = io.StringIO()
     writer = csv.writer(out, lineterminator="\n")
     writer.writerow(CSV_COLUMNS)
     tables: dict[str, list[str]] = {}
     for fig in FIGURES:
-        rows = cache.setdefault(fig.source, read_rows(root, fig.source))
         row = lookup(rows, fig)
-        value = float(row["value"])
-        n = int(float(row["count"] or 0))
-        label = badge(fig, value, n)
+        value = float(row[fig.column])
+        n_col = COUNT_OF[fig.column]
+        n = int(round(float(row[n_col]))) if n_col and row.get(n_col) else 0
+        label = badge(fig, row)
         writer.writerow([fig.page, fig.measure_id, fig.label, recorded(value, fig.unit), fig.unit, n,
-                         fig.kind, label, fig.reference, fig.source,
-                         f"section {row['section']}, item '{fig.item}', measure '{fig.measure}'"])
+                         fig.kind, label, fig.reference, SOURCE,
+                         f"days '{POOLED}', item '{fig.item}', reference '{row['reference']}', "
+                         f"column '{fig.column}'"])
         lines = tables.setdefault(fig.page, [
             "| What | Kind | Value | Out of | Label | Compared with |",
             "|---|---|---|---|---|---|",
         ])
-        count = "" if fig.unit in ("events", "flights") else f"{n:,}"
+        count = f"{n:,}" if n else ""
         lines.append(f"| {fig.label} | {fig.kind} | {shown(value, fig.unit)} | {count} | "
                      f"{label} | {fig.reference} |")
+    for page in tables:
+        # The numbers of the caption and of the per-airport sentence.
+        writer.writerow([page, "context", f"Three days together, {DAYS_TEXT}; the 100 busiest airports",
+                         "", "", "", "context", "", "", SOURCE, ""])
     pages = {}
     for page, lines in tables.items():
         pages[page] = (
-            "<!-- Written by tools/gen_item_figures.py from committed study files; "
+            "<!-- Written by tools/gen_item_figures.py from assets/accuracy/item_accuracy.csv; "
             "do not edit. -->\n\n" + "\n".join(lines) + "\n\n"
-            ": Figures of one worldwide day ({d}); \"Out of\" is the number of records or "
-            "flights the share is computed over. {{.striped}}\n".format(d=DAY_TEXT)
+            ": Three days together ({d}). \"Out of\" is the number of flights, records or compared "
+            "values the share is computed over, to four significant figures. {{.striped}}\n\n"
+            "{a}\n".format(d=DAYS_TEXT, a=airport_line(page))
         )
     return out.getvalue(), pages
 

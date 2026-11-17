@@ -1,15 +1,17 @@
-<!-- Written by tools/gen_item_figures.py from committed study files; do not edit. -->
+<!-- Written by tools/gen_item_figures.py from assets/accuracy/item_accuracy.csv; do not edit. -->
 
 | What | Kind | Value | Out of | Label | Compared with |
 |---|---|---|---|---|---|
-| Recorded 40 NM inbound crossings found | availability | 94.6 % | 18,100 | high | airport operator records (Europe), 2026-06-14 |
-| 40 NM inbound crossing within 60 s of the record | accuracy | 98.6 % | 17,216 | good | airport operator records (Europe), 2026-06-14 |
-| 40 NM inbound: median difference | accuracy | 2 s | 17,216 |  | airport operator records (Europe), 2026-06-14 |
-| Recorded 40 NM outbound crossings found | availability | 96.8 % | 18,757 | high | airport operator records (Europe), 2026-06-14 |
-| 40 NM outbound crossing within 60 s of the record | accuracy | 99.5 % | 18,170 | good | airport operator records (Europe), 2026-06-14 |
-| Recorded 100 NM inbound crossings found | availability | 93.7 % | 18,014 | high | airport operator records (Europe), 2026-06-14 |
-| 100 NM inbound crossing within 60 s of the record | accuracy | 99.6 % | 16,887 | good | airport operator records (Europe), 2026-06-14 |
-| Recorded 100 NM outbound crossings found | availability | 96.0 % | 18,682 | high | airport operator records (Europe), 2026-06-14 |
-| 100 NM outbound crossing within 60 s of the record | accuracy | 99.7 % | 17,950 | good | airport operator records (Europe), 2026-06-14 |
+| Recorded 40 NM inbound crossings found | availability | 89.5 % | 56,400 | high | airport operator records (Europe) |
+| 40 NM inbound crossing within 60 s of the record | accuracy | 98.5 % | 50,830 | good | airport operator records (Europe) |
+| 40 NM inbound: median difference | accuracy | 2 s | 50,830 |  | airport operator records (Europe) |
+| Recorded 40 NM outbound crossings found | availability | 96.1 % | 56,230 | high | airport operator records (Europe) |
+| 40 NM outbound crossing within 60 s of the record | accuracy | 99.6 % | 54,070 | good | airport operator records (Europe) |
+| Recorded 100 NM inbound crossings found | availability | 88.8 % | 56,010 | high | airport operator records (Europe) |
+| 100 NM inbound crossing within 60 s of the record | accuracy | 99.7 % | 49,760 | good | airport operator records (Europe) |
+| Recorded 100 NM outbound crossings found | availability | 95.4 % | 55,850 | high | airport operator records (Europe) |
+| 100 NM outbound crossing within 60 s of the record | accuracy | 99.8 % | 53,310 | good | airport operator records (Europe) |
 
-: Figures of one worldwide day (2026-06-14); "Out of" is the number of records or flights the share is computed over. {.striped}
+: Three days together (10, 14 and 17 June 2026). "Out of" is the number of flights, records or compared values the share is computed over, to four significant figures. {.striped}
+
+Per airport: every item at the [100 busiest European airports](../accuracy/europe.qmd#all-items) and the [100 busiest airports worldwide](../accuracy/world.qmd#all-items), as files to download.

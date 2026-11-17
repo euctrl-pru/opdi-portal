@@ -79,13 +79,20 @@ def test_summary_links_unvalidated_items_to_their_page(tmp_path):
     assert "Not validated" in line and "runway-milestones.qmd#limitations" in line
 
 
-def test_item_figure_labels_follow_the_thresholds():
+def test_item_figure_labels_come_from_the_staged_table():
     import gen_item_figures as g
-    avail = g.Fig("p", "m", "l", "i", "x", "availability", "r", badge="availability")
-    acc = g.Fig("p", "m", "l", "i", "x", "accuracy", "r", badge="accuracy")
-    assert [g.badge(avail, v, 100) for v in (0.8, 0.5, 0.49)] == ["high", "partial", "low"]
-    assert [g.badge(acc, v, 100) for v in (0.8, 0.5, 0.49)] == ["good", "fair", "limited"]
-    assert g.badge(acc, 0.99, 29) == "no reference"
+    row = {"availability_own_label": "partial", "availability_ref_label": "high", "accuracy_label": "good"}
+    own = g.own("p", "m", "l", "ATOT")
+    ref = g.found("p", "m", "l", "ATOT")
+    acc = g.w60("p", "m", "l", "ATOT")
+    med = g.median("p", "m", "l", "ATOT")
+    assert [g.badge(f, row) for f in (own, ref, acc, med)] == ["partial", "high", "good", ""]
+
+
+def test_item_figures_link_to_the_airport_tables():
+    import gen_item_figures as g
+    assert "europe.qmd#take-off" in g.airport_line("take-off-landing")
+    assert "world.qmd#all-items" in g.airport_line("tops")
 
 
 def test_item_figures_are_up_to_date():

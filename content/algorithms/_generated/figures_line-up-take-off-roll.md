@@ -1,9 +1,13 @@
-<!-- Written by tools/gen_item_figures.py from committed study files; do not edit. -->
+<!-- Written by tools/gen_item_figures.py from assets/accuracy/item_accuracy.csv; do not edit. -->
 
 | What | Kind | Value | Out of | Label | Compared with |
 |---|---|---|---|---|---|
-| Recorded take-offs with a line-up and a take-off-roll | availability | 44.8 % | 19,062 | low | airport operator records (Europe), 2026-06-14 |
-| line-up: median time to the recorded take-off | count | 36 s | 8,538 |  | airport operator records (Europe), 2026-06-14 |
-| take-off-roll: median time to the recorded take-off | count | 19 s | 8,538 |  | airport operator records (Europe), 2026-06-14 |
+| Departures with a line-up | availability | 24.3 % | 363,000 | low | OPDI flight events |
+| Departures with a take-off-roll | availability | 24.4 % | 363,000 | low | OPDI flight events |
+| Recorded take-offs with a take-off-roll | availability | 43.9 % | 57,340 | low | airport operator records (Europe) |
+| line-up: median time to the recorded take-off | timing | 38 s | 25,190 |  | airport operator records (Europe) |
+| take-off-roll: median time to the recorded take-off | timing | 18 s | 25,190 |  | airport operator records (Europe) |
 
-: Figures of one worldwide day (2026-06-14); "Out of" is the number of records or flights the share is computed over. {.striped}
+: Three days together (10, 14 and 17 June 2026). "Out of" is the number of flights, records or compared values the share is computed over, to four significant figures. {.striped}
+
+Per airport: every item at the [100 busiest European airports](../accuracy/europe.qmd#all-items) and the [100 busiest airports worldwide](../accuracy/world.qmd#all-items), as files to download.

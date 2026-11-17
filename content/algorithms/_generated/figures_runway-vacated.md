@@ -1,8 +1,11 @@
-<!-- Written by tools/gen_item_figures.py from committed study files; do not edit. -->
+<!-- Written by tools/gen_item_figures.py from assets/accuracy/item_accuracy.csv; do not edit. -->
 
 | What | Kind | Value | Out of | Label | Compared with |
 |---|---|---|---|---|---|
-| Recorded landings with a runway-vacated | availability | 51.8 % | 18,421 | partial | airport operator records (Europe), 2026-06-14 |
-| Median time from the recorded landing | count | 39 s | 9,544 |  | airport operator records (Europe), 2026-06-14 |
+| Arrivals with a runway-vacated | availability | 31.0 % | 331,100 | low | OPDI flight events |
+| Recorded landings with a runway-vacated | availability | 49.6 % | 57,550 | low | airport operator records (Europe) |
+| Median time from the recorded landing | timing | 39 s | 28,530 |  | airport operator records (Europe) |
 
-: Figures of one worldwide day (2026-06-14); "Out of" is the number of records or flights the share is computed over. {.striped}
+: Three days together (10, 14 and 17 June 2026). "Out of" is the number of flights, records or compared values the share is computed over, to four significant figures. {.striped}
+
+Per airport: every item at the [100 busiest European airports](../accuracy/europe.qmd#all-items) and the [100 busiest airports worldwide](../accuracy/world.qmd#all-items), as files to download.

@@ -46,6 +46,8 @@ ROOT = Path(__file__).resolve().parent.parent
 ACC = Path("assets/accuracy")
 OUT_DIR = Path("content/accuracy/_generated")
 NUMBERS_CSV = Path("assets/pages/accuracy_numbers.csv")
+#: The labels of every item, for the Algorithms index.
+ALGORITHMS_LABELS = Path("content/algorithms/_generated/labels.md")
 NUMBER_COLUMNS = ("page", "measure_id", "label", "value", "n", "source_file")
 
 POOLED = "all three days"
@@ -324,7 +326,14 @@ def overall_tables(items: list[dict], spread: list[dict]) -> dict[str, str]:
             for s in spread if s["stable"] != "True"]
     unstable = table(["Item", "Reference", "Share"] + [DAY_NAMES[d] for d in DAYS] + ["Largest minus smallest"],
                      rows, "The shares that move by 5 points or more from one day to another.")
-    return {"overall_items": every, "overall_no_reference": noref,
+    rows = [[link(r["item"], ""), r["availability_own_label"],
+             r["reference"] if r["reference"] != "no reference" else "none",
+             r["availability_ref_label"], r["accuracy_label"]] for r in pooled]
+    labels = table(["Item", "Availability among OPDI's flights", "Reference",
+                    "Availability against the reference", "Accuracy"], rows,
+                   "Labels of every item, the three days together. The numbers behind them are on "
+                   "Accuracy and availability.")
+    return {"overall_items": every, "overall_no_reference": noref, "algorithms_labels": labels,
             "overall_stability": stability, "overall_unstable": unstable}
 
 
@@ -580,7 +589,9 @@ def build(root: Path) -> dict[Path, str]:
     world_pages, world = world_tables(world_rows)
     pages.update(eu_pages)
     pages.update(world_pages)
+    labels = pages.pop("algorithms_labels")
     wanted = {root / OUT_DIR / f"{name}.md": HEADER + text for name, text in pages.items()}
+    wanted[root / ALGORITHMS_LABELS] = HEADER + labels
     out = io.StringIO()
     writer = csv.writer(out, lineterminator="\n")
     writer.writerow(NUMBER_COLUMNS)
@@ -603,7 +614,7 @@ def main(argv: list[str] | None = None) -> int:
     for path, content in wanted.items():
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(content, encoding="utf-8")
-    print(f"wrote {len(wanted) - 1} tables under {OUT_DIR} and {NUMBERS_CSV}")
+    print(f"wrote {len(wanted) - 2} tables under {OUT_DIR}, {ALGORITHMS_LABELS} and {NUMBERS_CSV}")
     return 0
 
 
