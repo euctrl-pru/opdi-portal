@@ -33,8 +33,11 @@ destination airports.
    airport after `atot`, and `c{radius}_arr` the last inbound crossing around
    the destination airport before `aldt`.
 5. Where the take-off or landing time is unknown, the time limit of steps 2
-   to 4 is not applied. An event that names no airport is accepted. A column
-   is empty when no event qualifies.
+   to 4 is not applied. An event that names no airport is accepted. On a row
+   with no departure airport, an `AOBT` read at a named stand is kept, with
+   that stand in `stnd_dep`: the stand passage is its evidence, and the row
+   has no airport to contradict it. The same holds for an `AIBT` on a row with
+   no destination airport. A column is empty when no event qualifies.
 
 ## Based on
 

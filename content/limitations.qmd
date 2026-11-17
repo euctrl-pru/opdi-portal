@@ -40,14 +40,16 @@ wrong, and an event that is missing says nothing about what the aircraft did.
   and near the ground an aircraft is heard only close to a receiver. So events
   in cruise are found almost everywhere, events on the runway at fewer
   airports, and events at the stand at fewer still. Missing events on the
-  ground mostly mean missing reception, not that nothing happened.
+  ground mostly mean missing reception, not that nothing happened. The
+  airports where ground events are nearly absent are listed under
+  [Off-block and in-block times](#ground-events-nearly-absent).
 - **Tracks that hold several flights.** When an aircraft lands and departs
   again under the same call sign while receivers hear it all the time on the
   ground, the two flights stay one track. The flight-list row names the
   track's first and last airports; the distance-circle crossings, block times
   and stands at the middle stop are not on the row (the runway events there
-  are still published as events). A track keeps one top of climb, one top of
-  descent, one take-off time and one landing time.
+  are still published as events). A track keeps one top of climb and one top
+  of descent, and one take-off time and one landing time per airport.
 - **Placeholder addresses.** Some transponders send addresses such as
   `000000`, `000001` or `ffffff`. Several aircraft can then be merged into one
   track; such tracks are not flagged.
@@ -109,8 +111,11 @@ broadcast most often, which may differ from the filed flight plan.
 airport or more than 15,000 ft above it (a track first heard in cruise), and
 when a track first heard in the air descends. `ades` is empty when the track
 ends without descending near a candidate airport (reception lost in cruise
-or far out). Small airfields and heliports are never named. On the day
-measured, about a quarter of the flights had no `adep` and a third no `ades`.
+or far out). Small airfields and heliports are never named. Over the three
+days measured, [24.2 %]{.measured} of the flights had no `adep` and
+[35.7 %]{.measured} no `ades`. At a few busy European airports OPDI names the
+airport as destination for only a small share of the recorded arrivals (see
+[Accuracy: where no take-off or landing time exists](accuracy/europe.qmd#no-times)).
 
 ### When it can be wrong
 
@@ -129,8 +134,9 @@ small airfield, or one whose end was not received. `adep_source` and
 ### When it is missing
 
 When the address is not in the OpenSky aircraft database of October 2024:
-aircraft registered later, military aircraft and many light aircraft. About
-15% of the flights the Network Manager records had no type in OPDI.
+aircraft registered later, military aircraft and many light aircraft. Over
+the three days measured, [17.2 %]{.measured} of the flights the Network
+Manager records had no type in OPDI.
 
 ### When it can be wrong
 
@@ -147,7 +153,8 @@ the airline that flew the flight (wet leases, code shares).
 ### When it is missing
 
 Never: every track has both. A track without any measured position takes
-them from its measured altitude or speed.
+them from its measured altitude or speed. They are identical in the flight
+list and in the events.
 
 ### When it can be wrong
 
@@ -170,7 +177,10 @@ reception at the stand.
 ### When it can be wrong
 
 As wrong as the event behind it. On a track holding several flights, the
-events at the middle stop are not on the row.
+events at the middle stop are not on the row. On a row with no departure
+(or destination) airport, `aobt` and `stnd_dep` (or `aibt` and `stnd_arr`)
+can still come from a block time read at a named stand; there is then no
+airport to check them against.
 
 ### What not to conclude from it
 
@@ -184,17 +194,31 @@ against official counts; two real short flights of one aircraft within
 
 When the aircraft was not received near the runway: the runway-pass method
 needs reports on the runway or less than 1 NM short of it, the runway-window
-method reports within 5 NM and 1,500 ft of the ground. Airports far from any
-receiver have few times.
+method reports within 5 NM and 1,500 ft of the airport. Airports far from any
+receiver have few times. In particular:
+
+- a landing whose reception ends in the flare, before any report on the
+  runway, can get no landing time;
+- a take-off first received more than 1,500 ft above the track's ground
+  altitude at the airport gets no take-off time;
+- at some busy European airports OPDI has no take-off or landing time at all
+  on the three days measured; they are listed on
+  [Accuracy: where no take-off or landing time exists](accuracy/europe.qmd#no-times).
+  The cause has not been established.
 
 ### When it can be wrong
 
 - Runway-window times (`info.method` = `legacy`) are the first or last report
-  of the climb or descent, so they are less precise: on the day measured, the
-  runway-pass times were closer to the records. Where reception starts at
-  lift-off or ends over the threshold, the time comes from a report up to
-  1,500 ft above the ground; `info.at_track_edge` marks the first or last
-  report of the track.
+  of the climb or descent, so they are less precise. Over the three days
+  measured, [94.3 %]{.measured} of the runway-pass take-off times and
+  [91.5 %]{.measured} of the runway-window ones were within 60 s of the
+  airport records; for landings, [97.1 %]{.measured} and [87.9 %]{.measured}.
+  Where reception starts at lift-off or ends over the threshold, the time
+  comes from a report up to 1,500 ft above the ground;
+  `info.at_track_edge` marks the first or last report of the track.
+- At a few airports the runway named, or the take-off time, mostly disagrees
+  with the records; they are listed on
+  [Accuracy: where an item is unreliable](accuracy/europe.qmd#unreliable).
 - When the track has no ground report at the airport, the height is measured
   above the published elevation, which on a day of low or high pressure moves
   the 15 ft crossing (`info.height_reference` = `elevation`).
@@ -202,8 +226,9 @@ receiver have few times.
 ### What not to conclude from it
 
 The two methods have different errors: separate them with `info.method` when
-comparing airports. A track keeps one `ATOT` and one `ALDT`; the second
-take-off of a track holding two flights is not published.
+comparing airports. A track keeps one `ATOT` and one `ALDT` per airport: on
+a track that holds several flights, a second take-off or landing at the same
+airport is not published.
 
 ## Other runway events {#lim-runway}
 
@@ -236,8 +261,18 @@ recorded take-off or landing.
 
 Often: they need reception at the stand and on the taxiway, and a stand
 passage in the track. An arrival with no position or speed after the landing
-roll gets no in-block time. On the day measured, about one recorded off-block
-in three had an `AOBT`.
+roll gets no in-block time. Over the three days measured,
+[35.0 %]{.measured} of the recorded off-blocks had an `AOBT` and
+[33.4 %]{.measured} of the recorded in-blocks an `AIBT`.
+
+::: {#ground-events-nearly-absent}
+At these airports of the 100 busiest in Europe, fewer than 2 % of OPDI's
+departures have an off-block time and fewer than 2 % of its arrivals an
+in-block time: block times, stands and the airport surface events are
+nearly absent there. Take-off and landing times can still exist.
+
+{{< include accuracy/_generated/europe_ground.md >}}
+:::
 
 ### When it can be wrong
 
@@ -245,9 +280,12 @@ in three had an `AOBT`.
   is first received already moving, the off-block time is the first movement
   received, which is late. A push slower than 2 kt, or a stand with few
   reports with a position, also gives a late off-block time.
-- In-block times sit about 74 s after airport records given to the whole
-  minute: OPDI gives the moment the aircraft stops, which records to the
-  minute place earlier.
+- Off-block times are often late: over the three days measured, the median
+  difference from the airport records is [99 s]{.measured}, and over the
+  differences of up to 300 s OPDI is on average [78.6 s]{.measured} later
+  than the record. In-block times are closer: a median difference of
+  [34 s]{.measured}, and on average [18.5 s]{.measured} earlier than the
+  record over the differences of up to 300 s.
 - A stand drawn in OpenStreetMap without a name gives no stand name. Where a
   stand is drawn inside a larger stand area, the block times read the inner
   one.
@@ -289,7 +327,8 @@ threshold, which is `xing-runway-threshold`.
 Level-offs need both tops. Tops need altitudes in the air; a flight-level
 crossing needs reports with altitude either side of the level within
 30 minutes. A flight that levels off at a crossed level itself has no
-crossing of it.
+crossing of it. No level segment is published on reports flagged on the
+ground, or less than 200 ft above an airport within 10 NM of it.
 
 ### When it can be wrong
 

@@ -98,8 +98,8 @@ therefore measures height from the aircraft's own altitude on the ground:
 This method follows the runway detection of the `traffic` library and is used
 at the departure and destination airports of the flight list only.
 
-1. Keep the reports within 5 NM of the airport, at most 1,500 ft above the
-   ground (see above), faster than 30 kt and climbing (for a departure) or
+1. Keep the reports within 5 NM of the airport, at most 1,500 ft above its
+   published elevation, faster than 30 kt and climbing (for a departure) or
    descending (for an arrival) faster than 257 ft/min.
 2. At least 4 reports must remain: they are the initial climb or the final
    descent.
@@ -114,12 +114,24 @@ at the departure and destination airports of the flight list only.
    position and altitude. `info.at_track_edge` is true when the report is the
    first report of the track (take-off) or its last (landing): reception then
    started in the climb or ended on final approach.
+6. **Height check.** The time is kept only when its report is at most
+   1,500 ft above the track's ground altitude at the airport, on the same
+   visit (see [Height above the ground](#height-above-the-ground)). Step 1
+   already keeps only reports at most 1,500 ft above the published
+   elevation, so this check removes a time only when the ground altitude
+   reads below the elevation (on a day of high pressure, because the
+   altitude is measured against standard pressure). Where the ground reads at
+   or above the elevation, or no ground altitude is known, it removes
+   nothing.
 
-### One take-off and one landing per track
+### One take-off and one landing per track and airport
 
-1. Each track keeps at most one `ATOT` and one `ALDT`: the runway-pass time
-   when there is one (the earliest take-off and the latest landing), otherwise
-   the runway-window time.
+1. Each track keeps at most one `ATOT` and one `ALDT` at each airport
+   (`info.apt_icao`): the runway-pass time when there is one (the earliest
+   take-off and the latest landing), otherwise the runway-window time. Two
+   readings of one movement are at one airport and give one event; a track
+   that holds several flights keeps the landing at a stop on the way and the
+   landing at its destination.
 2. The [plausibility checks](plausibility-checks.qmd) remove an `ATOT` or
    `ALDT` more than 1,500 ft above the ground at its airport. When the height
    comes from the elevation rather than the track, 1,000 ft is added to that
@@ -133,7 +145,7 @@ at the departure and destination airports of the flight list only.
   climbing faster than 257 ft/min, at least 4 reports and runways within 10°.
   `traffic` detects take-offs only; OPDI applies the mirror rule to landings,
   measures height above the track's ground altitude and adds the checks of
-  step 4.
+  steps 4 and 6.
 - **Runway-pass method**: developed for OPDI. Cutting a track into its runs
   over a runway is comparable to the runway alignment of `traffic`
   (`RunwayAlignment`), which, unlike OPDI, does not tell a take-off from a
@@ -171,8 +183,9 @@ from the earliest `ATOT` at the departure airport; `aldt` and `rwy_arr`,
   reception on the ground at the airport.
 - **Runway use**: count take-offs and landings per runway direction and hour
   from `info.runway`, for example to see when an airport changes direction.
-- **Time in the air**: `ALDT` minus `ATOT`. Keep in mind that a track can hold
-  only one of each.
+- **Time in the air**: `ALDT` minus `ATOT`. A track that holds several
+  flights has one of each per airport it visits: pair them by
+  `info.apt_icao` and time.
 
 ## Limitations
 

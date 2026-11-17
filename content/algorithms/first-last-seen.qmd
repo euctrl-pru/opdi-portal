@@ -21,13 +21,15 @@ The cleaned reports of the track (see
    so the last measured position is the last time the aircraft was heard.
 2. `first_seen` is the first of these reports and `last_seen` the last.
 3. A track with no measured position at all uses its first and last report
-   with any measured value (altitude, speed, heading or vertical rate); a
-   track with none of these uses its first and last report.
+   with another measured value: a barometric altitude between −2,000 ft and
+   60,000 ft (the range the events use), a speed, a heading or a vertical
+   rate. The GPS altitude does not count. A track with none of these uses its
+   first and last report.
 4. Each event takes the position, altitude and measurements of its report.
 5. `track_duration_min` is `last_seen` minus `first_seen`, in minutes.
 
-The same definition is used in the flight list and in the events, so the two
-always agree. Every track has one `first_seen` and one `last_seen` event.
+The flight list and the events read the same values in the same way, so
+the `first_seen` and `last_seen` of a track are identical in both. Every track has one `first_seen` and one `last_seen` event.
 
 ## Based on
 

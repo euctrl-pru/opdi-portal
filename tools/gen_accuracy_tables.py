@@ -553,8 +553,8 @@ def numbers(items: list[dict], spread: list[dict], eu: dict, world: dict) -> lis
         add(lim, f"atot_{m}_w60", f"ATOT ({m}) within 60 s, %", f"ATOT ({m})", "airport records", "within_60s_pct")
         add(lim, f"aldt_{m}_w60", f"ALDT ({m}) within 60 s, %", f"ALDT ({m})", "airport records", "within_60s_pct")
     add(lim, "aibt_median", "AIBT median difference, s", "AIBT", "airport records", "median_abs_diff_s")
-    add(lim, "aibt_mean_signed", "AIBT mean signed difference within 300 s, s", "AIBT", "airport records",
-        "mean_signed_diff_within_300s_s")
+    add(lim, "aibt_mean_earlier", "AIBT: how much earlier than the record on average, within 300 s, s", "AIBT",
+        "airport records", "mean_signed_diff_within_300s_s", lambda v: -v)
     add(lim, "aobt_median", "AOBT median difference, s", "AOBT", "airport records", "median_abs_diff_s")
     add(lim, "aobt_mean_signed", "AOBT mean signed difference within 300 s, s", "AOBT", "airport records",
         "mean_signed_diff_within_300s_s")
