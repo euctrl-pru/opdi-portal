@@ -57,7 +57,7 @@ columns, so they always match the files.
 One row per flight. The file of a day holds the flights first seen on that
 day (UTC). A **flight** here is a **track**: the sequence of position reports
 of one aircraft that OPDI treats as one flight (see
-[Track identity](../algorithms/tracks.qmd)).
+[Tracks and flight identity](../algorithms/tracks.qmd)).
 
 {{< include _generated/flight_list_columns.md >}}
 
@@ -103,8 +103,8 @@ event is empty on that row (see [Empty measurement columns](#empty-measurements)
 
 {{< include _generated/measurement_columns.md >}}
 
-How these are computed: [Measurements](../algorithms/distance-flown.qmd),
-[Holding](../algorithms/holding.qmd) and [Point merge](../algorithms/point-merge.qmd).
+How these are computed: [Distance flown](../algorithms/distance-flown.qmd),
+[Time passed](../algorithms/time-passed.qmd), [Holding patterns](../algorithms/holding.qmd) and [Point merge](../algorithms/point-merge.qmd).
 
 ## Flight index and catalogue {#flight-index-and-catalogue}
 
@@ -132,27 +132,27 @@ explains how the event is found and how accurate it is.
 
 | Type | Meaning |
 |---|---|
-| `take-off-roll` | The aircraft starts its take-off run on the runway. [Take-off and landing](../algorithms/take-off-landing.qmd) |
-| `ATOT` | Actual take-off time: the wheels leave the runway. [Take-off and landing](../algorithms/take-off-landing.qmd) |
-| `xing-runway-threshold` | The aircraft passes over the runway threshold (the start of the landing part of the runway), a few seconds before touchdown. [Take-off and landing](../algorithms/take-off-landing.qmd) |
-| `ALDT` | Actual landing time: the wheels touch the runway. [Take-off and landing](../algorithms/take-off-landing.qmd) |
+| `take-off-roll` | The aircraft starts its take-off run on the runway. [Line-up and take-off roll](../algorithms/line-up-take-off-roll.qmd) |
+| `ATOT` | Actual take-off time: the wheels leave the runway. [Take-off and landing times](../algorithms/take-off-landing.qmd) |
+| `xing-runway-threshold` | The aircraft passes over the runway threshold (the start of the landing part of the runway), a few seconds before touchdown. [Runway threshold crossing](../algorithms/xing-runway-threshold.qmd) |
+| `ALDT` | Actual landing time: the wheels touch the runway. [Take-off and landing times](../algorithms/take-off-landing.qmd) |
 
 ### Other runway events
 
 | Type | Meaning |
 |---|---|
-| `line-up` | A departing aircraft enters the runway to take off. [Runway milestones](../algorithms/line-up-take-off-roll.qmd) |
-| `runway-vacated` | An arriving aircraft leaves the runway after landing. [Runway milestones](../algorithms/line-up-take-off-roll.qmd) |
-| `runway-crossing-entry` | A taxiing aircraft enters a runway in order to cross it. [Runway milestones](../algorithms/line-up-take-off-roll.qmd) |
-| `runway-crossing-vacated` | The same aircraft leaves the runway on the other side. [Runway milestones](../algorithms/line-up-take-off-roll.qmd) |
-| `go-around` | An approaching aircraft gives up the landing and climbs away; placed at the lowest point of the approach. [Runway milestones](../algorithms/line-up-take-off-roll.qmd) |
+| `line-up` | A departing aircraft enters the runway to take off. [Line-up and take-off roll](../algorithms/line-up-take-off-roll.qmd) |
+| `runway-vacated` | An arriving aircraft leaves the runway after landing. [Runway vacated](../algorithms/runway-vacated.qmd) |
+| `runway-crossing-entry` | A taxiing aircraft enters a runway in order to cross it. [Runway crossings](../algorithms/runway-crossings.qmd) |
+| `runway-crossing-vacated` | The same aircraft leaves the runway on the other side. [Runway crossings](../algorithms/runway-crossings.qmd) |
+| `go-around` | An approaching aircraft gives up the landing and climbs away; placed at the lowest point of the approach. [Go-around](../algorithms/go-around.qmd) |
 
 ### Block times
 
 | Type | Meaning |
 |---|---|
-| `AOBT` | Actual off-block time: the aircraft starts to move away from its parking position (stand). [Block times](../algorithms/block-times.qmd) |
-| `AIBT` | Actual in-block time: the aircraft stops at its stand after landing. [Block times](../algorithms/block-times.qmd) |
+| `AOBT` | Actual off-block time: the aircraft starts to move away from its parking position (stand). [Off-block and in-block times](../algorithms/block-times.qmd) |
+| `AIBT` | Actual in-block time: the aircraft stops at its stand after landing. [Off-block and in-block times](../algorithms/block-times.qmd) |
 
 ### Airport surface
 
@@ -165,15 +165,15 @@ explains how the event is found and how accurate it is.
 
 | Type | Meaning |
 |---|---|
-| `top-of-climb` | End of the climb to cruise, with the method of EUROCONTROL's vertical flight efficiency indicators. [Vertical events](../algorithms/tops.qmd) |
-| `top-of-descent` | Start of the final descent, with the same method. [Vertical events](../algorithms/tops.qmd) |
-| `level-start` | Start of a period of level flight, cruise included. [Vertical events](../algorithms/tops.qmd) |
-| `level-end` | End of that period. [Vertical events](../algorithms/tops.qmd) |
-| `level-off-climb-start` | Start of a level-off during the climb: level flight below the cruise. [Vertical events](../algorithms/tops.qmd) |
-| `level-off-climb-end` | End of that level-off. [Vertical events](../algorithms/tops.qmd) |
-| `level-off-descent-start` | Start of a level-off during the descent. [Vertical events](../algorithms/tops.qmd) |
-| `level-off-descent-end` | End of that level-off. [Vertical events](../algorithms/tops.qmd) |
-| `xing-fl{level}` | A crossing of flight level 50, 70, 100 or 245 (`xing-fl50`, `xing-fl70`, `xing-fl100`, `xing-fl245`), up or down. [Vertical events](../algorithms/tops.qmd) |
+| `top-of-climb` | End of the climb to cruise, with the method of EUROCONTROL's vertical flight efficiency indicators. [Top of climb and top of descent](../algorithms/tops.qmd) |
+| `top-of-descent` | Start of the final descent, with the same method. [Top of climb and top of descent](../algorithms/tops.qmd) |
+| `level-start` | Start of a period of level flight, cruise included. [Level segments](../algorithms/level-segments.qmd) |
+| `level-end` | End of that period. [Level segments](../algorithms/level-segments.qmd) |
+| `level-off-climb-start` | Start of a level-off during the climb: level flight below the cruise. [Level-offs](../algorithms/level-offs.qmd) |
+| `level-off-climb-end` | End of that level-off. [Level-offs](../algorithms/level-offs.qmd) |
+| `level-off-descent-start` | Start of a level-off during the descent. [Level-offs](../algorithms/level-offs.qmd) |
+| `level-off-descent-end` | End of that level-off. [Level-offs](../algorithms/level-offs.qmd) |
+| `xing-fl{level}` | A crossing of flight level 50, 70, 100 or 245 (`xing-fl50`, `xing-fl70`, `xing-fl100`, `xing-fl245`), up or down. [Flight-level crossings](../algorithms/flight-level-crossings.qmd) |
 
 A **flight level** is an altitude in hundreds of feet on the standard air
 pressure of 1013.25 hPa: flight level 100 is about 10,000 ft.
@@ -182,14 +182,14 @@ pressure of 1013.25 hPa: flight level 100 is about 10,000 ft.
 
 | Type | Meaning |
 |---|---|
-| `xing-{radius}nm` | A crossing of a circle of 40, 50, 60, 100, 110 or 120 NM around the flight's departure or destination airport (`xing-40nm` to `xing-120nm`). [Distance rings](../algorithms/distance-rings.qmd) |
+| `xing-{radius}nm` | A crossing of a circle of 40, 50, 60, 100, 110 or 120 NM around the flight's departure or destination airport (`xing-40nm` to `xing-120nm`). [Distance circle crossings](../algorithms/distance-rings.qmd) |
 
 ### Holding
 
 | Type | Meaning |
 |---|---|
-| `holding-start` | First turning sample of a holding pattern: a loop flown while waiting for permission to continue. [Holding](../algorithms/holding.qmd) |
-| `holding-end` | Last turning sample of the holding pattern. Carries the holding measurements. [Holding](../algorithms/holding.qmd) |
+| `holding-start` | First turning sample of a holding pattern: a loop flown while waiting for permission to continue. [Holding patterns](../algorithms/holding.qmd) |
+| `holding-end` | Last turning sample of the holding pattern. Carries the holding measurements. [Holding patterns](../algorithms/holding.qmd) |
 
 ### Point merge
 
@@ -244,9 +244,11 @@ event type. A field without a value is left out of the text. An empty `info`
 | `osn_flight_id` | Call sign received during the runway pass. |
 | `milestone` | Standard number of the moment in airport collaborative decision making (A-CDM): `T06` line-up, `T07` take-off roll, `T08` take-off, `T16` threshold, `T17` touchdown, `T19` runway vacated. Not set on runway crossings. |
 | `method` | On `ATOT` and `ALDT` only: `acdm` when the time was found on the runway, as above. |
+| `height_reference` | What the height above the ground was measured from: `track` (the aircraft's own altitude on the ground at that airport) or `elevation` (the airport's published elevation). |
+| `bracket_s` | On `ATOT` and `ALDT` only: time between the two position reports the 15 ft crossing was placed between, in seconds. |
 
 An `ATOT` or `ALDT` that could not be found on the runway is found from the
-climb or the descent instead (see [Take-off and landing](../algorithms/take-off-landing.qmd#how-it-is-computed)).
+climb or the descent instead (see [Take-off and landing times](../algorithms/take-off-landing.qmd#runway-window-method)).
 Its `info` holds other fields:
 
 | Field | Meaning |
@@ -258,6 +260,7 @@ Its `info` holds other fields:
 | `role` | `departure` or `arrival`. |
 | `bearing_error_deg` | Angle between the aircraft's median track and the runway, in degrees. |
 | `n_samples` | Number of position reports the time was found from. |
+| `at_track_edge` | `true` when the report the time comes from is the first report of the track (take-off) or its last (landing). |
 
 ### Go-around
 
@@ -273,12 +276,14 @@ Its `info` holds other fields:
 
 | Event type | Field | Meaning |
 |---|---|---|
-| `AOBT` | `stand_exit` | Time of the stand exit that belongs to this off-block: the first exit from a stand area at or after it in the same part of the track, otherwise the last one before it. Absent when that part holds no stand exit. |
+| `AOBT` | `stand_exit` | Time of the exit from the stand this off-block leaves (see [Off-block and in-block times](../algorithms/block-times.qmd)). Absent when the part of the track holds no such stand passage. |
 | `AOBT` | `stand` | Name in OpenStreetMap of the stand of `stand_exit`, when it has one. |
 | `AOBT` | `apt_icao` | ICAO code of the airport of that stand. |
-| `AIBT` | `stand_entry` | Time of the stand entry that belongs to this in-block: the last entry into a stand area at or before it in the same part of the track, otherwise the first one after it. Absent when that part holds no stand entry. |
+| `AIBT` | `stand_entry` | Time of the entry into the stand this in-block reaches. Absent when the part of the track holds no such stand passage. |
 | `AIBT` | `stand` | Name in OpenStreetMap of the stand of `stand_entry`, when it has one. |
 | `AIBT` | `apt_icao` | ICAO code of the airport of that stand. |
+| `AOBT` | `take_off`, `take_off_method` | The take-off of the same part of the track, and the method that found it (`acdm` or `legacy`). |
+| `AIBT` | `landing`, `landing_method` | The landing of the same part of the track, and the method that found it. |
 
 ### Airport surface
 
@@ -293,6 +298,10 @@ Its `info` holds other fields:
 | `opdi_time_in_use_s` | Time spent in the area, in seconds. |
 | `osn_icao24` | ICAO 24-bit address of the aircraft. |
 | `osn_flight_id` | Call sign received. |
+| `at_track_start` | `true` on an entry made at the first report with a position of the track: reception started there. |
+| `at_track_end` | `true` on an exit made at the last report with a position of the track: reception stopped there. |
+| `ground_only` | `true` on the events of a track that never leaves the ground and whose aircraft type is unknown or a vehicle type, in practice an airport vehicle. |
+| `encloses_stand` | `true` on the passage of a stand area that contains a smaller stand passed at the same time. |
 
 ### Top of climb and top of descent
 
@@ -303,6 +312,7 @@ Its `info` holds other fields:
 | `relocated` | `true` when the top was moved, `false` otherwise. |
 | `analysis_radius_nm` | Radius of the analysis around the airport, in NM (200). |
 | `method` | `pru`: the method of the EUROCONTROL Performance Review Unit. |
+| `observed` | `false` when the track shows no altitude at least 3,000 ft below the top before it (top of climb) or after it (top of descent): the top is at the edge of reception. |
 
 ### Level-offs
 
@@ -338,6 +348,7 @@ Its `info` holds other fields:
 | `bearing` | Direction of the crossing point seen from the airport, in degrees clockwise from true north. |
 | `flight_level` | Flight level of the aircraft at the crossing. |
 | `bracket_s` | Time between the two position reports the crossing was placed between, in seconds. |
+| `position_jump` | `true` when the two reports the crossing was placed between imply more than 1,000 kt: the position stepped, as near areas of GPS spoofing. |
 
 ### Holding
 
@@ -354,6 +365,7 @@ Its `info` holds other fields:
 | `altitude_start_ft` | Altitude at the start, in feet. |
 | `altitude_end_ft` | Altitude at the end, in feet. |
 | `straight_pct` | Share of the time flown straight, in percent. |
+| `context` | `arrival` (the flight lands at its destination within 60 minutes and 150 NM of the end of the hold), `en-route` (it lands later or further away) or `other` (local flight, no landing, three or more holds, or holds over half the time in the air). |
 
 ### Point merge
 
@@ -397,6 +409,7 @@ Its `info` holds other fields:
 | `airac_cfmu` | The AIRAC cycle of the boundaries used (524). An AIRAC cycle is the 28-day period in which aeronautical data such as airspace boundaries take effect. |
 | `airac_validity_start` | First day of that cycle. |
 | `airac_validity_end` | Last day of that cycle. |
+| `vertical` | `true` when the two regions lie one above the other (a lower and an upper region), so the crossing is a climb or descent through their boundary level. |
 
 ### Events without details
 
@@ -415,28 +428,28 @@ answer different questions.
 | Column | Where | What it names | Values in release v2.0.0 |
 |---|---|---|---|
 | `release` | every row of both files | The data release the row belongs to. It is the same on every row of a release. | `v2.0.0` |
-| `version` | flight list | The method that built the flight list row. | `v5.0.0` |
-| `flight_version` | flight events | The same value as `version` of the event's flight in the flight list. | `v5.0.0` |
+| `version` | flight list | The method that built the flight list row. | `v6.0.0` |
+| `flight_version` | flight events | The same value as `version` of the event's flight in the flight list. | `v6.0.0` |
 | `version` | flight events | The method that produced the event. Different event types can have different versions. A method that changes gets a new version, so older data stay reproducible. | see below |
 
 The event versions of release v2.0.0:
 
 | Version | Event types |
 |---|---|
-| `events_v0.3.0` | runway events, block times, airport surface, vertical profile, distance rings, `first_seen`, `last_seen` |
-| `holding_v0.1.0` | `holding-start`, `holding-end` |
-| `pms_v0.1.0` | `pms-leg-entry`, `pms-leg-exit`, `pms-merge-point` |
-| `fir_v0.1.0` | `xing-fir` |
+| `events_v0.4.0` | runway events, block times, airport surface, vertical profile, distance rings, `first_seen`, `last_seen` |
+| `holding_v0.2.0` | `holding-start`, `holding-end` |
+| `pms_v0.2.0` | `pms-leg-entry`, `pms-leg-exit`, `pms-merge-point` |
+| `fir_v0.2.0` | `xing-fir` |
 
 The measurement columns have no version column of their own. Their versions
 are:
 
 | Measurement columns | Version |
 |---|---|
-| `distance_flown_nm` | `distance_v0.0.3` |
-| `time_passed_s` | `time_v0.0.1` |
-| `holding_duration_s`, `holding_distance_nm`, `holding_circuits` | `holding_v0.1.0` |
-| `pms_leg_time_s`, `pms_leg_distance_nm`, `pms_direct_to_distance_nm` | `pms_v0.1.0` |
+| `distance_flown_nm` | `distance_v0.0.4` |
+| `time_passed_s` | `time_v0.0.2` |
+| `holding_duration_s`, `holding_distance_nm`, `holding_circuits` | `holding_v0.2.0` |
+| `pms_leg_time_s`, `pms_leg_distance_nm`, `pms_direct_to_distance_nm` | `pms_v0.2.0` |
 
 The `measurements` view (see [Access](access.qmd#tables-and-views)) gives each
 measured value as a row with this version in its `version` column.
