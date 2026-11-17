@@ -68,11 +68,21 @@ speeds with weather-model wind.
 
 ## Based on
 
-The trajectory cleaning of the winning solution of the
-[2024 PRC Data Challenge](../data-challenges.qmd), by Alligier and Gianazza
-(ENAC, team likable_jelly): the stages, the two-vote rule for spikes and the 20 s
-rule for isolated values. The three things not done are documented negative
-results of the 2024 and 2025 challenges.
+- Follows the trajectory cleaning of the winning solution of the
+  [2024 PRC Data Challenge](../data-challenges.qmd), by
+  [Alligier and Gianazza](../resources.qmd#ref-likable-jelly) (ENAC, team likable_jelly): the
+  order of the stages, the repeated-value tests, the spike limits of the
+  barometric and geometric altitude, the rule that a value is emptied when it
+  takes part in two over-limit changes, and the 20 s rule for isolated
+  values. Their spike filter is in turn adapted from the derivative filter of
+  the [`traffic`](../resources.qmd#ref-olive-2019) library. OPDI empties values instead of
+  removing reports, and adds the duplicates, the coordinate check and the
+  silences.
+- The three things not done are negative results reported by the winning
+  team of the 2025 challenge ([resourceful-quiver, 2025](../resources.qmd#ref-quiver-2025)):
+  completing trajectories always gave worse results, leaving jammed or
+  spoofed GPS positions untouched gave better ones, and removing wind data
+  improved their error.
 
 ## What is published
 
