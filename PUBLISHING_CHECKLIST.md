@@ -69,6 +69,14 @@ published before every value is known.
   `coverage` in `R/portal_config.R`. Check that the last file it generates,
   the one ending after 2026-09-30, exists on the server.
 
+- [ ] **Sources of the algorithm pages.** Confirm the attributions under
+  "Based on" that the repositories do not document in full: the A-CDM
+  milestone numbers (no manual is cited), HexAeroPy as the origin of the
+  airport layout grid, and ICAO Doc 8168 for the holding thresholds.
+- [ ] **Figures of the algorithm pages.** They are those of one day
+  (2026-06-14). Replace them by the three-day figures: change the entries of
+  `FIGURES` in `tools/gen_item_figures.py` and run it again.
+
 ## 3. Decisions
 
 - [ ] **When to switch the current release.** `current_release` stays

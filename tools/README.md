@@ -6,7 +6,8 @@ repository root.
 
 | Script | What it does | Needs |
 |---|---|---|
-| `check_site.py` | Checks links, the sidebar, the methods page template, the numbers on methods pages and the wording of every page. Exit status 1 when anything fails. | Python 3 |
+| `check_site.py` | Checks links, the sidebar, the template and the numbers of the algorithm pages, that every published item is listed, the pointers of moved pages, and the wording of every page. Exit status 1 when anything fails. | Python 3 |
+| `gen_item_figures.py` | Writes the availability and accuracy tables of the algorithm pages from committed study results, and records each number in `assets/algorithms/item_figures.csv`. | Python 3 |
 | `check_papers_index.py` | Checks that every study under `papers/` is listed once in `papers/index.qmd`. | Python 3 |
 | `gen_data_dictionary.py` | Writes the column tables of the data dictionary from the pipeline's list of published columns. | Python 3, the `opdi` repository |
 | `draw_validation_figures.py` | Draws the validation charts of the methods pages from committed study results, and records the numbers each page quotes. | Python 3, pandas, matplotlib |
@@ -16,6 +17,7 @@ repository root.
 
 ```bash
 python tools/gen_data_dictionary.py --opdi ../opdi/src
+python tools/gen_item_figures.py
 python tools/draw_validation_figures.py
 python tools/gen_validation_summary.py --opdi ../opdi/src
 python tools/check_site.py
@@ -61,7 +63,68 @@ count per kind. The kinds are:
 
 Checks that concern pages which do not exist yet find nothing to check.
 
+## Writing an algorithm page
+
+An algorithm page is a file `content/algorithms/<item>.qmd`, one per
+published item or per pair of items that are two ends of one thing. Two
+files in that folder are free-form: `index.qmd` (the list of every item) and
+`processing-steps.qmd`. Every other page must have exactly these
+second-level headings, in this order:
+
+1. `## In one sentence`
+2. `## What it needs`
+3. `## How it is computed`
+4. `## Based on`
+5. `## What is published`
+6. `## Use cases`
+7. `## Limitations`
+8. `## Availability and accuracy`
+9. `## Full study`
+
+`Based on` names the study, tool or method the algorithm comes from, with a
+link, only where the code, its docstrings or a study under `papers/` records
+it; otherwise "Developed for OPDI". `Limitations` links to the item's section
+of `content/limitations.qmd` (identifiers `#lim-<family>`), which has the
+sub-headings "When it is missing", "When it can be wrong" and "What not to
+conclude from it".
+
+### Numbers of the algorithm pages
+
+Every number under `## Availability and accuracy` must be a row of
+`assets/algorithms/item_figures.csv` for the same page. The rows and the
+tables are written by `gen_item_figures.py`; a page shows its table with
+
+```markdown
+{{< include _generated/figures_<item>.md >}}
+```
+
+Each number is one entry of `FIGURES` in `gen_item_figures.py`: the page, the
+study file, the row (section, item, measure) and how to show it. To replace
+the figures (for example by the three-day accuracy tables), change those
+entries and run the script again; the pages need no edit. Availability and
+accuracy are separate rows, each with its label: availability `high` (at
+least 80 %), `partial` (50 to 80 %), `low` (under 50 %); accuracy `good` (at
+least 80 % within 60 s), `fair` (50 to 80 %), `limited` (under 50 %), `no
+reference` (fewer than 30 movements).
+
+### Coverage, identifiers and moved pages
+
+- **coverage**: `content/algorithms/index.qmd` must name, as inline code,
+  every event type of `EVENT_TYPES` and every flight list column and
+  measurement of `assets/data/dictionary.csv`; `content/limitations.qmd`
+  every event type.
+- **identifiers**: no page shows a track identifier (16 hexadecimal
+  characters, an underscore and digits), except the invented example
+  `EXAMPLE_TRACK_ID` used to explain the format, and no page links to the
+  working material of the spot checks.
+- **pointer**: a page that has moved keeps its address with a short text and
+  `moved-to: <new page>` in its front matter; the check verifies that the new
+  page exists and is linked. Such a page is exempt from the methods template.
+
 ## Writing a methods page
+
+The pages under `content/methods/` now point to the algorithm pages. The rules
+below remain for a methods page that is not a pointer.
 
 A methods page is a file `content/methods/<page>.qmd`, for example
 `content/methods/holding.qmd`. Three files in that folder are free-form:
