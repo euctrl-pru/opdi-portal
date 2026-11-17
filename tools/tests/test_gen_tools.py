@@ -77,3 +77,17 @@ def test_summary_links_unvalidated_items_to_their_page(tmp_path):
     assert gen_validation_summary.main(["--measures", str(measures), "--out", str(out)]) == 0
     line = next(l for l in out.read_text().splitlines() if "`line-up`" in l)
     assert "Not validated" in line and "runway-milestones.qmd#limitations" in line
+
+
+def test_item_figure_labels_follow_the_thresholds():
+    import gen_item_figures as g
+    avail = g.Fig("p", "m", "l", "i", "x", "availability", "r", badge="availability")
+    acc = g.Fig("p", "m", "l", "i", "x", "accuracy", "r", badge="accuracy")
+    assert [g.badge(avail, v, 100) for v in (0.8, 0.5, 0.49)] == ["high", "partial", "low"]
+    assert [g.badge(acc, v, 100) for v in (0.8, 0.5, 0.49)] == ["good", "fair", "limited"]
+    assert g.badge(acc, 0.99, 29) == "no reference"
+
+
+def test_item_figures_are_up_to_date():
+    import gen_item_figures as g
+    assert g.main(["--check"]) == 0

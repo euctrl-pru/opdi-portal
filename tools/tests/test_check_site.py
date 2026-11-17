@@ -219,3 +219,70 @@ def test_gate_to_gate_is_allowed_but_gate_is_not(site):
     assert kinds(site) == []
     page.write_text(page.read_text() + "\nThis gate rejects bad points.\n")
     assert "vocabulary" in kinds(site)
+
+
+# --- algorithm pages, figures, pointers and identifiers ----------------------
+
+ALGO = check_site.ALGORITHM_HEADINGS
+FIG_HEADER = "page,measure_id,label,value,unit,n,kind,badge,reference,source_file,source_field"
+
+
+def algorithm_page(figures="Found for 80.3 % of 19,062 records.", drop=None):
+    parts = ["---", 'title: "Holding"', "---", ""]
+    for heading in ALGO:
+        if heading == drop:
+            continue
+        parts += [f"## {heading}", "", figures if heading == "Availability and accuracy" else "Text.", ""]
+    return "\n".join(parts)
+
+
+@pytest.fixture
+def algo_site(site):
+    folder = site / "content" / "algorithms"
+    folder.mkdir()
+    (folder / "holding.qmd").write_text(algorithm_page())
+    (site / "assets" / "algorithms").mkdir()
+    (site / "assets" / "algorithms" / "item_figures.csv").write_text(
+        FIG_HEADER + "\nholding,found,Recorded holds found,80.3,%,19062,availability,high,"
+        "records,papers/x/data/s.csv,row\n")
+    return site
+
+
+def test_algorithm_page_on_template_passes(algo_site):
+    assert kinds(algo_site) == []
+
+
+def test_algorithm_page_missing_heading_fails(algo_site):
+    (algo_site / "content" / "algorithms" / "holding.qmd").write_text(algorithm_page(drop="Based on"))
+    assert "headings" in kinds(algo_site)
+
+
+def test_algorithm_figure_not_in_csv_fails(algo_site):
+    (algo_site / "content" / "algorithms" / "holding.qmd").write_text(
+        algorithm_page(figures="Found for 81.0 % of the records."))
+    assert "numbers" in kinds(algo_site)
+
+
+def test_algorithms_index_must_list_every_event_type(algo_site):
+    (algo_site / "content" / "algorithms" / "index.qmd").write_text(
+        "---\ntitle: Algorithms\n---\n\nOnly `holding-start` here.\n")
+    failures = [f for f in check_site.run_checks(algo_site) if f.kind == "coverage"]
+    assert any("line-up" in f.message for f in failures)
+
+
+def test_track_identifier_fails_but_documented_example_passes(site):
+    page = site / "content" / "about.qmd"
+    page.write_text(page.read_text() + f"\nFor example `{check_site.EXAMPLE_TRACK_ID}`.\n")
+    assert kinds(site) == []
+    page.write_text(page.read_text() + "\nSee track `0a1b2c3d4e5f6789_1781412000`.\n")
+    assert "identifiers" in kinds(site)
+
+
+def test_pointer_page_is_exempt_from_methods_template(algo_site):
+    (algo_site / "content" / "methods" / "holding.qmd").write_text(
+        "---\ntitle: Holding\nmoved-to: ../algorithms/holding.qmd\n---\n\n"
+        "See [Holding](../algorithms/holding.qmd).\n")
+    assert kinds(algo_site) == []
+    (algo_site / "content" / "methods" / "holding.qmd").write_text(
+        "---\ntitle: Holding\nmoved-to: ../algorithms/nothing.qmd\n---\n\nMoved.\n")
+    assert "pointer" in kinds(algo_site)

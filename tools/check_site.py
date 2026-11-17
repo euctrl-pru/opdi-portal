@@ -79,6 +79,42 @@ METHOD_HEADINGS = (
 #: Methods pages that do not follow the nine-heading template.
 METHOD_PAGES_WITHOUT_TEMPLATE = ("index.qmd", "pipeline.qmd", "validation-summary.qmd")
 
+#: The headings of an algorithm page (content/algorithms/<item>.qmd), in order.
+ALGORITHM_HEADINGS = (
+    "In one sentence",
+    "What it needs",
+    "How it is computed",
+    "Based on",
+    "What is published",
+    "Use cases",
+    "Limitations",
+    "Availability and accuracy",
+    "Full study",
+)
+
+#: Pages of content/algorithms/ that are not on the template.
+ALGORITHM_PAGES_WITHOUT_TEMPLATE = ("index.qmd", "processing-steps.qmd")
+
+#: Section of an algorithm page whose numbers must be rows of FIGURES_CSV.
+FIGURE_SECTIONS = ("Availability and accuracy",)
+
+#: The numbers of the algorithm pages, written by tools/gen_item_figures.py.
+FIGURES_CSV = Path("assets/algorithms/item_figures.csv")
+
+#: Pages that must name every published item.
+ALGORITHMS_INDEX = Path("content/algorithms/index.qmd")
+LIMITATIONS_PAGE = Path("content/limitations.qmd")
+
+#: A track identifier (16 hexadecimal characters, an underscore, digits).
+TRACK_ID = re.compile(r"\b[0-9a-f]{16}_\d{4,}\b")
+
+#: The one identifier the documentation uses as an example of the format. It
+#: is invented, not taken from the data; any other identifier is reported.
+EXAMPLE_TRACK_ID = "3f9a0c1d2b4e5f60_1781412334"
+
+#: Paths of the working material of the spot checks, never linked.
+SPOT_MATERIAL = re.compile(r"research/spot|spot/findings|tmp/spot|reading[ _-]sheet", re.I)
+
 #: Sections of a methods page whose numbers must come from the measures file.
 NUMBER_SECTIONS = ("Results", "Headline accuracy")
 
@@ -523,7 +559,23 @@ def method_pages(root: Path) -> list[Path]:
     if not folder.is_dir():
         return []
     return [p for p in sorted(folder.glob("*.qmd"))
-            if p.name not in METHOD_PAGES_WITHOUT_TEMPLATE and not p.name.startswith("_")]
+            if p.name not in METHOD_PAGES_WITHOUT_TEMPLATE and not p.name.startswith("_")
+            and not moved_to(p)]
+
+
+def moved_to(page: Path) -> str:
+    """The `moved-to:` value of a page's front matter: the page that replaces it."""
+    front, _ = split_front_matter(page.read_text(encoding="utf-8"))
+    m = re.search(r"^moved-to:\s*[\"']?([^\"'\s]+)", front, flags=re.M)
+    return m.group(1) if m else ""
+
+
+def algorithm_pages(root: Path) -> list[Path]:
+    folder = root / "content" / "algorithms"
+    if not folder.is_dir():
+        return []
+    return [p for p in sorted(folder.glob("*.qmd"))
+            if p.name not in ALGORITHM_PAGES_WITHOUT_TEMPLATE and not p.name.startswith("_")]
 
 
 def h2_sections(page: Path) -> list[tuple[str, int, list[tuple[str, Path, int]]]]:
@@ -541,11 +593,12 @@ def h2_sections(page: Path) -> list[tuple[str, int, list[tuple[str, Path, int]]]
 
 def check_headings(root: Path) -> list[Failure]:
     failures = []
-    for page in method_pages(root):
+    for page, template, name in ([(p, METHOD_HEADINGS, "methods") for p in method_pages(root)]
+                                 + [(p, ALGORITHM_HEADINGS, "algorithm") for p in algorithm_pages(root)]):
         found = tuple(text for text, _, _ in h2_sections(page))
-        if found != METHOD_HEADINGS:
-            missing = [h for h in METHOD_HEADINGS if h not in found]
-            extra = [h for h in found if h not in METHOD_HEADINGS]
+        if found != template:
+            missing = [h for h in template if h not in found]
+            extra = [h for h in found if h not in template]
             detail = []
             if missing:
                 detail.append("missing: " + ", ".join(missing))
@@ -554,7 +607,7 @@ def check_headings(root: Path) -> list[Failure]:
             if not missing and not extra:
                 detail.append("order differs from the template")
             failures.append(Failure("headings", rel(root, page), 0,
-                                    "the second-level headings must be the nine of the methods "
+                                    f"the second-level headings must be the nine of the {name} "
                                     "template, in order (" + "; ".join(detail) + ")"))
     return failures
 
@@ -584,8 +637,8 @@ def as_float(text: str) -> float | None:
         return None
 
 
-def read_measures(root: Path) -> list[dict]:
-    path = root / MEASURES_CSV
+def read_measures(root: Path, csv_path: Path = MEASURES_CSV) -> list[dict]:
+    path = root / csv_path
     if not path.is_file():
         return []
     with path.open(encoding="utf-8", newline="") as handle:
@@ -613,21 +666,23 @@ def number_matches(written: str, allowed: list[float]) -> bool:
 
 def check_numbers(root: Path) -> list[Failure]:
     failures = []
-    pages_ = method_pages(root)
-    if not pages_:
-        return failures
-    measures = read_measures(root)
-    for page in pages_:
-        allowed = allowed_numbers([r for r in measures if r.get("page") == page.stem])
-        for heading, _, lines in h2_sections(page):
-            if heading not in NUMBER_SECTIONS:
-                continue
-            for line, source, number in lines:
-                for written in numbers_in(line):
-                    if not number_matches(written, allowed):
-                        failures.append(Failure(
-                            "numbers", rel(root, source), number,
-                            f"{written} in '{heading}' is not in {MEASURES_CSV} for page '{page.stem}'"))
+    jobs = []
+    if method_pages(root):
+        jobs.append((method_pages(root), read_measures(root), NUMBER_SECTIONS, MEASURES_CSV))
+    if algorithm_pages(root):
+        jobs.append((algorithm_pages(root), read_measures(root, FIGURES_CSV), FIGURE_SECTIONS, FIGURES_CSV))
+    for pages_, measures, sections, csv_path in jobs:
+        for page in pages_:
+            allowed = allowed_numbers([r for r in measures if r.get("page") == page.stem])
+            for heading, _, lines in h2_sections(page):
+                if heading not in sections:
+                    continue
+                for line, source, number in lines:
+                    for written in numbers_in(line):
+                        if not number_matches(written, allowed):
+                            failures.append(Failure(
+                                "numbers", rel(root, source), number,
+                                f"{written} in '{heading}' is not in {csv_path} for page '{page.stem}'"))
     return failures
 
 
@@ -663,14 +718,70 @@ def type_pattern(name: str) -> re.Pattern:
     return re.compile(rf"`{regex}`")
 
 
-def check_coverage(root: Path) -> list[Failure]:
-    page = root / "content" / "data" / "dictionary.qmd"
-    if not page.is_file():
+def published_columns(root: Path) -> list[str]:
+    """Flight list columns and measurements, from assets/data/dictionary.csv.
+
+    The file is written from the pipeline's schema by gen_data_dictionary.py.
+    The measurements are the flight events columns that are not columns of the
+    flight list and not event columns.
+    """
+    path = root / "assets" / "data" / "dictionary.csv"
+    if not path.is_file():
         return []
-    text = "\n".join(line for line, _, _ in expanded_body(page))
-    return [Failure("coverage", rel(root, page), 0,
-                    f"event type {name} is not described (write it as inline code, e.g. `{name}`)")
-            for name in EVENT_TYPES if not type_pattern(name).search(text)]
+    with path.open(encoding="utf-8", newline="") as handle:
+        rows = list(csv.DictReader(handle))
+    names = [r["name"] for r in rows if r.get("table") == "flight_list"]
+    names += [r["name"] for r in rows if r.get("table") == "flight_events"
+              and r.get("group") == "measurement"]
+    return names
+
+
+def check_coverage(root: Path) -> list[Failure]:
+    failures = []
+    page = root / "content" / "data" / "dictionary.qmd"
+    if page.is_file():
+        text = "\n".join(line for line, _, _ in expanded_body(page))
+        failures += [Failure("coverage", rel(root, page), 0,
+                             f"event type {name} is not described (write it as inline code, e.g. `{name}`)")
+                     for name in EVENT_TYPES if not type_pattern(name).search(text)]
+    for path, what in ((ALGORITHMS_INDEX, EVENT_TYPES + tuple(published_columns(root))),
+                       (LIMITATIONS_PAGE, EVENT_TYPES)):
+        page = root / path
+        if not page.is_file():
+            continue
+        text = "\n".join(line for line, _, _ in expanded_body(page))
+        failures += [Failure("coverage", rel(root, page), 0,
+                             f"published item {name} is not listed (write it as inline code, e.g. `{name}`)")
+                     for name in what if not type_pattern(name).search(text)]
+    return failures
+
+
+def check_identifiers(root: Path) -> list[Failure]:
+    """No track identifier and no link to the working material of the spot checks."""
+    failures = []
+    for page in pages(root):
+        for number, line in enumerate(page.read_text(encoding="utf-8").split("\n"), start=1):
+            m = TRACK_ID.search(line.replace(EXAMPLE_TRACK_ID, "")) or SPOT_MATERIAL.search(line)
+            if m:
+                failures.append(Failure("identifiers", rel(root, page), number,
+                                        f"'{m.group(0)}': no track identifier or spot-check material "
+                                        "on the site"))
+    return failures
+
+
+def check_pointers(root: Path) -> list[Failure]:
+    """A page with `moved-to:` must name an existing page and link to it."""
+    failures = []
+    for page in pages(root):
+        target = moved_to(page)
+        if not target:
+            continue
+        resolved = (page.parent / target).resolve()
+        if not resolved.is_file():
+            failures.append(Failure("pointer", rel(root, page), 0, f"moved-to: {target} does not exist"))
+        elif f"]({target}" not in page.read_text(encoding="utf-8"):
+            failures.append(Failure("pointer", rel(root, page), 0, f"the page does not link to {target}"))
+    return failures
 
 
 # ---------------------------------------------------------------------------
@@ -685,6 +796,8 @@ CHECKS = {
     "numbers": check_numbers,
     "vocabulary": check_vocabulary,
     "coverage": check_coverage,
+    "identifiers": check_identifiers,
+    "pointer": check_pointers,
 }
 
 
