@@ -57,7 +57,7 @@ columns, so they always match the files.
 One row per flight. The file of a day holds the flights first seen on that
 day (UTC). A **flight** here is a **track**: the sequence of position reports
 of one aircraft that OPDI treats as one flight (see
-[Track identity](../methods/track-identity.qmd)).
+[Track identity](../algorithms/tracks.qmd)).
 
 {{< include _generated/flight_list_columns.md >}}
 
@@ -73,7 +73,7 @@ destination airport were found. They hold one of four values:
 | `undetermined` | No airport could be named. |
 | `runway_event` | The airport was taken from a take-off or landing detected on a runway, replacing the value found from the trajectory. |
 
-[Departure and destination airports](../methods/airports.qmd) explains each
+[Departure and destination airports](../algorithms/airports.qmd) explains each
 case.
 
 ## Flight events {#flight-events}
@@ -93,7 +93,7 @@ position. A row of the flight events file has three parts, in this order:
 Every published event has a time. Events that the aircraft's own track
 clearly contradicts, such as an in-block time while the aircraft is still
 flying, are not published (see
-[Plausibility checks](../methods/plausibility-checks.qmd)).
+[Plausibility checks](../algorithms/plausibility-checks.qmd)).
 
 ## Measurements {#measurements}
 
@@ -103,8 +103,8 @@ event is empty on that row (see [Empty measurement columns](#empty-measurements)
 
 {{< include _generated/measurement_columns.md >}}
 
-How these are computed: [Measurements](../methods/measurements.qmd),
-[Holding](../methods/holding.qmd) and [Point merge](../methods/point-merge.qmd).
+How these are computed: [Measurements](../algorithms/distance-flown.qmd),
+[Holding](../algorithms/holding.qmd) and [Point merge](../algorithms/point-merge.qmd).
 
 ## Flight index and catalogue {#flight-index-and-catalogue}
 
@@ -132,48 +132,48 @@ explains how the event is found and how accurate it is.
 
 | Type | Meaning |
 |---|---|
-| `take-off-roll` | The aircraft starts its take-off run on the runway. [Take-off and landing](../methods/takeoff-landing.qmd) |
-| `ATOT` | Actual take-off time: the wheels leave the runway. [Take-off and landing](../methods/takeoff-landing.qmd) |
-| `xing-runway-threshold` | The aircraft passes over the runway threshold (the start of the landing part of the runway), a few seconds before touchdown. [Take-off and landing](../methods/takeoff-landing.qmd) |
-| `ALDT` | Actual landing time: the wheels touch the runway. [Take-off and landing](../methods/takeoff-landing.qmd) |
+| `take-off-roll` | The aircraft starts its take-off run on the runway. [Take-off and landing](../algorithms/take-off-landing.qmd) |
+| `ATOT` | Actual take-off time: the wheels leave the runway. [Take-off and landing](../algorithms/take-off-landing.qmd) |
+| `xing-runway-threshold` | The aircraft passes over the runway threshold (the start of the landing part of the runway), a few seconds before touchdown. [Take-off and landing](../algorithms/take-off-landing.qmd) |
+| `ALDT` | Actual landing time: the wheels touch the runway. [Take-off and landing](../algorithms/take-off-landing.qmd) |
 
 ### Other runway events
 
 | Type | Meaning |
 |---|---|
-| `line-up` | A departing aircraft enters the runway to take off. [Runway milestones](../methods/runway-milestones.qmd) |
-| `runway-vacated` | An arriving aircraft leaves the runway after landing. [Runway milestones](../methods/runway-milestones.qmd) |
-| `runway-crossing-entry` | A taxiing aircraft enters a runway in order to cross it. [Runway milestones](../methods/runway-milestones.qmd) |
-| `runway-crossing-vacated` | The same aircraft leaves the runway on the other side. [Runway milestones](../methods/runway-milestones.qmd) |
-| `go-around` | An approaching aircraft gives up the landing and climbs away; placed at the lowest point of the approach. [Runway milestones](../methods/runway-milestones.qmd) |
+| `line-up` | A departing aircraft enters the runway to take off. [Runway milestones](../algorithms/line-up-take-off-roll.qmd) |
+| `runway-vacated` | An arriving aircraft leaves the runway after landing. [Runway milestones](../algorithms/line-up-take-off-roll.qmd) |
+| `runway-crossing-entry` | A taxiing aircraft enters a runway in order to cross it. [Runway milestones](../algorithms/line-up-take-off-roll.qmd) |
+| `runway-crossing-vacated` | The same aircraft leaves the runway on the other side. [Runway milestones](../algorithms/line-up-take-off-roll.qmd) |
+| `go-around` | An approaching aircraft gives up the landing and climbs away; placed at the lowest point of the approach. [Runway milestones](../algorithms/line-up-take-off-roll.qmd) |
 
 ### Block times
 
 | Type | Meaning |
 |---|---|
-| `AOBT` | Actual off-block time: the aircraft starts to move away from its parking position (stand). [Block times](../methods/block-times.qmd) |
-| `AIBT` | Actual in-block time: the aircraft stops at its stand after landing. [Block times](../methods/block-times.qmd) |
+| `AOBT` | Actual off-block time: the aircraft starts to move away from its parking position (stand). [Block times](../algorithms/block-times.qmd) |
+| `AIBT` | Actual in-block time: the aircraft stops at its stand after landing. [Block times](../algorithms/block-times.qmd) |
 
 ### Airport surface
 
 | Type | Meaning |
 |---|---|
-| `entry-{element}` | The aircraft enters an area of the airport. `{element}` is `taxiway`, `apron`, `parking_position` (a stand), `threshold`, `hangar` or `deicing_pad`, for example `entry-taxiway`. [Airport surface events](../methods/surface-events.qmd) |
-| `exit-{element}` | The aircraft leaves that area, for example `exit-parking_position`. [Airport surface events](../methods/surface-events.qmd) |
+| `entry-{element}` | The aircraft enters an area of the airport. `{element}` is `taxiway`, `apron`, `parking_position` (a stand), `threshold`, `hangar` or `deicing_pad`, for example `entry-taxiway`. [Airport surface events](../algorithms/surface-events.qmd) |
+| `exit-{element}` | The aircraft leaves that area, for example `exit-parking_position`. [Airport surface events](../algorithms/surface-events.qmd) |
 
 ### Vertical profile
 
 | Type | Meaning |
 |---|---|
-| `top-of-climb` | End of the climb to cruise, with the method of EUROCONTROL's vertical flight efficiency indicators. [Vertical events](../methods/vertical-events.qmd) |
-| `top-of-descent` | Start of the final descent, with the same method. [Vertical events](../methods/vertical-events.qmd) |
-| `level-start` | Start of a period of level flight, cruise included. [Vertical events](../methods/vertical-events.qmd) |
-| `level-end` | End of that period. [Vertical events](../methods/vertical-events.qmd) |
-| `level-off-climb-start` | Start of a level-off during the climb: level flight below the cruise. [Vertical events](../methods/vertical-events.qmd) |
-| `level-off-climb-end` | End of that level-off. [Vertical events](../methods/vertical-events.qmd) |
-| `level-off-descent-start` | Start of a level-off during the descent. [Vertical events](../methods/vertical-events.qmd) |
-| `level-off-descent-end` | End of that level-off. [Vertical events](../methods/vertical-events.qmd) |
-| `xing-fl{level}` | A crossing of flight level 50, 70, 100 or 245 (`xing-fl50`, `xing-fl70`, `xing-fl100`, `xing-fl245`), up or down. [Vertical events](../methods/vertical-events.qmd) |
+| `top-of-climb` | End of the climb to cruise, with the method of EUROCONTROL's vertical flight efficiency indicators. [Vertical events](../algorithms/tops.qmd) |
+| `top-of-descent` | Start of the final descent, with the same method. [Vertical events](../algorithms/tops.qmd) |
+| `level-start` | Start of a period of level flight, cruise included. [Vertical events](../algorithms/tops.qmd) |
+| `level-end` | End of that period. [Vertical events](../algorithms/tops.qmd) |
+| `level-off-climb-start` | Start of a level-off during the climb: level flight below the cruise. [Vertical events](../algorithms/tops.qmd) |
+| `level-off-climb-end` | End of that level-off. [Vertical events](../algorithms/tops.qmd) |
+| `level-off-descent-start` | Start of a level-off during the descent. [Vertical events](../algorithms/tops.qmd) |
+| `level-off-descent-end` | End of that level-off. [Vertical events](../algorithms/tops.qmd) |
+| `xing-fl{level}` | A crossing of flight level 50, 70, 100 or 245 (`xing-fl50`, `xing-fl70`, `xing-fl100`, `xing-fl245`), up or down. [Vertical events](../algorithms/tops.qmd) |
 
 A **flight level** is an altitude in hundreds of feet on the standard air
 pressure of 1013.25 hPa: flight level 100 is about 10,000 ft.
@@ -182,14 +182,14 @@ pressure of 1013.25 hPa: flight level 100 is about 10,000 ft.
 
 | Type | Meaning |
 |---|---|
-| `xing-{radius}nm` | A crossing of a circle of 40, 50, 60, 100, 110 or 120 NM around the flight's departure or destination airport (`xing-40nm` to `xing-120nm`). [Distance rings](../methods/distance-rings.qmd) |
+| `xing-{radius}nm` | A crossing of a circle of 40, 50, 60, 100, 110 or 120 NM around the flight's departure or destination airport (`xing-40nm` to `xing-120nm`). [Distance rings](../algorithms/distance-rings.qmd) |
 
 ### Holding
 
 | Type | Meaning |
 |---|---|
-| `holding-start` | First turning sample of a holding pattern: a loop flown while waiting for permission to continue. [Holding](../methods/holding.qmd) |
-| `holding-end` | Last turning sample of the holding pattern. Carries the holding measurements. [Holding](../methods/holding.qmd) |
+| `holding-start` | First turning sample of a holding pattern: a loop flown while waiting for permission to continue. [Holding](../algorithms/holding.qmd) |
+| `holding-end` | Last turning sample of the holding pattern. Carries the holding measurements. [Holding](../algorithms/holding.qmd) |
 
 ### Point merge
 
@@ -199,22 +199,22 @@ sent directly to it.
 
 | Type | Meaning |
 |---|---|
-| `pms-leg-entry` | The aircraft starts flying along a leg. [Point merge](../methods/point-merge.qmd) |
-| `pms-leg-exit` | The aircraft leaves the leg towards the merge point. Carries the point merge measurements. [Point merge](../methods/point-merge.qmd) |
-| `pms-merge-point` | The aircraft passes closest to a merge point, within 3 NM of it. [Point merge](../methods/point-merge.qmd) |
+| `pms-leg-entry` | The aircraft starts flying along a leg. [Point merge](../algorithms/point-merge.qmd) |
+| `pms-leg-exit` | The aircraft leaves the leg towards the merge point. Carries the point merge measurements. [Point merge](../algorithms/point-merge.qmd) |
+| `pms-merge-point` | The aircraft passes closest to a merge point, within 3 NM of it. [Point merge](../algorithms/point-merge.qmd) |
 
 ### Airspace
 
 | Type | Meaning |
 |---|---|
-| `xing-fir` | The flight passes from one flight information region (FIR) or upper information region (UIR) to another. [FIR crossings](../methods/fir-crossings.qmd) |
+| `xing-fir` | The flight passes from one flight information region (FIR) or upper information region (UIR) to another. [FIR crossings](../algorithms/fir-crossings.qmd) |
 
 ### Track limits
 
 | Type | Meaning |
 |---|---|
-| `first_seen` | The first position report of the track. [First seen and last seen](../methods/first-last-seen.qmd) |
-| `last_seen` | The last position report of the track. [First seen and last seen](../methods/first-last-seen.qmd) |
+| `first_seen` | The first position report of the track. [First seen and last seen](../algorithms/first-last-seen.qmd) |
+| `last_seen` | The last position report of the track. [First seen and last seen](../algorithms/first-last-seen.qmd) |
 
 Event types of release v0.0.2 that release v2.0.0 no longer publishes, such
 as `take-off`, `first-xing-fl{level}` and `entry-runway`, are listed with
@@ -246,7 +246,7 @@ event type. A field without a value is left out of the text. An empty `info`
 | `method` | On `ATOT` and `ALDT` only: `acdm` when the time was found on the runway, as above. |
 
 An `ATOT` or `ALDT` that could not be found on the runway is found from the
-climb or the descent instead (see [Take-off and landing](../methods/takeoff-landing.qmd#how-it-is-computed)).
+climb or the descent instead (see [Take-off and landing](../algorithms/take-off-landing.qmd#how-it-is-computed)).
 Its `info` holds other fields:
 
 | Field | Meaning |
@@ -483,4 +483,4 @@ measurement columns belong to one event type each.
 | `pms_leg_time_s`, `pms_leg_distance_nm`, `pms_direct_to_distance_nm` | `pms-leg-exit` | every other event type, `pms-leg-entry` included |
 
 Why some events have no distance or time is explained in
-[Measurements](../methods/measurements.qmd#limitations).
+[Measurements](../limitations.qmd#lim-measurements).

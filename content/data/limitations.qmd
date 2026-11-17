@@ -1,12 +1,11 @@
 ---
-title: "Limitations"
-description: "When the OPDI data are missing or wrong: limits that apply to the whole dataset, and a summary of the limits of each method with links to the details."
+title: "Limits of the dataset"
+description: "When the OPDI data are missing or wrong: limits that apply to the whole dataset. The limits of each item are on the Limitations page."
 ---
 
 This page says where the OPDI data should not be trusted, or should be used
-with care. The first part covers limits that apply to the whole dataset. The
-second part gives one short summary per method, with a link to the full list
-on its methods page.
+with care, for limits that apply to the whole dataset. The limits of each
+item are on [Limitations](../limitations.qmd).
 
 ## Limits of the whole dataset
 
@@ -40,12 +39,12 @@ run by volunteers and institutions, and they are not spread evenly.
 
 OPDI uses no flight plans. A **flight** in OPDI is a **track**: the position
 reports of one aircraft that belong together (see
-[Track identity](../methods/track-identity.qmd)). It starts where reception
+[Track identity](../algorithms/tracks.qmd)). It starts where reception
 starts and ends where reception ends.
 
 - The departure and destination airports are found from the track. They are
   empty when the track begins or ends away from an airport (see
-  [Departure and destination airports](../methods/airports.qmd)).
+  [Departure and destination airports](../algorithms/airports.qmd)).
 - Nothing about the planned route, the planned times or the airline schedule
   is known. Delays against a schedule cannot be computed from OPDI alone.
 - A flight that is split into two tracks gives two rows in the flight list.
@@ -69,7 +68,7 @@ cycle, 524 (valid 2024-11-28 to 2024-12-26), for every day. An **AIRAC
 cycle** is the 28-day period in which changes to aeronautical data such as
 airspace boundaries take effect. Where a boundary has moved since that cycle,
 the crossings follow the old boundary. See
-[FIR crossings](../methods/fir-crossings.qmd#limitations).
+[FIR crossings](../limitations.qmd#lim-fir).
 
 ### Accuracy measured on European airports
 
@@ -78,7 +77,7 @@ cover flights in the European area. The airports used for the checks are
 mostly those with the best reception. Elsewhere in the world, and at airports
 with less reception, the accuracy has not been measured and is likely to be
 lower. Several items have not been compared with any reference at all: the
-[Validation summary](../methods/validation-summary.qmd) marks them "Not
+[Validation summary](../accuracy/index.qmd) marks them "Not
 validated".
 
 ### Open reference data
@@ -89,116 +88,10 @@ An error or a gap in these open sources carries over into OPDI: a runway
 missing from OurAirports gives no runway events, and an unmapped stand gives
 no block time.
 
-## Limits of each method
+## Limits of each item
 
-### Track identity
-
-A track can hold reception gaps of up to 10 hours; never interpolate across a
-silence of more than 30 minutes. A flight can still be split into several
-tracks, and, rarely, two flights of one aircraft can be joined. `flight_id`
-values of different releases do not match.
-[All limitations](../methods/track-identity.qmd#limitations).
-
-### Trajectory cleaning
-
-Cleaning empties values that cannot be trusted; it does not repair them, so
-many positions, altitudes and speeds are missing. Jamming of satellite
-navigation is not removed.
-[All limitations](../methods/trajectory-cleaning.qmd#limitations).
-
-### Departure and destination airports
-
-About one departure in five and one arrival in three get no airport. Small
-airfields and heliports are never named. The method was checked in the
-European area only.
-[All limitations](../methods/airports.qmd#limitations).
-
-### Take-off and landing
-
-The published take-off and landing times mix two methods with different
-shifts; the field `method` in `info` tells them apart. Most reference times
-are rounded to the minute, so differences under about 30 s could only be
-judged at three airports. A track keeps at most one take-off and one landing.
-[All limitations](../methods/takeoff-landing.qmd#limitations).
-
-### Block times
-
-Off-block times tend to be late and in-block times early, by about a minute,
-so taxi times computed from them are too short. The events need reception at
-the stand and stands mapped in OpenStreetMap. The accuracy was measured on
-block times taken from the whole track; for the method as published, with
-each block time taken from the ground part of its own leg, figures exist for
-one day only.
-[All limitations](../methods/block-times.qmd#limitations).
-
-### Runway milestones
-
-Line-up, runway vacated, runway crossings and go-arounds have not been
-compared with reference data. They need reception on the runway, and their
-times can be off by up to 5 s.
-[All limitations](../methods/runway-milestones.qmd#limitations).
-
-### Airport surface events
-
-Not compared with reference data. The events depend on ground reception and
-on OpenStreetMap; areas overlap, so one movement can give several events at
-the same time, and passing over a stand is not parking there. An aircraft
-passing low or slowly over an area can still produce events.
-[All limitations](../methods/surface-events.qmd#limitations).
-
-### Vertical events
-
-Not compared with reference data. `level-start` and `level-end` fit
-turboprops and light aircraft poorly; for vertical efficiency indicators, use
-the level-offs. A track that starts in the air can have its top of climb at
-its first position.
-[All limitations](../methods/vertical-events.qmd#limitations).
-
-### Distance rings
-
-Only arrival crossings of the 40 NM and 100 NM rings were checked. Rings are
-drawn only around the airports the flight list names, so a wrong airport gives
-crossings around the wrong airport.
-[All limitations](../methods/distance-rings.qmd#limitations).
-
-### Holding
-
-Checked on one day at two airports in Western Europe. Short holds, and holds
-flown low or slowly, are not reported.
-[All limitations](../methods/holding.qmd#limitations).
-
-### Point merge
-
-Checked by eye at one airport on one day. Only the airports in OPDI's table of
-merge points are examined.
-[All limitations](../methods/point-merge.qmd#limitations).
-
-### FIR crossings
-
-Compared with the exact boundaries of the regions, not with Network Manager
-records. One AIRAC cycle is used for every day, and a visit of less than
-60 seconds gives no crossing.
-[All limitations](../methods/fir-crossings.qmd#limitations).
-
-### Measurements
-
-The distance flown follows the received positions and a straight line across
-gaps, so it is shorter than the path really flown. Both measurements count
-from the start of the track, not from off-block or take-off.
-[All limitations](../methods/measurements.qmd#limitations).
-
-### Plausibility checks
-
-The checks leave out only the events that the aircraft's own track clearly
-contradicts; a wrong event that the track does not contradict is kept. Their
-limits were set on one day against the records of about ninety European
-airports. Tops of climb and descent, level segments, crossings, holding,
-point merge, FIR crossings, go-arounds and `xing-runway-threshold` are checked only for a
-missing time. Removed events are not published.
-[All limitations](../methods/plausibility-checks.qmd#limitations).
-
-### First seen and last seen
-
-These are the first and last position received, not the off-block and
-in-block times. The position of the last report is often a few minutes old.
-[All limitations](../methods/first-last-seen.qmd#limitations).
+The limits of each published item (each event type, measurement and column
+of the flight list) are on one page,
+[Limitations](../limitations.qmd): a summary table, the general limits, and
+for each family of items when it is missing, when it can be wrong and what
+not to conclude from it.
