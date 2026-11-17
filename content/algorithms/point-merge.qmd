@@ -54,10 +54,19 @@ Nothing is computed across a reception gap kept inside a track.
 
 ## Based on
 
-Developed for OPDI. The merge points and leg dimensions come from published
-navigation data and the EUROCONTROL Point Merge catalogue (each row of the
-table names its source). See
-[Holding, point merge and FIR crossings as flight events](../../papers/airspace-events-v1/index.html).
+- Developed for OPDI. A point merge system is a merge point with sequencing
+  legs at a constant distance from it, which aircraft leave on a
+  "direct-to" the merge point ([EUROCONTROL](../resources.qmd#ref-point-merge)); the rule looks
+  for exactly that.
+- Comparable to the point merge detection of the [`traffic`](../resources.qmd#ref-olive-2019)
+  library (`PointMerge`), which also looks for more than 90 s at a nearly
+  constant distance from a known merge point followed by a flight towards
+  it. OPDI also requires the aircraft to move along the arc, within the
+  published band of leg distances, and adds the checks of step 4.
+- The merge points and leg dimensions come from published navigation data
+  and the [EUROCONTROL Point Merge catalogue](../resources.qmd#ref-pms-catalogue) (each row of
+  the table names its source).
+- Study: [Holding, point merge and FIR crossings as flight events](../../papers/airspace-events-v1/index.html).
 
 ## What is published
 
