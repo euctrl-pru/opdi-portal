@@ -1,0 +1,84 @@
+---
+title: "Runway threshold crossing"
+description: "How OPDI finds the moment a landing aircraft passes over the runway threshold (xing-runway-threshold)."
+---
+
+## In one sentence
+
+`xing-runway-threshold` is the moment a landing aircraft passes over the
+**runway threshold**, the start of the part of the runway that may be used
+for landing, a few seconds before it touches down.
+
+## What it needs
+
+- An arrival **runway pass** (see
+  [Take-off and landing times](take-off-landing.qmd#runway-pass-method)).
+- Reports in the 60 s before the aircraft enters the runway area, because the
+  report short of the threshold lies outside the runway itself.
+- The height above the ground, measured from the track's own ground altitude
+  (see [Take-off and landing times](take-off-landing.qmd#height-above-the-ground)).
+
+## How it is computed
+
+1. Take the reports of the arrival pass and those of the 60 s before it.
+2. For each report, compute its distance along the runway centre line from
+   the threshold of the landing direction: negative before the threshold,
+   positive after it.
+3. A crossing is the moment this distance changes sign, inbound. A dead band
+   of 0.05 NM (about 300 ft) either side of the threshold confirms the
+   crossing, so a report sitting on the line cannot trigger it twice. The time
+   and position are interpolated in a straight line between the two reports
+   either side of the threshold itself.
+4. Keep one crossing per landing: the last inbound crossing of the pass, and
+   only when the aircraft is at most 300 ft above the ground there. On a
+   3° approach an aircraft crosses the threshold about 50 ft above it. A low
+   pass, an overflight or a circuit over the runway gives no event.
+
+## Based on
+
+Developed for OPDI. The moment is the Airport Collaborative Decision Making
+(A-CDM) milestone T16, written in `info.milestone`. It uses the same crossing
+method as the flight-level and distance-circle crossings (a dead band, then
+interpolation). See
+[Flight events from ADS-B, version 4](../../papers/flight-events-v4/index.html).
+
+## What is published
+
+Event type `xing-runway-threshold`, with position, altitude,
+`distance_flown_nm` and `time_passed_s`. Its `info` holds `apt_icao`,
+`runway`, `runway_bearing_deg`, `traversal_class` (`arrival`), `align_deg`,
+`max_gs_kt`, `milestone` and `height_reference` (see the
+[Data dictionary](../data/dictionary.qmd#info-fields)).
+
+Do not confuse it with `entry-threshold` and `exit-threshold`, which are
+[airport surface events](surface-events.qmd) of aircraft on the ground near
+the threshold markings.
+
+## Use cases
+
+- **Arrival flow over the threshold**: count crossings per runway and
+  quarter-hour for the landing rate actually achieved.
+- **Spacing between arrivals**: the time between the crossings of two
+  consecutive arrivals on one runway.
+- **Flare and touchdown**: `ALDT` minus `xing-runway-threshold` of the same
+  flight, when `ALDT` comes from the runway pass (`info.method` = `acdm`).
+
+## Limitations
+
+Missing when the aircraft was not received in the last minute before the
+runway or when its last report on approach was too high. See
+[Limitations: runway events](../limitations.qmd#lim-runway).
+
+## Availability and accuracy
+
+No record gives the threshold crossing itself. It is compared with the
+recorded landing time, a few seconds later.
+
+{{< include _generated/figures_xing-runway-threshold.md >}}
+
+Per airport: see [Accuracy and availability](../accuracy/index.qmd).
+
+## Full study
+
+- [Flight events from ADS-B, version 4](../../papers/flight-events-v4/index.html):
+  chapter "Landing".

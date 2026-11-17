@@ -1,0 +1,144 @@
+---
+title: "Off-block and in-block times"
+description: "How OPDI finds when an aircraft leaves its stand (AOBT) and when it reaches its stand after landing (AIBT), and which stand it used."
+---
+
+## In one sentence
+
+`AOBT` (actual off-block time) is when the aircraft starts to move away from
+its stand, usually pushed back by a tug, and `AIBT` (actual in-block time) is
+when it stops at its stand after landing.
+
+## What it needs
+
+- Reports of the track on the ground at the airport, with positions; most of
+  the taxi must be received.
+- A passage through a **stand** (a marked parking position for one aircraft)
+  in the track: the `entry-parking_position` and `exit-parking_position`
+  events of the [airport surface events](surface-events.qmd), from the
+  stands drawn in OpenStreetMap.
+- The take-off and landing times of the track (`ATOT`, `ALDT`, see
+  [Take-off and landing times](take-off-landing.qmd)), which tell the
+  departure part of the track from the arrival part, and `line-up` and
+  `runway-vacated` where they exist.
+
+## How it is computed
+
+The two sides are computed in the same way, one before the take-off and the
+other after the landing.
+
+### Movement on the ground
+
+1. **Reports that may be on the ground.** Only reports flagged on the ground,
+   without altitude, or at most 2,000 ft above the airport of their leg are
+   read, so the flight itself is never read as movement on the ground.
+2. **Ground speed.** About 40% of reports on the airport surface carry no
+   position and under 1% a reported ground speed. The reported speed is used
+   where it exists. Elsewhere the speed is worked out from the distance
+   between a report with a position and the previous report with a position,
+   when they are at most 30 s apart, and smoothed over three reports.
+3. **Moving or standing.** A report is moving above **2 kt** and standing at
+   or below it. A report whose speed is unknown keeps the state of the last
+   report whose speed is known. A movement ends at a report that shows the
+   aircraft standing, or after more than 300 s without any known speed.
+4. A movement counts only when it lasts at least **30 s**; shorter ones are
+   noise in the speed.
+
+### Parts of the track
+
+5. The take-off and landing times cut the track into **ground parts**. The
+   off-block time is looked for in the part before a take-off, the in-block
+   time in the part after a landing. A track that lands, stands and departs
+   again gets both. A track that never leaves the ground (no take-off or
+   landing time and less than 30 s of reports in flight), such as an airport
+   vehicle or a towed aircraft, gets no block time.
+
+### Off-block (`AOBT`)
+
+6. Find the **stand stop**: the last stand passage of the part before the
+   take-off that lasts at least **600 s** (a shorter passage after the
+   push-back is often where the engines are started).
+7. `AOBT` is the start of the first movement that starts at or after the
+   entry into that stand and is still going on 30 s later. Without a stand
+   stop, it is the start of the first movement of the part.
+8. The movement must start from a standstill: the report where it starts is
+   at most **30 kt** fast (the flag "on the ground" counts only when no speed
+   is known). When the track starts with the aircraft already faster than
+   that, the moment it left the stand was not seen and no `AOBT` is given.
+
+### In-block (`AIBT`)
+
+9. Find the stand stop: the first stand passage after the landing that lasts
+   at least 600 s, or that lasts until the end of the track.
+10. `AIBT` is the end of the movement before the longest stop that overlaps
+    that passage (a stop between two movements, or between the last movement
+    and the end of the track). Without a stand stop, it is the end of the last
+    movement of the part. The movement must end in a standstill, as in step 8.
+
+### Checks and the stand named
+
+11. No block time is given on the runway: an `AOBT` less than 60 s before its
+    take-off or between `line-up` and that take-off, or an `AIBT` less than
+    60 s after its landing or between that landing and `runway-vacated`.
+12. A block time needs a stand passage somewhere in the track. It names a
+    stand (and its airport) only from a passage in the same ground part that
+    lasts at least 30 s or ends within a minute of the block time: the stand
+    of the stand stop, otherwise the passage with the longest stay. A stand
+    drawn in OpenStreetMap without a name gives no name.
+13. The [plausibility checks](plausibility-checks.qmd) then remove a block
+    time placed while the aircraft flies (more than 1,500 ft above the
+    airport, faster than 80 kt and no report on the ground within 60 s), an
+    `AOBT` at or after the take-off of its own part, and an `AIBT` at or before
+    its landing.
+
+## Based on
+
+- The detection of movement follows the start-of-movement rule of the
+  [`traffic`](https://traffic-viz.github.io/) library (Xavier Olive): moving
+  above 2 kt for a sustained time, with the speed worked out from positions
+  and smoothed over three reports.
+- The stands come from [OpenStreetMap](https://www.openstreetmap.org/), as
+  for the [airport surface events](surface-events.qmd).
+- The parts of the track, the stand stop and the checks were developed for
+  OPDI. The names `AOBT` and `AIBT` are those of Airport Collaborative
+  Decision Making (A-CDM).
+
+## What is published
+
+Event types `AOBT` and `AIBT`, with `distance_flown_nm` and `time_passed_s`
+(interpolated from the events around them); they have no position and no
+altitude. The `info` of `AOBT` holds `stand_exit` (time of the stand exit
+used), `stand`, `apt_icao`, and the take-off of its part (`take_off`,
+`take_off_method`); that of `AIBT` holds `stand_entry`, `stand`, `apt_icao`,
+`landing` and `landing_method` (see the
+[Data dictionary](../data/dictionary.qmd#info-fields)).
+
+The flight list repeats them as `aobt`, `aibt`, `stnd_dep` and `stnd_arr`
+(see [Milestone columns of the flight list](flight-list-milestones.qmd)).
+
+## Use cases
+
+- **Taxi-out time**: `ATOT` minus `AOBT` of the same flight, per airport and
+  hour; combine with an unimpeded time to estimate additional taxi-out time.
+- **Taxi-in time**: `AIBT` minus `ALDT`.
+- **Stand use**: how long each stand is occupied between an `AIBT` and the
+  next `AOBT` of the same aircraft (`info.stand`).
+
+## Limitations
+
+Often missing, because they need reception on the ground at the stand, and
+the off-block time is late when the aircraft is first received already
+moving. In-block times sit about a minute after airport records given to the
+whole minute. See
+[Limitations: block times](../limitations.qmd#lim-block-times).
+
+## Availability and accuracy
+
+{{< include _generated/figures_block-times.md >}}
+
+Per airport: see [Accuracy and availability](../accuracy/index.qmd).
+
+## Full study
+
+- [Flight events from ADS-B, version 4](../../papers/flight-events-v4/index.html):
+  chapter "Off-block and on-block".

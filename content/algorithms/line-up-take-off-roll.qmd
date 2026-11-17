@@ -1,0 +1,89 @@
+---
+title: "Line-up and take-off roll"
+description: "How OPDI finds the moment a departing aircraft enters the runway (line-up) and the moment it starts its take-off run (take-off-roll)."
+---
+
+## In one sentence
+
+`line-up` is the first report of a departing aircraft on the runway, and
+`take-off-roll` the moment it starts to accelerate along it for take-off.
+
+## What it needs
+
+- A departure **runway pass** with a take-off, as described on
+  [Take-off and landing times](take-off-landing.qmd#runway-pass-method):
+  the reports of one track on one runway and its approach areas, classified
+  as a departure.
+- At least one report on the runway itself, between the two thresholds and
+  within half the runway's width of its centre line.
+- Evidence that the take-off started on the ground (step 1 below).
+
+## How it is computed
+
+1. **A take-off from the ground.** The two events are given only when the
+   take-off started on the ground: the track has a report flagged on the
+   ground, or slower than 50 kt, in the 60 s before the first report of the
+   pass faster than 50 kt; or, when reception starts during the roll, that
+   first fast report is itself flagged on the ground. A touch-and-go, a low
+   approach or a track that is first received in the air keeps its `ATOT` but
+   gets neither event.
+2. **`line-up`** is the first report of the pass that lies on the runway
+   itself (not in the approach area before the threshold). It is a received
+   report; its time is not interpolated.
+3. **Ground speed.** Reports on the ground rarely carry a speed (almost none
+   do). Where a report has none, its speed is worked out from its position and
+   the position of the previous report, when the two are at most 30 s apart.
+   A report without any speed is skipped; it does not end the run.
+4. **`take-off-roll`** is the first report of the first run of reports with a
+   ground speed of at least 50 kt that lasts at least 5 s, with no silence of
+   more than 30 s inside it. Taxiing is about 20 kt and rotation about 140 kt,
+   so 50 kt separates the take-off run from taxiing; the 5 s keeps a fast
+   turn-off from counting.
+
+## Based on
+
+Developed for OPDI. The moments are the Airport Collaborative Decision Making
+(A-CDM) milestones T06 (line-up) and T07 (start of the take-off roll), written
+in `info.milestone`. The method and its first comparison with airport records
+are in the OPDI study
+[Flight events from ADS-B, version 4](../../papers/flight-events-v4/index.html).
+
+## What is published
+
+Event types `line-up` and `take-off-roll`, with position, altitude,
+`distance_flown_nm` and `time_passed_s`. Their `info` holds `apt_icao`,
+`runway`, `runway_bearing_deg`, `traversal_class` (`departure`), `align_deg`,
+`max_gs_kt`, `milestone` and `height_reference` (see the
+[Data dictionary](../data/dictionary.qmd#info-fields)).
+
+## Use cases
+
+- **Time on the runway before take-off**: `ATOT` minus `line-up`. A long value
+  points to a wait on the runway for a take-off clearance.
+- **Length of the take-off run**: `distance_flown_nm` at `ATOT` minus that at
+  `take-off-roll`, for example per aircraft type.
+- **Runway entry points**: the positions of `line-up` show which entries of a
+  runway are used.
+
+## Limitations
+
+Both events are missing when reception starts at lift-off. When reception
+starts during the roll, the events mark the first report received on the
+runway, which is later than the real moment. See
+[Limitations: runway events](../limitations.qmd#lim-runway).
+
+## Availability and accuracy
+
+No airport record gives the time of line-up or of the start of the take-off
+roll, so their accuracy is not measured. The table gives how often they are
+found for a recorded take-off, and their median time to the recorded
+take-off, which shows they sit where expected before it.
+
+{{< include _generated/figures_line-up-take-off-roll.md >}}
+
+Per airport: see [Accuracy and availability](../accuracy/index.qmd).
+
+## Full study
+
+- [Flight events from ADS-B, version 4](../../papers/flight-events-v4/index.html):
+  chapters "Line-up" and "Take-off roll".

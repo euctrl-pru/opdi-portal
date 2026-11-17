@@ -1,0 +1,193 @@
+---
+title: "Take-off and landing times"
+description: "How OPDI finds the actual take-off time (ATOT) and the actual landing time (ALDT) of a flight, by two methods, and the runway used."
+---
+
+## In one sentence
+
+`ATOT` is the moment the wheels leave the runway and `ALDT` the moment they
+touch it, found from the aircraft's own position reports over the runway, or,
+where those are missing, from the first reports of the climb or the last
+reports of the descent.
+
+## What it needs
+
+- The cleaned position reports of the track (one every 5 seconds; see
+  [Cleaning of position reports](cleaning.qmd)).
+- The departure and destination airports of the flight list, and the other
+  airports close to the start and the end of the track (see
+  [Departure and destination airports](airports.qmd)). Runway events are
+  looked for only at these airports.
+- The runways of the airport from OurAirports, an open database of airports:
+  the position of each end (threshold), the length and the width. The true
+  bearing of a runway is computed from its two thresholds.
+- For the first method: reports on the runway or less than 1 NM short of it.
+  For the second: reports in the first or last 1,500 ft of the flight within
+  5 NM of the airport.
+
+## How it is computed
+
+Two methods give the time. The first, the **runway-pass method** (written
+`acdm` in `info.method`), follows the aircraft on the runway. The second, the
+**runway-window method** (`legacy`), reads the initial climb or the final
+descent. The published time comes from the first method when it finds one,
+and from the second otherwise.
+
+### Height above the ground {#height-above-the-ground}
+
+Both methods need the height of the aircraft above the runway. Aircraft
+report a **barometric altitude**, measured from air pressure against the
+standard pressure of 1013.25 hPa. On a day of low or high pressure an
+aircraft standing on the runway reads several hundred feet above or below the
+airport's elevation (from −571 to +232 ft on one measured day). OPDI
+therefore measures height from the aircraft's own altitude on the ground:
+
+1. At each airport the track visits, take its reports at the runways that are
+   flagged on the ground by the transponder, or slower than 30 kt and not
+   climbing or descending faster than 300 ft/min. Airliners send no altitude
+   on the ground, so the reports with an altitude within 30 s of these are
+   read too.
+2. Among their altitudes, take the highest that is at most 30 ft above the
+   lowest (altitudes come in steps of 25 ft). This is the track's **ground
+   altitude** at that airport. A track that lands, stands and departs again
+   gets one ground altitude per visit (a silence of more than 300 s starts a
+   new visit).
+3. When the track has no such report, or the result is more than 1,000 ft
+   from the airport's published elevation, the published elevation is used.
+   `info.height_reference` says which was used (`track` or `elevation`).
+
+### Runway-pass method (`method` = `acdm`) {#runway-pass-method}
+
+1. **Runway grid.** Each runway of each large and medium airport is covered
+   with H3 cells of resolution 12 (each about 300 m²). H3 is an open grid that
+   divides the Earth into hexagons. The grid holds the runway itself and, at
+   each end, an approach area reaching 1 NM out from the threshold.
+2. **Runway pass.** The reports of a track whose cell lies in the grid of one
+   runway, in time order, form a **runway pass**. A silence of more than 300 s
+   starts a new pass.
+3. **Direction of the runway.** Each runway has two directions (for example
+   07 and 25). The direction of a pass is the one within 90° of the
+   aircraft's median direction of travel over the ground (its **ground
+   track**), taken over the reports faster than 50 kt. One pass per runway is
+   kept. Of passes of the same kind on parallel runways at overlapping times,
+   the one with reports on its own runway and the smallest median distance
+   from its centre line is kept.
+4. **Kind of pass.** The pass is a **departure** when the angle between the
+   ground track and the runway is at most 30°, the highest ground speed is
+   above 50 kt, the height is below 15 ft at the start and at least 15 ft at
+   the end, and the pass ends in the air: neither the report that gives the
+   end height nor the last report of the pass is flagged on the ground. A
+   circuit (take-off and landing on one runway a few minutes apart) is still a
+   departure when the pass holds two reports in the air between 100 and
+   3,000 ft above the ground. The pass is an **arrival** under the mirror
+   conditions: angle at most 30°, faster than 50 kt, at least 15 ft at the
+   start and below 15 ft at the end. A pass at an angle between 30° and 45°
+   gives no event: naming no movement is better than naming the wrong one.
+5. **`ATOT`** is the moment the height rises through **15 ft**, and **`ALDT`**
+   the moment it falls through 15 ft. The time and position are interpolated
+   in a straight line between the two reports either side. A dead band of
+   5 ft on each side (the height must pass from below 10 ft to above 20 ft)
+   keeps a short bounce from giving two times. A report without altitude is
+   skipped; a report with an altitude but no position takes the position
+   interpolated between the positioned reports before and after it when both
+   are within 30 s. When the two reports either side of 15 ft are more than
+   60 s apart, no time is given (`info.bracket_s` holds that time).
+
+### Runway-window method (`method` = `legacy`) {#runway-window-method}
+
+This method follows the runway detection of the `traffic` library and is used
+at the departure and destination airports of the flight list only.
+
+1. Keep the reports within 5 NM of the airport, at most 1,500 ft above the
+   ground (see above), faster than 30 kt and climbing (for a departure) or
+   descending (for an arrival) faster than 257 ft/min.
+2. At least 4 reports must remain: they are the initial climb or the final
+   descent.
+3. **Runway.** The candidate runways are those whose direction is within 10°
+   of the median ground track of these reports; the one whose centre line is
+   nearest to their median position wins.
+4. Only reports at most 0.5 NM from that runway's extended centre line count.
+   For a landing, a report on the ground (flagged, or slower than 50 kt) must
+   follow when the track continues for more than 120 s.
+5. **Time.** The take-off time is the time of the earliest of these reports,
+   and the landing time the time of the latest. The event takes that report's
+   position and altitude. `info.at_track_edge` is true when the report is the
+   first report of the track (take-off) or its last (landing): reception then
+   started in the climb or ended on final approach.
+
+### One take-off and one landing per track
+
+1. Each track keeps at most one `ATOT` and one `ALDT`: the runway-pass time
+   when there is one (the earliest take-off and the latest landing), otherwise
+   the runway-window time.
+2. The [plausibility checks](plausibility-checks.qmd) remove an `ATOT` or
+   `ALDT` more than 1,500 ft above the ground at its airport. When the height
+   comes from the elevation rather than the track, 1,000 ft is added to that
+   limit for the error of barometric altitude.
+
+## Based on
+
+- The runway-window method follows the runway detection of the open-source
+  [`traffic`](https://traffic-viz.github.io/) library (Xavier Olive), including
+  its 5 NM search radius around the airport. The checks of step 4 and the height
+  above the track's ground altitude were added for OPDI.
+- The runway-pass method was developed for OPDI. Its moments follow the
+  milestone numbers of Airport Collaborative Decision Making (A-CDM), the
+  shared set of times of airports, airlines and air traffic control: `ATOT`
+  is T08 and `ALDT` T17 (`info.milestone`).
+- Runway positions come from [OurAirports](https://ourairports.com/data/)
+  and the runway grid uses the [H3](https://h3geo.org/) grid.
+- The comparison of the two methods is the OPDI study
+  [Flight events from ADS-B, version 4](../../papers/flight-events-v4/index.html).
+
+## What is published
+
+Event types `ATOT` and `ALDT` in the flight events file, with position,
+altitude, `distance_flown_nm` and `time_passed_s`. Their `info` holds
+`apt_icao` (airport), `runway` (direction, for example `25R`),
+`runway_bearing_deg`, `method` (`acdm` or `legacy`) and `height_reference`.
+Times of the runway-pass method also carry `traversal_class`, `align_deg`,
+`max_gs_kt`, `milestone` and `bracket_s`; times of the runway-window method
+carry `role`, `bearing_error_deg`, `n_samples` and `at_track_edge`. Every
+field is listed in the [Data dictionary](../data/dictionary.qmd#info-fields).
+
+The flight list repeats them: `atot` and `rwy_dep`, `rwy_dep_bearing_deg`
+from the earliest `ATOT` at the departure airport; `aldt` and `rwy_arr`,
+`rwy_arr_bearing_deg` from the latest `ALDT` at the destination airport (see
+[Milestone columns of the flight list](flight-list-milestones.qmd)).
+
+## Use cases
+
+- **Taxi-out and taxi-in times per airport**: `ATOT` minus `AOBT`, and `AIBT`
+  minus `ALDT`, of the same flight. Both events must exist, which depends on
+  reception on the ground at the airport.
+- **Runway use**: count take-offs and landings per runway direction and hour
+  from `info.runway`, for example to see when an airport changes direction.
+- **Time in the air**: `ALDT` minus `ATOT`. Keep in mind that a track can hold
+  only one of each.
+
+## Limitations
+
+The time is missing when the aircraft was not received near the runway, and
+runway-window times (`legacy`) are less precise than runway-pass times
+(`acdm`); use `info.method` to separate them. See
+[Limitations: take-off and landing](../limitations.qmd#lim-take-off-landing).
+
+## Availability and accuracy
+
+Availability is how often a recorded take-off or landing has an OPDI time;
+accuracy is how close that time is to the airport's record.
+
+{{< include _generated/figures_take-off-landing.md >}}
+
+Most airport records are given to the whole minute, so differences of less
+than half a minute cannot be judged. Per airport: see
+[Accuracy and availability](../accuracy/index.qmd).
+
+## Full study
+
+- [Flight events from ADS-B, version 4](../../papers/flight-events-v4/index.html):
+  chapters on timing a runway movement, take-off and landing, and accuracy by
+  airport.
+- [Plausibility checks for flight milestones](../../papers/milestone-plausibility-v1/index.html):
+  the height check and the take-off read on the landing roll.

@@ -1,0 +1,66 @@
+---
+title: "Runway vacated"
+description: "How OPDI finds the moment an arriving aircraft leaves the runway after landing (runway-vacated)."
+---
+
+## In one sentence
+
+`runway-vacated` is the last report of an arriving aircraft on the runway
+before it turns off onto a taxiway.
+
+## What it needs
+
+- An arrival **runway pass** (see
+  [Take-off and landing times](take-off-landing.qmd#runway-pass-method)).
+- At least one report on the runway itself: between the two thresholds and
+  within half the runway's width of its centre line.
+
+## How it is computed
+
+1. Take the reports of the arrival pass that lie on the runway itself. The
+   reports in the approach area before the threshold are not used.
+2. `runway-vacated` is the last of them. It is a received report; its time is
+   not interpolated.
+3. When the pass holds no report on the runway, no event is given.
+
+## Based on
+
+Developed for OPDI. The moment is the Airport Collaborative Decision Making
+(A-CDM) milestone T19, written in `info.milestone`. See
+[Flight events from ADS-B, version 4](../../papers/flight-events-v4/index.html).
+
+## What is published
+
+Event type `runway-vacated`, with position, altitude, `distance_flown_nm` and
+`time_passed_s`. Its `info` holds `apt_icao`, `runway`, `runway_bearing_deg`,
+`traversal_class` (`arrival`), `align_deg`, `max_gs_kt`, `milestone` and
+`height_reference` (see the [Data dictionary](../data/dictionary.qmd#info-fields)).
+
+## Use cases
+
+- **Runway occupancy time of arrivals**: `runway-vacated` minus `ALDT`, per
+  runway and aircraft type.
+- **Use of rapid exit taxiways**: the positions of `runway-vacated` show where
+  arrivals leave the runway.
+
+## Limitations
+
+When reception ends on the runway, the event is the last report received,
+which can be earlier than the real exit; it can then be at high speed. See
+[Limitations: runway events](../limitations.qmd#lim-runway).
+
+## Availability and accuracy
+
+No airport record gives the time a runway was vacated, so accuracy is not
+measured. The table gives how often a recorded landing has the event and its
+median time after the recorded landing, which is close to a typical runway
+occupancy time.
+
+{{< include _generated/figures_runway-vacated.md >}}
+
+Per airport: see [Accuracy and availability](../accuracy/index.qmd).
+
+## Full study
+
+- [Flight events from ADS-B, version 4](../../papers/flight-events-v4/index.html):
+  chapter "Runway vacated".

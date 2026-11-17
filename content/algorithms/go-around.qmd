@@ -1,0 +1,82 @@
+---
+title: "Go-around"
+description: "How OPDI finds an approach that was given up and flown again (go-around)."
+---
+
+## In one sentence
+
+A `go-around` is an approach that the aircraft gives up before touching down,
+climbing away to try again; the event is placed at the lowest point of the
+approach.
+
+## What it needs
+
+- The destination airport of the flight list and its elevation.
+- The runways of that airport (from OurAirports), for the approach corridor.
+- Reports with an altitude near the airport, at most 10 NM from it.
+
+## How it is computed
+
+The detector works on the height of the aircraft above its destination
+airport, so it also finds approaches abandoned before the runway.
+
+1. Find each moment the height falls through **500 ft** and each moment it
+   rises through **1,500 ft**. A dead band of 50 ft on each side keeps an
+   aircraft flying level near one of these heights from giving a series of
+   crossings. The moments are interpolated between reports.
+2. Pair each rise through 1,500 ft with the last fall through 500 ft before
+   it. The time between them is one **excursion**.
+3. Keep the excursion when all of these hold:
+   - its lowest point is more than 15 ft above the airport, so the aircraft
+     did not touch down (15 ft is the height that defines `ALDT`);
+   - no report in between is flagged on the ground, and none is slower than
+     50 kt without an altitude (a landing roll or a taxi);
+   - the aircraft climbs at 500 ft/min or more at some point;
+   - the lowest point is at most 10 NM from the airport and lies in the
+     approach corridor of one of its runways: at most 5 NM before a threshold
+     or over the runway, and at most 0.5 NM from the extended centre line.
+     When the airport's runways are not known, this condition is not applied;
+   - the excursion lasts at most 600 s, and no two consecutive reports in it
+     are more than 60 s apart (a landing followed by a take-off, or a hole in
+     the data, is not a go-around).
+4. The event is placed at the lowest point of the excursion.
+
+## Based on
+
+Developed for OPDI. See
+[Flight events from ADS-B, version 4](../../papers/flight-events-v4/index.html).
+
+## What is published
+
+Event type `go-around`, with position, altitude, `distance_flown_nm` and
+`time_passed_s`. Its `info` holds `apt_icao` (destination airport),
+`low_height_ft` (lowest height above the airport), `recovery_roc_ft_min`
+(highest rate of climb afterwards, in ft/min) and `excursion_seconds` (see
+the [Data dictionary](../data/dictionary.qmd#info-fields)).
+
+## Use cases
+
+- **Go-around rate per airport and runway**: go-arounds divided by landings
+  (`ALDT`), for example by weather period.
+- **Extra time and distance**: `distance_flown_nm` and `time_passed_s` from
+  the `go-around` to the final `ALDT` of the same flight.
+- **Holding after a missed approach**: combine with `holding-start` later on
+  the same flight.
+
+## Limitations
+
+A go-around above 1,500 ft, or one that never descended below 500 ft, is not
+found; a training approach flown as a low pass is counted. See
+[Limitations: runway events](../limitations.qmd#lim-runway).
+
+## Availability and accuracy
+
+Not validated: no reference records go-arounds. The table gives the number of
+events found on one day.
+
+{{< include _generated/figures_go-around.md >}}
+
+## Full study
+
+- [Flight events from ADS-B, version 4](../../papers/flight-events-v4/index.html):
+  chapter "Go-around".

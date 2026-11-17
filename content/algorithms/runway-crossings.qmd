@@ -1,0 +1,76 @@
+---
+title: "Runway crossings"
+description: "How OPDI finds a taxiing aircraft crossing a runway (runway-crossing-entry and runway-crossing-vacated)."
+---
+
+## In one sentence
+
+`runway-crossing-entry` and `runway-crossing-vacated` mark when a taxiing
+aircraft enters a runway to cross it and when it leaves it on the other side.
+
+## What it needs
+
+- A **runway pass** (see
+  [Take-off and landing times](take-off-landing.qmd#runway-pass-method)) with
+  reports on the runway itself.
+- The ground flag or the altitude of these reports, to tell a crossing on the
+  ground from an aircraft flying low over the runway.
+
+## How it is computed
+
+1. Take the reports of the pass that lie on the runway itself (between the two
+   thresholds and within half its width of the centre line).
+2. The pass is a **crossing** when all of these hold:
+   - the aircraft's median ground track is at least 45° away from the
+     runway's direction;
+   - its ground speed never exceeds 40 kt;
+   - the pass lasts at most 120 s;
+   - the aircraft is on the ground at the start and the end: less than 15 ft
+     above the ground, or flagged on the ground without an altitude
+     (airliners send no altitude on the ground).
+3. A pass on a runway that the same aircraft takes off from, lands on or turns
+   off from in that pass is not a crossing of it.
+4. `runway-crossing-entry` is the first report of the crossing and
+   `runway-crossing-vacated` the last. Both are received reports.
+
+A pass between 30° and 45° from the runway direction is neither a take-off
+or landing nor a crossing, and gives no event.
+
+## Based on
+
+Developed for OPDI. A runway crossing has no number among the Airport
+Collaborative Decision Making (A-CDM) milestones. See
+[Flight events from ADS-B, version 4](../../papers/flight-events-v4/index.html).
+
+## What is published
+
+Event types `runway-crossing-entry` and `runway-crossing-vacated`, with
+position, altitude, `distance_flown_nm` and `time_passed_s`. Their `info` holds
+`apt_icao`, `runway`, `runway_bearing_deg`, `traversal_class` (`crossing`),
+`align_deg` and `max_gs_kt` (see the
+[Data dictionary](../data/dictionary.qmd#info-fields)).
+
+## Use cases
+
+- **Runway crossings per airport and hour**, an input to studies of runway
+  safety and of taxi routes.
+- **Time spent crossing**: `runway-crossing-vacated` minus
+  `runway-crossing-entry`.
+
+## Limitations
+
+Needs ground reception on the runway; a crossing with few reports, or one at
+an angle under 45°, is missed. See
+[Limitations: runway events](../limitations.qmd#lim-runway).
+
+## Availability and accuracy
+
+Not validated: no reference records runway crossings. The table gives the
+number of crossings found on one day.
+
+{{< include _generated/figures_runway-crossings.md >}}
+
+## Full study
+
+- [Flight events from ADS-B, version 4](../../papers/flight-events-v4/index.html):
+  chapter "Runway crossings".
