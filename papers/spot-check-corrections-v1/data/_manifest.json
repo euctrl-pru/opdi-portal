@@ -1,0 +1,202 @@
+{
+ "description": "Scorecards of the corrections decided after the spot checks of 2026-06-14, baseline against final, on the verification sample and on the whole day; per-item before/after tables, odd-case counters, counts and time, counts of confirmed events lost or moved by type, and the documented limits. Aggregates only: no flight, track or call sign.",
+ "day": "2026-06-14",
+ "pipeline": {
+  "repository": "euctrl-pru/opdi",
+  "branch": "industrialisation",
+  "commit": "ffd379325d31e58ede6798761b770cde37719cfd",
+  "baseline_commit": "dd33f9b"
+ },
+ "commands": [
+  ".venv310/bin/python -u benchmarks/corrections_scorecard.py run --scope sample --label all_4 --steps 03 04 04b",
+  ".venv310/bin/python -u benchmarks/corrections_scorecard.py score all_4",
+  ".venv310/bin/python -u benchmarks/corrections_scorecard.py compare base all_4",
+  ".venv310/bin/python -u benchmarks/corrections_scorecard.py run --scope day --label all_day --steps 03 04 04b --replace",
+  ".venv310/bin/python -u benchmarks/corrections_scorecard.py score all_day",
+  ".venv310/bin/python -u benchmarks/corrections_scorecard.py compare base_day all_day",
+  "python3 stage.py <this folder> base all_4 base_day all_day (the staging script of the integration, which copies the scorecards and splits the comparison by section)"
+ ],
+ "inputs": {
+  "sample": "s3a://eurocontrol/opdi-world/research/spot/dsub/",
+  "day_tracks": "s3a://eurocontrol/opdi-world/research/spot/d0614/",
+  "day_step03": "s3a://eurocontrol/opdi-world/research/spot/d0614_03/",
+  "runs": {
+   "baseline_sample": "research/spot/runs/base",
+   "baseline_day": "research/spot/runs/base_day",
+   "final_sample": "research/spot/runs/all_4",
+   "final_day": "research/spot/runs/all_day"
+  },
+  "ground_truth": "airport records (APDF) and Network Manager flights of 2026-06 under opdi/reference/"
+ },
+ "runs": {
+  "base": {
+   "label": "base",
+   "scope": "sample",
+   "steps": [
+    "04",
+    "04b"
+   ],
+   "started": "2026-11-15T20:07:33+00:00",
+   "code": "/home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/industrialisation",
+   "steps_timed": {
+    "04": {
+     "seconds": 831.0,
+     "rows_out": "2050891",
+     "executor_s": 15347.0,
+     "stages": 273
+    },
+    "04b": {
+     "seconds": 25.0,
+     "rows_out": "39144",
+     "executor_s": 116.0,
+     "stages": 29
+    }
+   }
+  },
+  "all_4": {
+   "label": "all_4",
+   "scope": "sample",
+   "steps": [
+    "03",
+    "04",
+    "04b"
+   ],
+   "started": "2026-11-17T03:51:26+00:00",
+   "code": "/home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/corrections",
+   "steps_timed": {
+    "03": {
+     "seconds": 283.0,
+     "rows_out": "39133",
+     "executor_s": 5328.0,
+     "stages": 89
+    },
+    "04": {
+     "seconds": 897.0,
+     "rows_out": "1941063",
+     "executor_s": 14970.0,
+     "stages": 395
+    },
+    "04b": {
+     "seconds": 27.0,
+     "rows_out": "39133",
+     "executor_s": 167.0,
+     "stages": 37
+    }
+   }
+  },
+  "base_day": {
+   "label": "base_day",
+   "scope": "day",
+   "steps": [
+    "04",
+    "04b"
+   ],
+   "started": "2026-11-15T20:32:33+00:00",
+   "code": "/home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/industrialisation",
+   "steps_timed": {
+    "04": {
+     "seconds": 1787.0,
+     "rows_out": "6694303",
+     "executor_s": 35424.0,
+     "stages": 277
+    },
+    "04b": {
+     "seconds": 51.0,
+     "rows_out": "161881",
+     "executor_s": 265.0,
+     "stages": 28
+    }
+   }
+  },
+  "all_day": {
+   "label": "all_day",
+   "scope": "day",
+   "steps": [
+    "03",
+    "04",
+    "04b"
+   ],
+   "started": "2026-11-17T04:23:32+00:00",
+   "code": "/home/jupyter/work/opdi-workspace/opdi/.claude/worktrees/corrections",
+   "steps_timed": {
+    "03": {
+     "seconds": 455.0,
+     "rows_out": "161867",
+     "executor_s": 9959.0,
+     "stages": 89
+    },
+    "04": {
+     "seconds": 1660.0,
+     "rows_out": "6053609",
+     "executor_s": 32735.0,
+     "stages": 378
+    },
+    "04b": {
+     "seconds": 56.0,
+     "rows_out": "161867",
+     "executor_s": 416.0,
+     "stages": 35
+    }
+   }
+  }
+ },
+ "cost_measured_twice_on_the_day": {
+  "step04_executor_s": {
+   "baseline": [
+    35424,
+    33730
+   ],
+   "final": [
+    32735,
+    33776
+   ]
+  },
+  "step04_wall_s": {
+   "baseline": [
+    1787,
+    1503
+   ],
+   "final": [
+    1660,
+    1860
+   ]
+  },
+  "step03_executor_s": {
+   "baseline": [
+    7352
+   ],
+   "final": [
+    9959,
+    9909
+   ]
+  },
+  "step04b_executor_s": {
+   "baseline": [
+    265,
+    250
+   ],
+   "final": [
+    416,
+    413
+   ]
+  }
+ },
+ "files": {
+  "before_after_items_day.csv": "d1dc5fd72b9b10f68962c2e67d09e46fbe77603d7ff039adce06bbbc849974c3",
+  "before_after_items_sample.csv": "3a3ee89c1e34c820931b4ddaa34b94d83902ea071c63694ca9226c3341783b2c",
+  "confirmed_lost_or_moved_counts_day.csv": "502553836663da593d1ec39131b4e4a83084f0e247c87727020fc778075101d8",
+  "confirmed_lost_or_moved_counts_sample.csv": "502553836663da593d1ec39131b4e4a83084f0e247c87727020fc778075101d8",
+  "counts_and_fill_day.csv": "b64daa7a646c10fa49b2d1eeb1ec1bf220cdc63d6dc74871a8c992e4304efc89",
+  "counts_and_fill_sample.csv": "d531f40855631ebce89fec6dd0a1f6b02c6029752b93a9be7d35c6ceadfbfbe8",
+  "documented_limits.csv": "5d8b98132f829dccc0b9e44eb1381172ad0f2eb5e6c6bb071198931260743b62",
+  "odd_cases_day.csv": "6a98d415f588cec2d3f23b5efe0a8dd87c8a2cb40e0fee659568cdbc0ec6949e",
+  "odd_cases_sample.csv": "f22d4cf22f696fb5565b5420f0c294b1e7b9e1f06be80587fe34d4feab4eb533",
+  "scorecard_day_baseline.csv": "f3d6d85681c0e9cd3190eda608bf568e2ca10e2fe35b6f1defd77874268b21b9",
+  "scorecard_day_final.csv": "16100752d5cb86e249f608a554c79f37e3bf0e06f7526fc044b5a79d9951cdaa",
+  "scorecard_sample_baseline.csv": "0ec767482c6475a52ccd0e3f08c5a94536fe8c9befeae47d23ff12729a8d3d5f",
+  "scorecard_sample_final.csv": "18b24fc3856f43ad13d67035683b22d7c9f6b3b47f85bf9ff958b94d4889b661",
+  "time_day.csv": "1682f27a51d54cb7a764937e7570f9aef98b5d363f6ba4023eadf1c98355702c",
+  "time_sample.csv": "2351d83184bc5b346317128e90e3184e255b42acf1b3c342a6c6851131b0afe8"
+ },
+ "written": "2026-11-17T08:02:09Z"
+}
