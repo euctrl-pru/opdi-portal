@@ -30,7 +30,11 @@ Kinds of check (each failure is printed with its kind):
   numbers     A number written in the "Results" or "Headline accuracy" section
               of a methods page is not in assets/validation/validation_measures.csv
               for that page. Numbers produced by inline R code are not checked
-              here, because they are read from the file at render time.
+              here, because they are read from the file at render time. A
+              number written by a page under content/accuracy/ (outside the
+              tables it includes), or inside a [...]{.measured} span on any
+              page, must be in assets/pages/accuracy_numbers.csv for that
+              page.
   vocabulary  A page uses a word from the list of internal or vague words the
               site avoids (see FORBIDDEN_WORDS).
   coverage    content/data/dictionary.qmd exists but does not mention one of

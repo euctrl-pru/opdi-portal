@@ -7,7 +7,8 @@ repository root.
 | Script | What it does | Needs |
 |---|---|---|
 | `check_site.py` | Checks links, the sidebar, the template and the numbers of the algorithm pages, that every published item is listed, the pointers of moved pages, and the wording of every page. Exit status 1 when anything fails. | Python 3 |
-| `gen_item_figures.py` | Writes the availability and accuracy tables of the algorithm pages from committed study results, and records each number in `assets/algorithms/item_figures.csv`. | Python 3 |
+| `gen_item_figures.py` | Writes the availability and accuracy tables of the algorithm pages from the three-day tables in `assets/accuracy/`, and records each number in `assets/algorithms/item_figures.csv`. | Python 3 |
+| `gen_accuracy_tables.py` | Writes the tables of the Accuracy and availability pages and the labels of the Algorithms overview from `assets/accuracy/`, and records the numbers their prose may use in `assets/pages/accuracy_numbers.csv`. | Python 3 |
 | `check_papers_index.py` | Checks that every study under `papers/` is listed once in `papers/index.qmd`. | Python 3 |
 | `gen_data_dictionary.py` | Writes the column tables of the data dictionary from the pipeline's list of published columns. | Python 3, the `opdi` repository |
 | `draw_validation_figures.py` | Draws the validation charts of the methods pages from committed study results, and records the numbers each page quotes. | Python 3, pandas, matplotlib |
@@ -17,6 +18,7 @@ repository root.
 
 ```bash
 python tools/gen_data_dictionary.py --opdi ../opdi/src
+python tools/gen_accuracy_tables.py
 python tools/gen_item_figures.py
 python tools/draw_validation_figures.py
 python tools/gen_validation_summary.py --opdi ../opdi/src
@@ -99,13 +101,28 @@ tables are written by `gen_item_figures.py`; a page shows its table with
 ```
 
 Each number is one entry of `FIGURES` in `gen_item_figures.py`: the page, the
-study file, the row (section, item, measure) and how to show it. To replace
-the figures (for example by the three-day accuracy tables), change those
-entries and run the script again; the pages need no edit. Availability and
-accuracy are separate rows, each with its label: availability `high` (at
-least 80 %), `partial` (50 to 80 %), `low` (under 50 %); accuracy `good` (at
-least 80 % within 60 s), `fair` (50 to 80 %), `limited` (under 50 %), `no
-reference` (fewer than 30 movements).
+item and reference of `assets/accuracy/item_accuracy.csv` (rows of the three
+days together), the column, and how to show it. To change a figure, change
+its entry and run the script again; the pages need no edit. Availability and
+accuracy are separate rows, each with the label of the staged table:
+availability `high` (at least 80 %), `partial` (50 to 80 %), `low` (under
+50 %); accuracy `good` (at least 80 % within 60 s, or equal), `fair` (50 to
+80 %), `limited` (under 50 %), `too few compared`, `no reference`. Each table
+ends with a sentence linking to the item's rows on the airport pages.
+
+### Numbers of the accuracy pages
+
+The tables of `content/accuracy/` are written by `gen_accuracy_tables.py`
+into `content/accuracy/_generated/` and included by the pages; they are not
+checked number by number, because they are the staged tables reformatted.
+Every number a page under `content/accuracy/` writes itself must be a row of
+`assets/pages/accuracy_numbers.csv` for that page (key `accuracy/index`,
+`accuracy/europe`, `accuracy/world`), which the same script writes from the
+staged tables, with the thresholds and dates as rows of kind `rule`. On any
+other page, a measured figure in prose is written as a span,
+`[24.2 %]{.measured}`, and must be a row for that page (for example
+`limitations`); Quarto renders the span as ordinary text. To quote a new
+figure, add it to `numbers()` in `gen_accuracy_tables.py` and run it.
 
 ### Coverage, identifiers and moved pages
 

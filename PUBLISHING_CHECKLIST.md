@@ -73,9 +73,21 @@ published before every value is known.
   "Based on" that the repositories do not document in full: the A-CDM
   milestone numbers (no manual is cited), HexAeroPy as the origin of the
   airport layout grid, and ICAO Doc 8168 for the holding thresholds.
-- [ ] **Figures of the algorithm pages.** They are those of one day
-  (2026-06-14). Replace them by the three-day figures: change the entries of
-  `FIGURES` in `tools/gen_item_figures.py` and run it again.
+- [ ] **Accuracy tables.** The Accuracy and availability pages, the figures
+  of the algorithm pages and the labels on the Algorithms overview come from
+  `assets/accuracy/` (10, 14 and 17 June 2026). When those files are staged
+  again, run `python tools/gen_accuracy_tables.py` and
+  `python tools/gen_item_figures.py`, then read the prose of
+  `content/accuracy/europe.qmd` ("Patterns") again: it names airports.
+- [ ] **Airports that look wrong in the accuracy tables.** Decide whether to
+  investigate before publishing: (1) ten of the 100 busiest European airports
+  (`LGIR`, `LIRN`, `LICC`, `LATI`, `LTAC`, `LTBJ`, `GCTS`, `LEBB`, `LGKR`,
+  `LUKK`) have no take-off or landing time on any of the three days, and at
+  most of them OPDI rarely names the airport as destination; (2) at `ENBR`,
+  `ENZV` and `ENVA` no runway agrees with the records although the times do,
+  which suggests different runway names; (3) at `LMML` most take-off times
+  and runways disagree with the records. The pages state these as facts and
+  give no cause.
 
 ## 3. Decisions
 
@@ -99,6 +111,8 @@ published before every value is known.
 
 - [ ] `python tools/gen_data_dictionary.py --opdi ../opdi/src --check` reports
   no difference (run it without `--check` if the pipeline's columns changed).
+- [ ] `python tools/gen_accuracy_tables.py --check` and
+  `python tools/gen_item_figures.py --check` report nothing out of date.
 - [ ] `python tools/check_site.py` reports `OK`.
 - [ ] `python tools/check_site.py --list-types --opdi ../opdi/src` lists the
   same event types as the Data dictionary.
