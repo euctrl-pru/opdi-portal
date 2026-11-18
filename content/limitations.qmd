@@ -3,6 +3,7 @@ title: "Limitations"
 description: "When the OPDI data, and each published item, are missing or can be wrong, what not to conclude from them, and where they are reliable."
 aliases:
   - data/limitations.html
+toc-depth: 2
 ---
 
 OPDI is built from the position reports that the OpenSky Network's receivers
@@ -13,7 +14,7 @@ says nothing about what the aircraft did
 
 - How each item is computed: [Algorithms](algorithms/index.qmd).
 - How often it exists and how close it is to the records: [Data quality](accuracy/index.qmd).
-- Each item's figures at each airport: [Airports](accuracy/airports.qmd#lookup).
+- Each item's figures at the 100 busiest airports in Europe and worldwide: [Airports](accuracy/airports.qmd#lookup).
 - The shares and times below are over the [three days measured](accuracy/index.qmd#the-three-days).
 
 ## Summary
@@ -21,19 +22,19 @@ says nothing about what the aircraft did
 | Item | Main limits | Where it is reliable |
 |---|---|---|
 | [Tracks](#lim-tracks) (`flight_id`) | Can hold several flights, or part of one; placeholder addresses merge aircraft. | Airliners with continuous reception and a call sign per flight. |
-| [Airports](#lim-airports) (`adep`, `ades`) | Small airfields and heliports never named; arrivals lost far out get none. | Medium and large airports; source `runway_event`. |
+| [Airports](#lim-airports) (`adep`, `ades`) | Small airfields and heliports never named; arrivals lost far out get no destination. | Medium and large airports; source `runway_event`. |
 | [Aircraft details](#lim-aircraft) | Database of October 2024; no type for about one flight in six. | Airliners registered before late 2024. |
 | [First and last seen](#lim-first-last-seen) (`first_seen`, `last_seen`) | Describe reception, not the flight. | Everywhere, as reception times. |
-| [Milestone columns](#lim-flight-list-milestones) | As available as their events; one take-off and one landing per row. | Where their events are. |
+| [Milestone columns](#lim-flight-list-milestones) | As available as their events; one take-off and one landing per row. | Where their events are reliable. |
 | [Take-off and landing](#lim-take-off-landing) (`ATOT`, `ALDT`) | Need reception near the runway; runway-window times (`legacy`) less precise. | Reception down to the runway; `info.method` = `acdm`. |
 | [Other runway events](#lim-runway) (`line-up`, `take-off-roll`, `xing-runway-threshold`, `runway-vacated`, `go-around`, `runway-crossing-entry`, `runway-crossing-vacated`) | Need reports on the runway; at the first or last report when reception starts or ends there. | Ground reception on the runways. |
 | [Block times](#lim-block-times) (`AOBT`, `AIBT`) | Need reception at the stand; off-block late when first received moving. | Dense ground reception and named stands in OpenStreetMap. |
 | [Airport surface](#lim-surface) (`entry-{element}`, `exit-{element}`) | Need ground reception and a mapped layout; vehicles carry transponders. | Large airports with good ground reception and a detailed map. |
-| [Vertical profile](#lim-vertical) (`top-of-climb`, `top-of-descent`, `level-start`, `level-end`, `level-off-climb-start`, `level-off-climb-end`, `level-off-descent-start`, `level-off-descent-end`, `xing-fl{level}`) | Not validated; slow aircraft and tracks cut by reception give odd profiles. | Jet airliners with a cruise; `info.observed` true. |
+| [Vertical profile](#lim-vertical) (`top-of-climb`, `top-of-descent`, `level-start`, `level-end`, `level-off-climb-start`, `level-off-climb-end`, `level-off-descent-start`, `level-off-descent-end`, `xing-fl{level}`) | Not validated; slow aircraft and tracks cut by reception give odd profiles. | Jet airliners with a cruise; tops with `info.observed` true (not at the edge of reception). |
 | [Distance circles](#lim-rings) (`xing-{radius}nm`) | Only around the row's two airports; position steps near spoofing. | 40 and 100 NM circles with good reception around them. |
-| [FIR crossings](#lim-fir) (`xing-fir`) | One AIRAC cycle for every day. | Lateral crossings in airspace with continuous reception. |
+| [Flight information region (FIR) crossings](#lim-fir) (`xing-fir`) | One AIRAC cycle for every day. | Lateral crossings in airspace with continuous reception. |
 | [Holding](#lim-holding) (`holding-start`, `holding-end`) | Circling for other reasons meets the definition. | Holds with `info.context` = `arrival`. |
-| [Point merge](#lim-point-merge) (`pms-leg-entry`, `pms-leg-exit`, `pms-merge-point`) | Only the airports in the reference table. | Good reception on the arcs. |
+| [Point merge](#lim-point-merge) (`pms-leg-entry`, `pms-leg-exit`, `pms-merge-point`) | Only the airports in the reference table. | Airports in the table with good reception on the arcs. |
 | [Measurements](#lim-measurements) (`distance_flown_nm`, `time_passed_s`) | Count from the start of the track, not of the flight. | Differences between two events of a flight. |
 
 ## General limits {#general-limits}
@@ -52,7 +53,7 @@ near the ground.
 - Cruise events are found almost everywhere, runway events at fewer
   airports, stand events at fewer still. A missing block time, runway event
   or surface event mostly means the surface was not heard, not that nothing
-  happened ([airports where ground events are nearly absent](#ground-events-nearly-absent)).
+  happened ([airports where ground events are nearly absent](accuracy/airports.qmd#ground-reception)).
 - Aircraft without ADS-B, or not broadcasting it, are not in the data.
 - ADS-C reports, sent by satellite mainly over the oceans, are not used in
   release v2.0.0, so the ocean gaps stay.
@@ -98,25 +99,23 @@ in that day's files ([Data](data/index.qmd#which-day-a-flight-belongs-to)).
   which cover the European area; many airport records are to the whole
   minute ([what OPDI is compared with](accuracy/index.qmd#what-opdi-is-compared-with)).
   Outside Europe only how often an item exists can be measured, not whether
-  it is right, and several items have no reference anywhere. Both measures
-  for every item are on [Data quality](accuracy/index.qmd), and for the 100
-  busiest airports in Europe and worldwide on [Airports](accuracy/airports.qmd).
+  it is right, and several items have no reference anywhere.
 - **Open sources.** Airports and runways come from OurAirports, airport
-  layouts and stand names from OpenStreetMap, aircraft details from the
-  OpenSky aircraft database. Their errors and gaps carry over: a runway
+  layouts and stand names from OpenStreetMap, aircraft registrations, types
+  and operators from the OpenSky aircraft database. Their errors and gaps carry over: a runway
   missing from OurAirports gives no runway events; unmapped taxiways, aprons
   and stands give no surface events, block times or stands; a stand drawn
   without a name gives no stand name.
 
 ### Position errors and vehicles
 
-- **Spoofing.** Where satellite navigation is disturbed (GPS spoofing),
-  positions can jump, or step by 5 to 20 NM and stay. Jumps implying more
+- **Spoofing.** Near areas where satellite navigation is disturbed (GPS
+  spoofing), positions can jump, or step by 5 to 20 NM and stay. Jumps implying more
   than 1,000 kt are left out of the crossings and the distance flown; a
   spoofed position that does not jump (a frozen position) still misleads the
   detectors.
 - **Vehicles.** Airport vehicles and some towed aircraft carry transponders.
-  Tracks that never leave the ground, with no aircraft type or a vehicle
+  Tracks that never leave the ground and have no aircraft type, or a vehicle
   type, are marked `info.ground_only` on their surface events and get no
   block times; they remain in the flight list.
 - **Plausibility checks** remove only events the track clearly contradicts; a
@@ -247,8 +246,8 @@ the airport.
   runway, can get no landing time.
 - A take-off first received more than 1,500 ft above the track's ground
   altitude at the airport gets no take-off time.
-- Some busy European airports have no take-off or landing time at all, for
-  a cause not established
+- Some busy European airports have no take-off or landing time at all on the
+  three days measured, for a cause not established
   ([where no take-off or landing time exists](accuracy/airports.qmd#no-times)).
 
 ### When it can be wrong
@@ -312,23 +311,15 @@ the airport.
   off-blocks had an `AOBT` and [33.4 %]{.measured} of the recorded in-blocks
   an `AIBT`.
 
-::: {#ground-events-nearly-absent}
-At these airports of the 100 busiest in Europe, fewer than 2 % of OPDI's
-departures have an off-block time and fewer than 2 % of its arrivals an
-in-block time: block times, stands and the airport surface events are
-nearly absent there. Take-off and landing times can still exist.
-
-{{< include accuracy/_generated/europe_ground.md >}}
-:::
-
 ### When it can be wrong
 
 - When the transponder is switched on during push-back, or the aircraft is
   first received already moving, the off-block time is the first movement
   received: late. A push slower than 2 kt, or a stand with few reports with a
   position, also makes it late.
-- Off-block times differ from the airport records by a median of [99 s]{.measured}, and over the differences of up to
-  300 s are on average [78.6 s]{.measured} later. In-block times are closer:
+- Off-block times are often late: they differ from the airport records by
+  a median of [99 s]{.measured}, and over the differences of up to 300 s are
+  on average [78.6 s]{.measured} later. In-block times are closer:
   a median of [34 s]{.measured}, and on average [18.5 s]{.measured} earlier
   over the differences of up to 300 s.
 - Where a stand is drawn inside a larger stand area, the block times read the
@@ -479,7 +470,7 @@ nearly absent there. Take-off and landing times can still exist.
 ### When it can be wrong
 
 - Across a reception gap the distance adds the straight line, so it is a
-  lower bound. Position jumps are left out
+  lower bound. Position jumps that imply more than 1,000 kt are not added
   ([Position errors](#position-errors-and-vehicles)).
 
 ### What not to conclude from it
