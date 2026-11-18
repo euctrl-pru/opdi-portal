@@ -11,10 +11,8 @@ rel <- portal_release
 v2_current <- rel$is_current(cfg)
 ```
 
-This page compares the two releases of OPDI data: release
-`r cfg$release` and the earlier release, `r cfg$previous_release`. It says
-what is new for a user of the data, and it gives a table to move code written
-for the old files to the new ones.
+What changed in release `r cfg$release` since release `r cfg$previous_release`,
+and a table to move code from the old files and names to the new ones.
 
 ```{r status}
 #| results: asis
@@ -32,46 +30,45 @@ if (v2_current) {
 ```
 
 A **release** is a set of files produced by one version of the OPDI software,
-with one set of names and meanings. Every row of release `r cfg$release` says
-which release it belongs to, in its column `release`. Older releases are
-listed on the [Roadmap](../roadmap.qmd#past-releases).
+with one set of names and meanings. Column `release` of every row gives its
+release. Older releases are on the [Roadmap](../roadmap.qmd#past-releases).
+The files of release v0.0.2 and how it was computed are on
+[Release v0.0.2](v0.0.2.qmd).
 
 ## What is new in release v2.0.0
 
 ### One file per day, and events with their measurements
 
-Release v0.0.2 had three kinds of files: a flight list per month, and flight
-events and measurements in separate files of ten days each. Release v2.0.0
-has two files per day:
+Release v2.0.0 has two files per day (release v0.0.2: a flight list per month,
+flight events and measurements in files of ten days):
 
 - the **flight list**, one row per flight, and
-- the **flight events**, one row per event. Each row carries the event's
-  measurements as columns, and the columns of its flight.
+- the **flight events**, one row per event, with the event's measurements and
+  the columns of its flight.
 
-A measurement no longer needs a join to its event, and an event no longer
-needs a join to its flight. The separate measurements files are no longer
-produced. A day's files hold the flights first seen that day, with all their
-events, also those after midnight (see [Data](index.qmd#which-day-a-flight-belongs-to)).
+No join to the event or the flight is needed. The separate measurements files
+are no longer produced. A day's files hold the flights first seen that day,
+with all their events, also those after midnight (see
+[Data](index.qmd#which-day-a-flight-belongs-to)).
 
 ### Worldwide coverage
 
-Release v0.0.2 covered a box around Europe. Release v2.0.0 covers every
-flight that the OpenSky Network received, anywhere in the world.
+Release v0.0.2 covered a box around Europe. Release v2.0.0 covers every flight
+the OpenSky Network received, anywhere in the world.
 
 ### More event types
 
-Release v2.0.0 adds these event families (all listed on the
-[Data dictionary](dictionary.qmd#event-types)):
+All are listed on the [Data dictionary](dictionary.qmd#event-types).
 
-- **Runway milestones**: the start of the take-off roll, the take-off time
-  (`ATOT`), the passage over the runway threshold (`xing-runway-threshold`), the touchdown
-  (`ALDT`), the line-up, the runway vacated, runway crossings and go-arounds.
+- **Runway milestones**: start of the take-off roll, take-off (`ATOT`),
+  passage over the runway threshold (`xing-runway-threshold`), touchdown
+  (`ALDT`), line-up, runway vacated, runway crossings and go-arounds.
 - **Block times**: off-block (`AOBT`) and in-block (`AIBT`), when the aircraft
   leaves and reaches its parking position.
 - **Distance rings**: crossings of circles of 40 to 120 NM around the
   departure and destination airports.
 - **Level-offs**: periods of level flight during the climb and the descent.
-- **Holding**: the start and end of each holding pattern, with its duration,
+- **Holding**: start and end of each holding pattern, with its duration,
   distance and number of loops.
 - **Point merge**: the legs of point merge arrival procedures, with their time
   and distance.
@@ -80,43 +77,37 @@ Release v2.0.0 adds these event families (all listed on the
 
 ### A richer flight list
 
-The flight list now holds the main times of each flight, copied from its
-events: take-off and landing times, off-block and in-block times, the runways
-and stands used, and the times of crossing the distance rings. It also says
-how each airport was decided (`adep_source`, `ades_source`) and whether a row
-counts as a departure or an arrival (`movement_dep`, `movement_arr`). Column
-names are now in lower case.
+The flight list holds the main times of each flight, copied from its events:
+take-off and landing, off-block and in-block, the runways and stands used and
+the crossings of the distance rings. It also says how each airport was decided
+(`adep_source`, `ades_source`) and whether a row counts as a departure or an
+arrival (`movement_dep`, `movement_arr`). Column names are in lower case.
 
 ### One flight across a reception gap
 
 When an aircraft is out of range of every receiver for more than 30 minutes,
 for example over an ocean, release v0.0.2 started a new flight after the gap.
-Release v2.0.0 keeps one flight when the data on both sides of the gap fit one
-continuous flight (see [Track identity](../algorithms/tracks.qmd)). Long
-flights are therefore more often one row, with both airports.
+Release v2.0.0 keeps one flight when the data on both sides fit one continuous
+flight (see [Track identity](../algorithms/tracks.qmd)). Long flights are
+therefore more often one row, with both airports.
 
-### Cleaner positions
+### Other changes
 
-Repeated, impossible and isolated values in the position reports are removed
-before any event is detected (see
-[Trajectory cleaning](../algorithms/cleaning.qmd)).
-
-### Documented and checked methods
-
-Each method has a page in [Algorithms](../algorithms/index.qmd) that explains how it
-works, what it was compared with, how accurate it is and where it fails. The
-[Accuracy and availability](../accuracy/index.qmd) gives how often every
-item exists and how close it is to the records, overall and per airport.
-
-### Access through Trino
-
-The files can be queried with SQL on the OpenSky Network's Trino instance,
-without downloading them (see [Access](access.qmd)).
+- **Cleaner positions**: repeated, impossible and isolated values are removed
+  before any event is detected (see
+  [Trajectory cleaning](../algorithms/cleaning.qmd)).
+- **Documented and checked methods**: each has a page in
+  [Algorithms](../algorithms/index.qmd) on how it works, what it was compared
+  with, how accurate it is and where it fails.
+  [Accuracy and availability](../accuracy/index.qmd) gives how often every
+  item exists and how close it is to the records, overall and per airport.
+- **Trino**: the files can be queried with SQL on the OpenSky Network's Trino
+  instance, without downloading them (see [Access](access.qmd)).
 
 ## Changes in meaning
 
-Some names stay the same but their meaning or method changed. Code that used
-them needs a check.
+These names stay, but their meaning or method changed. Check code that uses
+them.
 
 | Name | In release v0.0.2 | In release v2.0.0 |
 |---|---|---|
@@ -126,8 +117,8 @@ them needs a check.
 
 ## Moving from v0.0.2 {#moving-from-v0.0.2}
 
-The table lists each file, column or event type of release v0.0.2 and what
-replaces it in release v2.0.0.
+Each file, column or event type of release v0.0.2, and what replaces it in
+release v2.0.0.
 
 | Release v0.0.2 | Release v2.0.0 |
 |---|---|
@@ -151,10 +142,8 @@ replaces it in release v2.0.0.
 
 ### Getting the old shapes
 
-Ready-made views give the data the shape of release v0.0.2, for code written
-for that release:
-
-The views have the same names in Trino and in DuckDB.
+Views give the data the shape of release v0.0.2, for code written for it.
+They have the same names in Trino and in DuckDB.
 
 | Old shape | Trino and DuckDB view | Python reader |
 |---|---|---|
@@ -163,17 +152,11 @@ The views have the same names in Trino and in DuckDB.
 | Measurements (one row per value) | `measurements` | `published.as_measurements(events)` |
 
 [Access](access.qmd) shows how to use them. The views change the shape, not
-the content: the rows follow the methods of release v2.0.0, and the
-identifiers are text and do not match the 64-bit integer identifiers of
-release v0.0.2, so rows cannot be joined to v0.0.2 files by identifier. The
-column `version` holds the version of each method, not "v0.0.2". In the
-`measurements` view every event has one row for the distance flown and one for
-the time passed, even when the value is empty, as in release v0.0.2; the other
-measurement types have a row only when they have a value. The old flight list
-view leaves out the columns that release v0.0.2 did not have.
-
-## Where release v0.0.2 is
-
-Its files stay available for download on
-[Release v0.0.2](v0.0.2.qmd), which also describes how it was
-computed.
+the content: rows follow the methods of release v2.0.0. Identifiers are text
+and do not match the 64-bit integer identifiers of release v0.0.2, so rows
+cannot be joined to v0.0.2 files by identifier. The column `version` holds the
+version of each method, not "v0.0.2". In the `measurements` view every event
+has one row for the distance flown and one for the time passed, even when the
+value is empty, as in release v0.0.2; other measurement types have a row only
+when they have a value. The old flight list view leaves out the columns that
+release v0.0.2 did not have.

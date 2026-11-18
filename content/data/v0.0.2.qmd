@@ -35,9 +35,8 @@ fill_dates <- function(path) {
 }
 ```
 
-This page holds the files of release `r version` of the OPDI data, the
-release that came before `r cfg$release`. It explains how the files are
-organised, lists every file for download, and describes how the data were
+The files of release `r version`, which came before release `r cfg$release`:
+how they are organised, every file for download, and how the data were
 computed.
 
 ```{r status}
@@ -71,15 +70,14 @@ Release `r version` has three tables, each split into files of several days:
 | Flight events | event | ten days | [Flight events files](#flight-events-files) |
 | Measurements | measured value | ten days | [Measurements files](#measurements-files) |
 
-Two tables of open reference data, used to name airports and runways, can be
-downloaded from [OurAirports](https://ourairports.com/):
+Open reference data to name airports and runways come from
+[OurAirports](https://ourairports.com/):
 [airports (CSV)](https://davidmegginson.github.io/ourairports-data/airports.csv)
 and [runways (CSV)](https://davidmegginson.github.io/ourairports-data/runways.csv).
 
-The files are in Parquet, a file format that stores data by column and that
-most data tools read. The ten-day files are named after their first day and
-the day after their last day: `flight_events_20220101_20220111.parquet` holds
-1 to 10 January 2022.
+The files are in Parquet, a column-based file format that most data tools
+read. A ten-day file is named after its first day and the day after its last
+day: `flight_events_20220101_20220111.parquet` holds 1 to 10 January 2022.
 
 ### How the tables relate
 
@@ -156,28 +154,26 @@ erDiagram
     FLIGHT ||--|| TRAJECTORY : "is built from"
 ```
 
-- The **flight list** gives, for each flight, the aircraft address
-  (`ICAO24`), the call sign (`FLT_ID`), the date of flight (`DOF`), the
-  departure and destination airports (`ADEP`, `ADES`), other possible airports
-  (`ADEP_P`, `ADES_P`), data on the aircraft and the first and last time it was
-  seen.
-- An **event** is a moment in a flight, with a time, a position and an
-  altitude in feet. `flight_id` links it to the flight list's `ID`.
-- A **measurement** is a value attached to an event: the distance flown
+- **Flight list**: for each flight, the aircraft address (`ICAO24`), call sign
+  (`FLT_ID`), date of flight (`DOF`), departure and destination airports
+  (`ADEP`, `ADES`), other possible airports (`ADEP_P`, `ADES_P`), data on the
+  aircraft and the first and last time it was seen.
+- **Event**: a moment in a flight, with a time, a position and an altitude in
+  feet. `flight_id` links it to the flight list's `ID`.
+- **Measurement**: a value attached to an event, the distance flown
   (`type` = `Distance flown (NM)`) or the time passed (`type` =
   `Time Passed (s)`) since the start of the flight. `event_id` links it to the
   event's `id`.
-- The airport and runway tables shown are a selection of the OurAirports
-  columns.
+- The airport and runway tables are a selection of the OurAirports columns.
 
 The position reports of a flight can be fetched from the OpenSky Network's
 historical database with `ICAO24`, the call sign and the time from
-`FIRST_SEEN` to `LAST_SEEN`, for example with the tools on the OpenSky
-Network's [data tools page](https://opensky-network.org/data/data-tools).
+`FIRST_SEEN` to `LAST_SEEN`, for example with the tools on its
+[data tools page](https://opensky-network.org/data/data-tools).
 
 ## Download scripts
 
-Each file has its own web address. The patterns are:
+Each file has its own web address:
 
 ```
 https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_list/flight_list_{YYYYMM}.parquet
@@ -185,13 +181,12 @@ https://www.eurocontrol.int/performance/data/download/OPDI/v002/flight_events/fl
 https://www.eurocontrol.int/performance/data/download/OPDI/v002/measurements/measurements_{YYYYMMDD}_{YYYYMMDD}.parquet
 ```
 
-`YYYYMM` is the year and month. For the ten-day files, the first date is the
-first day of the period and the second date the day after its last day. The
-periods start on `r rel$day_text(start_date)` and follow each other every ten
-days.
+`YYYYMM` is the year and month. In the ten-day files, the first date is the
+first day of the period and the second the day after its last day. Periods
+start on `r rel$day_text(start_date)` and follow each other every ten days.
 
-The two scripts below download every file of the release into a folder
-`data/`. Change the dates in `periods` to download less.
+The scripts download every file of the release into a folder `data/`. Change
+the dates in `periods` to download less.
 
 ::: {.callout-tip collapse="true"}
 
@@ -292,10 +287,9 @@ One file per ten days, over the same periods as the flight events.
 
 ## How release v0.0.2 was computed
 
-Release `r version` was produced by an earlier version of the OPDI software.
-Its methods differ from those described in [Algorithms](../algorithms/index.qmd),
-which apply to release `r cfg$release`. They are described here so that the
-data can be understood.
+An earlier version of the OPDI software produced release `r version`. Its
+methods differ from those in [Algorithms](../algorithms/index.qmd), which
+apply to release `r cfg$release`.
 
 ### Flights and their identifiers
 
@@ -308,13 +302,12 @@ sequence number, and the year and month.
 
 ### Departure and destination airports
 
-Around every airport, a circle of 30 NM radius was filled with H3 cells of
-resolution 7. H3 is a system that divides the Earth into hexagonal cells;
-cells of resolution 7 cover about 5 km² each. Only the reports below
-4,000 ft were kept. Each report was matched to the airports whose circle
-contains its cell. The airport nearest to the first (or last) matching report
-became the departure (or destination) airport; the other candidates were
-written in `ADEP_P` (or `ADES_P`).
+A circle of 30 NM radius around every airport was filled with H3 cells of
+resolution 7. H3 divides the Earth into hexagonal cells; these cover about
+5 km² each. Only reports below 4,000 ft were kept, and each was matched to the
+airports whose circle contains its cell. The airport nearest to the first (or
+last) matching report became the departure (or destination) airport; the other
+candidates went into `ADEP_P` (or `ADES_P`).
 
 ### Flight events
 
@@ -331,14 +324,14 @@ written in `ADEP_P` (or `ADES_P`).
 | `entry-taxiway`, `exit-taxiway` | Entry into and exit from a taxiway. |
 | `entry-parking_position`, `exit-parking_position` | Entry into and exit from a parking position (stand). |
 
-The **flight phases** (ground, climb, cruise, level, descent) were found
-with the fuzzy logic of OpenAP, an open aircraft performance model by Junzi
-Sun of TU Delft. For the flight-level crossings, a smoothed flight level was
-computed for each report and compared between consecutive reports. The
-airport areas (runways, taxiways, parking positions) came from OpenStreetMap,
-filled with H3 cells of resolution 12, and each report was matched to them.
-The `info` field of the airport events holds the OpenStreetMap details of the
-area, as JSON text.
+The **flight phases** (ground, climb, cruise, level, descent) came from the
+fuzzy logic of OpenAP, an open aircraft performance model by Junzi Sun of TU
+Delft. For the flight-level crossings, a smoothed flight level was computed
+for each report and compared between consecutive reports. Airport areas
+(runways, taxiways, parking positions) came from OpenStreetMap, filled with H3
+cells of resolution 12, and each report was matched to them. The `info` field
+of the airport events holds the OpenStreetMap details of the area, as JSON
+text.
 
 ### Measurements
 
