@@ -182,3 +182,19 @@ test("items link to their limitations", () => {
   assert.ok(h.includes('href="../limitations.html#lim-block-times"'));
   assert.ok(L.renderOverallItem(overall, "ATOT").includes('href="../limitations.html#lim-take-off-landing"'));
 });
+
+test("under All, airports without a reference are grouped by availability apart", () => {
+  const h = L.renderItem(ap, "take-off", { list: "all" });
+  const cut = h.indexOf("Not compared");
+  assert.ok(cut > 0, "no Not compared section");
+  const compared = h.slice(0, cut);
+  const notCompared = h.slice(cut);
+  assert.ok(!compared.includes("#airport-KATL") && notCompared.includes("#airport-KATL"));
+  assert.ok(compared.includes("#airport-LFPG"));
+  assert.ok(!compared.includes(">no reference<"));
+  assert.ok(/acc-badge acc-good">high</.test(notCompared));
+  clean(h);
+  // European top 100 keeps the accuracy groups only; Worldwide top 100 stays by availability.
+  assert.ok(!L.renderItem(ap, "take-off", { list: "europe" }).includes("Not compared"));
+  assert.ok(!L.renderItem(ap, "take-off", { list: "world" }).includes("Not compared"));
+});

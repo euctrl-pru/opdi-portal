@@ -367,20 +367,23 @@
     var it = (payload.items || {})[key];
     if (!m && !it) return '<p class="acc-muted">No item ' + esc(itemOrAnchor) + " on this page.</p>";
     var byAvail = payload.scope === "world" || (payload.scope === "airports" && list === "world");
-    var col = byAvail ? R.ownLabel : R.accLabel;
-    var labels = ((payload.labels || {})[byAvail ? "availability" : "accuracy"] || []).slice();
-    var emptyWord = byAvail ? "no flights" : "not rated";
-    var members = {};
+    // Under "All airports", the airports with no reference go to their own section, by availability.
+    var split = payload.scope === "airports" && list === "all";
+    var acc = { col: R.accLabel, labels: ((payload.labels || {}).accuracy || []).slice(), empty: "not rated",
+                members: {}, total: 0 };
+    var avail = { col: R.ownLabel, labels: ((payload.labels || {}).availability || []).slice(),
+                  empty: "no flights", members: {}, total: 0 };
     (payload.airports || []).forEach(function (a) {
       if (!inList(a, list)) return;
       var row = ((payload.rows || {})[a.icao] || {})[key];
       if (!row) return;
-      var label = row[col] || emptyWord;
-      if (labels.indexOf(label) < 0) labels.push(label);
-      (members[label] = members[label] || []).push(a);
+      var noRef = referenceName(payload, row[R.ref]) === "no reference" || a.where === "outside Europe";
+      var g = byAvail || (split && noRef) ? avail : acc;
+      var label = row[g.col] || g.empty;
+      if (g.labels.indexOf(label) < 0) g.labels.push(label);
+      (g.members[label] = g.members[label] || []).push(a);
+      g.total++;
     });
-    var total = 0;
-    labels.forEach(function (l) { total += (members[l] || []).length; });
 
     var out = '<article class="acc-card acc-item"><header class="acc-card-head">' +
       '<h3 class="acc-card-title">' + code(m ? m.name : it.name) + "</h3>";
@@ -390,33 +393,45 @@
     }
     out += '<p class="acc-refnote">' + (byAvail
       ? "Airports by availability: the share of OPDI's flights that carry the item."
-      : "Airports by accuracy: how often OPDI's value agrees with the reference records.") +
+      : split
+        ? "Airports with a reference by accuracy (how often OPDI's value agrees with the records); " +
+          "the others, below, by availability (the share of OPDI's flights that carry the item)."
+        : "Airports by accuracy: how often OPDI's value agrees with the reference records.") +
       "</p></header>";
 
-    if (!total) {
+    if (!acc.total && !avail.total) {
       return out + '<p class="acc-muted">No airport ' + (list === "all" ? "" : "of this list ") +
         "has this item.</p></article>";
     }
 
-    out += '<div class="acc-stack" role="img" aria-label="' + esc(labels.filter(function (l) {
-      return members[l];
-    }).map(function (l) { return l + ": " + members[l].length; }).join(", ")) + '">';
-    labels.forEach(function (l) {
-      var c = (members[l] || []).length;
-      if (c) out += '<span class="acc-stack-seg ' + labelClass(l) + '" style="flex-grow:' + c + '"></span>';
-    });
-    out += "</div>";
+    function groups(g) {
+      var html = '<div class="acc-stack" role="img" aria-label="' + esc(g.labels.filter(function (l) {
+        return g.members[l];
+      }).map(function (l) { return l + ": " + g.members[l].length; }).join(", ")) + '">';
+      g.labels.forEach(function (l) {
+        var c = (g.members[l] || []).length;
+        if (c) html += '<span class="acc-stack-seg ' + labelClass(l) + '" style="flex-grow:' + c + '"></span>';
+      });
+      html += "</div>";
+      g.labels.forEach(function (l) {
+        var members = g.members[l] || [];
+        if (!members.length) return;
+        html += '<details class="acc-label-group" open><summary>' + badge(l) + " " +
+          plural(members.length, "airport", "airports") + '</summary><div class="acc-chips">' +
+          members.map(function (a) {
+            return '<a class="acc-chip" href="#airport-' + esc(a.icao) + '" title="' + esc(a.name) + '">' +
+              esc(a.icao) + "</a>";
+          }).join("") + "</div></details>";
+      });
+      return html;
+    }
 
-    labels.forEach(function (l) {
-      var list = members[l] || [];
-      if (!list.length) return;
-      out += '<details class="acc-label-group" open><summary>' + badge(l) + " " +
-        plural(list.length, "airport", "airports") + '</summary><div class="acc-chips">' +
-        list.map(function (a) {
-          return '<a class="acc-chip" href="#airport-' + esc(a.icao) + '" title="' + esc(a.name) + '">' +
-            esc(a.icao) + "</a>";
-        }).join("") + "</div></details>";
-    });
+    if (byAvail) return out + groups(avail) + "</article>";
+    if (acc.total) out += groups(acc);
+    if (split && avail.total) {
+      out += '<section class="acc-noref"><h4 class="acc-group-title">Not compared (no reference): ' +
+        "grouped by availability</h4>" + groups(avail) + "</section>";
+    }
     return out + "</article>";
   }
 
