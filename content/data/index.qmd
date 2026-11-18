@@ -104,7 +104,10 @@ A flight belongs to the day on which it was **first seen**, in UTC: the column
 `dof` (date of flight). The files of a day hold the flights first seen that
 day and **all** their events, also those after midnight: a flight that takes
 off at 23:30 UTC and lands at 02:00 UTC the next day is in the files of the
-day it took off, with its landing.
+day it took off, with its landing. A track that holds several flights (a
+landing, then a take-off at least five minutes later) has one row for each
+flight, all in the files of the day on which the track was first seen (see
+[Tracks and flight identity](../algorithms/tracks.qmd#flights-of-a-track)).
 
 A few events belong to a track with no row in the flight list (3,338 of
 6,691,769 events, or 0.05%, on 14 June 2026). The flight list holds
