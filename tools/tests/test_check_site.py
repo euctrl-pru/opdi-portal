@@ -327,12 +327,12 @@ def test_quality_pages_sit_under_data():
     data_menu = text[data_start:algo_start]
     for page in (
         "content/limitations.qmd",
-        "content/data/limitations.qmd",
         "content/accuracy/index.qmd",
         "content/accuracy/airports.qmd",
     ):
         assert page in data_menu, page
     assert 'section: "Limitations"' in data_menu
+    assert "content/data/limitations.qmd" not in text
     assert 'section: "Accuracy and availability"' in data_menu
     after_algorithms = text[algo_start:]
     assert "content/limitations.qmd" not in after_algorithms

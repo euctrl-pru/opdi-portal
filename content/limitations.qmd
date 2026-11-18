@@ -1,83 +1,124 @@
 ---
 title: "Limitations"
-description: "When each OPDI item is missing or can be wrong, what not to conclude from it, and where it is reliable."
+description: "When the OPDI data, and each published item, are missing or can be wrong, what not to conclude from them, and where they are reliable."
+aliases:
+  - data/limitations.html
 ---
 
-OPDI is built from the position reports that the receivers of the OpenSky
-Network pick up. Most of its limits come from that: where no receiver hears
-an aircraft, nothing can be computed. This page lists the limits of every
-published item. How each item is computed is on [Algorithms](algorithms/index.qmd);
-how often it exists and how close it is to the records, overall and per
-airport, is on [Accuracy and availability](accuracy/index.qmd).
+OPDI is built from the position reports that the OpenSky Network's receivers
+pick up: where no receiver hears an aircraft, nothing can be computed, and
+most limits come from that. A found event can still be wrong; a missing one
+says nothing about what the aircraft did
+([found is not the same as correct](accuracy/index.qmd#two-measures-availability-and-accuracy)).
 
-**Found is not the same as correct.** An event that exists can still be
-wrong, and an event that is missing says nothing about what the aircraft did.
+- How each item is computed: [Algorithms](algorithms/index.qmd).
+- How often it exists and how close it is to the records: [Data quality](accuracy/index.qmd).
+- Each item's figures at each airport: [Airports](accuracy/airports.qmd#lookup).
+- The shares and times below are over the [three days measured](accuracy/index.qmd#the-three-days).
 
 ## Summary
 
 | Item | Main limits | Where it is reliable |
 |---|---|---|
-| [Tracks](#lim-tracks) (`flight_id`) | A track can hold several flights or part of one; placeholder addresses merge aircraft. | Airliners with continuous reception and a call sign per flight. |
-| [Airports](#lim-airports) (`adep`, `ades`) | Small airfields and heliports never named; arrivals lost far out get no destination. | Medium and large airports, and rows whose source is `runway_event`. |
-| [Aircraft details](#lim-aircraft) | Database of October 2024; type missing for about one flight in six. | Airliners registered before late 2024. |
+| [Tracks](#lim-tracks) (`flight_id`) | Can hold several flights, or part of one; placeholder addresses merge aircraft. | Airliners with continuous reception and a call sign per flight. |
+| [Airports](#lim-airports) (`adep`, `ades`) | Small airfields and heliports never named; arrivals lost far out get none. | Medium and large airports; source `runway_event`. |
+| [Aircraft details](#lim-aircraft) | Database of October 2024; no type for about one flight in six. | Airliners registered before late 2024. |
 | [First and last seen](#lim-first-last-seen) (`first_seen`, `last_seen`) | Describe reception, not the flight. | Everywhere, as reception times. |
-| [Milestone columns](#lim-flight-list-milestones) | As available as their events; one take-off and one landing per row. | Where the events themselves are reliable. |
-| [Take-off and landing](#lim-take-off-landing) (`ATOT`, `ALDT`) | Need reception near the runway; runway-window times (`legacy`) are less precise. | Airports with reception down to the runway; times with `info.method` = `acdm`. |
-| [Other runway events](#lim-runway) (`line-up`, `take-off-roll`, `xing-runway-threshold`, `runway-vacated`, `go-around`, `runway-crossing-entry`, `runway-crossing-vacated`) | Need reports on the runway; placed at the first or last report when reception starts or ends there. | Airports with ground reception on the runways. |
-| [Block times](#lim-block-times) (`AOBT`, `AIBT`) | Need reception at the stand; off-block late when first received moving. | Airports with dense ground reception and named stands in OpenStreetMap. |
+| [Milestone columns](#lim-flight-list-milestones) | As available as their events; one take-off and one landing per row. | Where their events are. |
+| [Take-off and landing](#lim-take-off-landing) (`ATOT`, `ALDT`) | Need reception near the runway; runway-window times (`legacy`) less precise. | Reception down to the runway; `info.method` = `acdm`. |
+| [Other runway events](#lim-runway) (`line-up`, `take-off-roll`, `xing-runway-threshold`, `runway-vacated`, `go-around`, `runway-crossing-entry`, `runway-crossing-vacated`) | Need reports on the runway; at the first or last report when reception starts or ends there. | Ground reception on the runways. |
+| [Block times](#lim-block-times) (`AOBT`, `AIBT`) | Need reception at the stand; off-block late when first received moving. | Dense ground reception and named stands in OpenStreetMap. |
 | [Airport surface](#lim-surface) (`entry-{element}`, `exit-{element}`) | Need ground reception and a mapped layout; vehicles carry transponders. | Large airports with good ground reception and a detailed map. |
-| [Vertical profile](#lim-vertical) (`top-of-climb`, `top-of-descent`, `level-start`, `level-end`, `level-off-climb-start`, `level-off-climb-end`, `level-off-descent-start`, `level-off-descent-end`, `xing-fl{level}`) | Not validated; slow aircraft and tracks cut by reception give odd profiles. | Jet airliners with a cruise, tracks with `info.observed` true. |
-| [Distance circles](#lim-rings) (`xing-{radius}nm`) | Only around the row's two airports; position steps near spoofing. | The 40 and 100 NM circles at airports with good reception around them. |
+| [Vertical profile](#lim-vertical) (`top-of-climb`, `top-of-descent`, `level-start`, `level-end`, `level-off-climb-start`, `level-off-climb-end`, `level-off-descent-start`, `level-off-descent-end`, `xing-fl{level}`) | Not validated; slow aircraft and tracks cut by reception give odd profiles. | Jet airliners with a cruise; `info.observed` true. |
+| [Distance circles](#lim-rings) (`xing-{radius}nm`) | Only around the row's two airports; position steps near spoofing. | 40 and 100 NM circles with good reception around them. |
 | [FIR crossings](#lim-fir) (`xing-fir`) | One AIRAC cycle for every day. | Lateral crossings in airspace with continuous reception. |
 | [Holding](#lim-holding) (`holding-start`, `holding-end`) | Circling for other reasons meets the definition. | Holds with `info.context` = `arrival`. |
-| [Point merge](#lim-point-merge) (`pms-leg-entry`, `pms-leg-exit`, `pms-merge-point`) | Only the airports in the reference table. | Airports in the table with good reception on the arcs. |
-| [Measurements](#lim-measurements) (`distance_flown_nm`, `time_passed_s`) | Count from the start of the track, not of the flight. | Differences between two events of one flight. |
+| [Point merge](#lim-point-merge) (`pms-leg-entry`, `pms-leg-exit`, `pms-merge-point`) | Only the airports in the reference table. | Good reception on the arcs. |
+| [Measurements](#lim-measurements) (`distance_flown_nm`, `time_passed_s`) | Count from the start of the track, not of the flight. | Differences between two events of a flight. |
 
 ## General limits {#general-limits}
 
-- **Reception.** OpenSky receivers are on the ground and hear aircraft in
-  line of sight. Over oceans, deserts and remote areas there are few of them,
-  and near the ground an aircraft is heard only close to a receiver. So events
-  in cruise are found almost everywhere, events on the runway at fewer
-  airports, and events at the stand at fewer still. Missing events on the
-  ground mostly mean missing reception, not that nothing happened. The
-  airports where ground events are nearly absent are listed under
-  [Off-block and in-block times](#ground-events-nearly-absent).
-- **Tracks that hold several flights.** When an aircraft lands and departs
-  again under the same call sign while receivers hear it all the time on the
-  ground, the two flights stay one track. The flight-list row names the
-  track's first and last airports; the distance-circle crossings, block times
-  and stands at the middle stop are not on the row (the runway events there
-  are still published as events). A track keeps one top of climb and one top
-  of descent, and one take-off time and one landing time per airport.
-- **Placeholder addresses.** Some transponders send addresses such as
-  `000000`, `000001` or `ffffff`. Several aircraft can then be merged into one
-  track; such tracks are not flagged.
-- **Airport records to the whole minute.** Most airport operator records give
-  times to the minute, so a difference of less than about half a minute
-  between OPDI and a record cannot be judged.
-- **Position spoofing and jumps.** Near areas where satellite navigation is
-  disturbed (GPS spoofing), positions can jump or step by 5 to 20 NM and stay.
-  Jumps that imply more than 1,000 kt are left out of the crossings and the
-  distance flown; a spoofed position that does not jump (a frozen position)
-  still misleads the detectors.
+### ADS-B reception {#ads-b-reception}
+
+Everything in OPDI comes from **ADS-B** (Automatic Dependent
+Surveillance–Broadcast): radio messages in which an aircraft broadcasts its
+position, altitude and speed. The OpenSky receivers, run by volunteers and
+institutions, are on the ground, unevenly spread, and hear aircraft in line
+of sight: a few hundred kilometres away at cruise altitude, only close by
+near the ground.
+
+- No receiver near, no data: often over oceans, deserts and other areas with
+  few receivers, and on the ground at many airports.
+- Cruise events are found almost everywhere, runway events at fewer
+  airports, stand events at fewer still. A missing block time, runway event
+  or surface event mostly means the surface was not heard, not that nothing
+  happened ([airports where ground events are nearly absent](#ground-events-nearly-absent)).
+- Aircraft without ADS-B, or not broadcasting it, are not in the data.
+- ADS-C reports, sent by satellite mainly over the oceans, are not used in
+  release v2.0.0, so the ocean gaps stay.
+- Counts from OPDI (flights per airport, movements per runway) are lower
+  bounds, not totals. The share of an airport's traffic OPDI sees varies by
+  airport and by day ([OPDI Sensors: where next](sensors-expansion.qmd)
+  measures it over European airports in 2025).
+
+### Flights are tracks
+
+OPDI uses no flight plans. A **flight** is a **track**: the position reports
+of one aircraft that belong together ([Track identity](algorithms/tracks.qmd)),
+from where reception starts to where it ends.
+
+- Departure and destination airports come from the track, empty when it
+  begins or ends away from an airport ([Departure and destination airports](algorithms/airports.qmd)).
+  Small airfields and heliports are not candidate airports: their flights
+  have neither, and no runway events.
+- Planned route, planned times and airline schedule are unknown: delays
+  against a schedule cannot be computed from OPDI alone.
+- A flight split into two tracks gives two rows in the flight list.
+- An aircraft that lands and departs again under the same call sign, heard
+  all the time on the ground, stays one track holding two flights; each
+  item's section says what this does to it.
+- Placeholder addresses sent by some transponders (`000000`, `000001`,
+  `ffffff`) can merge several aircraft into one track, which is not
+  flagged.
+
+### Day of a flight
+
+A flight belongs to the day it was first seen, in UTC, with all its events
+in that day's files ([Data](data/index.qmd#which-day-a-flight-belongs-to)).
+
+- To count the events or landings that **happened** on a day, read its files
+  and the day before's, and filter on `event_time`.
+- A flight first seen just before midnight UTC belongs to the earlier day,
+  even if it took off after midnight.
+
+### Reference data
+
+- **Records only in Europe.** The items are compared with the airport
+  operator records and Network Manager flight records that EUROCONTROL holds,
+  which cover the European area; many airport records are to the whole
+  minute ([what OPDI is compared with](accuracy/index.qmd#what-opdi-is-compared-with)).
+  Outside Europe only how often an item exists can be measured, not whether
+  it is right, and several items have no reference anywhere. Both measures
+  for every item are on [Data quality](accuracy/index.qmd), and for the 100
+  busiest airports in Europe and worldwide on [Airports](accuracy/airports.qmd).
+- **Open sources.** Airports and runways come from OurAirports, airport
+  layouts and stand names from OpenStreetMap, aircraft details from the
+  OpenSky aircraft database. Their errors and gaps carry over: a runway
+  missing from OurAirports gives no runway events; unmapped taxiways, aprons
+  and stands give no surface events, block times or stands; a stand drawn
+  without a name gives no stand name.
+
+### Position errors and vehicles
+
+- **Spoofing.** Where satellite navigation is disturbed (GPS spoofing),
+  positions can jump, or step by 5 to 20 NM and stay. Jumps implying more
+  than 1,000 kt are left out of the crossings and the distance flown; a
+  spoofed position that does not jump (a frozen position) still misleads the
+  detectors.
 - **Vehicles.** Airport vehicles and some towed aircraft carry transponders.
-  Tracks that never leave the ground are marked `info.ground_only` on their
-  surface events and get no block times, but they remain in the flight list.
-- **Airports without a mapped layout.** Surface events, block times and
-  stands need the airport's taxiways, aprons and stands in OpenStreetMap. An
-  airport that is not mapped, or a stand drawn without a name, gives no event
-  or no stand name.
-- **Small airfields and heliports** are not candidate airports, so their
-  flights have no departure or destination airport and no runway events.
-- **Reference data only in Europe.** The records OPDI is compared with
-  (airport operator records and Network Manager flight records) cover the
-  European area. Outside it, only how often an item is found can be measured,
-  not whether it is right.
-- **FIR boundaries.** The FIR crossings use the airspace of AIRAC cycle 524
-  (28 November to 26 December 2024) for every day.
-- **Aircraft database.** Registrations, types and operators come from the
-  OpenSky aircraft database of October 2024.
+  Tracks that never leave the ground, with no aircraft type or a vehicle
+  type, are marked `info.ground_only` on their surface events and get no
+  block times; they remain in the flight list.
 - **Plausibility checks** remove only events the track clearly contradicts; a
   wrong but plausible event stays.
 
@@ -85,185 +126,191 @@ wrong, and an event that is missing says nothing about what the aircraft did.
 
 ### When it is missing
 
-A flight that no receiver heard has no track. A flight heard only in pieces
-far apart can be split into several tracks: a silence of more than
-30 minutes is kept inside one track only when both sides look like the same
-flight en route.
+- A flight that no receiver heard has no track.
+- A flight heard in pieces far apart can be split into several tracks: a
+  silence over 30 minutes stays inside one track only when both sides look
+  like the same flight en route.
 
 ### When it can be wrong
 
-A track can hold two flights (a turnaround under one call sign with continuous
-ground reception, see [General limits](#general-limits)), or merge aircraft
-that share a placeholder address. A call sign broadcast wrongly for a long
-time can split a flight.
+- Two flights in one track, or aircraft merged by a placeholder address
+  ([Flights are tracks](#flights-are-tracks)).
+- A call sign broadcast wrongly for a long time can split a flight.
 
 ### What not to conclude from it
 
-The number of tracks is not the number of flights: count with the
-[movement columns](algorithms/movements.qmd). `flt_id` is the call sign
-broadcast most often, which may differ from the filed flight plan.
+- The number of tracks is not the number of flights: count with the
+  [movement columns](algorithms/movements.qmd).
+- `flt_id` is the call sign broadcast most often, which may differ from the
+  filed flight plan.
 
 ## Departure and destination airports {#lim-airports}
 
 ### When it is missing
 
-`adep` is empty when the first report is more than 30 NM from any candidate
-airport or more than 15,000 ft above it (a track first heard in cruise), and
-when a track first heard in the air descends. `ades` is empty when the track
-ends without descending near a candidate airport (reception lost in cruise
-or far out). Small airfields and heliports are never named. Over the three
-days measured, [24.2 %]{.measured} of the flights had no `adep` and
-[35.7 %]{.measured} no `ades`. At a few busy European airports OPDI names the
-airport as destination for only a small share of the recorded arrivals (see
-[Accuracy: where no take-off or landing time exists](accuracy/airports.qmd#no-times)).
+- `adep` is empty when the first report is more than 30 NM from any candidate
+  airport or more than 15,000 ft above it (first heard in cruise), and when a
+  track first heard in the air descends.
+- `ades` is empty when the track ends without descending near a candidate
+  airport (reception lost in cruise or far out).
+- [24.2 %]{.measured} of the flights had no
+  `adep` and [35.7 %]{.measured} no `ades`.
+- At a few busy European airports OPDI names the airport as destination of
+  only a small share of the recorded arrivals
+  ([where no take-off or landing time exists](accuracy/airports.qmd#no-times)).
 
 ### When it can be wrong
 
-At airports close together the nearest airport can be the wrong one, though
-the direction of flight decides between airports less than 2 NM apart. A
-track holding two flights names its first and last airports only.
+- At airports close together the nearest airport can be the wrong one,
+  though the direction of flight decides between airports less than 2 NM
+  apart.
+- A track holding two flights names only its first and last airports.
 
 ### What not to conclude from it
 
-An empty airport is not an overflight in every case: it can be a flight to a
-small airfield, or one whose end was not received. `adep_source` and
-`ades_source` say how sure the answer is: `runway_event` is the most reliable.
+- An empty airport is not always an overflight: it can be a flight to a small
+  airfield, or one whose end was not received.
+- `adep_source` and `ades_source` say how sure the answer is;
+  `runway_event` is the most reliable.
 
 ## Aircraft details {#lim-aircraft}
 
 ### When it is missing
 
-When the address is not in the OpenSky aircraft database of October 2024:
-aircraft registered later, military aircraft and many light aircraft. Over
-the three days measured, [17.2 %]{.measured} of the flights the Network
-Manager records had no type in OPDI.
+- When the address is not in the OpenSky aircraft database of October 2024:
+  aircraft registered later, military aircraft and many light aircraft.
+- [17.2 %]{.measured} of the flights the
+  Network Manager records had no type in OPDI.
 
 ### When it can be wrong
 
-When an address moved to another aircraft after October 2024, or the
-database entry is wrong.
+- When an address moved to another aircraft after October 2024, or the
+  database entry is wrong.
 
 ### What not to conclude from it
 
-`icao_operator` is the registered operator of the aircraft, not necessarily
-the airline that flew the flight (wet leases, code shares).
+- `icao_operator` is the aircraft's registered operator, not necessarily the
+  airline that flew the flight (wet leases, code shares).
 
 ## First seen and last seen {#lim-first-last-seen}
 
 ### When it is missing
 
-Never: every track has both. A track without any measured position takes
-them from its measured altitude or speed. They are identical in the flight
-list and in the events.
+- Never: every track has both, identical in the flight list and the events.
+  A track without any measured position takes them from its measured
+  altitude or speed.
 
 ### When it can be wrong
 
-They are exact as reception times. A track that holds several flights has
-one pair.
+- They are exact as reception times. A track holding several flights has one
+  pair.
 
 ### What not to conclude from it
 
-They are not the off-block or in-block times, nor the take-off or landing:
-they are when the receivers first and last heard the aircraft.
+- They are when the aircraft was first and last heard, not its off-block,
+  in-block, take-off or landing times.
 
 ## Milestone columns and movements {#lim-flight-list-milestones}
 
 ### When it is missing
 
-A column is empty when its event was not found (see the event's section
-below). `aobt`, `aibt` and the stand columns are often empty because they need
-reception at the stand.
+- Empty when its event was not found (see the event's section).
+- `aobt`, `aibt` and the stand columns are often empty, because they need
+  reception at the stand.
 
 ### When it can be wrong
 
-As wrong as the event behind it. On a track holding several flights, the
-events at the middle stop are not on the row. On a row with no departure
-(or destination) airport, `aobt` and `stnd_dep` (or `aibt` and `stnd_arr`)
-can still come from a block time read at a named stand; there is then no
-airport to check them against.
+- As wrong as the event behind it.
+- On a track holding several flights, the distance-circle crossings, block
+  times and stands at the middle stop are not on the row; the runway events
+  there are still published as events.
+- A row with no departure (or destination) airport can still have `aobt` and
+  `stnd_dep` (or `aibt` and `stnd_arr`) from a block time at a named stand,
+  with no airport to check them against.
 
 ### What not to conclude from it
 
-The movement columns (`superseded_*`, `movement_*`) have not been checked
-against official counts; two real short flights of one aircraft within
-3 hours at one airport can be counted as one.
+- The movement columns (`superseded_*`, `movement_*`) have not been checked
+  against official counts; two real short flights of one aircraft within
+  3 hours at one airport can be counted as one.
 
 ## Take-off and landing times {#lim-take-off-landing}
 
 ### When it is missing
 
-When the aircraft was not received near the runway: the runway-pass method
-needs reports on the runway or less than 1 NM short of it, the runway-window
-method reports within 5 NM and 1,500 ft of the airport. Airports far from any
-receiver have few times. In particular:
+When the aircraft was not received near the runway (airports far from any
+receiver have few times). Runway-pass times need reports on the runway or
+less than 1 NM short of it; runway-window times, within 5 NM and 1,500 ft of
+the airport.
 
-- a landing whose reception ends in the flare, before any report on the
-  runway, can get no landing time;
-- a take-off first received more than 1,500 ft above the track's ground
-  altitude at the airport gets no take-off time;
-- at some busy European airports OPDI has no take-off or landing time at all
-  on the three days measured; they are listed on
-  [Accuracy: where no take-off or landing time exists](accuracy/airports.qmd#no-times).
-  The cause has not been established.
+- A landing whose reception ends in the flare, before any report on the
+  runway, can get no landing time.
+- A take-off first received more than 1,500 ft above the track's ground
+  altitude at the airport gets no take-off time.
+- Some busy European airports have no take-off or landing time at all, for
+  a cause not established
+  ([where no take-off or landing time exists](accuracy/airports.qmd#no-times)).
 
 ### When it can be wrong
 
 - Runway-window times (`info.method` = `legacy`) are the first or last report
-  of the climb or descent, so they are less precise. Over the three days
-  measured, [94.3 %]{.measured} of the runway-pass take-off times and
+  of the climb or descent, so less precise:
+  [94.3 %]{.measured} of the runway-pass take-off times and
   [91.5 %]{.measured} of the runway-window ones were within 60 s of the
   airport records; for landings, [97.1 %]{.measured} and [87.9 %]{.measured}.
-  Where reception starts at lift-off or ends over the threshold, the time
-  comes from a report up to 1,500 ft above the ground;
-  `info.at_track_edge` marks the first or last report of the track.
+- Where reception starts at lift-off or ends over the threshold, the time
+  comes from a report up to 1,500 ft above the ground; `info.at_track_edge`
+  marks the track's first or last report.
 - At a few airports the runway named, or the take-off time, mostly disagrees
-  with the records; they are listed on
-  [Accuracy: where an item is unreliable](accuracy/airports.qmd#unreliable).
-- When the track has no ground report at the airport, the height is measured
-  above the published elevation, which on a day of low or high pressure moves
-  the 15 ft crossing (`info.height_reference` = `elevation`).
+  with the records ([where an item is unreliable](accuracy/airports.qmd#unreliable)).
+- With no ground report at the airport, height is measured above the
+  published elevation, so low or high pressure moves the 15 ft crossing
+  (`info.height_reference` = `elevation`).
 
 ### What not to conclude from it
 
-The two methods have different errors: separate them with `info.method` when
-comparing airports. A track keeps one `ATOT` and one `ALDT` per airport: on
-a track that holds several flights, a second take-off or landing at the same
-airport is not published.
+- The two methods have different errors: separate them with `info.method`
+  when comparing airports.
+- A track keeps one `ATOT` and one `ALDT` per airport: on a track holding
+  several flights, a second take-off or landing at the same airport is not
+  published.
 
 ## Other runway events {#lim-runway}
 
 ### When it is missing
 
-`line-up`, `take-off-roll` and `runway-vacated` need a report on the runway
-itself; where reception starts at lift-off or ends over the threshold, they
-are not published. `line-up` and `take-off-roll` are not given for a
-touch-and-go or a low approach. `xing-runway-threshold` needs reports in the
-last minute before the runway and at most 300 ft above the ground there.
-Runway crossings need ground reception on the runway.
+- `line-up`, `take-off-roll` and `runway-vacated` need a report on the runway
+  itself: where reception starts at lift-off or ends over the threshold, they
+  are not published. `line-up` and `take-off-roll` are not given for a
+  touch-and-go or a low approach.
+- `xing-runway-threshold` needs reports in the last minute before the runway,
+  at most 300 ft above the ground there.
+- Runway crossings need ground reception on the runway.
 
 ### When it can be wrong
 
-When reception starts during the take-off roll or ends during the landing
-roll, `line-up`, `take-off-roll` and `runway-vacated` mark the first or last
-report received on the runway, which can be at high speed. A go-around
-detector based on heights can count a training low approach, and misses
-go-arounds started above 1,500 ft.
+- When reception starts during the take-off roll or ends during the landing
+  roll, `line-up`, `take-off-roll` and `runway-vacated` mark the first or last
+  report received on the runway, which can be at high speed.
+- A go-around detector based on heights can count a training low approach,
+  and misses go-arounds started above 1,500 ft.
 
 ### What not to conclude from it
 
-No reference gives line-up, take-off roll, runway vacated, go-around or
-runway crossing times; these events are not validated, only compared with the
-recorded take-off or landing.
+- No reference gives line-up, take-off roll, runway vacated, go-around or
+  runway crossing times: these events are not validated, only compared with
+  the recorded take-off or landing.
 
 ## Off-block and in-block times {#lim-block-times}
 
 ### When it is missing
 
-Often: they need reception at the stand and on the taxiway, and a stand
-passage in the track. An arrival with no position or speed after the landing
-roll gets no in-block time. Over the three days measured,
-[35.0 %]{.measured} of the recorded off-blocks had an `AOBT` and
-[33.4 %]{.measured} of the recorded in-blocks an `AIBT`.
+- Often: they need reception at the stand and on the taxiway, and a stand
+  passage in the track. An arrival with no position or speed after the
+  landing roll gets no in-block time.
+- [35.0 %]{.measured} of the recorded
+  off-blocks had an `AOBT` and [33.4 %]{.measured} of the recorded in-blocks
+  an `AIBT`.
 
 ::: {#ground-events-nearly-absent}
 At these airports of the 100 busiest in Europe, fewer than 2 % of OPDI's
@@ -276,38 +323,34 @@ nearly absent there. Take-off and landing times can still exist.
 
 ### When it can be wrong
 
-- When the transponder is switched on during the push-back, or the aircraft
-  is first received already moving, the off-block time is the first movement
-  received, which is late. A push slower than 2 kt, or a stand with few
-  reports with a position, also gives a late off-block time.
-- Off-block times are often late: over the three days measured, the median
-  difference from the airport records is [99 s]{.measured}, and over the
-  differences of up to 300 s OPDI is on average [78.6 s]{.measured} later
-  than the record. In-block times are closer: a median difference of
-  [34 s]{.measured}, and on average [18.5 s]{.measured} earlier than the
-  record over the differences of up to 300 s.
-- A stand drawn in OpenStreetMap without a name gives no stand name. Where a
-  stand is drawn inside a larger stand area, the block times read the inner
-  one.
+- When the transponder is switched on during push-back, or the aircraft is
+  first received already moving, the off-block time is the first movement
+  received: late. A push slower than 2 kt, or a stand with few reports with a
+  position, also makes it late.
+- Off-block times differ from the airport records by a median of [99 s]{.measured}, and over the differences of up to
+  300 s are on average [78.6 s]{.measured} later. In-block times are closer:
+  a median of [34 s]{.measured}, and on average [18.5 s]{.measured} earlier
+  over the differences of up to 300 s.
+- Where a stand is drawn inside a larger stand area, the block times read the
+  inner one.
 
 ### What not to conclude from it
 
-A missing block time does not mean the aircraft did not park. Taxi times from
-`AOBT` are more often too short than too long, because a late `AOBT` is the
-common error.
+- A missing block time does not mean the aircraft did not park.
+- Taxi times from `AOBT` are more often too short than too long, because a
+  late `AOBT` is the common error.
 
 ## Airport surface events {#lim-surface}
 
 ### When it is missing
 
-At airports without ground reception or without a mapped layout in
-OpenStreetMap. An area mapped without a name gives no `info.osm_ref`.
+- At airports without ground reception or without a mapped layout in
+  OpenStreetMap. An area mapped without a name gives no `info.osm_ref`.
 
 ### When it can be wrong
 
-- Vehicles carry transponders: tracks that never leave the ground with no
-  aircraft type, or a vehicle type, are marked `info.ground_only`.
-- An entry at the first report of a track or an exit at its last is when
+- Vehicles: see [Position errors and vehicles](#position-errors-and-vehicles).
+- An entry at a track's first report or an exit at its last is when
   reception started or stopped (`info.at_track_start`, `info.at_track_end`),
   not a movement.
 - Where a stand is drawn inside a larger stand area, both passages are
@@ -315,20 +358,22 @@ OpenStreetMap. An area mapped without a name gives no `info.osm_ref`.
 
 ### What not to conclude from it
 
-A `deicing_pad` event means the pad area was passed, not that the aircraft
-was de-iced. `entry-threshold` and `exit-threshold` are aircraft on the ground
-near the threshold markings (lining up), not the landing crossing of the
-threshold, which is `xing-runway-threshold`.
+- A `deicing_pad` event means the pad area was passed, not that the aircraft
+  was de-iced.
+- `entry-threshold` and `exit-threshold` are aircraft on the ground near the
+  threshold markings (lining up), not the landing crossing of the threshold,
+  which is `xing-runway-threshold`.
 
 ## Vertical profile {#lim-vertical}
 
 ### When it is missing
 
-Level-offs need both tops. Tops need altitudes in the air; a flight-level
-crossing needs reports with altitude either side of the level within
-30 minutes. A flight that levels off at a crossed level itself has no
-crossing of it. No level segment is published on reports flagged on the
-ground, or less than 200 ft above an airport within 10 NM of it.
+- Level-offs need both tops; tops need altitudes in the air.
+- A flight-level crossing needs reports with altitude either side of the
+  level within 30 minutes. A flight that levels off at a crossed level has no
+  crossing of it.
+- No level segment is published on reports flagged on the ground, or less
+  than 200 ft above an airport within 10 NM of it.
 
 ### When it can be wrong
 
@@ -342,96 +387,103 @@ ground, or less than 200 ft above an airport within 10 NM of it.
 
 ### What not to conclude from it
 
-None of these events is compared with a reference: no record gives tops,
-level segments or level crossings.
+- None of these events is compared with a reference: no record gives tops,
+  level segments or level crossings.
 
 ## Distance circles {#lim-rings}
 
 ### When it is missing
 
-When the flight has no departure or destination airport, or reception does
-not cover the circle. On a track holding several flights the middle stop has
-no circles.
+- When the flight has no departure or destination airport, or reception does
+  not cover the circle.
+- On a track holding several flights the middle stop has no circles.
 
 ### When it can be wrong
 
-Near areas of GPS spoofing a position can step by 5 to 20 NM and stay. A
-crossing across such a step is kept when it passes one circle only and is
-marked `info.position_jump`; larger steps give no crossing. Circles are drawn
-on every leg of a track that holds several flights.
+- A crossing across a spoofing step ([Position errors](#position-errors-and-vehicles))
+  is kept when it passes one circle only, marked `info.position_jump`; larger
+  steps give no crossing.
+- Circles are drawn on every leg of a track that holds several flights.
 
 ### What not to conclude from it
 
-Only the 40 and 100 NM circles are compared with airport records; the others
-are not validated.
+- Only the 40 and 100 NM circles are compared with airport records; the
+  others are not validated.
 
 ## FIR crossings {#lim-fir}
 
 ### When it is missing
 
-Where no position is received (oceans), and for stays shorter than 60 s in a
-region, which count as part of the region before.
+- Where no position is received (oceans).
+- For stays shorter than 60 s in a region, which count as part of the region
+  before.
 
 ### When it can be wrong
 
-The boundaries are those of AIRAC cycle 524 for every day. A crossing placed
-between two reports far apart in time (`info.bracket_s`) is an estimate.
+- The boundaries are those of one AIRAC cycle, 524 (28 November to
+  26 December 2024), for every day. An **AIRAC cycle** is the 28-day period in
+  which changes to aeronautical data, such as airspace boundaries, take
+  effect; crossings follow a boundary's old line where it has moved since.
+- A crossing placed between two reports far apart in time
+  (`info.bracket_s`) is an estimate.
 
 ### What not to conclude from it
 
-A crossing with `info.vertical` = true is a climb or descent between a lower
-and an upper region, not a lateral boundary crossing.
+- A crossing with `info.vertical` = true is a climb or descent between a
+  lower and an upper region, not a lateral boundary crossing.
 
 ## Holding {#lim-holding}
 
 ### When it is missing
 
-Holds below 2,500 ft above the airport, slower than 140 kt or shorter than
-240 s are not found, nor holds cut by a reception gap.
+- Holds below 2,500 ft above the airport, slower than 140 kt or shorter than
+  240 s are not found, nor holds cut by a reception gap.
 
 ### When it can be wrong
 
-Aerial work, survey, firefighting and training flights that circle meet the
-definition; they usually get `info.context` = `other`.
+- Aerial work, survey, firefighting and training flights that circle meet the
+  definition; they usually get `info.context` = `other`.
 
 ### What not to conclude from it
 
-Not every hold is arrival delay: use `info.context` = `arrival` for delay
-statistics.
+- Not every hold is arrival delay: use `info.context` = `arrival` for delay
+  statistics.
 
 ## Point merge {#lim-point-merge}
 
 ### When it is missing
 
-Only arrivals at the airports in the reference table are examined. A leg cut
-by a reception gap, or shorter than 90 s, is missed.
+- Only arrivals at the airports in the reference table are examined.
+- A leg cut by a reception gap, or shorter than 90 s, is missed.
 
 ### When it can be wrong
 
-At airports with several systems close together, a leg can be given to the
-wrong merge point; `pms-merge-point` is linked to the runway landed on only
-where the system's name says which runway it serves.
+- At airports with several systems close together, a leg can be given to the
+  wrong merge point.
+- `pms-merge-point` is linked to the runway landed on only where the system's
+  name says which runway it serves.
 
 ### What not to conclude from it
 
-`pms-merge-point` with `info.via_leg` false is an arrival that passed the merge
-point without a leg being found, not necessarily one sent direct.
+- `pms-merge-point` with `info.via_leg` false is an arrival that passed the
+  merge point without a leg being found, not necessarily one sent direct.
 
 ## Measurements {#lim-measurements}
 
 ### When it is missing
 
-`distance_flown_nm` is empty before the first known position, and on tracks
-without any position. `time_passed_s` is empty on an event earlier than
-`first_seen`.
+- `distance_flown_nm` is empty before the first known position, and on
+  tracks without any position.
+- `time_passed_s` is empty on an event earlier than `first_seen`.
 
 ### When it can be wrong
 
-Across a reception gap the distance adds the straight line, so it is a lower
-bound. A position jump that implies more than 1,000 kt is not added.
+- Across a reception gap the distance adds the straight line, so it is a
+  lower bound. Position jumps are left out
+  ([Position errors](#position-errors-and-vehicles)).
 
 ### What not to conclude from it
 
-Both count from the start of the track, not from the off-block or the
-take-off: a track first received in the air starts later. Use differences
-between two events of the same flight.
+- Both count from the start of the track, not from the off-block or the
+  take-off: a track first received in the air starts later. Use differences
+  between two events of the same flight.
