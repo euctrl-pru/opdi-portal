@@ -2,7 +2,7 @@
 
 | What | Kind | Value | Out of | Label | Compared with |
 |---|---|---|---|---|---|
-| Arrivals with an xing-runway-threshold | availability | 24.6 % | 331,100 | low | OPDI flight events |
+| Arrivals with an xing-runway-threshold | availability | 24.9 % | 333,200 | low | OPDI flight events |
 | Recorded landings with an xing-runway-threshold | availability | 39.1 % | 57,550 | low | airport operator records (Europe) |
 | xing-runway-threshold within 60 s of the recorded landing | accuracy | 97.6 % | 22,520 | good | airport operator records (Europe) |
 | Median difference from the recorded landing | accuracy | 13 s | 22,520 |  | airport operator records (Europe) |

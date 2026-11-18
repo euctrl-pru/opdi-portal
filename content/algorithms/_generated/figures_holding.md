@@ -2,7 +2,7 @@
 
 | What | Kind | Value | Out of | Label | Compared with |
 |---|---|---|---|---|---|
-| holding-start events, per day | count | 1,006 |  |  | OPDI flight events |
+| holding-start events, per day | count | 1,004 |  |  | OPDI flight events |
 
 : Three days together (10, 14 and 17 June 2026). "Out of" is the number of flights, records or compared values the share is computed over, to four significant figures. {.striped}
 

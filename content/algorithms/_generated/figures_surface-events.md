@@ -2,8 +2,8 @@
 
 | What | Kind | Value | Out of | Label | Compared with |
 |---|---|---|---|---|---|
-| entry-taxiway events, per day | count | 579,900 |  |  | OPDI flight events |
-| entry-parking_position events, per day | count | 152,300 |  |  | OPDI flight events |
+| entry-taxiway events, per day | count | 579,700 |  |  | OPDI flight events |
+| entry-parking_position events, per day | count | 152,200 |  |  | OPDI flight events |
 | entry-parking_position within 60 s of the recorded in-block (nearest per record) | accuracy | 79.0 % | 16,660 | fair | airport operator records (Europe) |
 | exit-parking_position within 60 s of the recorded off-block (nearest per record) | accuracy | 32.0 % | 17,780 | limited | airport operator records (Europe) |
 

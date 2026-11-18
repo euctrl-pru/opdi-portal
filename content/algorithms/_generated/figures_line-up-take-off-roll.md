@@ -2,8 +2,8 @@
 
 | What | Kind | Value | Out of | Label | Compared with |
 |---|---|---|---|---|---|
-| Departures with a line-up | availability | 24.3 % | 363,000 | low | OPDI flight events |
-| Departures with a take-off-roll | availability | 24.4 % | 363,000 | low | OPDI flight events |
+| Departures with a line-up | availability | 24.8 % | 365,500 | low | OPDI flight events |
+| Departures with a take-off-roll | availability | 24.8 % | 365,500 | low | OPDI flight events |
 | Recorded take-offs with a take-off-roll | availability | 43.9 % | 57,340 | low | airport operator records (Europe) |
 | line-up: median time to the recorded take-off | timing | 38 s | 25,190 |  | airport operator records (Europe) |
 | take-off-roll: median time to the recorded take-off | timing | 18 s | 25,190 |  | airport operator records (Europe) |

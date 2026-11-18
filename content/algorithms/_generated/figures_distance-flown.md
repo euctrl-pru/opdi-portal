@@ -3,8 +3,8 @@
 | What | Kind | Value | Out of | Label | Compared with |
 |---|---|---|---|---|---|
 | Recorded flights with a distance flown | availability | 96.1 % | 96,390 | high | Network Manager flight records (Europe) |
-| Distance flown over the recorded route length: median | accuracy | 0.99 | 92,630 |  | Network Manager flight records (Europe) |
-| Flights whose distance flown is within 10 % of the route length | accuracy | 80.0 % | 92,630 | good | Network Manager flight records (Europe) |
+| Distance flown over the recorded route length: median | accuracy | 0.99 | 92,640 |  | Network Manager flight records (Europe) |
+| Flights whose distance flown is within 10 % of the route length | accuracy | 80.2 % | 92,640 | good | Network Manager flight records (Europe) |
 
 : Three days together (10, 14 and 17 June 2026). "Out of" is the number of flights, records or compared values the share is computed over, to four significant figures. {.striped}
 

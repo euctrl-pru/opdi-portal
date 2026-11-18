@@ -2,8 +2,8 @@
 
 | What | Kind | Value | Out of | Label | Compared with |
 |---|---|---|---|---|---|
-| Flights with an xing-fir | availability | 45.5 % | 517,300 | low | OPDI flight events |
-| xing-fir events, per day | count | 296,900 |  |  | OPDI flight events |
+| Flights with an xing-fir | availability | 45.5 % | 520,100 | low | OPDI flight events |
+| xing-fir events, per day | count | 296,700 |  |  | OPDI flight events |
 
 : Three days together (10, 14 and 17 June 2026). "Out of" is the number of flights, records or compared values the share is computed over, to four significant figures. {.striped}
 
