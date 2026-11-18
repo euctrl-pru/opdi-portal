@@ -14,9 +14,8 @@ rel <- portal_release
 v2_current <- rel$is_current(cfg)
 ```
 
-This page explains what the Open Performance Data Initiative (OPDI)
-publishes, how the files are organised and which release to use. The pages in
-the table below cover the rest.
+What the Open Performance Data Initiative (OPDI) publishes, how the files are
+organised and which release to use. The table lists the other pages.
 
 ```{r status}
 #| results: asis
@@ -45,62 +44,55 @@ if (v2_current) {
 
 | Page | What you find there |
 |---|---|
-| [Access](access.qmd) | Where the data are, and how to query or read them in SQL, Python, R and DuckDB. |
-| [Data dictionary](dictionary.qmd) | What every column, event type and `info` field means, and how the tables join. |
-| [Releases](releases.qmd) | What changed in release `r cfg$release` compared with release `r cfg$previous_release`, and how to move from one to the other. |
-| [Release v0.0.2](v0.0.2.qmd) | The monthly and ten-day files of release v0.0.2, and how it was computed. |
+| [Access](access.qmd) | Where the data are: Trino (SQL on the files, nothing to download) and the daily files, read with Python, R, DuckDB or any Parquet tool. |
+| [Data dictionary](dictionary.qmd) | What every column, event type and `info` field means; how tables join. |
+| [Releases](releases.qmd) | What changed in release `r cfg$release` since `r cfg$previous_release`, and how to move between them. |
+| [Release v0.0.2](v0.0.2.qmd) | Its monthly and ten-day files, and how it was computed. |
 | [Data preview](../data-preview.qmd) | Charts made from the data. |
-| [Limitations of each item](../limitations.qmd) | When each item is missing or wrong, for each method. |
+| [Limitations of each item](../limitations.qmd) | When each item is missing or wrong. |
 | [Limits of the dataset](limitations.qmd) | When the data as a whole are missing or wrong. |
-| [Accuracy and availability](../accuracy/index.qmd) | How often each item exists and how close it is to the records, overall and at the 100 busiest airports in Europe ([European airports](../accuracy/europe.qmd)) and worldwide ([Airports worldwide](../accuracy/world.qmd)). |
-
-To get the data, see [Access](access.qmd): Trino (a database engine that runs
-SQL queries directly on files, the quickest way to select a few flights or
-count over many days without downloading anything) or the daily files, read
-with Python, R, DuckDB or any other tool that reads Parquet. The data
-`r if (v2_current) "are" else "will be"` available both ways.
+| [Accuracy and availability](../accuracy/index.qmd) | How often each item exists and how close it is to the records, overall and at the 100 busiest airports in [Europe](../accuracy/europe.qmd) and [worldwide](../accuracy/world.qmd). |
 
 ## What is published
 
-OPDI starts from the position reports that aircraft broadcast by radio. The
-[OpenSky Network](https://opensky-network.org/), a network of ground receivers
-run by volunteers, universities and other organisations, receives them. OPDI
+OPDI starts from the position reports that aircraft broadcast by radio,
+received by the [OpenSky Network](https://opensky-network.org/), a network of
+ground receivers run by volunteers, universities and other organisations. OPDI
 groups the reports of one aircraft into flights and describes each flight in
 two ways.
 
-- The **flight list** has one row per flight: the aircraft, its call sign, the
-  departure and destination airports, the first and last time the flight was
-  seen, and its main times, such as take-off and landing and the runways used.
+- The **flight list** has one row per flight: the aircraft, call sign,
+  departure and destination airports, first and last time seen, and main
+  times, such as take-off and landing, and the runways used.
 - The **flight events** have one row per event. An **event** is a moment in a
   flight with a time and a position, for example the take-off, the top of
   climb, the crossing of a flight level or the entry into a holding pattern.
   Each row also carries the **measurements** taken at that event, for example
   the distance flown since the start of the flight, and the columns of its
-  flight, so that one row can be used on its own.
+  flight, so one row stands alone.
 
-Every column is listed on the [Data dictionary](dictionary.qmd). How each
-column and event is computed is explained in [Algorithms](../algorithms/index.qmd).
+Columns are listed on the [Data dictionary](dictionary.qmd); how each is
+computed is explained in [Algorithms](../algorithms/index.qmd).
 
 ## Daily files
 
-Release `r cfg$release` has two files for each day:
+Release `r cfg$release` has two files per day:
 
 | File | One row per | Size of one day |
 |---|---|---|
 | `flight_list/flight_list_YYYYMMDD.parquet` | flight | about 16 MB |
 | `flight_events/flight_events_YYYYMMDD.parquet` | event | about 430 MB |
 
-`YYYYMMDD` is the date, for example `20260614` for 14 June 2026. The sizes
-were measured on that day, which has 161,881 flights and 6,692,084 events
-worldwide.
+`YYYYMMDD` is the date, for example `20260614`. The sizes were measured on
+14 June 2026: 161,881 flights and 6,692,084 events worldwide.
 
-The files are in **Parquet**, a file format that stores data by column and
-that most data tools read: Python (pandas, pyarrow, polars), R (arrow),
-DuckDB, Spark and Trino. A program that reads only some columns or rows reads
-only part of the file.
+The files are in **Parquet**, a format that stores data by column and that most
+tools read: Python (pandas, pyarrow, polars), R (arrow), DuckDB, Spark and
+Trino. A program that reads only some columns or rows reads only part of the
+file.
 
-Two small files help to find data. Their columns are on the
-[Data dictionary](dictionary.qmd#flight-index-and-catalogue).
+Two small files help to find data (columns on the
+[Data dictionary](dictionary.qmd#flight-index-and-catalogue)):
 
 - A **flight index** per month, `index/flight_index_YYYYMM.parquet`: one row
   per flight of the month and the name of the daily file that holds it.
@@ -111,13 +103,13 @@ Two small files help to find data. Their columns are on the
 ## Which day a flight belongs to
 
 A flight belongs to the day on which it was **first seen**, in UTC: the column
-`dof` (date of flight). The two files of a day hold the flights first seen
-that day and **all** their events, also the events after midnight. A flight
-that takes off at 23:30 UTC and lands at 02:00 UTC the next day is therefore
-in the files of the day it took off, with its landing.
+`dof` (date of flight). The files of a day hold the flights first seen that
+day and **all** their events, also those after midnight: a flight that takes
+off at 23:30 UTC and lands at 02:00 UTC the next day is in the files of the
+day it took off, with its landing.
 
-A small number of events belong to a track that has no row in the flight list
-(3,338 of 6,691,769 events, or 0.05%, on 14 June 2026). The flight list holds
+A few events belong to a track with no row in the flight list (3,338 of
+6,691,769 events, or 0.05%, on 14 June 2026). The flight list holds
 only tracks for which a departure or a destination airport could be named
 (see [Departure and destination airports](../algorithms/airports.qmd)); these
 tracks had neither. Their events are published in the file of the day their
@@ -127,12 +119,10 @@ track started, with empty flight columns.
 
 Release `r cfg$release` `r if (v2_current) "covers" else "will cover"` the
 whole world: every flight that the OpenSky Network received. Release `r cfg$previous_release` covered a box around Europe
-only. Reception is uneven: it depends on where receivers are, and it is thin
-over the oceans and near the ground at many airports. [Limitations](limitations.qmd#ads-b-reception)
-explains what this means for the data.
+only. Reception depends on where receivers are and is thin over the oceans and near
+the ground at many airports; see [Limitations](limitations.qmd#ads-b-reception).
 
 ## Contact
 
-The data are open and free to use. For questions, or to report an error in
-the data, write to
+The data are open and free. For questions or errors, write to
 [pru-support@eurocontrol.int](mailto:pru-support@eurocontrol.int).
