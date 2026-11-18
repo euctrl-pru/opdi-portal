@@ -86,8 +86,8 @@ second-level headings, in this order:
 8. `## Availability and accuracy`
 
 `Based on` names the tool or method the algorithm comes from, with a
-link, only where the code, its docstrings records it; otherwise "Developed for OPDI". `Limitations` links to the item's section
-of `content/limitations.qmd` (identifiers `#lim-<family>`), which has the
+link, only where the code or its docstrings record it; otherwise "Developed
+for OPDI". `Limitations` links to the item's section of `content/limitations.qmd` (identifiers `#lim-<family>`), which has the
 sub-headings "When it is missing", "When it can be wrong" and "What not to
 conclude from it".
 

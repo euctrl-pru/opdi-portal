@@ -360,3 +360,15 @@ def test_study_in_included_file_fails(site):
     page = site / "content" / "about.qmd"
     page.write_text(page.read_text() + "\n{{< include _generated/inc.md >}}\n")
     assert "studies" in kinds(site)
+
+
+def test_external_url_with_papers_passes(site):
+    page = site / "content" / "about.qmd"
+    page.write_text(page.read_text() + "\nSee [x](https://example.org/papers/x.pdf).\n")
+    assert "studies" not in kinds(site)
+
+
+def test_html_href_to_a_study_fails(site):
+    page = site / "content" / "about.qmd"
+    page.write_text(page.read_text() + '\n<a href="../papers/x/index.html">x</a>\n')
+    assert "studies" in kinds(site)
