@@ -62,10 +62,10 @@ published before every value is known.
 - [ ] **API reference.** Resources links to `https://euctrl-pru.github.io/OPDI/`.
   Check that it is online and describes the current package.
 - [ ] **Release v0.0.2 downloads.** Open a few of the links on
-  `content/data/v0.0.2.qmd` (first and last month, first and last ten-day
-  file) to confirm the files are still served.
-- [ ] **Last ten-day file of release v0.0.2.** The download loop on
-  `content/data/v0.0.2.qmd` generates the ten-day file names from
+  `content/data/releases.qmd` (section "Release v0.0.2": first and last
+  month, first and last ten-day file) to confirm the files are still served.
+- [ ] **Last ten-day file of release v0.0.2.** The download loop in the
+  section "Release v0.0.2" of `content/data/releases.qmd` generates the ten-day file names from
   `coverage` in `R/portal_config.R`. Check that the last file it generates,
   the one ending after 2026-09-30, exists on the server.
 
@@ -73,12 +73,12 @@ published before every value is known.
   "Based on" that the repositories do not document in full: the A-CDM
   milestone numbers (no manual is cited), HexAeroPy as the origin of the
   airport layout grid, and ICAO Doc 8168 for the holding thresholds.
-- [ ] **Accuracy tables.** The Accuracy and availability pages, the figures
+- [ ] **Accuracy tables.** The Data quality pages, the figures
   of the algorithm pages and the labels on the Algorithms overview come from
   `assets/accuracy/` (10, 14 and 17 June 2026). When those files are staged
   again, run `python tools/gen_accuracy_tables.py` and
   `python tools/gen_item_figures.py`, then read the prose of
-  `content/accuracy/europe.qmd` ("Patterns") again: it names airports.
+  `content/accuracy/airports.qmd` ("Patterns") again: it names airports.
 - [ ] **Airports that look wrong in the accuracy tables.** Decide whether to
   investigate before publishing: (1) ten of the 100 busiest European airports
   (`LGIR`, `LIRN`, `LICC`, `LATI`, `LTAC`, `LTBJ`, `GCTS`, `LEBB`, `LGKR`,
@@ -120,16 +120,15 @@ published before every value is known.
 - [ ] `python -m pytest tools/tests` passes.
 - [ ] `node --test tools/tests/*.test.mjs` passes.
 - [ ] `quarto render` finishes without error.
-- [ ] `quarto render papers/` has been run for the studies the Methods pages
-  link to. At the time of writing, `_site/papers/` has no page for
-  `airspace-events-v1` or `track-construction-v2` to `track-construction-v5`,
-  so the "Full study" links of Track identity, Holding, Point merge, FIR
-  crossings and Measurements lead nowhere until they are rendered.
 - [ ] The pages listed in `README.md`, "What to look at after rendering",
   have been looked at in a browser, at full width and on a phone.
 - [ ] The old addresses open the right page: `/data.html`,
   `/content/data.html`, `/flight-list-data.html`, `/flight-event-data.html`,
-  `/measurement-data.html`, `/methodology.html`, `/concepts.html`.
+  `/measurement-data.html`, `/methodology.html`, `/concepts.html`,
+  `/content/accuracy/europe.html`, `/content/accuracy/world.html`,
+  `/content/data/limitations.html`, `/content/data/v0.0.2.html`,
+  `/content/algorithms/plausibility-checks.html`,
+  `/content/methods/plausibility-checks.html`.
 
 ## 5. Merge
 

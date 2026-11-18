@@ -170,8 +170,8 @@ can be reached through Trino:
    `release_coverage$end` (or leave it `NA`), `release_date` and
    `release_counts$flights`.
 2. Render and check the home page, `content/data/index.qmd`,
-   `content/data/access.qmd`, `content/data/releases.qmd`,
-   `content/data/v0.0.2.qmd` and `content/roadmap.qmd`: each says which
+   `content/data/access.qmd`, `content/data/releases.qmd` (with its section
+   "Release v0.0.2") and `content/roadmap.qmd`: each says which
    release is current, and the wording changes with this one setting.
 
 The pages are written so that both values read correctly. To check the
@@ -241,10 +241,13 @@ These pages have not yet been rendered; check them by eye in `_site/`:
 - `content/roadmap.html`, `content/resources.html`, `content/data-challenges.html`
   (the 2026 edition), `content/about.html`, `content/data-preview.html`,
   `content/sensors-expansion.html`.
-- `papers/index.html` and every study the Methods pages link to.
 - The old addresses still open the right page: `/data.html`,
   `/content/data.html`, `/flight-list-data.html`, `/flight-event-data.html`,
-  `/measurement-data.html`, `/methodology.html`, `/concepts.html`.
+  `/measurement-data.html`, `/methodology.html`, `/concepts.html`,
+  `/content/accuracy/europe.html`, `/content/accuracy/world.html`,
+  `/content/data/limitations.html`, `/content/data/v0.0.2.html`,
+  `/content/algorithms/plausibility-checks.html`,
+  `/content/methods/plausibility-checks.html`.
 
 ### The community page
 
@@ -276,4 +279,5 @@ merge.
 Release v0.0.2 is no longer extended. Should its files be refreshed once
 more, update in `R/portal_config.R` the coverage dates, `refresh_label` and
 the headline counts, render, and check the home page,
-`content/data/v0.0.2.qmd` and `content/data-preview.qmd`.
+`content/data/releases.qmd` (section "Release v0.0.2") and
+`content/data-preview.qmd`.
