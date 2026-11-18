@@ -1,34 +1,36 @@
 ---
-title: "Accuracy and availability"
+title: "Data quality: availability and accuracy"
 description: "How often each OPDI item exists and how close it is to airport and Network Manager records: every item, the three days measured, and what it means for a study."
 ---
 
-This page answers two questions for every item OPDI publishes: how often
-does it exist, and when it exists, how close is it to an independent record?
-The figures come from three days processed worldwide with the current
-methods. For the figures at each airport, see
-[Airports](airports.qmd).
+How often does each OPDI item exist, and when it does, how close is it to
+an independent record? The figures come from three days processed worldwide
+with the current methods.
 
-How each item is computed is on [Algorithms](../algorithms/index.qmd); when
-it is missing or can be wrong is on [Limitations](../limitations.qmd).
+**Pages in this section**
+
+- [Limitations](../limitations.qmd): when an item is missing or can be wrong.
+- [Airports](airports.qmd): the figures at each airport.
+
+How each item is computed is on [Algorithms](../algorithms/index.qmd).
 
 ## Two measures: availability and accuracy
 
-The two are kept apart and never merged into one figure. An item can be
+They are kept apart and never merged into one figure: an item can be
 available and wrong, or rare and exact. **Found is not the same as correct.**
 
-**Availability** is how often an item exists. It is measured in two ways.
+**Availability** is how often an item exists, measured in two ways.
 
 - *Among OPDI's own flights.* Of the flights in OPDI's flight list that
   could carry the item, the share that do. A departure item (take-off time,
   off-block time, line-up, ...) counts among the flights with a departure
-  airport, an arrival item among those with a destination airport, and the
-  other items among all flights. This needs no reference, so it is given
-  for every item and every airport in the world.
+  airport, an arrival item among those with a destination airport, the
+  other items among all flights. It needs no reference, so it is given for
+  every item and every airport in the world.
 - *Against a reference.* Of the movements in an independent record, the
-  share for which OPDI has the item. This also counts the flights that OPDI
-  did not receive at all, so it is the better measure of what a study will
-  miss where a reference exists.
+  share for which OPDI has the item. It also counts flights OPDI did not
+  receive at all, so it is the better measure of what a study will miss
+  where a reference exists.
 
 **Accuracy** is how close the item is to the reference when both exist. For
 a time, it is the share of OPDI's times within 60 s of the recorded time,
@@ -42,21 +44,20 @@ Manager records.
 - **Airport records.** The movement records that airport operators send to
   EUROCONTROL: off-block, take-off, landing and in-block times, runway, stand,
   and the times at which the flight crossed the 40 NM and 100 NM circles
-  around the airport. Of the 100 busiest European airports,
-  72 send them. Many give times to the
-  whole minute, so a difference of less than about half a minute cannot be
-  judged; the labels therefore use 60 s, not 30 s.
+  around the airport. Of the 100 busiest European airports, 72 send them.
+  Many give times to the whole minute, so a difference of less than about
+  half a minute cannot be judged; the labels therefore use 60 s, not 30 s.
 - **Network Manager records.** EUROCONTROL's records of every flight in or
   through European airspace: departure and destination airport, aircraft
   type, route length, and a take-off and landing time. Network Manager
   derives its take-off time from the off-block time plus a taxi time, so its
   times are themselves estimates. They are used for times only at European
   airports that send no airport records.
-- **No reference.** For many items there is nothing to compare with (no
+- **No reference.** For many items nothing exists to compare with (no
   record gives a top of climb or a holding pattern), and outside Europe
   there are no airport records at all; Network Manager knows only the flights
-  to and from Europe there. In those cases only availability among OPDI's
-  own flights is given.
+  to and from Europe there. These items get availability among OPDI's own
+  flights only.
 
 A record is matched to an OPDI flight by the aircraft address (the
 transponder's 24-bit code), the call sign and the airport, taking the
@@ -68,15 +69,15 @@ so availability against a reference is slightly low at the ends of each day.
 ## The three days
 
 Wednesday 10 June, Sunday 14 June and Wednesday 17 June 2026, processed
-worldwide from the OpenSky archive with the current settings of the
-pipeline. Three days rather than one give the smaller airports enough
-movements to be scored; the figures below are for the three days together.
-The airport records exist for all three days.
+worldwide from the OpenSky archive with the current pipeline settings.
+Three days rather than one give the smaller airports enough movements to be
+scored; the figures are for the three days together. The airport records
+exist for all three days.
 
 ## How to read the labels
 
-Every share has a label beside it. The labels are words, so a table can be
-searched for them, and they never replace the number.
+Every share has a label beside it. The labels are words, so tables can be
+searched for them; they never replace the number.
 
 | Measure | Label | Rule |
 |---|---|---|
@@ -92,8 +93,7 @@ searched for them, and they never replace the number.
 : The labels. {.striped}
 
 A label is computed over the count beside it: a figure built on a few dozen
-movements is less certain than one built on thousands, even with the same
-label.
+movements is less certain than one built on thousands, whatever the label.
 
 ## In brief
 
@@ -122,8 +122,7 @@ label.
 
 {{< include _generated/overall_lookup.md >}}
 
-Counts are given to four significant figures, as in the staged tables.
-`ATOT` and `ALDT` have two rows: against the airport records at the airports
+Counts are given to four significant figures. `ATOT` and `ALDT` have two rows: against the airport records at the airports
 that send them, and against Network Manager at the other European airports.
 The rows with `info.method` show the two methods that produce these times
 separately. The runway and stand rows have no availability of their own
@@ -138,10 +137,9 @@ there are on each day and what a reference would have to be.
 
 ## From one day to the next
 
-Of the 209 day-to-day measures in the staged tables (each share and median
-of each item, on each day), 193 move by less than 5 points
-(or, for a time, less than 10 s) between the days. The table gives the
-shares of the items that have a reference.
+Of the 209 day-to-day measures (each share and median of each item, on
+each day), 193 move by less than 5 points (or, for a time, less than 10 s)
+between the days. The table covers the items that have a reference.
 
 ::: {.callout-note collapse="true"}
 ## Day-to-day table of the items with a reference
@@ -150,8 +148,8 @@ shares of the items that have a reference.
 :::
 
 The shares that do move are the availability of the distance circle
-crossings at 100 NM and beyond, which are higher on the Sunday than on the
-two Wednesdays:
+crossings at 100 NM and beyond, higher on the Sunday than on the two
+Wednesdays:
 
 {{< include _generated/overall_unstable.md >}}
 
