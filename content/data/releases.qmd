@@ -37,7 +37,9 @@ fill_dates <- function(path) {
 ```
 
 What changed in release `r cfg$release` since release `r cfg$previous_release`,
-and a table to move code from the old files and names to the new ones.
+and a table to move code from the old files and names to the new ones. The
+page ends with the [Release v0.0.2](#release-v002) section: its files for
+download, and how it was computed.
 
 ```{r status}
 #| results: asis
@@ -57,8 +59,6 @@ if (v2_current) {
 A **release** is a set of files produced by one version of the OPDI software,
 with one set of names and meanings. Every row says which release it belongs
 to, in its column `release`. Older releases are on the [Roadmap](../roadmap.qmd#past-releases).
-The files of release v0.0.2 stay available for download in
-[Release v0.0.2](#release-v002), which also describes how it was computed.
 
 ## What is new in release v2.0.0
 
@@ -125,7 +125,7 @@ therefore more often one row, with both airports.
 - **Documented and checked methods**: each has a page in
   [Algorithms](../algorithms/index.qmd) on how it works, what it was compared
   with, how accurate it is and where it fails.
-  [Accuracy and availability](../accuracy/index.qmd) gives how often every
+  [Data quality](../accuracy/index.qmd) gives how often every
   item exists and how close it is to the records, overall and per airport.
 - **Trino**: the files can be queried with SQL on the OpenSky Network's Trino
   instance, without downloading them (see [Access](access.qmd)).
@@ -200,7 +200,7 @@ if (v2_current) {
       "one to the other.\n:::\n", sep = "")
 } else {
   cat("::: {.callout-note appearance=\"simple\"}\n",
-      "Release ", version, " is the release available today. It is no longer extended. Release ", cfg$release,
+      "Release ", version, " is the release available today. Release ", cfg$release,
       ", described in the rest of OPDI Data, is being produced and will replace it. ",
       "[Moving from v0.0.2](#moving-from-v0.0.2) explains what changes.\n:::\n", sep = "")
 }

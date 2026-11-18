@@ -1,6 +1,9 @@
 ---
 title: "Processing steps"
 description: "The steps that turn OpenSky Network position reports into the published OPDI files, and what each step reads and writes."
+aliases:
+  - plausibility-checks.html
+  - ../methods/plausibility-checks.html
 ---
 
 OPDI is a chain of numbered steps. Each step reads the tables written by the
@@ -128,7 +131,10 @@ Before anything is written, the plausibility checks
 leave out the events that the track itself contradicts, such as an in-block
 time while the aircraft is still flying; those events are kept with the
 reason in a working table (`opdi_flight_events_rejected`) that is not
-published.
+published. A removed event is not published, its measurements go with it, and
+it is not used for the milestone columns of the flight list. A check fires
+only when every fact it needs is known; when one is unknown, the event is
+kept.
 
 ## 04b Milestones into the flight list
 
