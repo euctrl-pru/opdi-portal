@@ -6,7 +6,6 @@ import { createRequire } from "node:module";
 const L = createRequire(import.meta.url)("../../assets/js/accuracy-lookup.js");
 const load = (s) => JSON.parse(fs.readFileSync(`assets/pages/accuracy_lookup_${s}.json`, "utf8"));
 const p = load("airports");
-const world = p;
 const overall = load("overall");
 const clean = (html) => {
   for (const bad of ["NaN", "undefined", "null"]) assert.ok(!html.includes(bad), `contains ${bad}`);
@@ -76,7 +75,7 @@ test("renderAirport LGIR with empty values", () => {
 });
 
 test("renderAirport KATL on the world page", () => {
-  const h = L.renderAirport(world, "KATL");
+  const h = L.renderAirport(p, "KATL");
   assert.ok(h.includes("availability only"));
   clean(h);
 });

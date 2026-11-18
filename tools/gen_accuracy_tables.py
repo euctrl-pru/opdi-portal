@@ -418,7 +418,6 @@ def world_tables(rows: list[dict]) -> tuple[dict[str, str], dict]:
 LABELS = {"availability": ["high", "partial", "low"],
           "accuracy": ["good", "fair", "limited", "too few compared", "no reference"]}
 REFERENCES = ["airport records", "Network Manager", "no reference"]
-LOOKUP_SCOPES = ("airports", "overall")
 LOOKUP_JSON = "assets/pages/accuracy_lookup_{scope}.json"
 
 #: Sections of the Algorithms sidebar in _quarto.yml: page -> section title.
