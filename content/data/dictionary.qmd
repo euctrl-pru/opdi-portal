@@ -32,15 +32,14 @@ if (v2_current) {
 ```
 
 Every column, event type and `info` field of the OPDI files of release v2.0.0
-(default settings of the OPDI software), plus the version columns and the
-joins. For what is published, see the [overview](index.qmd). The
-column tables come from the software's own list of published columns,
-so they always match the files.
+(default settings of the OPDI software), with the version columns and joins.
+For what is published, see the [overview](index.qmd). The column tables come
+from the software's own list of published columns, so they match the files.
 
 ## How to read the tables
 
-- **Type**: `string` (text), `double` (decimal number), `boolean` (true or
-  false), `date`, or `timestamp` (date and time).
+- **Type**: `string` (text), `double` (decimal), `boolean` (true or false),
+  `date` or `timestamp` (date and time).
 - **Unit**: every time is in UTC (Coordinated Universal Time). Altitudes are
   in feet (ft), distances in nautical miles (NM, 1 NM = 1,852 m), durations in
   seconds (s) or minutes (min), angles in degrees.
@@ -74,10 +73,9 @@ event, in three parts:
 
 1. the columns of the event, in the table below;
 2. the [measurement columns](#measurements);
-3. the columns of the event's flight, named and defined as in the [flight
-   list](#flight-list), except that the flight list's `version` is called
-   `flight_version` here (the event has its own `version`) and `flight_id`
-   appears once, among the event columns.
+3. the columns of the event's flight, as in the [flight list](#flight-list)
+   (`flight_id` appears once, among the event columns; the flight's `version`
+   is `flight_version`, see [Versions](#versions)).
 
 {{< include _generated/flight_events_columns.md >}}
 
@@ -99,12 +97,16 @@ Computed as in [Distance flown](../algorithms/distance-flown.qmd),
 
 ## Flight index and catalogue {#flight-index-and-catalogue}
 
-**Flight index**: one file per month, `index/flight_index_YYYYMM.parquet`, with one row per
+### Flight index
+
+One file per month, `index/flight_index_YYYYMM.parquet`, with one row per
 flight of the month. It tells which daily file holds a flight.
 
 {{< include _generated/flight_index_columns.md >}}
 
-**Catalogue**: one file, `catalogue.parquet`, with one row per published day.
+### Catalogue
+
+One file, `catalogue.parquet`, with one row per published day.
 
 {{< include _generated/catalogue_columns.md >}}
 
@@ -127,29 +129,29 @@ the event is found and how accurate it is.
 - `line-up`: A departing aircraft enters the runway to take off. [Line-up and take-off roll](../algorithms/line-up-take-off-roll.qmd)
 - `runway-vacated`: An arriving aircraft leaves the runway after landing. [Runway vacated](../algorithms/runway-vacated.qmd)
 - `runway-crossing-entry`: A taxiing aircraft enters a runway to cross it. [Runway crossings](../algorithms/runway-crossings.qmd)
-- `runway-crossing-vacated`: The same aircraft leaves the runway on the other side. [Same page](../algorithms/runway-crossings.qmd)
+- `runway-crossing-vacated`: The same aircraft leaves the runway on the other side. [Runway crossings](../algorithms/runway-crossings.qmd)
 - `go-around`: An approaching aircraft gives up the landing and climbs away; placed at the lowest point of the approach. [Go-around](../algorithms/go-around.qmd)
 
 ### Block times
 
 - `AOBT`: Actual off-block time: the aircraft starts to move away from its parking position (stand). [Off-block and in-block times](../algorithms/block-times.qmd)
-- `AIBT`: Actual in-block time: the aircraft stops at its stand after landing. [Same page](../algorithms/block-times.qmd)
+- `AIBT`: Actual in-block time: the aircraft stops at its stand after landing. [Off-block and in-block times](../algorithms/block-times.qmd)
 
 ### Airport surface
 
 - `entry-{element}`: The aircraft enters an area of the airport. `{element}` is `taxiway`, `apron`, `parking_position` (a stand), `threshold`, `hangar` or `deicing_pad`, for example `entry-taxiway`. [Airport surface events](../algorithms/surface-events.qmd)
-- `exit-{element}`: The aircraft leaves that area, for example `exit-parking_position`. [Same page](../algorithms/surface-events.qmd)
+- `exit-{element}`: The aircraft leaves that area, for example `exit-parking_position`. [Airport surface events](../algorithms/surface-events.qmd)
 
 ### Vertical profile
 
 - `top-of-climb`: End of the climb to cruise, with the method of EUROCONTROL's vertical flight efficiency indicators. [Top of climb and top of descent](../algorithms/tops.qmd)
-- `top-of-descent`: Start of the final descent, same method. [Same page](../algorithms/tops.qmd)
+- `top-of-descent`: Start of the final descent, same method. [Top of climb and top of descent](../algorithms/tops.qmd)
 - `level-start`: Start of a period of level flight, cruise included. [Level segments](../algorithms/level-segments.qmd)
-- `level-end`: End of that period. [Same page](../algorithms/level-segments.qmd)
+- `level-end`: End of that period. [Level segments](../algorithms/level-segments.qmd)
 - `level-off-climb-start`: Start of a level-off during the climb: level flight below the cruise. [Level-offs](../algorithms/level-offs.qmd)
-- `level-off-climb-end`: End of that level-off. [Same page](../algorithms/level-offs.qmd)
-- `level-off-descent-start`: Start of a level-off during the descent. [Same page](../algorithms/level-offs.qmd)
-- `level-off-descent-end`: End of that level-off. [Same page](../algorithms/level-offs.qmd)
+- `level-off-climb-end`: End of that level-off. [Level-offs](../algorithms/level-offs.qmd)
+- `level-off-descent-start`: Start of a level-off during the descent. [Level-offs](../algorithms/level-offs.qmd)
+- `level-off-descent-end`: End of that level-off. [Level-offs](../algorithms/level-offs.qmd)
 - `xing-fl{level}`: A crossing of flight level 50, 70, 100 or 245, up or down. [Flight-level crossings](../algorithms/flight-level-crossings.qmd)
 
 A **flight level** is an altitude in hundreds of feet on the standard air
@@ -162,7 +164,7 @@ pressure of 1013.25 hPa: level 100 is about 10,000 ft.
 ### Holding
 
 - `holding-start`: First turning sample of a holding pattern: a loop flown while waiting for permission to continue. [Holding patterns](../algorithms/holding.qmd)
-- `holding-end`: Last turning sample of the pattern. Carries the holding measurements. [Same page](../algorithms/holding.qmd)
+- `holding-end`: Last turning sample of the pattern. Carries the holding measurements. [Holding patterns](../algorithms/holding.qmd)
 
 ### Point merge
 
@@ -171,8 +173,8 @@ an arc, called a leg, at a fixed distance from a merge point until they are
 sent directly to it.
 
 - `pms-leg-entry`: The aircraft starts flying along a leg. [Point merge](../algorithms/point-merge.qmd)
-- `pms-leg-exit`: The aircraft leaves the leg towards the merge point. Carries the point merge measurements. [Same page](../algorithms/point-merge.qmd)
-- `pms-merge-point`: The aircraft passes closest to a merge point, within 3 NM of it. [Same page](../algorithms/point-merge.qmd)
+- `pms-leg-exit`: The aircraft leaves the leg towards the merge point. Carries the point merge measurements. [Point merge](../algorithms/point-merge.qmd)
+- `pms-merge-point`: The aircraft passes closest to a merge point, within 3 NM of it. [Point merge](../algorithms/point-merge.qmd)
 
 ### Airspace
 
@@ -181,7 +183,7 @@ sent directly to it.
 ### Track limits
 
 - `first_seen`: The first position report of the track. [First seen and last seen](../algorithms/first-last-seen.qmd)
-- `last_seen`: The last position report of the track. [Same page](../algorithms/first-last-seen.qmd)
+- `last_seen`: The last position report of the track. [First seen and last seen](../algorithms/first-last-seen.qmd)
 
 Event types of release v0.0.2 that release v2.0.0 no longer publishes, such
 as `take-off`, `first-xing-fl{level}` and `entry-runway`, are listed with
@@ -232,12 +234,16 @@ Its `info` holds `apt_icao`, `runway` and `runway_bearing_deg` (as above) and:
 
 ### Block times
 
-- `AOBT`, `stand_exit`: Time of the exit from the stand this off-block leaves (see [Off-block and in-block times](../algorithms/block-times.qmd)). Absent when the part of the track holds no such stand passage.
-- `AIBT`, `stand_entry`: Time of the entry into the stand this in-block reaches. Absent in the same case.
-- both, `stand`: Name in OpenStreetMap of the stand of `stand_exit` or `stand_entry`, when it has one.
-- both, `apt_icao`: ICAO code of the airport of that stand.
-- `AOBT`, `take_off`, `take_off_method`: The take-off of the same part of the track, and the method that found it (`acdm` or `legacy`).
-- `AIBT`, `landing`, `landing_method`: The landing of the same part of the track, and the method that found it.
+| Event type | Field | Meaning |
+|---|---|---|
+| `AOBT` | `stand_exit` | Time of the exit from the stand this off-block leaves (see [Off-block and in-block times](../algorithms/block-times.qmd)). Absent when the part of the track holds no such stand passage. |
+| `AOBT` | `stand` | Name in OpenStreetMap of the stand of `stand_exit`, when it has one. |
+| `AOBT` | `apt_icao` | ICAO code of the airport of that stand. |
+| `AOBT` | `take_off`, `take_off_method` | The take-off of the same part of the track, and the method that found it (`acdm` or `legacy`). |
+| `AIBT` | `stand_entry` | Time of the entry into the stand this in-block reaches. Absent when the part of the track holds no such stand passage. |
+| `AIBT` | `stand` | Name in OpenStreetMap of the stand of `stand_entry`, when it has one. |
+| `AIBT` | `apt_icao` | ICAO code of the airport of that stand. |
+| `AIBT` | `landing`, `landing_method` | The landing of the same part of the track, and the method that found it. |
 
 ### Airport surface
 
@@ -248,7 +254,8 @@ Its `info` holds `apt_icao`, `runway` and `runway_bearing_deg` (as above) and:
 - `osm_ref`: Name or number of the area in OpenStreetMap, for example a stand number.
 - `osm_airport`: ICAO code of the airport.
 - `opdi_time_in_use_s`: Time spent in the area, in seconds.
-- `osn_icao24`, `osn_flight_id`: ICAO 24-bit address of the aircraft, and call sign received.
+- `osn_icao24`: ICAO 24-bit address of the aircraft.
+- `osn_flight_id`: Call sign received.
 - `at_track_start`: `true` on an entry at the first report with a position of the track: reception started there.
 - `at_track_end`: `true` on an exit at the last report with a position of the track: reception stopped there.
 - `ground_only`: `true` on the events of a track that never leaves the ground and whose aircraft type is unknown or a vehicle type, in practice an airport vehicle.
@@ -256,7 +263,8 @@ Its `info` holds `apt_icao`, `runway` and `runway_bearing_deg` (as above) and:
 
 ### Top of climb and top of descent
 
-- `d200_time`, `d200_altitude_ft`: Time and altitude (in feet) of the top as first found, before moving.
+- `d200_time`: Time of the top as first found, before moving.
+- `d200_altitude_ft`: Altitude of the top as first found, in feet.
 - `relocated`: `true` when the top was moved, `false` otherwise.
 - `analysis_radius_nm`: Radius of the analysis around the airport, in NM (200).
 - `method`: `pru`: the method of the EUROCONTROL Performance Review Unit.
@@ -300,8 +308,10 @@ Its `info` holds `apt_icao`, `runway` and `runway_bearing_deg` (as above) and:
 - `pattern`: `racetrack` or `orbit`.
 - `direction`: Direction of turn: `R` (right) or `L` (left).
 - `circuits`: Number of loops: total turn divided by 360 degrees, to one decimal.
-- `duration_s`, `distance_nm`: Time in the holding pattern, in seconds, and distance flown in it, in NM.
-- `altitude_start_ft`, `altitude_end_ft`: Altitude at the start and at the end, in feet.
+- `duration_s`: Time in the holding pattern, in seconds.
+- `distance_nm`: Distance flown in it, in NM.
+- `altitude_start_ft`: Altitude at the start, in feet.
+- `altitude_end_ft`: Altitude at the end, in feet.
 - `straight_pct`: Share of the time flown straight, in percent.
 - `context`: `arrival` (the flight lands at its destination within 60 minutes and 150 NM of the end of the hold), `en-route` (it lands later or further away) or `other` (local flight, no landing, three or more holds, or holds over half the time in the air).
 
@@ -316,7 +326,8 @@ Its `info` holds `apt_icao`, `runway` and `runway_bearing_deg` (as above) and:
 - `direction`: Direction of flight along the arc: `cw` (clockwise) or `ccw` (counter-clockwise).
 - `leg_distance_nm`: Distance of the leg from the merge point, in NM.
 - `leg_level_ft`: Altitude on the leg, in feet.
-- `duration_s`, `distance_nm`: Time on the leg, in seconds, and distance flown along it, in NM.
+- `duration_s`: Time on the leg, in seconds.
+- `distance_nm`: Distance flown along the leg, in NM.
 - `direct_to_distance_nm`: Distance to the merge point on leaving the leg, in NM.
 - `direct_aligned`: `true` when the aircraft then flew straight to the merge point.
 
@@ -331,14 +342,18 @@ and:
 `xing-fir`:
 
 - `crossing_seq`: Number of the crossing on the flight (first = 1).
-- `fir_from`, `fir_to`: The region left and the region entered, for example `EGTTFIR`.
+- `fir_from`: The region left, for example `EGTTFIR`.
+- `fir_to`: The region entered.
 - `fl`: Flight level at the crossing.
 - `bracket_s`: Time between the last position report in the old region and the first in the new one, in seconds.
 - `airac_cfmu`: The AIRAC cycle of the boundaries used (524). An AIRAC cycle is the 28-day period in which aeronautical data such as airspace boundaries take effect.
-- `airac_validity_start`, `airac_validity_end`: First and last day of that cycle.
+- `airac_validity_start`: First day of that cycle.
+- `airac_validity_end`: Last day of that cycle.
 - `vertical`: `true` when the two regions lie one above the other (a lower and an upper region), so the crossing is a climb or descent through their boundary level.
 
-**No details**: `level-start`, `level-end`, `first_seen` and `last_seen` have an empty `info`.
+### Events without details
+
+`level-start`, `level-end`, `first_seen` and `last_seen` have an empty `info`.
 
 ## Source {#source}
 
@@ -363,12 +378,11 @@ Event versions of release v2.0.0:
 - `pms_v0.2.0`: `pms-leg-entry`, `pms-leg-exit`, `pms-merge-point`
 - `fir_v0.2.0`: `xing-fir`
 
-A version follows the settings that change its method. The holding, point
-merge and FIR methods write the versions above when at least one of their
-settings differs from release v0.0.2; a day processed with the release v0.0.2
-settings gets `holding_v0.1.0`, `pms_v0.1.0` and `fir_v0.1.0`, and the flight
-list versions of that release. The measurement versions below follow the same
-rule.
+Holding, point merge and FIR write the versions above when at least one of
+their settings differs from release v0.0.2. A day processed with the release
+v0.0.2 settings gets `holding_v0.1.0`, `pms_v0.1.0` and `fir_v0.1.0`, and the
+flight list versions of that release. The measurement versions below follow the
+same rule.
 
 The measurement columns have no version column of their own:
 
@@ -389,8 +403,8 @@ measured value as a row with this version in its `version` column.
 
 Joins:
 
-- **Flight events to flight list**: on `flight_id`. Usually not needed:
-  every event row already carries the columns of its flight.
+- **Flight events to flight list**: on `flight_id`. Usually not needed: see
+  [Flight events](#flight-events).
 - **Flight index to flight list**: on `flight_id`; `file` names the daily
   flight list file that holds the flight.
 - **Views of the release v0.0.2 shape**: `events.id` is the `event_id`,
