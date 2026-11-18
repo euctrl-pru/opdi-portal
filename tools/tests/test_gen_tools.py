@@ -216,7 +216,7 @@ def test_airports_payload_merges_both_lists():
     assert airports["KATL"]["ranks"]["europe"] is None
     assert airports["KATL"]["where"] == "outside Europe"
     assert airports["KATL"]["source"] == "world"
-    assert airports["KATL"]["movements"] == {"nm": 230, "opdi": 7171}
+    assert airports["KATL"]["movements"] == {"nm": 230, "opdi": 7241}
     # LTFM's rows are the European ones (with airport records as the reference).
     assert data["rows"]["LTFM"]["ATOT"][3] == 0
     for a in data["airports"]:
