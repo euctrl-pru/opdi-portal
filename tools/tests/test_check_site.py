@@ -322,21 +322,24 @@ def test_measured_span_must_be_registered(site):
 
 def test_quality_pages_sit_under_data():
     text = (Path(__file__).parents[2] / "_quarto.yml").read_text()
-    data_start = text.index('- section: "Data"')
-    algo_start = text.index('- section: "Algorithms"')
-    data_menu = text[data_start:algo_start]
-    for page in (
-        "content/limitations.qmd",
+    assert '- section: "OPDI Data"' in text
+    assert '- section: "Data"' not in text
+    start = text.index('- section: "OPDI Data"')
+    end = text.index("content/data-challenges.qmd")
+    menu = text[start:end]
+    for item in (
+        "content/algorithms/index.qmd",
+        'section: "Algorithms"',
+        'section: "Data quality"',
         "content/accuracy/index.qmd",
+        "content/limitations.qmd",
         "content/accuracy/airports.qmd",
     ):
-        assert page in data_menu, page
-    assert 'section: "Limitations"' in data_menu
-    assert "content/data/limitations.qmd" not in text
-    assert 'section: "Accuracy and availability"' in data_menu
-    after_algorithms = text[algo_start:]
-    assert "content/limitations.qmd" not in after_algorithms
-    assert "content/accuracy/" not in after_algorithms
+        assert item in menu, item
+    for gone in ("plausibility-checks", "v0.0.2.qmd", "data/limitations.qmd"):
+        assert gone not in text, gone
+    assert 'section: "Limitations"' not in text
+    assert 'section: "Accuracy and availability"' not in text
 
 
 # --- the method studies are not mentioned -------------------------------------
