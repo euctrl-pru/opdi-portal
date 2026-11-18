@@ -121,12 +121,81 @@ def test_every_staged_item_has_a_name_and_a_page():
         assert (g.ROOT / "content" / "algorithms" / f"{page}.qmd").is_file(), page
 
 
-def test_every_airport_appears_once_in_each_summary():
+def lookup(scope):
+    import json
     import gen_accuracy_tables as g
-    for name, staged in (("europe_summary", "airport_accuracy_europe.csv"),
-                         ("world_summary", "airport_accuracy_world.csv")):
-        text = (g.ROOT / g.OUT_DIR / f"{name}.md").read_text(encoding="utf-8")
-        codes = {r["airport"] for r in g.read(g.ROOT, staged)}
-        assert len(codes) == 100
-        for code in codes:
-            assert text.count(f"| `{code}` |") == 1, (name, code)
+    return json.loads((g.ROOT / f"assets/pages/accuracy_lookup_{scope}.json").read_text(encoding="utf-8"))
+
+
+def test_lookup_has_every_airport_and_main_item():
+    import gen_accuracy_tables as g
+    for scope, staged in (("europe", "airport_accuracy_europe.csv"), ("world", "airport_accuracy_world.csv")):
+        data = lookup(scope)
+        assert len(data["airports"]) == 100
+        assert {a["icao"] for a in data["airports"]} == {r["airport"] for r in g.read(g.ROOT, staged)}
+        for a in data["airports"]:
+            for m in data["main"]:
+                assert m["item"] in data["rows"][a["icao"]], (scope, a["icao"], m["item"])
+
+
+def test_lookup_rows_match_staged_csv():
+    rows = lookup("europe")["rows"]
+    assert rows["LFPG"]["ATOT"] == [95.6, "high", 2154, 0, 2046, 98.8, "high", 2022,
+                                    "94.5 % within 60 s", 34, "good"]
+    assert rows["LTFM"]["ATOT"][10] == "too few compared"
+
+
+def test_lookup_flags_follow_the_tables():
+    airports = {a["icao"]: a for a in lookup("europe")["airports"]}
+    assert "ground" in airports["LTFM"]["flags"]
+    assert "no_times" in airports["LGIR"]["flags"]
+    assert "take-off" in airports["LMML"]["limited"]
+
+
+def test_lookup_empty_cells_are_null():
+    for scope in ("europe", "world"):
+        for by_item in lookup(scope)["rows"].values():
+            for row in by_item.values():
+                for pos in (0, 2, 4, 5, 7, 9):
+                    assert row[pos] is None or isinstance(row[pos], (int, float)), (scope, row)
+
+
+def test_lookup_overall_has_every_item():
+    import gen_accuracy_tables as g
+    overall = lookup("overall")["overall"]
+    pooled = {r["item"] for r in g.read(g.ROOT, "item_accuracy.csv") if r["days"] == g.POOLED}
+    assert set(overall) == pooled
+    assert len(overall["ATOT"]) == 2 and overall["ATOT"][0][0] == 0
+
+
+def test_lookup_files_stay_small():
+    import gen_accuracy_tables as g
+    for scope in g.LOOKUP_SCOPES:
+        size = (g.ROOT / f"assets/pages/accuracy_lookup_{scope}.json").stat().st_size
+        assert size < 880_664, (scope, size)
+
+
+def test_lookup_include_keeps_anchors():
+    import gen_accuracy_tables as g
+    text = g.lookup_include("europe")
+    for anchor, *_ in g.MAIN:
+        assert f"[]{{#{anchor}}}" in text
+    assert 'src="../../assets/js/accuracy-lookup.js"' in text
+    assert "[]{#take-off}" not in g.lookup_include("overall")
+
+
+def test_item_group_follows_the_sidebar():
+    import gen_accuracy_tables as g
+    assert g.item_group("take-off-landing") == "Runway and stands"
+    assert g.item_group("airports") == "Flight list"
+    assert g.item_group("processing-steps") == "Other"
+
+
+def test_stale_generated_tables_are_reported(tmp_path):
+    import shutil
+    import gen_accuracy_tables as g
+    for rel in ("assets/accuracy", "assets/pages", "content/accuracy/_generated", "content/algorithms/_generated"):
+        shutil.copytree(g.ROOT / rel, tmp_path / rel)
+    assert g.main(["--check", "--root", str(tmp_path)]) == 0
+    (tmp_path / "content/accuracy/_generated/old.md").write_text(g.HEADER + "x", encoding="utf-8")
+    assert g.main(["--check", "--root", str(tmp_path)]) == 1
