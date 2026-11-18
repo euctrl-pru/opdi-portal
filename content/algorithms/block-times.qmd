@@ -65,27 +65,38 @@ other after the landing.
    at most **30 kt** fast (the flag "on the ground" counts only when no speed
    is known). When the track starts with the aircraft already faster than
    that, the moment it left the stand was not seen and no `AOBT` is given.
+9. **Slow push-back.** A push-back by tug is often slower than 2 kt and is
+   followed by a stop of some minutes while the engines are started; the
+   first movement by speed is then the taxi after that stop. The positions of
+   the 10 minutes before that movement are read. A report is displaced when
+   the aircraft is at least **35 ft** from where it was 30 s earlier. When
+   two or more reports in a row are displaced and the aircraft moves at least
+   **100 ft** in all, `AOBT` is the first of those reports.
+10. **Where first received.** `info.first_seen_on` says where the aircraft
+    was when it was first received on the ground: `stand`, `apron`, `taxiway`
+    or `other`. It is absent when the track holds the landing before the
+    departure.
 
 ### In-block (`AIBT`)
 
-9. Find the stand stop: the first stand passage after the landing that lasts
-   at least 600 s, or that lasts until the end of the track.
-10. `AIBT` is the end of the movement before the longest stop that overlaps
+11. Find the stand stop: the first stand passage after the landing that lasts
+    at least 600 s, or that lasts until the end of the track.
+12. `AIBT` is the end of the movement before the longest stop that overlaps
     that passage (a stop between two movements, or between the last movement
     and the end of the track). Without a stand stop, it is the end of the last
     movement of the part. The movement must end in a standstill, as in step 8.
 
 ### Checks and the stand named
 
-11. No block time is given on the runway: an `AOBT` less than 60 s before its
+13. No block time is given on the runway: an `AOBT` less than 60 s before its
     take-off or between `line-up` and that take-off, or an `AIBT` less than
     60 s after its landing or between that landing and `runway-vacated`.
-12. A block time needs a stand passage somewhere in the track. It names a
+14. A block time needs a stand passage somewhere in the track. It names a
     stand (and its airport) only from a passage in the same ground part that
     lasts at least 30 s or ends within a minute of the block time: the stand
     of the stand stop, otherwise the passage with the longest stay. A stand
     drawn in OpenStreetMap without a name gives no name.
-13. The plausibility checks then remove a block
+15. The plausibility checks then remove a block
     time placed while the aircraft flies (more than 1,500 ft above the
     airport, faster than 80 kt and no report on the ground within 60 s), an
     `AOBT` at or after the take-off of its own part, and an `AIBT` at or before
@@ -97,7 +108,8 @@ other after the landing.
   rule of the [`traffic`](../resources.qmd#ref-olive-2019) library (`StartMoving`): moving
   above 2 kt for at least 30 s, with the speed worked out from positions and
   smoothed over three reports. OPDI also uses the reported speed where there
-  is one, and adds the parts of the track, the stand stop and the checks.
+  is one, and adds the parts of the track, the stand stop, the slow
+  push-back and the checks.
   `traffic`'s push-back and parking-position detection is not used.
 - **Definitions**: `AOBT` and `AIBT` are the off-block (milestone 15) and
   in-block (milestone 7) times of the [A-CDM Implementation
@@ -115,8 +127,8 @@ other after the landing.
 Event types `AOBT` and `AIBT`, with `distance_flown_nm` and `time_passed_s`
 (interpolated from the events around them); they have no position and no
 altitude. The `info` of `AOBT` holds `stand_exit` (time of the stand exit
-used), `stand`, `apt_icao`, and the take-off of its part (`take_off`,
-`take_off_method`); that of `AIBT` holds `stand_entry`, `stand`, `apt_icao`,
+used), `stand`, `apt_icao`, `first_seen_on`, and the take-off of its part
+(`take_off`, `take_off_method`); that of `AIBT` holds `stand_entry`, `stand`, `apt_icao`,
 `landing` and `landing_method` (see the
 [Data dictionary](../data/dictionary.qmd#info-fields)).
 
@@ -133,9 +145,10 @@ The flight list repeats them as `aobt`, `aibt`, `stnd_dep` and `stnd_arr`
 
 ## Limitations
 
-Often missing, because they need reception on the ground at the stand, and
-the off-block time is late when the aircraft is first received already
-moving. In-block times sit about a minute after airport records given to the
+Often missing: an off-block time needs the aircraft to be received on its
+stand before it leaves, and the transponder is often switched on during or
+after push-back. An off-block time first seen on a taxiway
+(`info.first_seen_on`) is mostly minutes late: leave it out. In-block times sit about a minute after airport records given to the
 whole minute. See
 [Limitations: block times](../limitations.qmd#lim-block-times).
 
