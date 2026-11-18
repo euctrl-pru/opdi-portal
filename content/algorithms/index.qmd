@@ -11,19 +11,18 @@ of aircraft received by the [OpenSky Network](https://opensky-network.org/).
 
 This section explains how each item is computed. There is one page per item,
 or per pair of items that are two ends of one thing (a start and an end).
-Every page has the same nine sections:
+Every page has the same eight sections:
 
 | Section | What it says |
 |---|---|
 | In one sentence | What the item is. |
 | What it needs | The reports and other items it is computed from. |
 | How it is computed | The method, step by step, with every threshold and its unit. |
-| Based on | The study, tool or method it comes from, or "Developed for OPDI". |
+| Based on | The tool or method it comes from, or "Developed for OPDI". |
 | What is published | The event types or columns, and the fields of `info`. |
 | Use cases | A few things the item can be used for. |
 | Limitations | Its main limits, with a link to [Limitations](../limitations.qmd). |
 | Availability and accuracy | How often it exists, and how close it is to the records, with a link to [Accuracy and availability](../accuracy/index.qmd). |
-| Full study | The study reports with all details. |
 
 [Processing steps](processing-steps.qmd) shows the whole chain from the
 OpenSky archive to the published files. Units follow aviation use: altitudes
@@ -124,7 +123,7 @@ crossing. All event types are listed in the
 
 | Item | Columns | In one line | Compared with | Limits |
 |---|---|---|---|---|
-| [Tracks and flight identity](tracks.qmd) | `flight_id`, `icao24`, `flt_id`, `dof` | Which position reports make one flight, and its identifier. | Track construction studies | [Tracks](../limitations.qmd#lim-tracks) |
+| [Tracks and flight identity](tracks.qmd) | `flight_id`, `icao24`, `flt_id`, `dof` | Which position reports make one flight, and its identifier. | Tracks compared with flights | [Tracks](../limitations.qmd#lim-tracks) |
 | [Cleaning of position reports](cleaning.qmd) | none (applies to every item) | Repeated, impossible and isolated values are emptied before anything is computed. | Not an item of its own | [Tracks](../limitations.qmd#lim-tracks) |
 | [Departure and destination airports](airports.qmd) | `adep`, `ades`, `adep_p`, `ades_p`, `adep_source`, `ades_source` | The airports the flight left from and flew to, from the trajectory alone. | Network Manager flight records | [Airports](../limitations.qmd#lim-airports) |
 | [Aircraft details](aircraft.qmd) | `registration`, `model`, `typecode`, `icao_aircraft_class`, `icao_operator` | Looked up by aircraft address in the OpenSky aircraft database. | Network Manager flight records (type) | [Aircraft](../limitations.qmd#lim-aircraft) |
@@ -177,9 +176,9 @@ crossing. All event types are listed in the
 | Event type | In one line | Algorithm | Compared with | Limits |
 |---|---|---|---|---|
 | `xing-{radius}nm` | A crossing of a circle of 40, 50, 60, 100, 110 or 120 NM around the departure or destination airport. | [Distance circle crossings](distance-rings.qmd) | Airport operator records (40 and 100 NM) | [Distance circles](../limitations.qmd#lim-rings) |
-| `xing-fir` | A passage from one flight information region to another. | [FIR crossings](fir-crossings.qmd) | Exact region boundaries (study) | [FIR crossings](../limitations.qmd#lim-fir) |
-| `holding-start` | First report of a holding pattern. | [Holding patterns](holding.qmd) | Hand-corrected labels (study) | [Holding](../limitations.qmd#lim-holding) |
-| `holding-end` | Last report of the holding pattern. | [Holding patterns](holding.qmd) | Hand-corrected labels (study) | [Holding](../limitations.qmd#lim-holding) |
+| `xing-fir` | A passage from one flight information region to another. | [FIR crossings](fir-crossings.qmd) | Exact region boundaries | [FIR crossings](../limitations.qmd#lim-fir) |
+| `holding-start` | First report of a holding pattern. | [Holding patterns](holding.qmd) | Hand-corrected labels | [Holding](../limitations.qmd#lim-holding) |
+| `holding-end` | Last report of the holding pattern. | [Holding patterns](holding.qmd) | Hand-corrected labels | [Holding](../limitations.qmd#lim-holding) |
 | `pms-leg-entry` | Start of a point merge sequencing leg. | [Point merge](point-merge.qmd) | Not validated | [Point merge](../limitations.qmd#lim-point-merge) |
 | `pms-leg-exit` | End of the leg, towards the merge point. | [Point merge](point-merge.qmd) | Not validated | [Point merge](../limitations.qmd#lim-point-merge) |
 | `pms-merge-point` | Closest passage of a merge point. | [Point merge](point-merge.qmd) | Not validated | [Point merge](../limitations.qmd#lim-point-merge) |

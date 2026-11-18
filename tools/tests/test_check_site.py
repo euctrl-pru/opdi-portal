@@ -338,3 +338,25 @@ def test_quality_pages_sit_under_data():
     after_algorithms = text[algo_start:]
     assert "content/limitations.qmd" not in after_algorithms
     assert "content/accuracy/" not in after_algorithms
+
+
+# --- the method studies are not mentioned -------------------------------------
+
+def test_link_to_a_study_fails(site):
+    page = site / "content" / "about.qmd"
+    page.write_text(page.read_text() + "\nSee [x](../papers/a/index.html).\n")
+    assert "studies" in kinds(site)
+
+
+def test_full_study_heading_fails(algo_site):
+    page = algo_site / "content" / "algorithms" / "holding.qmd"
+    page.write_text(page.read_text() + "\n## Full study\n\nText.\n")
+    assert "studies" in kinds(algo_site)
+
+
+def test_study_in_included_file_fails(site):
+    (site / "content" / "_generated").mkdir()
+    (site / "content" / "_generated" / "inc.md").write_text("[x](../papers/a/index.html)\n")
+    page = site / "content" / "about.qmd"
+    page.write_text(page.read_text() + "\n{{< include _generated/inc.md >}}\n")
+    assert "studies" in kinds(site)

@@ -52,7 +52,7 @@ count per kind. The kinds are:
   `#prc-data-challenge`. An explicit `## Heading {#my-id}` wins.
 - **sidebar**: an entry of the sidebar in `_quarto.yml` points to a missing page.
 - **community**: the community page is referenced, or is not excluded from rendering (see "The community page" below).
-- **headings**: a methods page does not have the nine headings of the template.
+- **headings**: a methods page does not have the eight headings of the template.
 - **numbers**: a methods page quotes a number that is not recorded in
   `assets/validation/validation_measures.csv`.
 - **vocabulary**: a page uses a word the site avoids. The list is
@@ -60,6 +60,9 @@ count per kind. The kinds are:
   that are vague or come from software jargon (for example "robust",
   "leverage", "rung"). "Gate-to-gate", the aviation term for a whole flight,
   is allowed.
+- **studies**: a page, or a file it includes, links to the method studies (a
+  link, `src` or `href` containing `papers/`) or has a `## Full study` heading.
+  The studies are not mentioned on the site.
 - **coverage**: `content/data/dictionary.qmd` does not describe one of the
   event types in `EVENT_TYPES`.
 
@@ -81,11 +84,9 @@ second-level headings, in this order:
 6. `## Use cases`
 7. `## Limitations`
 8. `## Availability and accuracy`
-9. `## Full study`
 
-`Based on` names the study, tool or method the algorithm comes from, with a
-link, only where the code, its docstrings or a study under `papers/` records
-it; otherwise "Developed for OPDI". `Limitations` links to the item's section
+`Based on` names the tool or method the algorithm comes from, with a
+link, only where the code, its docstrings records it; otherwise "Developed for OPDI". `Limitations` links to the item's section
 of `content/limitations.qmd` (identifiers `#lim-<family>`), which has the
 sub-headings "When it is missing", "When it can be wrong" and "What not to
 conclude from it".
@@ -157,7 +158,6 @@ like this:
 6. `## Error distribution`
 7. `## Headline accuracy`
 8. `## Limitations`
-9. `## Full study`
 
 Other pages link to these sections as `<page>.qmd#validation-method`,
 `<page>.qmd#limitations` and so on. Use third-level headings (`###`) for

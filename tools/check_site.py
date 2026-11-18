@@ -25,7 +25,7 @@ Kinds of check (each failure is printed with its kind):
               the entry "!content/community.qmd" under project: render:, placed
               after the pages to render; that entry is the one allowed mention.
   headings    A page in content/methods/ (other than index.qmd, pipeline.qmd
-              and validation-summary.qmd) does not have exactly the nine
+              and validation-summary.qmd) does not have exactly the eight
               second-level headings of the methods template, in order.
   numbers     A number written in the "Results" or "Headline accuracy" section
               of a methods page is not in assets/validation/validation_measures.csv
@@ -35,6 +35,9 @@ Kinds of check (each failure is printed with its kind):
               tables it includes), or inside a [...]{.measured} span on any
               page, must be in assets/pages/accuracy_numbers.csv for that
               page.
+  studies     A page, or a file it includes, links to the method studies (a
+              link, src or href whose target contains papers/) or has a
+              heading "Full study". The studies are not mentioned on the site.
   vocabulary  A page uses a word from the list of internal or vague words the
               site avoids (see FORBIDDEN_WORDS).
   coverage    content/data/dictionary.qmd exists but does not mention one of
@@ -67,7 +70,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 
-#: The nine second-level headings of every methods page, in order.
+#: The eight second-level headings of every methods page, in order.
 METHOD_HEADINGS = (
     "What it is",
     "How it is computed",
@@ -77,10 +80,9 @@ METHOD_HEADINGS = (
     "Error distribution",
     "Headline accuracy",
     "Limitations",
-    "Full study",
 )
 
-#: Methods pages that do not follow the nine-heading template.
+#: Methods pages that do not follow the eight-heading template.
 METHOD_PAGES_WITHOUT_TEMPLATE = ("index.qmd", "pipeline.qmd", "validation-summary.qmd")
 
 #: The headings of an algorithm page (content/algorithms/<item>.qmd), in order.
@@ -93,7 +95,6 @@ ALGORITHM_HEADINGS = (
     "Use cases",
     "Limitations",
     "Availability and accuracy",
-    "Full study",
 )
 
 #: Pages of content/algorithms/ that are not on the template.
@@ -622,7 +623,7 @@ def check_headings(root: Path) -> list[Failure]:
             if not missing and not extra:
                 detail.append("order differs from the template")
             failures.append(Failure("headings", rel(root, page), 0,
-                                    f"the second-level headings must be the nine of the {name} "
+                                    f"the second-level headings must be the eight of the {name} "
                                     "template, in order (" + "; ".join(detail) + ")"))
     return failures
 
@@ -839,6 +840,27 @@ def check_pointers(root: Path) -> list[Failure]:
 
 
 # ---------------------------------------------------------------------------
+# The method studies are not mentioned
+# ---------------------------------------------------------------------------
+
+STUDY_TARGET = re.compile(r"""(?:\]\(|\b(?:src|href)\s*=\s*["']?)\s*<?(?![a-z][a-z0-9+.-]*:)[^)\s"'>]*papers/""")
+STUDY_HEADING = re.compile(r"^#{1,6}\s+Full study\b", re.I)
+
+
+def check_studies(root: Path) -> list[Failure]:
+    failures = []
+    for page in pages(root):
+        for line, source, number in expanded_body(page):
+            if STUDY_TARGET.search(line):
+                failures.append(Failure("studies", rel(root, source), number,
+                                        "link to the method studies (papers/): remove it"))
+            elif STUDY_HEADING.match(line):
+                failures.append(Failure("studies", rel(root, source), number,
+                                        'heading "Full study": remove the section'))
+    return failures
+
+
+# ---------------------------------------------------------------------------
 # Listing and command line
 # ---------------------------------------------------------------------------
 
@@ -852,6 +874,7 @@ CHECKS = {
     "coverage": check_coverage,
     "identifiers": check_identifiers,
     "pointer": check_pointers,
+    "studies": check_studies,
 }
 
 
