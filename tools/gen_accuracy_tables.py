@@ -667,6 +667,59 @@ def numbers(items: list[dict], spread: list[dict], eu: dict, world: dict) -> lis
     return out
 
 
+#: Day and reading of offblock_causes.csv the pages quote: the day whose
+#: position reports were read first, with the default settings.
+CAUSES_DAY = "2026-06-14"
+
+
+def off_block_numbers(first_seen: list[dict], causes: list[dict], divided: list[dict]) -> list[list]:
+    """Numbers of the off-block tables and of tracks_divided.csv, for the Limitations page."""
+    lim = "limitations"
+    out = []
+    src = str(ACC / "offblock_first_seen_on.csv")
+    pooled = {r["first_seen_on"]: r for r in first_seen if r["day"] == "3 days"}
+    for where in ("stand", "apron", "taxiway"):
+        r = pooled.get(where)
+        if r:
+            out.append([lim, f"aobt_{where}_w60", f"AOBT first seen on: {where}, within 60 s, %",
+                        num(r["pct_within_60s"]), r["off_block_times"], src])
+            out.append([lim, f"aobt_{where}_median", f"AOBT first seen on: {where}, median difference, s",
+                        num(r["median_abs_diff_s"]), r["off_block_times"], src])
+    r = pooled.get("all")
+    if r:
+        out.append([lim, "aobt_at_stand_w60", "AOBT when received at the stand before off-block, within 60 s, %",
+                    num(r["pct_within_60s_when_received_at_stand"]), r["n_received_at_stand"], src])
+        out.append([lim, "aobt_at_stand_median", "AOBT when received at the stand before off-block, median difference, s",
+                    num(r["median_abs_diff_s_when_received_at_stand"]), r["n_received_at_stand"], src])
+    src = str(ACC / "offblock_causes.csv")
+    day = {(r["item"], r["scope"]): r for r in causes
+           if r["day"] == CAUSES_DAY and r["read_from"] == "reports" and r["method"] == "current"
+           and not r["airport"]}
+    for mid, label, key in (
+            ("dep_at_stand", "recorded off-blocks received before the off-block time, %", ("off-block", "all airports")),
+            ("dep_at_stand_received", "the same at airports whose stands are received, %",
+             ("off-block", "airports whose stands are received")),
+            ("arr_at_stand_received", "recorded in-blocks received after the in-block time, at airports whose "
+             "stands are received, %", ("in-block", "airports whose stands are received"))):
+        r = day.get(key)
+        if r:
+            out.append([lim, mid, f"{label} ({CAUSES_DAY})", num(r["pct_received_at_stand"]), r["records"], src])
+    if divided:
+        src = str(ACC / "tracks_divided.csv")
+        per_day = [int(r["tracks_divided_into_flights"]) for r in divided]
+        tracks = sum(int(r["tracks"]) for r in divided)
+        out.append([lim, "divided_min", "tracks divided into flights, fewest on a day", min(per_day), "", src])
+        out.append([lim, "divided_max", "tracks divided into flights, most on a day", max(per_day), "", src])
+        out.append([lim, "divided_pct", "tracks divided into flights, % of the tracks of the three days",
+                    round(100 * sum(per_day) / tracks, 1), tracks, src])
+    return out
+
+
+def read_optional(root: Path, name: str) -> list[dict]:
+    """A staged table, or no rows when the file is not there."""
+    return read(root, name) if (root / ACC / name).exists() else []
+
+
 # ---------------------------------------------------------------------------
 # Command line
 # ---------------------------------------------------------------------------
@@ -689,6 +742,9 @@ def build(root: Path) -> dict[Path, str]:
     writer = csv.writer(out, lineterminator="\n")
     writer.writerow(NUMBER_COLUMNS)
     writer.writerows(numbers(items, spread, eu, world))
+    writer.writerows(off_block_numbers(read_optional(root, "offblock_first_seen_on.csv"),
+                                       read_optional(root, "offblock_causes.csv"),
+                                       read_optional(root, "tracks_divided.csv")))
     wanted[root / NUMBERS_CSV] = out.getvalue()
     payloads = {"airports": airports_payload(eu_rows, world_rows, airports),
                 "overall": overall_payload(items)}

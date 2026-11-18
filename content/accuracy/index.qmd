@@ -71,10 +71,12 @@ movements is less certain than one built on thousands, whatever the label.
   and 93.2 % and 94.5 % of those times are
   within 60 s of the record.
 - **Block times** are limited by reception on the ground. Only
-  35.0 % of the recorded off-blocks and
+  35.1 % of the recorded off-blocks and
   33.4 % of the recorded in-blocks have an OPDI time;
-  40.3 % of the off-block times and
-  72.0 % of the in-block times are within 60 s.
+  48.6 % of the off-block times and
+  72.1 % of the in-block times are within 60 s. An off-block time needs
+  the aircraft to be received on its stand before it leaves
+  ([why it is often missing](../limitations.qmd#lim-block-times)).
 - **Departure and destination airports, runways and aircraft type** agree
   with the records in most cases where they exist; the destination airport
   is missing more often than the departure airport
@@ -121,7 +123,8 @@ Counts are given to four significant figures.
 
 Records are matched to the nearest OPDI flight within 6 hours by aircraft
 address (the transponder's 24-bit code), call sign and airport. Records
-without an address are not matched or counted. A movement whose flight
+without an address are not matched or counted. A record's runway is compared
+only when it is a runway of that airport. A movement whose flight
 belongs to the previous day (for example a landing just after midnight)
 counts as not found, so availability against a reference is slightly low at
 each day's ends.
@@ -165,7 +168,8 @@ Wednesdays:
 - **Taxi-out and taxi-in times** need a block time and a runway time of the
   same flight, and off-block times are often late. Restrict a taxi-time
   study to airports labelled good or fair for
-  [off-block](airports.qmd#off-block) (or in-block) and report how many
+  [off-block](airports.qmd#off-block) (or in-block), leave out the off-block
+  times with `info.first_seen_on` = `taxiway`, and report how many
   flights remain. Where no receiver hears aircraft on the ground, block
   times are missing, not wrong: see
   [where ground events are nearly absent](airports.qmd#ground-reception).

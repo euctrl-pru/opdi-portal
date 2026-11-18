@@ -123,7 +123,8 @@ staged tables, with the thresholds and dates as rows of kind `rule`. On any
 other page, a measured figure in prose is written as a span,
 `[24.2 %]{.measured}`, and must be a row for that page (for example
 `limitations`); Quarto renders the span as ordinary text. To quote a new
-figure, add it to `numbers()` in `gen_accuracy_tables.py` and run it.
+figure, add it to `numbers()` in `gen_accuracy_tables.py` (`off_block_numbers()`
+for the off-block tables and the divided tracks) and run it.
 
 ### Coverage, identifiers and moved pages
 

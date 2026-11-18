@@ -34,8 +34,8 @@ high one only that it exists. An item found there may still be wrong.
   at the other 28, take-off and landing times are compared with Network
   Manager, and block times, runways and stands have no reference.
 - **Worldwide list:** the 100 airports with the most departures and arrivals
-  in OPDI's own flight list. Of them, 70 are outside Europe and 30 in Europe,
-  28 of which send airport records. The ranking favours the regions where
+  in OPDI's own flight list. Of them, 71 are outside Europe and 29 in Europe,
+  27 of which send airport records. The ranking favours the regions where
   OpenSky has many receivers.
 
 An airport in both lists appears once, with both ranks and its European
@@ -71,20 +71,20 @@ there without checking it.
 
 {{< include _generated/europe_limited.md >}}
 
-Three cases stand out:
+Two cases stand out:
 
-- At Bergen (`ENBR`), Stavanger (`ENZV`) and Trondheim (`ENVA`), the
-  runway OPDI names never agrees with the record, while the take-off and
-  landing times there mostly do. This suggests that the runways are named
-  differently in OPDI's runway table and in the records, rather than that
-  the aircraft used other runways; it has not been checked. Do not use
-  `rwy_dep`, `rwy_arr` or `info.runway` at these airports.
-- At Malta (`LMML`), most take-off times and most runways disagree with the
-  records, while the landing times mostly agree. Do not use the take-off
-  times or the runways there.
+- At Malta (`LMML`), the runway and the take-off time of the records
+  disagree with the aircraft's own track for most of the day, while the
+  landing times mostly agree. The records cannot serve as a reference for
+  the take-off times or the runways there.
 - At İstanbul Airport (`LTFM`), OPDI has a take-off time for almost no
   departure and a landing time for fewer than half of the arrivals. Positions
   near Istanbul are often disturbed (spoofed), which is possibly the cause.
+
+A record's runway is compared only when it is a runway of that airport. At
+Bergen (`ENBR`), Stavanger (`ENZV`) and Trondheim (`ENVA`) the records hold
+a placeholder runway (`01`), so the runway shows "no reference" there;
+OPDI's runways at these airports match the published ones.
 
 ### Where ground events are nearly absent {#ground-reception}
 
@@ -102,8 +102,10 @@ warning on an airport's card applies to every airport.
 
 At these 10 airports OPDI has no take-off time and no landing time on any of the three days, although its flight list has flights there. At
 most of them OPDI also gives the airport as destination for only a small
-share of the recorded arrivals. The cause has not been established; do not
-use these airports for runway or arrival studies.
+share of the recorded arrivals. The OpenSky data hold no reports near the
+ground at these airports, so no take-off or landing can be found; this is
+not an error in the method. Do not use these airports for runway or arrival
+studies.
 
 {{< include _generated/europe_no_times.md >}}
 
