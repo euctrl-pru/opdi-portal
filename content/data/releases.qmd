@@ -30,10 +30,10 @@ if (v2_current) {
 ```
 
 A **release** is a set of files produced by one version of the OPDI software,
-with one set of names and meanings. Column `release` of every row gives its
-release. Older releases are on the [Roadmap](../roadmap.qmd#past-releases).
-The files of release v0.0.2 and how it was computed are on
-[Release v0.0.2](v0.0.2.qmd).
+with one set of names and meanings. Every row says which release it belongs
+to, in its column `release`. Older releases are on the [Roadmap](../roadmap.qmd#past-releases).
+The files of release v0.0.2 stay available for download on
+[Release v0.0.2](v0.0.2.qmd), which also describes how it was computed.
 
 ## What is new in release v2.0.0
 
@@ -43,11 +43,12 @@ Release v2.0.0 has two files per day (release v0.0.2: a flight list per month,
 flight events and measurements in files of ten days):
 
 - the **flight list**, one row per flight, and
-- the **flight events**, one row per event, with the event's measurements and
-  the columns of its flight.
+- the **flight events**, one row per event, with the event's measurements as
+  columns, and the columns of its flight.
 
-No join to the event or the flight is needed. The separate measurements files
-are no longer produced. A day's files hold the flights first seen that day,
+A measurement no longer needs a join to its event, and an event no longer
+needs a join to its flight. The separate measurements files are no longer
+produced. A day's files hold the flights first seen that day,
 with all their events, also those after midnight (see
 [Data](index.qmd#which-day-a-flight-belongs-to)).
 
@@ -58,7 +59,8 @@ the OpenSky Network received, anywhere in the world.
 
 ### More event types
 
-All are listed on the [Data dictionary](dictionary.qmd#event-types).
+Release v2.0.0 adds these event families, all listed on the
+[Data dictionary](dictionary.qmd#event-types).
 
 - **Runway milestones**: start of the take-off roll, take-off (`ATOT`),
   passage over the runway threshold (`xing-runway-threshold`), touchdown
@@ -79,7 +81,7 @@ All are listed on the [Data dictionary](dictionary.qmd#event-types).
 
 The flight list holds the main times of each flight, copied from its events:
 take-off and landing, off-block and in-block, the runways and stands used and
-the crossings of the distance rings. It also says how each airport was decided
+the times of crossing the distance rings. It also says how each airport was decided
 (`adep_source`, `ades_source`) and whether a row counts as a departure or an
 arrival (`movement_dep`, `movement_arr`). Column names are in lower case.
 
