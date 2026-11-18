@@ -13,4 +13,4 @@
 | Departure airport (`adep`) | 95 | 1 | 0 | 4 | 0 |
 | Destination airport (`ades`) | 91 | 0 | 0 | 9 | 0 |
 
-: Number of the 100 airports with each accuracy label. {.striped .hover}
+: Number of the 100 European airports with each accuracy label. {.striped .hover}

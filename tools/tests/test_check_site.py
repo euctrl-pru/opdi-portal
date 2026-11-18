@@ -329,8 +329,7 @@ def test_quality_pages_sit_under_data():
         "content/limitations.qmd",
         "content/data/limitations.qmd",
         "content/accuracy/index.qmd",
-        "content/accuracy/europe.qmd",
-        "content/accuracy/world.qmd",
+        "content/accuracy/airports.qmd",
     ):
         assert page in data_menu, page
     assert 'section: "Limitations"' in data_menu

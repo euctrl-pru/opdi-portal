@@ -7,4 +7,4 @@
 
 : Three days together (10, 14 and 17 June 2026). "Out of" is the number of flights, records or compared values the share is computed over, to four significant figures. {.striped}
 
-Per airport: every item at the [100 busiest European airports](../accuracy/europe.qmd#all-items) and the [100 busiest airports worldwide](../accuracy/world.qmd#all-items), as files to download.
+Per airport: every item at the 100 busiest European airports and the 100 busiest airports worldwide, as [files to download](../accuracy/airports.qmd#all-items).

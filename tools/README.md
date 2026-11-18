@@ -118,7 +118,7 @@ into `content/accuracy/_generated/` and included by the pages; they are not
 checked number by number, because they are the staged tables reformatted.
 Every number a page under `content/accuracy/` writes itself must be a row of
 `assets/pages/accuracy_numbers.csv` for that page (key `accuracy/index`,
-`accuracy/europe`, `accuracy/world`), which the same script writes from the
+`accuracy/airports`), which the same script writes from the
 staged tables, with the thresholds and dates as rows of kind `rule`. On any
 other page, a measured figure in prose is written as a span,
 `[24.2 %]{.measured}`, and must be a row for that page (for example

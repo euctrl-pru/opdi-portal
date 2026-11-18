@@ -17,4 +17,4 @@
 
 : Three days together (10, 14 and 17 June 2026). "Out of" is the number of flights, records or compared values the share is computed over, to four significant figures. {.striped}
 
-Per airport: at the 100 busiest European airports ([rwy_dep](../accuracy/europe.qmd#runway-dep), [rwy_arr](../accuracy/europe.qmd#runway-arr), [stnd_dep](../accuracy/europe.qmd#stand-dep), [stnd_arr](../accuracy/europe.qmd#stand-arr)) and at the 100 busiest airports worldwide ([rwy_dep](../accuracy/world.qmd#runway-dep), [rwy_arr](../accuracy/world.qmd#runway-arr), [stnd_dep](../accuracy/world.qmd#stand-dep), [stnd_arr](../accuracy/world.qmd#stand-arr)).
+Per airport, at the 100 busiest European airports and the 100 busiest airports worldwide: [rwy_dep](../accuracy/airports.qmd#runway-dep), [rwy_arr](../accuracy/airports.qmd#runway-arr), [stnd_dep](../accuracy/airports.qmd#stand-dep), [stnd_arr](../accuracy/airports.qmd#stand-arr).

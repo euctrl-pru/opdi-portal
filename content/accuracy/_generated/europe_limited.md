@@ -11,4 +11,4 @@
 | Departure stand (`stnd_dep`) | `LFPG` Charles de Gaulle International Airport; `EHAM` Amsterdam Airport Schiphol; `EDDF` Frankfurt Main Airport; `LEMD` Adolfo Suárez Madrid–Barajas Airport; `EGKK` London Gatwick Airport; `EIDW` Dublin Airport; `LIMC` Milan Malpensa International Airport; `EDDB` Berlin Brandenburg Airport; `LFMN` Nice-Côte d'Azur Airport; `LHBP` Budapest Liszt Ferenc International Airport; `LSGG` Geneva International Airport; `LIML` Milano Linate Airport; `EDDK` Cologne Bonn Airport; `LMML` Malta International Airport; `LFBO` Toulouse-Blagnac Airport |
 | Arrival stand (`stnd_arr`) | `LEMD` Adolfo Suárez Madrid–Barajas Airport; `EGKK` London Gatwick Airport; `LIMC` Milan Malpensa International Airport; `LSGG` Geneva International Airport; `LMML` Malta International Airport |
 
-: Airports where an item is compared with the records at least 30 times and fewer than half of the values agree. {.striped .hover}
+: European airports where an item is compared with the records at least 30 times and fewer than half of the values agree. {.striped .hover}

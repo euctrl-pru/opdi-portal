@@ -41,4 +41,4 @@
 | 96 | `EGAA` | Belfast International Airport | 0.0 % | 0.0 % | 72.4 % | 94.7 % | 0.0 % |
 | 100 | `LUKK` | Chişinău International Airport | 0.0 % | 0.0 % | 0.0 % |  |  |
 
-: Airports where fewer than 2 % of OPDI's departures have an off-block time and fewer than 2 % of its arrivals an in-block time. Empty: no arrival in OPDI's flight list. {.striped .hover}
+: European airports where fewer than 2 % of OPDI's departures have an off-block time and fewer than 2 % of its arrivals an in-block time. Empty: no arrival in OPDI's flight list. {.striped .hover}

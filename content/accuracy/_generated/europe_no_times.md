@@ -13,4 +13,4 @@
 | 94 | `LGKR` | Corfu Ioannis Kapodistrias International Airport | 19 | 14 | 6.4 % low |
 | 100 | `LUKK` | Chişinău International Airport | 2 | 0 | 0.0 % low |
 
-: Airports with no take-off time and no landing time on any of the three days. Last column: share of the arrivals in the Network Manager records that OPDI gives this destination. {.striped .hover}
+: European airports with no take-off time and no landing time on any of the three days. Last column: share of the arrivals in the Network Manager records that OPDI gives this destination. {.striped .hover}

@@ -314,13 +314,10 @@ def airport_line(page: str) -> str:
     """The sentence that links a page to its rows on the airport pages."""
     anchors = AIRPORT_ANCHORS.get(page)
     if not anchors:
-        return ("Per airport: every item at the [100 busiest European airports]"
-                "(../accuracy/europe.qmd#all-items) and the [100 busiest airports worldwide]"
-                "(../accuracy/world.qmd#all-items), as files to download.")
-    europe = ", ".join(f"[{w}](../accuracy/europe.qmd#{a})" for w, a in anchors)
-    world = ", ".join(f"[{w}](../accuracy/world.qmd#{a})" for w, a in anchors)
-    return (f"Per airport: at the 100 busiest European airports ({europe}) and at the "
-            f"100 busiest airports worldwide ({world}).")
+        return ("Per airport: every item at the 100 busiest European airports and the 100 busiest "
+                "airports worldwide, as [files to download](../accuracy/airports.qmd#all-items).")
+    links = ", ".join(f"[{w}](../accuracy/airports.qmd#{a})" for w, a in anchors)
+    return f"Per airport, at the 100 busiest European airports and the 100 busiest airports worldwide: {links}."
 
 
 def build(root: Path) -> tuple[str, dict[str, str]]:

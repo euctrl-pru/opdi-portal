@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Write the tables of the Accuracy and availability pages.
 
-Every table on content/accuracy/index.qmd, europe.qmd and world.qmd comes
+Every table on content/accuracy/index.qmd and airports.qmd comes
 from this script. It reads the staged tables under assets/accuracy/ (see
 assets/accuracy/README.md for every file and column) and writes small
 Markdown files under content/accuracy/_generated/, which the pages include
@@ -352,7 +352,7 @@ def europe_tables(rows: list[dict], airports_csv: list[dict]) -> tuple[dict[str,
         stats[anchor] = c
         prow.append([name] + [str(c.get(lab, 0)) for lab in labels])
     out["europe_patterns"] = table(["Item"] + list(labels), prow,
-                                   "Number of the 100 airports with each accuracy label.")
+                                   "Number of the 100 European airports with each accuracy label.")
 
     limited = []
     for anchor, title, item, name in MAIN:
@@ -361,7 +361,7 @@ def europe_tables(rows: list[dict], airports_csv: list[dict]) -> tuple[dict[str,
         if names:
             limited.append([name, "; ".join(names)])
     out["europe_limited"] = table(["Item", "Airports labelled limited"], limited,
-                                  "Airports where an item is compared with the records at least 30 times and "
+                                  "European airports where an item is compared with the records at least 30 times and "
                                   "fewer than half of the values agree.")
 
     ranks = {a["airport"]: a for a in airports}
@@ -373,7 +373,7 @@ def europe_tables(rows: list[dict], airports_csv: list[dict]) -> tuple[dict[str,
           pct(g["departures_with_off_block_pct"]), pct(g["departures_with_line_up_pct"]),
           pct(g["departures_with_take_off_pct"]), pct(g["arrivals_with_landing_pct"]),
           pct(g["arrivals_with_in_block_pct"])] for g in ground],
-        "Airports where fewer than 2 % of OPDI's departures have an off-block time and fewer than 2 % "
+        "European airports where fewer than 2 % of OPDI's departures have an off-block time and fewer than 2 % "
         "of its arrivals an in-block time. Empty: no arrival in OPDI's flight list.")
 
     none = no_time_airports(airports, index)
@@ -385,7 +385,7 @@ def europe_tables(rows: list[dict], airports_csv: list[dict]) -> tuple[dict[str,
           cell(pct(index[(a["airport"], "flight list: ADES")]["availability_ref_pct"]),
                index[(a["airport"], "flight list: ADES")]["availability_ref_label"])]
          for a in none],
-        "Airports with no take-off time and no landing time on any of the three days. Last column: "
+        "European airports with no take-off time and no landing time on any of the three days. Last column: "
         "share of the arrivals in the Network Manager records that OPDI gives this destination.")
 
     facts = {
@@ -418,7 +418,7 @@ def world_tables(rows: list[dict]) -> tuple[dict[str, str], dict]:
 LABELS = {"availability": ["high", "partial", "low"],
           "accuracy": ["good", "fair", "limited", "too few compared", "no reference"]}
 REFERENCES = ["airport records", "Network Manager", "no reference"]
-LOOKUP_SCOPES = ("europe", "world", "airports", "overall")
+LOOKUP_SCOPES = ("airports", "overall")
 LOOKUP_JSON = "assets/pages/accuracy_lookup_{scope}.json"
 
 #: Sections of the Algorithms sidebar in _quarto.yml: page -> section title.
@@ -509,27 +509,6 @@ def _airport_rows(rows: list[dict], codes: set) -> tuple[dict, set]:
 
 def _limited(code: str, index: dict) -> list[str]:
     return [anchor for anchor, _, item, _ in MAIN if index[(code, item)]["accuracy_label"] == "limited"]
-
-
-def airport_payload(rows: list[dict], airports_csv: list[dict], scope: str) -> dict:
-    """The lookup payload of the europe or world airport page."""
-    airports, index = by_airport(rows)
-    ground = {g["airport"] for g in ground_airports(airports, airports_csv)}
-    no_times = {a["airport"] for a in no_time_airports(airports, index)}
-    out_airports = []
-    for a in airports:
-        code = a["airport"]
-        out_airports.append({
-            "icao": code, "name": a["name"], "country": a["country"], "rank": int(a["rank"]),
-            "movements": _n(a["nm_movements" if scope == "europe" else "opdi_movements"]),
-            "where": _where(a, scope == "europe"),
-            "flags": [f for f, s in (("ground", ground), ("no_times", no_times)) if code in s],
-            "limited": _limited(code, index)})
-    rows_by, seen_items = _airport_rows(rows, {a["airport"] for a in airports})
-    payload = _lookup_base(scope, [i for i, _, _ in ITEMS if i in seen_items])
-    payload["airports"] = out_airports
-    payload["rows"] = rows_by
-    return payload
 
 
 def airports_payload(eu_rows: list[dict], world_rows: list[dict], airports_csv: list[dict]) -> dict:
@@ -626,7 +605,7 @@ RULES = (
 
 def numbers(items: list[dict], spread: list[dict], eu: dict, world: dict) -> list[list]:
     out = []
-    for page in ("accuracy/index", "accuracy/europe", "accuracy/world", "limitations"):
+    for page in ("accuracy/index", "accuracy/airports", "limitations"):
         out += [[page, mid, label, value, "", "rule"] for mid, label, value in RULES]
     pooled = {(r["item"], r["reference"]): r for r in items if r["days"] == POOLED}
     first = pooled[("flight list: FIRST_SEEN", "no reference")]
@@ -678,15 +657,15 @@ def numbers(items: list[dict], spread: list[dict], eu: dict, world: dict) -> lis
 
     src_eu = str(ACC / "airport_accuracy_europe.csv")
     for key in ("airports", "with_records", "without_records", "ground", "no_times"):
-        for page in ("accuracy/europe", "limitations", "accuracy/index"):
+        for page in ("accuracy/airports", "limitations", "accuracy/index"):
             out.append([page, f"eu_{key}", f"European airports: {key}", eu[key], "", src_eu])
     for anchor, c in eu["stats"].items():
         for lab, n in c.items():
-            out.append(["accuracy/europe", f"eu_{anchor}_{lab}", f"airports labelled {lab} for {anchor}", n, "",
+            out.append(["accuracy/airports", f"eu_{anchor}_{lab}", f"airports labelled {lab} for {anchor}", n, "",
                         src_eu])
     src_w = str(ACC / "airport_accuracy_world.csv")
     for key in ("airports", "outside", "in_europe", "with_records"):
-        out.append(["accuracy/world", f"world_{key}", f"world airports: {key}", world[key], "", src_w])
+        out.append(["accuracy/airports", f"world_{key}", f"world airports: {key}", world[key], "", src_w])
     return out
 
 
@@ -714,9 +693,7 @@ def build(root: Path) -> dict[Path, str]:
     writer.writerow(NUMBER_COLUMNS)
     writer.writerows(numbers(items, spread, eu, world))
     wanted[root / NUMBERS_CSV] = out.getvalue()
-    payloads = {"europe": airport_payload(eu_rows, airports, "europe"),
-                "world": airport_payload(world_rows, airports, "world"),
-                "airports": airports_payload(eu_rows, world_rows, airports),
+    payloads = {"airports": airports_payload(eu_rows, world_rows, airports),
                 "overall": overall_payload(items)}
     for scope, payload in payloads.items():
         wanted[root / LOOKUP_JSON.format(scope=scope)] = dump_json(payload)
@@ -734,6 +711,9 @@ def main(argv: list[str] | None = None) -> int:
     # Generated Markdown that is no longer wanted.
     unwanted = sorted(p for p in (args.root / OUT_DIR).glob("*.md")
                       if p not in wanted and p.read_text(encoding="utf-8").startswith(HEADER))
+    # Lookup payloads of scopes that no longer exist (the old europe and world pages).
+    unwanted += sorted(p for p in (args.root / LOOKUP_JSON.format(scope="x")).parent.glob("accuracy_lookup_*.json")
+                       if p not in wanted)
     if args.check:
         for p in stale + unwanted:
             print(f"out of date: {p.relative_to(args.root)}")

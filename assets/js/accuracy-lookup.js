@@ -449,8 +449,7 @@
     if (it && it.page) links.push('<a href="' + pageHref(it.page) + '">How this item is computed</a>');
     if (it && it.limits) links.push(limitsLink(it));
     if (m) {
-      links.push("Per airport: <a href=\"europe.html#" + esc(m.anchor) + "\">European airports</a> / " +
-        "<a href=\"world.html#" + esc(m.anchor) + "\">worldwide</a>");
+      links.push("<a href=\"airports.html#" + esc(m.anchor) + "\">Per airport</a>");
     }
     if (links.length) out += '<p class="acc-meta">' + links.join(" · ") + "</p>";
     out += "</header>";
