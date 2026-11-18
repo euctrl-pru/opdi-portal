@@ -1,8 +1,8 @@
 /* Accuracy lookup: search an airport or an item and read its figures.
  *
  * Reads the payload that tools/gen_accuracy_tables.py writes to
- * assets/pages/accuracy_lookup_{airports,europe,world,overall}.json and renders it
- * into each div.acc-lookup[data-scope][data-src]. Every figure comes from the
+ * assets/pages/accuracy_lookup_{airports,overall}.json and renders it into each
+ * div.acc-lookup[data-scope][data-src]. Every figure comes from the
  * payload; this file holds wording and layout only.
  *
  * Row        = [own_pct, own_label, eligible, ref_idx, ref_movements, ref_pct,
@@ -125,29 +125,30 @@
   var LISTS = [["all", "All airports"], ["europe", "European top 100"], ["world", "Worldwide top 100"]];
 
   function inList(a, list) {
-    if (!list || list === "all" || !a.ranks) return true;
+    if (!list || list === "all") return true;
     return a.ranks[list] != null;
   }
 
   function ranksText(a) {
-    if (!a.ranks) return a.rank != null ? "rank " + a.rank : "";
     var parts = [];
     if (a.ranks.europe != null) parts.push("rank " + a.ranks.europe + " in Europe");
     if (a.ranks.world != null) parts.push("rank " + a.ranks.world + " worldwide");
     return parts.join(" · ");
   }
 
-  function movementsText(payload, a) {
-    var mv = a.movements;
-    if (mv && typeof mv === "object") {
-      var parts = [];
-      if (isNum(mv.nm)) parts.push(fmtCount(mv.nm) + " movements in the Network Manager records");
-      if (isNum(mv.opdi)) parts.push(fmtCount(mv.opdi) + (parts.length ? " in OPDI's flight list"
-                                                                     : " movements in OPDI's flight list"));
-      return parts.join(" · ");
+  function movementsText(a) {
+    var mv = a.movements || {};
+    var outside = a.where === "outside Europe";
+    var parts = [];
+    if (isNum(mv.nm)) {
+      parts.push(fmtCount(mv.nm) + (outside ? " to or from Europe in the Network Manager records"
+                                            : " movements in the Network Manager records"));
     }
-    return fmtCount(mv) + " " + (payload.scope === "europe" ? "movements in the Network Manager records"
-                                                            : "movements in OPDI's flight list");
+    if (isNum(mv.opdi)) {
+      parts.push(fmtCount(mv.opdi) + (parts.length && !outside ? " in OPDI's flight list"
+                                                               : " movements in OPDI's flight list"));
+    }
+    return parts.join(" · ");
   }
 
   function findAirport(payload, icao) {
@@ -221,12 +222,16 @@
 
   function referenceNote(a) {
     if (a.where === "airport records") return "Compared with airport records";
-    if (a.where === "outside Europe") return "No reference: availability only";
+    if (a.where === "outside Europe") {
+      return "No airport records: departure and destination airports compared with Network Manager " +
+        "(flights to and from Europe only); other items availability only";
+    }
     return "Compared with Network Manager only";
   }
 
+  // The sections the callouts link to list the European airports only.
   function warnings(payload, a) {
-    var linked = payload.scope === "europe" || payload.scope === "airports";
+    var linked = a.ranks.europe != null;
     function callout(anchor, title, text) {
       var head = linked ? '<a href="#' + anchor + '">' + esc(title) + "</a>" : esc(title);
       var stop = /\.$/.test(title) ? "" : ".";
@@ -270,7 +275,7 @@
     var label = row[R.accLabel];
     var ref = referenceName(payload, row[R.ref]);
     if (label === "no reference" || ref === "no reference") {
-      return '<p class="acc-muted">No reference: availability only.</p>';
+      return '<p class="acc-muted">Not compared (no reference).</p>';
     }
     var parts = [];
     if (row[R.accText]) parts.push('<span class="acc-figure">' + esc(row[R.accText]) + "</span>");
@@ -318,7 +323,7 @@
     if (!a) return '<p class="acc-muted">No airport ' + esc(icao) + " on this page.</p>";
     var rows = (payload.rows || {})[a.icao] || {};
     var meta = ["<code>" + esc(a.icao) + "</code>", esc(a.country), esc(ranksText(a)),
-                esc(movementsText(payload, a))].filter(Boolean);
+                esc(movementsText(a))].filter(Boolean);
     var out = '<article class="acc-card acc-airport">';
     out += '<header class="acc-card-head"><h3 class="acc-card-title">' + esc(a.name) + "</h3>" +
       '<p class="acc-meta">' + meta.join(" · ") + "</p>" +
@@ -366,9 +371,9 @@
     var key = m ? m.item : itemOrAnchor;
     var it = (payload.items || {})[key];
     if (!m && !it) return '<p class="acc-muted">No item ' + esc(itemOrAnchor) + " on this page.</p>";
-    var byAvail = payload.scope === "world" || (payload.scope === "airports" && list === "world");
-    // Under "All airports", the airports with no reference go to their own section, by availability.
-    var split = payload.scope === "airports" && list === "all";
+    // Under "All airports" and "Worldwide top 100", the rows with no reference go to their own
+    // section, by availability.
+    var split = list === "all" || list === "world";
     var acc = { col: R.accLabel, labels: ((payload.labels || {}).accuracy || []).slice(), empty: "not rated",
                 members: {}, total: 0 };
     var avail = { col: R.ownLabel, labels: ((payload.labels || {}).availability || []).slice(),
@@ -377,8 +382,8 @@
       if (!inList(a, list)) return;
       var row = ((payload.rows || {})[a.icao] || {})[key];
       if (!row) return;
-      var noRef = referenceName(payload, row[R.ref]) === "no reference" || a.where === "outside Europe";
-      var g = byAvail || (split && noRef) ? avail : acc;
+      var noRef = referenceName(payload, row[R.ref]) === "no reference";
+      var g = split && noRef ? avail : acc;
       var label = row[g.col] || g.empty;
       if (g.labels.indexOf(label) < 0) g.labels.push(label);
       (g.members[label] = g.members[label] || []).push(a);
@@ -391,9 +396,7 @@
       out += '<p class="acc-meta"><a href="' + pageHref(it.page) + '">How this item is computed</a>' +
         (it.limits ? " · " + limitsLink(it) : "") + (it.group ? " · " + esc(it.group) : "") + "</p>";
     }
-    out += '<p class="acc-refnote">' + (byAvail
-      ? "Airports by availability: the share of OPDI's flights that carry the item."
-      : split
+    out += '<p class="acc-refnote">' + (split
         ? "Airports with a reference by accuracy (how often OPDI's value agrees with the records); " +
           "the others, below, by availability (the share of OPDI's flights that carry the item)."
         : "Airports by accuracy: how often OPDI's value agrees with the reference records.") +
@@ -426,7 +429,6 @@
       return html;
     }
 
-    if (byAvail) return out + groups(avail) + "</article>";
     if (acc.total) out += groups(acc);
     if (split && avail.total) {
       out += '<section class="acc-noref"><h4 class="acc-group-title">Not compared (no reference): ' +
@@ -521,10 +523,12 @@
     return "";
   }
 
-  function renderError(src) {
+  // Both pages give the CSV files, or a link to them, under #all-items.
+  function renderError(src, scope) {
     return '<div class="acc-error" role="alert"><p>The figures could not be loaded from <code>' + esc(src) +
       "</code>. Every figure is also in the CSV files, such as <code>airport_accuracy_europe.csv</code>, " +
-      'listed under <a href="#all-items">Every other item</a>.</p></div>';
+      'listed under <a href="#all-items">' + (scope === "overall" ? "Downloads" : "Every other item") +
+      "</a>.</p></div>";
   }
 
   // ------------------------------------------------------------------ mount
@@ -537,7 +541,7 @@
     fetch(src)
       .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
       .then(function (payload) { build(el, payload); })
-      .catch(function () { el.innerHTML = renderError(src); });
+      .catch(function () { el.innerHTML = renderError(src, el.getAttribute("data-scope")); });
   }
 
   function build(el, payload) {

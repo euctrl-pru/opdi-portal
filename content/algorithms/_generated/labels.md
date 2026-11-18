@@ -103,4 +103,4 @@
 | [`distance_flown_nm`](distance-flown.qmd) | high | Network Manager | high | good |
 | [`time_passed_s`](time-passed.qmd) | high | none |  | no reference |
 
-: Labels of every item, the three days together. The numbers behind them are on Accuracy and availability. {.striped .hover}
+: Labels of every item, the three days together. The numbers behind them are on Data quality. {.striped .hover}

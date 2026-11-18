@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Write the tables of the Accuracy and availability pages.
+"""Write the tables of the Data quality pages.
 
 Every table on content/accuracy/index.qmd and airports.qmd comes
 from this script. It reads the staged tables under assets/accuracy/ (see
@@ -302,7 +302,7 @@ def overall_tables(items: list[dict], spread: list[dict]) -> dict[str, str]:
     labels = table(["Item", "Availability among OPDI's flights", "Reference",
                     "Availability against the reference", "Accuracy"], rows,
                    "Labels of every item, the three days together. The numbers behind them are on "
-                   "Accuracy and availability.")
+                   "Data quality.")
     return {"overall_no_reference": noref, "algorithms_labels": labels,
             "overall_stability": stability, "overall_unstable": unstable}
 
@@ -399,16 +399,15 @@ def europe_tables(rows: list[dict], airports_csv: list[dict]) -> tuple[dict[str,
     return out, facts
 
 
-def world_tables(rows: list[dict]) -> tuple[dict[str, str], dict]:
-    airports, index = by_airport(rows)
-    out = {}
-    facts = {
+def world_facts(rows: list[dict]) -> dict:
+    """The counts of the worldwide list that the Airports page may state."""
+    airports, _ = by_airport(rows)
+    return {
         "airports": len(airports),
         "outside": sum(a["in_europe"] != "True" for a in airports),
         "in_europe": sum(a["in_europe"] == "True" for a in airports),
         "with_records": sum(a["has_airport_records"] == "True" for a in airports),
     }
-    return out, facts
 
 
 # ---------------------------------------------------------------------------
@@ -573,7 +572,7 @@ def lookup_include(scope: str) -> str:
             + f'::: {{#acc-lookup-{scope} .acc-lookup data-scope="{scope}" '
               f'data-src="../../assets/pages/accuracy_lookup_{scope}.json"}}\n'
               "The search below needs JavaScript. Every figure is also in the files under "
-              f"[{'Download' if scope == 'overall' else 'Every other item'}](#all-items).\n"
+              f"[{'Downloads' if scope == 'overall' else 'Every other item'}](#all-items).\n"
               ":::\n\n"
               '<link rel="stylesheet" href="../../assets/css/accuracy-lookup.css">\n'
               '<script src="../../assets/js/accuracy-lookup.js" defer></script>\n')
@@ -681,9 +680,8 @@ def build(root: Path) -> dict[Path, str]:
     airports = read(root, "airports.csv")
     pages = overall_tables(items, spread)
     eu_pages, eu = europe_tables(eu_rows, airports)
-    world_pages, world = world_tables(world_rows)
+    world = world_facts(world_rows)
     pages.update(eu_pages)
-    pages.update(world_pages)
     labels = pages.pop("algorithms_labels")
     wanted = {root / OUT_DIR / f"{name}.md": HEADER + text for name, text in pages.items()}
     wanted[root / ALGORITHMS_LABELS] = HEADER + labels

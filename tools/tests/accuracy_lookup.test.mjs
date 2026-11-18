@@ -74,7 +74,7 @@ test("renderAirport LGIR with empty values", () => {
   clean(L.renderAirport(p, "LGIR"));
 });
 
-test("renderAirport KATL on the world page", () => {
+test("renderAirport KATL, an airport outside Europe", () => {
   const h = L.renderAirport(p, "KATL");
   assert.ok(h.includes("availability only"));
   clean(h);
@@ -193,7 +193,48 @@ test("under All, airports without a reference are grouped by availability apart"
   assert.ok(!compared.includes(">no reference<"));
   assert.ok(/acc-badge acc-good">high</.test(notCompared));
   clean(h);
-  // European top 100 keeps the accuracy groups only; Worldwide top 100 stays by availability.
+  // European top 100 keeps the accuracy groups only; Worldwide top 100 splits like All.
   assert.ok(!L.renderItem(ap, "take-off", { list: "europe" }).includes("Not compared"));
-  assert.ok(!L.renderItem(ap, "take-off", { list: "world" }).includes("Not compared"));
+  const world = L.renderItem(ap, "take-off", { list: "world" });
+  assert.ok(world.indexOf("#airport-LTFM") < world.indexOf("Not compared"));
+  assert.ok(world.indexOf("#airport-KATL") > world.indexOf("Not compared"));
+});
+
+test("KATL card: airports compared with Network Manager, other items availability only", () => {
+  const h = L.renderAirport(ap, "KATL");
+  assert.ok(h.includes("departure and destination airports compared with Network Manager"), h.slice(0, 800));
+  assert.ok(!h.includes("No reference: availability only"));
+  assert.ok(h.includes("to or from Europe in the Network Manager records"));
+  clean(h);
+});
+
+test("adep under All and Worldwide: KATL is in an accuracy group", () => {
+  for (const list of ["all", "world"]) {
+    const h = L.renderItem(ap, "adep", { list });
+    const cut = h.indexOf("Not compared");
+    const compared = cut > 0 ? h.slice(0, cut) : h;
+    assert.ok(compared.includes("#airport-KATL"), list);
+    assert.ok(cut < 0 || !h.slice(cut).includes("#airport-KATL"), list);
+    clean(h);
+  }
+});
+
+test("take-off under All: KATL stays in Not compared", () => {
+  const h = L.renderItem(ap, "take-off", { list: "all" });
+  const cut = h.indexOf("Not compared");
+  assert.ok(cut > 0 && h.slice(cut).includes("#airport-KATL") && !h.slice(0, cut).includes("#airport-KATL"));
+});
+
+test("ground warning is linked only for an airport on the European list", () => {
+  const kclt = ap.airports.find((a) => a.icao === "KCLT");
+  assert.ok(kclt.flags.includes("ground") && kclt.ranks.europe == null);
+  const h = L.renderAirport(ap, "KCLT");
+  assert.ok(h.includes("Ground events are nearly absent here"));
+  assert.ok(!h.includes('href="#ground-reception"'));
+  assert.ok(L.renderAirport(ap, "LTFM").includes('href="#ground-reception"'));
+});
+
+test("renderError points to the right section for each scope", () => {
+  assert.ok(L.renderError("x.json", "airports").includes('href="#all-items">Every other item</a>'));
+  assert.ok(L.renderError("x.json", "overall").includes('href="#all-items">Downloads</a>'));
 });
