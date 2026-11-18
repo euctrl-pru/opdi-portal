@@ -105,14 +105,6 @@ def test_accuracy_tables_are_up_to_date():
     assert g.main(["--check"]) == 0
 
 
-def test_accuracy_summary_cell_keeps_both_labels():
-    import gen_accuracy_tables as g
-    r = {"availability_own_label": "low", "availability_own_pct": "0.35", "accuracy_label": "too few compared"}
-    assert g.summary_cell(r, True) == "low · too few compared"
-    assert g.summary_cell(r, False) == "0.3 % low"
-    assert g.summary_cell(dict(r, availability_own_label="", availability_own_pct=""), True).startswith("no flights")
-
-
 def test_every_staged_item_has_a_name_and_a_page():
     import gen_accuracy_tables as g
     items = {r["item"] for r in g.read(g.ROOT, "item_accuracy.csv")}

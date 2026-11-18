@@ -118,6 +118,7 @@ published before every value is known.
   same event types as the Data dictionary.
 - [ ] `python tools/check_papers_index.py` reports `OK`.
 - [ ] `python -m pytest tools/tests` passes.
+- [ ] `node --test tools/tests/*.test.mjs` passes.
 - [ ] `quarto render` finishes without error.
 - [ ] `quarto render papers/` has been run for the studies the Methods pages
   link to. At the time of writing, `_site/papers/` has no page for

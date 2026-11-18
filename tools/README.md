@@ -8,7 +8,7 @@ repository root.
 |---|---|---|
 | `check_site.py` | Checks links, the sidebar, the template and the numbers of the algorithm pages, that every published item is listed, the pointers of moved pages, and the wording of every page. Exit status 1 when anything fails. | Python 3 |
 | `gen_item_figures.py` | Writes the availability and accuracy tables of the algorithm pages from the three-day tables in `assets/accuracy/`, and records each number in `assets/algorithms/item_figures.csv`. | Python 3 |
-| `gen_accuracy_tables.py` | Writes the tables of the Accuracy and availability pages and the labels of the Algorithms overview from `assets/accuracy/`, and records the numbers their prose may use in `assets/pages/accuracy_numbers.csv`. | Python 3 |
+| `gen_accuracy_tables.py` | Writes the short tables of the Accuracy and availability pages and the labels of the Algorithms overview from `assets/accuracy/`; the three search payloads `assets/pages/accuracy_lookup_{europe,world,overall}.json` and the three includes `content/accuracy/_generated/{europe,world,overall}_lookup.md` that the search widget reads; and records the numbers their prose may use in `assets/pages/accuracy_numbers.csv`. | Python 3 |
 | `check_papers_index.py` | Checks that every study under `papers/` is listed once in `papers/index.qmd`. | Python 3 |
 | `gen_data_dictionary.py` | Writes the column tables of the data dictionary from the pipeline's list of published columns. | Python 3, the `opdi` repository |
 | `draw_validation_figures.py` | Draws the validation charts of the methods pages from committed study results, and records the numbers each page quotes. | Python 3, pandas, matplotlib |
@@ -252,7 +252,10 @@ event type has no methods page.
 
 ```bash
 python -m pytest tools/tests
+node --test tools/tests/*.test.mjs
 ```
+
+The node tests cover the search widget `assets/js/accuracy-lookup.js`.
 
 The tests build small websites in a temporary folder; they do not touch the
 real site.

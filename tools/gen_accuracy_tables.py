@@ -265,32 +265,6 @@ def overall_tables(items: list[dict], spread: list[dict]) -> dict[str, str]:
     ref_order = {"airport records": 0, "Network Manager": 1, "no reference": 2}
     pooled.sort(key=lambda r: (order[r["item"]], ref_order.get(r["reference"], 3)))
 
-    rows = []
-    for r in pooled:
-        has_ref = r["reference"] != "no reference"
-        rows.append([
-            link(r["item"]),
-            count(r["values_per_day"]),
-            count(r["flights_eligible"]),
-            cell(pct(r["availability_own_pct"]), r["availability_own_label"]),
-            r["reference"] if has_ref else "none",
-            f"{r['compared_with']}" if has_ref else "",
-            count(r["reference_movements"]),
-            cell(pct(r["availability_ref_pct"]), r["availability_ref_label"]),
-            count(r["compared"]),
-            accuracy_text(r),
-            secs(r["median_abs_diff_s"]),
-            secs(r["p90_abs_diff_s"]),
-            r["accuracy_label"],
-        ])
-    every = table(
-        ["Item", "Values per day", "OPDI flights that could carry it", "Available among them",
-         "Reference", "Compared with", "Reference movements", "Available against the reference",
-         "Compared", "Accuracy", "Median difference", "90th percentile", "Accuracy label"],
-        rows,
-        "Every published item, the three days together. Shares in percent; times in seconds. "
-        "An empty cell means not applicable.")
-
     per_day = {(r["item"], r["reference"], r["days"]): r for r in items if r["days"] != POOLED}
     rows = []
     for r in pooled:
@@ -334,7 +308,7 @@ def overall_tables(items: list[dict], spread: list[dict]) -> dict[str, str]:
                     "Availability against the reference", "Accuracy"], rows,
                    "Labels of every item, the three days together. The numbers behind them are on "
                    "Accuracy and availability.")
-    return {"overall_items": every, "overall_no_reference": noref, "algorithms_labels": labels,
+    return {"overall_no_reference": noref, "algorithms_labels": labels,
             "overall_stability": stability, "overall_unstable": unstable}
 
 
@@ -352,40 +326,6 @@ def by_airport(rows: list[dict]) -> tuple[list[dict], dict]:
             seen.add(r["airport"])
             airports.append(r)
     return airports, index
-
-
-def summary_cell(r: dict | None, with_accuracy: bool) -> str:
-    if r is None:
-        return ""
-    avail = r["availability_own_label"] or "no flights"
-    if not with_accuracy:
-        return f"{pct(r['availability_own_pct'])} {avail}".strip()
-    return f"{avail} · {r['accuracy_label']}"
-
-
-def detail_table(airports: list[dict], index: dict, item: str, world: bool) -> str:
-    rows = []
-    for a in airports:
-        r = index.get((a["airport"], item))
-        if r is None:
-            continue
-        has_ref = r["reference"] != "no reference"
-        row = [a["rank"], f"`{a['airport']}`", a["name"],
-               count(r["flights_eligible"]),
-               cell(pct(r["availability_own_pct"]), r["availability_own_label"]) or "no flights",
-               r["reference"] if has_ref else "none",
-               count(r["reference_movements"]),
-               cell(pct(r["availability_ref_pct"]), r["availability_ref_label"]),
-               count(r["compared"]),
-               accuracy_text(r),
-               secs(r.get("median_abs_diff_s", "")),
-               r["accuracy_label"]]
-        rows.append(row)
-    return table(["Rank", "ICAO", "Airport", "OPDI flights that could carry it", "Available among them",
-                  "Reference", "Reference movements", "Available against the reference", "Compared",
-                  "Accuracy", "Median difference", "Accuracy label"], rows,
-                 "Three days together. \"Compared\" is the number of OPDI values the accuracy is "
-                 "computed over.")
 
 
 def ground_airports(airports: list[dict], airports_csv: list[dict]) -> list[dict]:
@@ -408,18 +348,6 @@ def no_time_airports(airports: list[dict], index: dict) -> list[dict]:
 def europe_tables(rows: list[dict], airports_csv: list[dict]) -> tuple[dict[str, str], dict]:
     airports, index = by_airport(rows)
     out = {}
-    summary = []
-    for a in airports:
-        summary.append([a["rank"], f"`{a['airport']}`", a["name"], count(a["nm_movements"]),
-                        "yes" if a["has_airport_records"] == "True" else "**no**"]
-                       + [summary_cell(index.get((a["airport"], item)), True) for _, _, item, _ in MAIN])
-    out["europe_summary"] = table(
-        ["Rank", "ICAO", "Airport", "Movements", "Airport records"] + [t for _, t, _, _ in MAIN], summary,
-        "The 100 busiest European airports. Each item: availability among OPDI's flights · accuracy. "
-        "Movements: departures and arrivals in the Network Manager records, three days together.")
-    for anchor, _, item, _ in MAIN:
-        out[f"europe_{anchor}"] = detail_table(airports, index, item, world=False)
-
     # Patterns: airports per label and item.
     labels = ("good", "fair", "limited", "too few compared", "no reference")
     prow = []
@@ -479,19 +407,6 @@ def europe_tables(rows: list[dict], airports_csv: list[dict]) -> tuple[dict[str,
 def world_tables(rows: list[dict]) -> tuple[dict[str, str], dict]:
     airports, index = by_airport(rows)
     out = {}
-    summary = []
-    for a in airports:
-        where = ("Europe, airport records" if a["has_airport_records"] == "True"
-                 else "Europe, no airport records" if a["in_europe"] == "True" else "outside Europe")
-        summary.append([a["rank"], f"`{a['airport']}`", a["name"], a["country"], count(a["opdi_movements"]),
-                        where]
-                       + [summary_cell(index.get((a["airport"], item)), False) for _, _, item, _ in MAIN])
-    out["world_summary"] = table(
-        ["Rank", "ICAO", "Airport", "Country", "Movements", "Reference"] + [t for _, t, _, _ in MAIN], summary,
-        "The 100 airports with the most movements in OPDI's flight list. Each item: availability among "
-        "OPDI's flights at the airport. This is how often the item exists, not whether it is right.")
-    for anchor, _, item, _ in MAIN:
-        out[f"world_{anchor}"] = detail_table(airports, index, item, world=True)
     facts = {
         "airports": len(airports),
         "outside": sum(a["in_europe"] != "True" for a in airports),
@@ -615,7 +530,7 @@ def lookup_include(scope: str) -> str:
             + f'::: {{#acc-lookup-{scope} .acc-lookup data-scope="{scope}" '
               f'data-src="../../assets/pages/accuracy_lookup_{scope}.json"}}\n'
               "The search below needs JavaScript. Every figure is also in the files under "
-              "[Every other item](#all-items).\n"
+              f"[{'Download' if scope == 'overall' else 'Every other item'}](#all-items).\n"
               ":::\n\n"
               '<link rel="stylesheet" href="../../assets/css/accuracy-lookup.css">\n'
               '<script src="../../assets/js/accuracy-lookup.js" defer></script>\n')
