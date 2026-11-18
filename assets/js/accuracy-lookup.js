@@ -1,7 +1,7 @@
 /* Accuracy lookup: search an airport or an item and read its figures.
  *
  * Reads the payload that tools/gen_accuracy_tables.py writes to
- * assets/pages/accuracy_lookup_{europe,world,overall}.json and renders it
+ * assets/pages/accuracy_lookup_{airports,europe,world,overall}.json and renders it
  * into each div.acc-lookup[data-scope][data-src]. Every figure comes from the
  * payload; this file holds wording and layout only.
  *
@@ -90,7 +90,7 @@
   }
 
   function pageHref(page) {
-    return esc(String(page || "").replace(/\.qmd$/, ".html"));
+    return esc(String(page || "").replace(/\.qmd(?=#|$)/, ".html"));
   }
 
   function plural(n, one, many) {
@@ -116,6 +116,47 @@
     return (payload.references || [])[idx] || "";
   }
 
+  function limitsLink(it) {
+    if (!it || !it.limits) return "";
+    return '<a class="acc-limits" href="' + pageHref(it.limits) + '">Limitations</a>';
+  }
+
+  // The lists an airport of the merged payload belongs to.
+  var LISTS = [["all", "All airports"], ["europe", "European top 100"], ["world", "Worldwide top 100"]];
+
+  function inList(a, list) {
+    if (!list || list === "all" || !a.ranks) return true;
+    return a.ranks[list] != null;
+  }
+
+  function ranksText(a) {
+    if (!a.ranks) return a.rank != null ? "rank " + a.rank : "";
+    var parts = [];
+    if (a.ranks.europe != null) parts.push("rank " + a.ranks.europe + " in Europe");
+    if (a.ranks.world != null) parts.push("rank " + a.ranks.world + " worldwide");
+    return parts.join(" · ");
+  }
+
+  function movementsText(payload, a) {
+    var mv = a.movements;
+    if (mv && typeof mv === "object") {
+      var parts = [];
+      if (isNum(mv.nm)) parts.push(fmtCount(mv.nm) + " movements in the Network Manager records");
+      if (isNum(mv.opdi)) parts.push(fmtCount(mv.opdi) + (parts.length ? " in OPDI's flight list"
+                                                                     : " movements in OPDI's flight list"));
+      return parts.join(" · ");
+    }
+    return fmtCount(mv) + " " + (payload.scope === "europe" ? "movements in the Network Manager records"
+                                                            : "movements in OPDI's flight list");
+  }
+
+  function findAirport(payload, icao) {
+    var want = String(icao == null ? "" : icao).toUpperCase();
+    var list = payload.airports || [];
+    for (var i = 0; i < list.length; i++) if (list[i].icao === want) return list[i];
+    return null;
+  }
+
   function itemHash(payload, key) {
     var m = mainBy(payload, key);
     return "#" + (m ? m.anchor : "item-" + encodeURIComponent(key));
@@ -135,21 +176,23 @@
     return best;
   }
 
-  function search(payload, query, limit) {
+  function search(payload, query, limit, opts) {
     if (limit === undefined) limit = 8;
+    var list = (opts && opts.list) || "all";
     var q = fold(query).trim();
     if (!q || !payload) return [];
     var hits = [];
     var order = 0;
     if (payload.scope !== "overall") {
       (payload.airports || []).forEach(function (a) {
+        if (!inList(a, list)) return;
         var icao = fold(a.icao);
         var rank = icao === q ? 0 : rankFields([icao, fold(a.name), fold(a.country)], q);
         if (rank === 0 && icao !== q) rank = 0.5;  // only an exact ICAO comes first; a whole name or country next
         if (rank < 3) {
           hits.push({ rank: rank, side: 0, order: order++, r: {
             kind: "airport", key: a.icao, label: a.name,
-            sub: a.icao + " · " + a.country + " · rank " + a.rank } });
+            sub: [a.icao, a.country, ranksText(a)].filter(Boolean).join(" · ") } });
         }
       });
     }
@@ -183,7 +226,7 @@
   }
 
   function warnings(payload, a) {
-    var linked = payload.scope === "europe";
+    var linked = payload.scope === "europe" || payload.scope === "airports";
     function callout(anchor, title, text) {
       var head = linked ? '<a href="#' + anchor + '">' + esc(title) + "</a>" : esc(title);
       var stop = /\.$/.test(title) ? "" : ".";
@@ -232,17 +275,19 @@
     var parts = [];
     if (row[R.accText]) parts.push('<span class="acc-figure">' + esc(row[R.accText]) + "</span>");
     if (isNum(row[R.median])) parts.push("median " + fmtSecs(row[R.median]));
-    parts.push(plural(row[R.compared] == null ? null : row[R.compared], "compared", "compared"));
+    if (isNum(row[R.compared])) parts.push(plural(row[R.compared], "compared", "compared"));
     var out = '<p class="acc-acc">' + badge(label, "not rated") + " " + parts.join(" · ") + "</p>";
     out += '<p class="acc-muted acc-small">Against ' + esc(ref) + ": found for " + fmtPct(row[R.refPct]) +
-      " of " + plural(row[R.refMov], "recorded movement", "recorded movements") + ".</p>";
+      (isNum(row[R.refMov]) ? " of " + plural(row[R.refMov], "recorded movement", "recorded movements") : "") +
+      ".</p>";
     return out;
   }
 
   function tile(payload, m, row) {
     var it = (payload.items || {})[m.item];
     var name = it ? '<a href="' + pageHref(it.page) + '">' + code(m.name) + "</a>" : code(m.name);
-    return '<div class="acc-tile"><h5 class="acc-tile-title">' + name + "</h5>" +
+    return '<div class="acc-tile"><div class="acc-tile-head"><h5 class="acc-tile-title">' + name + "</h5>" +
+      limitsLink(it) + "</div>" +
       '<div class="acc-tile-part"><span class="acc-part-label">Availability</span>' + availabilityLine(row) + "</div>" +
       '<div class="acc-tile-part"><span class="acc-part-label">Accuracy</span>' + accuracyLines(payload, row) + "</div>" +
       "</div>";
@@ -260,24 +305,23 @@
       acc = '<span class="acc-muted">no reference</span>';
     } else {
       acc = badge(row[R.accLabel], "not rated") + (row[R.accText] ? " " + esc(row[R.accText]) : "") +
-        ' <span class="acc-muted">' + fmtCount(row[R.compared]) + " compared</span>";
+        (isNum(row[R.compared]) ? ' <span class="acc-muted">' + fmtCount(row[R.compared]) + " compared</span>" : "");
     }
     return '<li class="acc-compact-row"><span class="acc-compact-name">' + name + "</span>" +
       '<span class="acc-compact-avail">' + avail + "</span>" +
-      '<span class="acc-compact-acc">' + acc + "</span></li>";
+      '<span class="acc-compact-acc">' + acc + "</span>" +
+      '<span class="acc-compact-limits">' + limitsLink(it) + "</span></li>";
   }
 
   function renderAirport(payload, icao) {
-    var a = null;
-    (payload.airports || []).forEach(function (x) { if (x.icao === icao) a = x; });
+    var a = findAirport(payload, icao);
     if (!a) return '<p class="acc-muted">No airport ' + esc(icao) + " on this page.</p>";
-    var rows = (payload.rows || {})[icao] || {};
-    var mov = payload.scope === "europe" ? "movements in the Network Manager records"
-                                         : "movements in OPDI's flight list";
+    var rows = (payload.rows || {})[a.icao] || {};
+    var meta = ["<code>" + esc(a.icao) + "</code>", esc(a.country), esc(ranksText(a)),
+                esc(movementsText(payload, a))].filter(Boolean);
     var out = '<article class="acc-card acc-airport">';
     out += '<header class="acc-card-head"><h3 class="acc-card-title">' + esc(a.name) + "</h3>" +
-      '<p class="acc-meta"><code>' + esc(a.icao) + "</code> · " + esc(a.country) +
-      " · rank " + esc(a.rank) + " · " + fmtCount(a.movements) + " " + mov + "</p>" +
+      '<p class="acc-meta">' + meta.join(" · ") + "</p>" +
       '<p class="acc-refnote">' + esc(referenceNote(a)) + "</p></header>";
     out += warnings(payload, a);
 
@@ -316,17 +360,19 @@
 
   // -------------------------------------------------------------- item view
 
-  function renderItem(payload, itemOrAnchor) {
+  function renderItem(payload, itemOrAnchor, opts) {
+    var list = (opts && opts.list) || "all";
     var m = mainBy(payload, itemOrAnchor);
     var key = m ? m.item : itemOrAnchor;
     var it = (payload.items || {})[key];
     if (!m && !it) return '<p class="acc-muted">No item ' + esc(itemOrAnchor) + " on this page.</p>";
-    var byAvail = payload.scope === "world";
+    var byAvail = payload.scope === "world" || (payload.scope === "airports" && list === "world");
     var col = byAvail ? R.ownLabel : R.accLabel;
     var labels = ((payload.labels || {})[byAvail ? "availability" : "accuracy"] || []).slice();
     var emptyWord = byAvail ? "no flights" : "not rated";
     var members = {};
     (payload.airports || []).forEach(function (a) {
+      if (!inList(a, list)) return;
       var row = ((payload.rows || {})[a.icao] || {})[key];
       if (!row) return;
       var label = row[col] || emptyWord;
@@ -340,14 +386,17 @@
       '<h3 class="acc-card-title">' + code(m ? m.name : it.name) + "</h3>";
     if (it && it.page) {
       out += '<p class="acc-meta"><a href="' + pageHref(it.page) + '">How this item is computed</a>' +
-        (it.group ? " · " + esc(it.group) : "") + "</p>";
+        (it.limits ? " · " + limitsLink(it) : "") + (it.group ? " · " + esc(it.group) : "") + "</p>";
     }
     out += '<p class="acc-refnote">' + (byAvail
       ? "Airports by availability: the share of OPDI's flights that carry the item."
       : "Airports by accuracy: how often OPDI's value agrees with the reference records.") +
       "</p></header>";
 
-    if (!total) return out + '<p class="acc-muted">No airport has this item.</p></article>';
+    if (!total) {
+      return out + '<p class="acc-muted">No airport ' + (list === "all" ? "" : "of this list ") +
+        "has this item.</p></article>";
+    }
 
     out += '<div class="acc-stack" role="img" aria-label="' + esc(labels.filter(function (l) {
       return members[l];
@@ -383,6 +432,7 @@
       '<h3 class="acc-card-title">' + code(m ? m.name : it.name) + "</h3>";
     var links = [];
     if (it && it.page) links.push('<a href="' + pageHref(it.page) + '">How this item is computed</a>');
+    if (it && it.limits) links.push(limitsLink(it));
     if (m) {
       links.push("Per airport: <a href=\"europe.html#" + esc(m.anchor) + "\">European airports</a> / " +
         "<a href=\"world.html#" + esc(m.anchor) + "\">worldwide</a>");
@@ -415,6 +465,48 @@
     return out + "</article>";
   }
 
+  // ---------------------------------------------------------------- routing
+
+  // The view a URL hash asks for, or null. Never throws.
+  function routeHash(payload, hash) {
+    var h;
+    try { h = decodeURIComponent(String(hash || "").replace(/^#/, "")); }
+    catch (e) { return null; }
+    if (!h || !payload) return null;
+    var overall = payload.scope === "overall";
+    if (/^airport-/i.test(h)) {
+      if (overall) return null;
+      var a = findAirport(payload, h.slice(8));
+      return a ? { view: "airport", key: a.icao } : null;
+    }
+    if (h.indexOf("item-") === 0) {
+      var k = h.slice(5);
+      var items = payload.items || {};
+      if (items[k] || (overall && (payload.overall || {})[k])) return { view: "item", key: k };
+      var mk = mainBy(payload, k);
+      return mk ? { view: "item", key: mk.item } : null;
+    }
+    var m = mainBy(payload, h);
+    return m && m.anchor === h ? { view: "item", key: m.item } : null;
+  }
+
+  // The option after `active` when moving by delta (+1 or -1) among n; -1 when none.
+  function nextIndex(active, delta, n) {
+    if (!(n > 0)) return -1;
+    if (active < 0 || active >= n) return delta < 0 ? n - 1 : 0;
+    return ((active + delta) % n + n) % n;
+  }
+
+  // The text the search box shows for a view.
+  function inputLabel(payload, view, key) {
+    if (view === "airport") {
+      var a = findAirport(payload, key);
+      return a ? a.name : "";
+    }
+    if (view === "item") return plain(itemName(payload, key));
+    return "";
+  }
+
   function renderError(src) {
     return '<div class="acc-error" role="alert"><p>The figures could not be loaded from <code>' + esc(src) +
       "</code>. Every figure is also in the CSV files, such as <code>airport_accuracy_europe.csv</code>, " +
@@ -437,6 +529,9 @@
   function build(el, payload) {
     var id = "acc-lookup-" + (++uid);
     var overall = payload.scope === "overall";
+    var merged = payload.scope === "airports";
+    var listFilter = "all";
+    var current = null;
     var placeholder = overall
       ? "Search an item (take-off, stand, AOBT…)"
       : "Search an airport (ICAO, name, country) or an item (take-off, stand, AOBT…)";
@@ -448,6 +543,10 @@
       'placeholder="' + esc(placeholder) + '">' +
       '<ul class="acc-suggest" id="' + id + '-list" role="listbox" hidden></ul>' +
       '<p class="acc-nomatch acc-muted" hidden></p></div>' +
+      (merged ? '<div class="acc-lists" role="group" aria-label="Airport list">' + LISTS.map(function (l) {
+        return '<button type="button" class="acc-chip acc-list-chip" data-list="' + l[0] + '" aria-pressed="' +
+          (l[0] === listFilter ? "true" : "false") + '">' + esc(l[1]) + "</button>";
+      }).join("") + "</div>" : "") +
       '<div class="acc-quick">' + (payload.main || []).map(function (m) {
         return '<a class="acc-chip acc-quick-chip" href="#' + esc(m.anchor) + '">' + esc(m.title) + "</a>";
       }).join("") + "</div>" +
@@ -468,27 +567,27 @@
       active = -1;
     }
 
-    function setActive(i) {
+    function move(delta) {
       var opts = list.querySelectorAll("[role=option]");
       if (!opts.length) return;
-      active = (i + opts.length) % opts.length;
+      active = nextIndex(active, delta, opts.length);
       opts.forEach(function (o, j) { o.setAttribute("aria-selected", j === active ? "true" : "false"); });
       input.setAttribute("aria-activedescendant", opts[active].id);
       opts[active].scrollIntoView({ block: "nearest" });
     }
 
+    function render(route) {
+      if (route.view === "airport") return renderAirport(payload, route.key);
+      return overall ? renderOverallItem(payload, route.key)
+                     : renderItem(payload, route.key, { list: listFilter });
+    }
+
     function show(hash) {
-      var h = decodeURIComponent((hash || "").replace(/^#/, ""));
-      var html = null;
-      if (!overall && h.indexOf("airport-") === 0) html = renderAirport(payload, h.slice(8));
-      else if (h.indexOf("item-") === 0) {
-        var k = h.slice(5);
-        html = overall ? renderOverallItem(payload, k) : renderItem(payload, k);
-      } else if (mainBy(payload, h) && mainBy(payload, h).anchor === h) {
-        html = overall ? renderOverallItem(payload, h) : renderItem(payload, h);
-      }
-      if (html === null) return false;
-      view.innerHTML = html;
+      var route = routeHash(payload, hash);
+      if (!route) return false;
+      current = route;
+      view.innerHTML = render(route);
+      input.value = inputLabel(payload, route.view, route.key);
       return true;
     }
 
@@ -499,18 +598,18 @@
     }
 
     function choose(r) {
-      input.value = plain(r.label);
       close();
       nomatch.hidden = true;
       go(r.kind === "airport" ? "#airport-" + r.key : itemHash(payload, r.key));
     }
 
     input.addEventListener("input", function () {
-      results = search(payload, input.value);
+      results = search(payload, input.value, 8, { list: listFilter });
       if (!input.value.trim()) { close(); nomatch.hidden = true; return; }
       if (!results.length) {
         close();
-        nomatch.textContent = "No airport or item matches “" + input.value.trim() + "”.";
+        nomatch.textContent = "No airport or item matches “" + input.value.trim() + "”" +
+          (listFilter === "all" ? "." : " in this list.");
         nomatch.hidden = false;
         return;
       }
@@ -526,8 +625,8 @@
     });
 
     input.addEventListener("keydown", function (e) {
-      if (e.key === "ArrowDown") { e.preventDefault(); if (!list.hidden) setActive(active + 1); }
-      else if (e.key === "ArrowUp") { e.preventDefault(); if (!list.hidden) setActive(active - 1); }
+      if (e.key === "ArrowDown") { e.preventDefault(); if (!list.hidden) move(1); }
+      else if (e.key === "ArrowUp") { e.preventDefault(); if (!list.hidden) move(-1); }
       else if (e.key === "Enter") {
         if (results.length && !list.hidden) { e.preventDefault(); choose(results[active < 0 ? 0 : active]); }
       } else if (e.key === "Escape") { close(); }
@@ -545,6 +644,16 @@
 
     // Chips and in-card links that open another view stay on the widget.
     el.addEventListener("click", function (e) {
+      var chip = e.target.closest(".acc-list-chip");
+      if (chip) {
+        listFilter = chip.getAttribute("data-list");
+        el.querySelectorAll(".acc-list-chip").forEach(function (c) {
+          c.setAttribute("aria-pressed", c === chip ? "true" : "false");
+        });
+        // The airport card always opens; an item view is drawn again for the new list.
+        if (current && current.view === "item") view.innerHTML = render(current);
+        return;
+      }
       var a = e.target.closest("a[href^='#']");
       if (!a) return;
       var hash = a.getAttribute("href");
@@ -563,7 +672,8 @@
     esc: esc, fold: fold, search: search,
     fmtPct: fmtPct, fmtCount: fmtCount, fmtSecs: fmtSecs, labelClass: labelClass,
     renderAirport: renderAirport, renderItem: renderItem,
-    renderOverallItem: renderOverallItem, renderError: renderError, mount: mount
+    renderOverallItem: renderOverallItem, renderError: renderError,
+    routeHash: routeHash, nextIndex: nextIndex, inputLabel: inputLabel, mount: mount
   };
 
   if (typeof module !== "undefined") module.exports = AccLookup;

@@ -418,7 +418,7 @@ def world_tables(rows: list[dict]) -> tuple[dict[str, str], dict]:
 LABELS = {"availability": ["high", "partial", "low"],
           "accuracy": ["good", "fair", "limited", "too few compared", "no reference"]}
 REFERENCES = ["airport records", "Network Manager", "no reference"]
-LOOKUP_SCOPES = ("europe", "world", "overall")
+LOOKUP_SCOPES = ("europe", "world", "airports", "overall")
 LOOKUP_JSON = "assets/pages/accuracy_lookup_{scope}.json"
 
 #: Sections of the Algorithms sidebar in _quarto.yml: page -> section title.
@@ -431,6 +431,28 @@ ITEM_GROUPS = {
     "Vertical profile": ("tops", "level-segments", "level-offs", "flight-level-crossings"),
     "Airspace and terminal area": ("distance-rings", "fir-crossings", "holding", "point-merge"),
     "Measurements": ("distance-flown", "time-passed"),
+}
+
+
+#: Algorithm page -> id of its section on content/limitations.qmd.
+LIMITATION_ANCHOR = {
+    "tracks": "lim-tracks", "cleaning": "lim-tracks",
+    "airports": "lim-airports",
+    "aircraft": "lim-aircraft",
+    "first-last-seen": "lim-first-last-seen",
+    "flight-list-milestones": "lim-flight-list-milestones", "movements": "lim-flight-list-milestones",
+    "take-off-landing": "lim-take-off-landing",
+    "line-up-take-off-roll": "lim-runway", "xing-runway-threshold": "lim-runway",
+    "runway-vacated": "lim-runway", "go-around": "lim-runway", "runway-crossings": "lim-runway",
+    "block-times": "lim-block-times",
+    "surface-events": "lim-surface",
+    "tops": "lim-vertical", "level-segments": "lim-vertical", "level-offs": "lim-vertical",
+    "flight-level-crossings": "lim-vertical",
+    "distance-rings": "lim-rings",
+    "fir-crossings": "lim-fir",
+    "holding": "lim-holding",
+    "point-merge": "lim-point-merge",
+    "distance-flown": "lim-measurements", "time-passed": "lim-measurements",
 }
 
 
@@ -451,13 +473,42 @@ def _n(text, digits: int | None = None):
 
 def _item_entries(names) -> dict:
     return {item: {"name": ITEM_NAME[item], "page": f"../algorithms/{ITEM_PAGE[item]}.qmd",
-                   "group": item_group(ITEM_PAGE[item])} for item in names}
+                   "group": item_group(ITEM_PAGE[item]),
+                   "limits": f"../limitations.qmd#{LIMITATION_ANCHOR[ITEM_PAGE[item]]}"} for item in names}
 
 
 def _lookup_base(scope: str, items) -> dict:
     return {"scope": scope, "labels": LABELS, "references": REFERENCES,
             "main": [{"anchor": a, "title": t, "item": i, "name": n} for a, t, i, n in MAIN],
             "items": _item_entries(items)}
+
+
+def _where(a: dict, europe_rules: bool) -> str:
+    """The reference of an airport: what its items are compared with."""
+    if a["has_airport_records"] == "True":
+        return "airport records"
+    if europe_rules:
+        return "Network Manager"
+    return "Europe, no airport records" if a["in_europe"] == "True" else "outside Europe"
+
+
+def _airport_rows(rows: list[dict], codes: set) -> tuple[dict, set]:
+    """Row lists by airport and item, for the airports in codes, and the items seen."""
+    rows_by, seen_items = {}, set()
+    for r in rows:
+        if r["airport"] not in codes:
+            continue
+        seen_items.add(r["item"])
+        rows_by.setdefault(r["airport"], {})[r["item"]] = [
+            _n(r["availability_own_pct"], 1), r["availability_own_label"], _n(r["flights_eligible"]),
+            REFERENCES.index(r["reference"]), _n(r["reference_movements"]),
+            _n(r["availability_ref_pct"], 1), r["availability_ref_label"], _n(r["compared"]),
+            accuracy_text(r), _n(r.get("median_abs_diff_s", "")), r["accuracy_label"]]
+    return rows_by, seen_items
+
+
+def _limited(code: str, index: dict) -> list[str]:
+    return [anchor for anchor, _, item, _ in MAIN if index[(code, item)]["accuracy_label"] == "limited"]
 
 
 def airport_payload(rows: list[dict], airports_csv: list[dict], scope: str) -> dict:
@@ -468,34 +519,53 @@ def airport_payload(rows: list[dict], airports_csv: list[dict], scope: str) -> d
     out_airports = []
     for a in airports:
         code = a["airport"]
-        if a["has_airport_records"] == "True":
-            where = "airport records"
-        elif scope == "europe":
-            where = "Network Manager"
-        else:
-            where = "Europe, no airport records" if a["in_europe"] == "True" else "outside Europe"
         out_airports.append({
             "icao": code, "name": a["name"], "country": a["country"], "rank": int(a["rank"]),
             "movements": _n(a["nm_movements" if scope == "europe" else "opdi_movements"]),
-            "where": where,
+            "where": _where(a, scope == "europe"),
             "flags": [f for f, s in (("ground", ground), ("no_times", no_times)) if code in s],
-            "limited": [anchor for anchor, _, item, _ in MAIN
-                        if index[(code, item)]["accuracy_label"] == "limited"]})
-    codes = {a["airport"] for a in airports}
-    rows_by = {}
-    seen_items = set()
-    for r in rows:
-        if r["airport"] not in codes:
-            continue
-        seen_items.add(r["item"])
-        rows_by.setdefault(r["airport"], {})[r["item"]] = [
-            _n(r["availability_own_pct"], 1), r["availability_own_label"], _n(r["flights_eligible"]),
-            REFERENCES.index(r["reference"]), _n(r["reference_movements"]),
-            _n(r["availability_ref_pct"], 1), r["availability_ref_label"], _n(r["compared"]),
-            accuracy_text(r), _n(r.get("median_abs_diff_s", "")), r["accuracy_label"]]
+            "limited": _limited(code, index)})
+    rows_by, seen_items = _airport_rows(rows, {a["airport"] for a in airports})
     payload = _lookup_base(scope, [i for i, _, _ in ITEMS if i in seen_items])
     payload["airports"] = out_airports
     payload["rows"] = rows_by
+    return payload
+
+
+def airports_payload(eu_rows: list[dict], world_rows: list[dict], airports_csv: list[dict]) -> dict:
+    """One lookup payload for the European and the worldwide top 100, each airport once.
+
+    An airport of the European list takes its rows, reference and warnings from
+    airport_accuracy_europe.csv; the others from airport_accuracy_world.csv.
+    """
+    eu_airports, eu_index = by_airport(eu_rows)
+    world_airports, world_index = by_airport(world_rows)
+    eu_codes = {a["airport"] for a in eu_airports}
+    world_only = [a for a in world_airports if a["airport"] not in eu_codes]
+    union = eu_airports + world_only
+    index = dict(eu_index)
+    index.update({k: v for k, v in world_index.items() if k[0] not in eu_codes})
+    ground = {g["airport"] for g in ground_airports(union, airports_csv)}
+    no_times = {a["airport"] for a in no_time_airports(union, index)}
+    info = {g["airport"]: g for g in airports_csv}
+    out_airports = []
+    for a in union:
+        code = a["airport"]
+        g = info.get(code, {})
+        in_eu = code in eu_codes
+        out_airports.append({
+            "icao": code, "name": a["name"], "country": a["country"],
+            "ranks": {"europe": _n(g.get("rank_europe", "")), "world": _n(g.get("rank_world", ""))},
+            "movements": {"nm": _n(g.get("nm_movements", "")), "opdi": _n(g.get("opdi_movements", ""))},
+            "where": _where(a, in_eu),
+            "flags": [f for f, s in (("ground", ground), ("no_times", no_times)) if code in s],
+            "limited": _limited(code, index),
+            "source": "europe" if in_eu else "world"})
+    eu_by, eu_items = _airport_rows(eu_rows, eu_codes)
+    world_by, world_items = _airport_rows(world_rows, {a["airport"] for a in world_only})
+    payload = _lookup_base("airports", [i for i, _, _ in ITEMS if i in eu_items | world_items])
+    payload["airports"] = out_airports
+    payload["rows"] = {**eu_by, **world_by}
     return payload
 
 
@@ -646,6 +716,7 @@ def build(root: Path) -> dict[Path, str]:
     wanted[root / NUMBERS_CSV] = out.getvalue()
     payloads = {"europe": airport_payload(eu_rows, airports, "europe"),
                 "world": airport_payload(world_rows, airports, "world"),
+                "airports": airports_payload(eu_rows, world_rows, airports),
                 "overall": overall_payload(items)}
     for scope, payload in payloads.items():
         wanted[root / LOOKUP_JSON.format(scope=scope)] = dump_json(payload)

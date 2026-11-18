@@ -106,3 +106,79 @@ test("renderError links to the downloads", () => {
   const h = L.renderError("x.json");
   assert.ok(h.includes("airport_accuracy_europe.csv") || h.includes('href="#all-items"'));
 });
+
+// ------------------------------------------------- merged airports payload
+const ap = load("airports");
+
+test("renderAirport LTFM shows both ranks and limitation links", () => {
+  const h = L.renderAirport(ap, "LTFM");
+  assert.ok(h.includes("Europe") && h.includes("rank 1") && h.includes("16"), h.slice(0, 600));
+  assert.ok(h.includes("rank 1 in Europe · rank 16 worldwide"));
+  assert.ok(h.includes('href="../limitations.html#lim-take-off-landing"'));
+  assert.ok(h.includes('href="#ground-reception"'));
+  clean(h);
+});
+
+test("renderAirport KATL: availability only, with limitation links", () => {
+  const h = L.renderAirport(ap, "KATL");
+  assert.ok(h.includes("availability only"));
+  assert.ok(h.includes("limitations.html#lim-"));
+  assert.ok(h.includes("rank 3 worldwide") && !h.includes("in Europe ·"));
+  clean(h);
+});
+
+test("renderItem follows the list filter", () => {
+  const world = L.renderItem(ap, "take-off", { list: "world" });
+  assert.ok(!world.includes("LGIR") && world.includes("KATL"));
+  const eu = L.renderItem(ap, "take-off", { list: "europe" });
+  assert.ok(!eu.includes("KATL") && eu.includes("LGIR"));
+  const all = L.renderItem(ap, "take-off");
+  assert.ok(all.includes("KATL") && all.includes("LGIR"));
+  clean(all);
+});
+
+test("search follows the list filter", () => {
+  assert.equal(L.search(ap, "katl", 8, { list: "europe" }).filter((r) => r.kind === "airport").length, 0);
+  assert.equal(L.search(ap, "katl")[0].key, "KATL");
+  assert.equal(L.search(ap, "lgir", 8, { list: "world" }).filter((r) => r.kind === "airport").length, 0);
+});
+
+test("routeHash never throws and is case-insensitive", () => {
+  assert.equal(L.routeHash(ap, "#%E0%A4"), null);
+  assert.deepEqual(L.routeHash(ap, "#airport-egll"), { view: "airport", key: "EGLL" });
+  assert.deepEqual(L.routeHash(ap, "#take-off"), { view: "item", key: "ATOT" });
+  assert.deepEqual(L.routeHash(ap, "#item-AOBT"), { view: "item", key: "AOBT" });
+  assert.equal(L.routeHash(ap, "#airport-zzzz"), null);
+  assert.equal(L.routeHash(ap, "#nothing"), null);
+  assert.equal(L.routeHash(ap, ""), null);
+  assert.equal(L.routeHash(overall, "#airport-EGLL"), null);
+});
+
+test("nextIndex wraps and starts from either end", () => {
+  assert.equal(L.nextIndex(-1, -1, 5), 4);
+  assert.equal(L.nextIndex(-1, 1, 5), 0);
+  assert.equal(L.nextIndex(4, 1, 5), 0);
+  assert.equal(L.nextIndex(0, -1, 5), 4);
+  assert.equal(L.nextIndex(2, 1, 5), 3);
+  assert.equal(L.nextIndex(-1, 1, 0), -1);
+});
+
+test("inputLabel follows the view", () => {
+  assert.equal(L.inputLabel(ap, "item", "ATOT"), "Take-off time (ATOT)");
+  assert.equal(L.inputLabel(ap, "airport", "LTFM"), "İstanbul Airport");
+  assert.equal(L.inputLabel(ap, "item", "flight list: TYPECODE"), "typecode (flight list)");
+});
+
+test("a null compared count is not written", () => {
+  const q = structuredClone(ap);
+  for (const row of Object.values(q.rows.LFPG)) { row[7] = null; row[10] = "too few compared"; row[3] = 0; }
+  const h = L.renderAirport(q, "LFPG");
+  assert.ok(!h.includes("— compared"));
+  clean(h);
+});
+
+test("items link to their limitations", () => {
+  const h = L.renderAirport(p, "LFPG");
+  assert.ok(h.includes('href="../limitations.html#lim-block-times"'));
+  assert.ok(L.renderOverallItem(overall, "ATOT").includes('href="../limitations.html#lim-take-off-landing"'));
+});

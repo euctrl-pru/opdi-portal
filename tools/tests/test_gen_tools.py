@@ -162,7 +162,7 @@ def test_lookup_overall_has_every_item():
 
 def test_lookup_files_stay_small():
     import gen_accuracy_tables as g
-    for scope in g.LOOKUP_SCOPES:
+    for scope in ("europe", "world", "overall"):
         size = (g.ROOT / f"assets/pages/accuracy_lookup_{scope}.json").stat().st_size
         assert size < 880_664, (scope, size)
 
@@ -191,3 +191,61 @@ def test_stale_generated_tables_are_reported(tmp_path):
     assert g.main(["--check", "--root", str(tmp_path)]) == 0
     (tmp_path / "content/accuracy/_generated/old.md").write_text(g.HEADER + "x", encoding="utf-8")
     assert g.main(["--check", "--root", str(tmp_path)]) == 1
+
+
+def test_limitation_anchor_covers_every_item_page():
+    import re
+    import gen_accuracy_tables as g
+    assert set(g.ITEM_PAGE.values()) <= set(g.LIMITATION_ANCHOR)
+    ids = set(re.findall(r"\{#(lim-[a-z-]+)", (g.ROOT / "content/limitations.qmd").read_text(encoding="utf-8")))
+    assert set(g.LIMITATION_ANCHOR.values()) <= ids, set(g.LIMITATION_ANCHOR.values()) - ids
+
+
+def test_airports_payload_merges_both_lists():
+    import gen_accuracy_tables as g
+    data = lookup("airports")
+    assert data["scope"] == "airports"
+    codes = [a["icao"] for a in data["airports"]]
+    assert len(codes) == len(set(codes))
+    union = ({r["airport"] for r in g.read(g.ROOT, "airport_accuracy_europe.csv")}
+             | {r["airport"] for r in g.read(g.ROOT, "airport_accuracy_world.csv")})
+    assert set(codes) == union
+    airports = {a["icao"]: a for a in data["airports"]}
+    assert airports["LTFM"]["ranks"] == {"europe": 1, "world": 16}
+    assert airports["LTFM"]["source"] == "europe"
+    assert "ground" in airports["LTFM"]["flags"]
+    assert airports["KATL"]["ranks"]["europe"] is None
+    assert airports["KATL"]["where"] == "outside Europe"
+    assert airports["KATL"]["source"] == "world"
+    assert airports["KATL"]["movements"] == {"nm": 230, "opdi": 7171}
+    # LTFM's rows are the European ones (with airport records as the reference).
+    assert data["rows"]["LTFM"]["ATOT"] == lookup("europe")["rows"]["LTFM"]["ATOT"]
+    for a in data["airports"]:
+        for m in data["main"]:
+            assert m["item"] in data["rows"][a["icao"]], (a["icao"], m["item"])
+
+
+def test_items_carry_limits():
+    for scope in ("airports", "overall", "europe", "world"):
+        items = lookup(scope)["items"]
+        assert items["ATOT"]["limits"] == "../limitations.qmd#lim-take-off-landing", scope
+        assert all(it["limits"].startswith("../limitations.qmd#lim-") for it in items.values()), scope
+
+
+AIRPORTS_JSON_BOUND = 1_491_316  # 1.2 x the 1,242,763 bytes of the first build
+
+
+def test_airports_lookup_stays_small():
+    import gen_accuracy_tables as g
+    size = (g.ROOT / "assets/pages/accuracy_lookup_airports.json").stat().st_size
+    assert size < AIRPORTS_JSON_BOUND, size
+
+
+def test_airports_include_keeps_anchors():
+    import gen_accuracy_tables as g
+    text = g.lookup_include("airports")
+    for anchor, *_ in g.MAIN:
+        assert f"[]{{#{anchor}}}" in text
+    assert 'src="../../assets/js/accuracy-lookup.js"' in text
+    assert 'data-scope="airports"' in text
+    assert "accuracy_lookup_airports.json" in text
