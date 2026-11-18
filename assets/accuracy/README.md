@@ -156,6 +156,72 @@ For each item, reference and measure (`availability_own_pct`,
 smallest), and `stable`: true when a share moves less than 5 points, or a
 time less than 10 s or less than a fifth of its middle value.
 
+### offblock_causes.csv
+
+Why an off-block or in-block time is missing or wrong. Made by
+`benchmarks/offblock_causes.py` in the `opdi` repository (branch `offblock`):
+
+    python benchmarks/offblock_causes.py extract --day 2026-06-14 --root <run> --tracks <cleaned tracks>
+    python benchmarks/offblock_causes.py extract --day 2026-06-10 --root <day>     # and 17 June
+    python benchmarks/offblock_causes.py tables --out <this folder> --changed <extract of the changed run>
+
+One row per `day`, `item` (`off-block`, `in-block`), `method` and `scope`:
+`all airports`, the airports of each class of stand reception, and each of
+the 100 busiest European airports (`airport`, `airport_rank`, `name`).
+Every airport record of an off-block (in-block) time is given one cause,
+the first that applies in the order of the table below, so the shares of
+the causes add up to 100. Each cause has a count (`n_...`) and a share of
+the records (`pct_...`).
+
+| cause | meaning, for an off-block time |
+|---|---|
+| `opdi_time_within_60s` | OPDI has an off-block time within 60 s of the record. |
+| `no_track` | OPDI has no flight of that aircraft and call sign within 6 hours. |
+| `track_beyond_runway_time` | The first received report of the flight is after the recorded take-off: nothing was received on the ground. |
+| `not_received_at_the_time` | The first received report is after the recorded off-block time: the aircraft was first received when it had left the stand. |
+| `no_position_around_the_time` | Reports were received before the recorded time, but none within 150 s of it has a position. |
+| `few_positions_around_the_time` | Fewer than 10 reports with a position within 150 s of the recorded time (fewer than one per 30 s). |
+| `positions_but_no_opdi_time` | Positions exist around the recorded time and OPDI gives no off-block time. |
+| `opdi_time_early`, `opdi_time_late` | OPDI's time is more than 60 s before, or after, the record. |
+
+For an in-block time read "last report" for "first report", "before" for
+"after" and "landing" for "take-off". `pct_data_missing` adds the five
+causes in which the reports do not exist; `pct_rule_could_reach` adds the
+last three, the only ones a change of method can improve. A report counts
+as received when a message of the aircraft came at most 15 s before it:
+OpenSky's state vectors repeat the last state, without position, for about
+300 s after the last message.
+
+`read_from` says how exact a row is. `reports`: the position reports of the
+day were read (14 June) and every cause is told apart. `flight list`: only
+the first and last position of each flight were read (10, 14 and 17 June,
+and `3 days` together); the three causes after `not_received_at_the_time`
+are then one, `received_but_no_opdi_time`, and "received" means "has a
+position". The two readings of 14 June differ by up to 4 points between
+neighbouring causes for that reason.
+
+`method`: `current` is the default settings of the branch
+`industrialisation`. `push-back start` (14 June, `reports`) is the same day
+with the settings `off_block_at_start_of_push_back` and
+`off_block_names_where_first_seen` of the branch `offblock`, which move an
+off-block time back to the start of a slow push-back; the in-block rows are
+the same under both.
+
+`stands` classes an airport by its arrivals on 14 June, which keep the
+transponder on until they are parked: `received` when at least 50% of the
+recorded in-block times are followed by a received report, `not received`
+under 10%, `partly` between, `too few records` under 30 in-block records.
+
+Other columns: `n_opdi_time`, `pct_opdi_time` (records for which OPDI has a
+time), `pct_of_opdi_times_within_60s` and `median_abs_diff_s` (how good
+those times are); `n_received_at_stand`, `pct_received_at_stand` (records
+with a received report before the recorded off-block time, or after the
+recorded in-block time), and among those records only
+`pct_opdi_time_when_received_at_stand`,
+`pct_within_60s_when_received_at_stand` and
+`median_abs_diff_s_when_received_at_stand`: what the method achieves when
+the data exist.
+
 ## Label rules
 
 - Availability (`availability_own_label`, `availability_ref_label`): `high`
