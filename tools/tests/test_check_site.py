@@ -318,3 +318,23 @@ def test_measured_span_must_be_registered(site):
         "---\ntitle: Limitations\n---\n\nAbout [24.2 %]{.measured} of flights, [7.7 %]{.measured} of others.\n")
     failures = [f for f in check_site.run_checks(site) if f.kind == "numbers"]
     assert len(failures) == 1 and "7.7" in str(failures[0])
+
+
+def test_quality_pages_sit_under_data():
+    text = (Path(__file__).parents[2] / "_quarto.yml").read_text()
+    data_start = text.index('- section: "Data"')
+    algo_start = text.index('- section: "Algorithms"')
+    data_menu = text[data_start:algo_start]
+    for page in (
+        "content/limitations.qmd",
+        "content/data/limitations.qmd",
+        "content/accuracy/index.qmd",
+        "content/accuracy/europe.qmd",
+        "content/accuracy/world.qmd",
+    ):
+        assert page in data_menu, page
+    assert 'section: "Limitations"' in data_menu
+    assert 'section: "Accuracy and availability"' in data_menu
+    after_algorithms = text[algo_start:]
+    assert "content/limitations.qmd" not in after_algorithms
+    assert "content/accuracy/" not in after_algorithms
