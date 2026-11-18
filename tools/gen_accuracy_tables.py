@@ -211,11 +211,6 @@ def count(text: str) -> str:
     return "" if v is None else f"{round(v):,}"
 
 
-def secs(text: str) -> str:
-    v = num(text)
-    return "" if v is None else f"{v:.0f} s"
-
-
 def cell(value: str, label: str) -> str:
     """A share and its label, as in '80.8 % high'."""
     if not value:
