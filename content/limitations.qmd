@@ -69,10 +69,12 @@ of one aircraft that belong together ([Track identity](algorithms/tracks.qmd)),
 from where reception starts to where it ends. A track that holds several
 flights is divided, and the flight list has one row per flight.
 
-- Every track has a row in the flight list. Departure and destination airports come from the track, empty when it
-  begins or ends away from an airport ([Departure and destination airports](algorithms/airports.qmd)); a track with no airport has both empty, and there is no minimum duration.
+- Every track has a row in the flight list, with no minimum duration.
+  Departure and destination airports come from the track and are empty when
+  it begins or ends away from an airport; a track with no airport has both
+  empty ([Departure and destination airports](algorithms/airports.qmd)).
   Small airfields and heliports are not candidate airports: their flights
-  have neither, and no runway events.
+  have no departure or destination airport and no runway events.
 - Planned route, planned times and airline schedule are unknown: delays
   against a schedule cannot be computed from OPDI alone.
 - A flight split into two tracks gives two rows in the flight list.
