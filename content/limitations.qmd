@@ -55,8 +55,8 @@ near the ground.
   or surface event mostly means the surface was not heard, not that nothing
   happened ([airports where ground events are nearly absent](accuracy/airports.qmd#ground-reception)).
 - Aircraft without ADS-B, or not broadcasting it, are not in the data.
-- ADS-C reports, sent by satellite mainly over the oceans, are not used in
-  release v2.0.0, so the ocean gaps stay.
+- ADS-C reports, sent by satellite mainly over the oceans, are not used,
+  so the ocean gaps stay.
 - Counts from OPDI (flights per airport, movements per runway) are lower
   bounds, not totals. The share of an airport's traffic OPDI sees varies by
   airport and by day ([OPDI Sensors: where next](sensors-expansion.qmd)
@@ -69,8 +69,8 @@ of one aircraft that belong together ([Track identity](algorithms/tracks.qmd)),
 from where reception starts to where it ends. A track that holds several
 flights is divided, and the flight list has one row per flight.
 
-- Departure and destination airports come from the track, empty when it
-  begins or ends away from an airport ([Departure and destination airports](algorithms/airports.qmd)).
+- Every track has a row in the flight list. Departure and destination airports come from the track, empty when it
+  begins or ends away from an airport ([Departure and destination airports](algorithms/airports.qmd)); a track with no airport has both empty, and there is no minimum duration.
   Small airfields and heliports are not candidate airports: their flights
   have neither, and no runway events.
 - Planned route, planned times and airline schedule are unknown: delays

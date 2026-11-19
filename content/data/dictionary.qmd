@@ -1,6 +1,6 @@
 ---
 title: "Data dictionary"
-description: "Columns, event types, info fields, versions and joins of the OPDI files of release v2.0.0."
+description: "Columns, event types, info fields, versions and joins of the OPDI files."
 ---
 
 ```{r setup}
@@ -11,27 +11,7 @@ rel <- portal_release
 v2_current <- rel$is_current(cfg)
 ```
 
-```{r status}
-#| results: asis
-#| echo: false
-if (v2_current) {
-  cat(
-    "::: {.callout-note appearance=\"simple\"}\n",
-    "Release ", cfg$release, " is the current release. It covers the days ",
-    rel$coverage_text(cfg), ".\n",
-    ":::\n", sep = "")
-} else {
-  cat(
-    "::: {.callout-note appearance=\"simple\"}\n",
-    "Release ", cfg$release, " is the upcoming release: its files are being produced, ",
-    "starting with the days from ", rel$day_text(cfg$release_coverage$start), ". ",
-    "The data available today are those of release ", cfg$current_release,
-    ", described on [Release ", cfg$current_release, "](releases.qmd#release-v002).\n",
-    ":::\n", sep = "")
-}
-```
-
-Every column, event type and `info` field of the OPDI files of release v2.0.0
+Every column, event type and `info` field of the OPDI files
 (default settings of the OPDI software), with the version columns and joins.
 For what is published, see the [overview](index.qmd). The column tables come
 from the software's own list of published columns, so they always match the files.
@@ -185,7 +165,7 @@ sent directly to it.
 - `first_seen`: The first position report of the track. [First seen and last seen](../algorithms/first-last-seen.qmd)
 - `last_seen`: The last position report of the track. [First seen and last seen](../algorithms/first-last-seen.qmd)
 
-Event types of release v0.0.2 that release v2.0.0 no longer publishes, such
+Event types of earlier releases that are not published, such
 as `take-off`, `first-xing-fl{level}` and `entry-runway`, are listed with
 their replacements on [Releases](releases.qmd#moving-from-v0.0.2).
 
@@ -358,32 +338,25 @@ and:
 
 ## Source {#source}
 
-`source` names where the position reports of an event come from: in release
-v2.0.0 always `OSN`, the OpenSky Network.
+`source` names where the position reports of an event come from: always `OSN`, the OpenSky Network.
 
 ## Versions and release {#versions}
 
 Three columns say which method and release produced a row.
 
-| Column | Where | What it names | Values in release v2.0.0 |
+| Column | Where | What it names | Values |
 |---|---|---|---|
-| `release` | every row of both files | The data release; the same on every row. | `v2.0.0` |
+| `release` | every row of both files | The data release; the same on every row. See [Releases](releases.qmd). | `v2.0.0` |
 | `version` | flight list | The method that built the flight list row. | `v6.1.0` |
 | `flight_version` | flight events | The `version` of the event's flight in the flight list. | `v6.1.0` |
 | `version` | flight events | The method that produced the event. Different event types can have different versions. A method that changes gets a new version, so older data stay reproducible. | see below |
 
-Event versions of release v2.0.0:
+Event versions:
 
 - `events_v0.5.0`: runway events, block times, airport surface, vertical profile, distance rings, `first_seen`, `last_seen`
 - `holding_v0.2.0`: `holding-start`, `holding-end`
 - `pms_v0.2.0`: `pms-leg-entry`, `pms-leg-exit`, `pms-merge-point`
 - `fir_v0.2.0`: `xing-fir`
-
-Holding, point merge and FIR write the versions above when at least one of
-their settings differs from release v0.0.2. A day processed with the release
-v0.0.2 settings gets `holding_v0.1.0`, `pms_v0.1.0` and `fir_v0.1.0`, and the
-flight list versions of that release. The measurement versions below follow the
-same rule.
 
 The measurement columns have no version column of their own:
 
@@ -406,18 +379,13 @@ Joins:
 - **Flight index to flight list**: on `flight_id`; `file` names the daily
   flight list file that holds the flight.
 - **Flights to tracks**: remove the ending `-L<number>` from `flight_id`.
-- **Views of the release v0.0.2 shape**: `events.id` is the `event_id`,
-  `measurements.event_id` joins to `events.id`, and `events.flight_id` joins to
-  `flight_list_v0.id` (the view and the Python reader both write
-  it as `id`, in lower case).
 - **OpenSky Network data**: with `icao24`, the call sign and the time span from
   `first_seen` to `last_seen`, the position reports of a flight can be fetched
   from the OpenSky Network's historical database, for example with the tools
   on its [data tools page](https://opensky-network.org/data/data-tools).
 
 A `flight_id` depends on the method that built the track, so identifiers of
-different releases do not match: data of release v0.0.2 and v2.0.0 cannot be
-joined on `flight_id`. Join on `icao24`, call sign and time instead.
+different releases do not match; see [Releases](releases.qmd). Join on `icao24`, call sign and time instead.
 
 ## Empty measurement columns {#empty-measurements}
 

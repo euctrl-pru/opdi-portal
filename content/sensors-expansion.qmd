@@ -31,7 +31,7 @@ observe?*
 [airport traffic statistics](https://www.eurocontrol.int/performance/data/download/csv/airport_traffic_2025.csv)
 for 2025 — one row per airport per day, giving the number of departures
 (`FLT_DEP_1`) and arrivals (`FLT_ARR_1`) recorded that day. Against it we place
-the [OPDI flight list of release v0.0.2](data/releases.qmd#flight-list-files), twelve monthly Parquet files in
+the [OPDI flight list of an earlier release](data/releases.qmd#flight-list-files), twelve monthly Parquet files in
 which each row is one flight reconstructed from crowd-sourced \acr{ADS-B}
 trajectories, carrying a departure aerodrome (`adep`) and an arrival aerodrome
 (`ades`).
@@ -57,14 +57,13 @@ the completeness of the trajectory data behind it.
 **The capture rate measures the detection algorithm as much as the coverage.**
 
 `adep` and `ades` are not reported by the aircraft; they are *inferred* from the
-trajectory. The algorithm of release v0.0.2, which built the 2025 flight list
+trajectory. The algorithm of that release, which built the 2025 flight list
 used here, lays an [H3](https://h3geo.org/) grid of 30 NM radius around every
 aerodrome, keeps the state vectors below 4,000 ft, and assigns the airport
 whose reference point is closest to the start or end of the track. Full
-details are in the
-[Release v0.0.2 section](data/releases.qmd#departure-and-destination-airports)
-of Releases.
-Release v2.0.0 uses a newer method, which can also leave an airport
+details are on
+[Releases](data/releases.qmd#departure-and-destination-airports).
+The current method can also leave an airport
 undecided: see [Departure and destination airports](algorithms/airports.qmd).
 
 Two consequences follow directly, and both move the capture rate:

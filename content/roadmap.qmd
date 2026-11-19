@@ -19,20 +19,6 @@ latest releases in detail, see [Releases](data/releases.qmd).
 
 ## Release v2.0.0
 
-```{r status}
-#| results: asis
-#| echo: false
-if (v2_current) {
-  cat("Release ", cfg$release, " is the current release. It covers the days ",
-      rel$coverage_text(cfg), ".\n", sep = "")
-} else {
-  cat("Release ", cfg$release, " is the upcoming release. Its files are being produced, ",
-      "starting with the days from ", rel$day_text(cfg$release_coverage$start),
-      " onwards. Until they are available, release ", cfg$current_release,
-      " is the one to use.\n", sep = "")
-}
-```
-
 Release v2.0.0 delivers:
 
 - **Daily files**: one flight list and one file of flight events per day. Each
@@ -56,7 +42,7 @@ Release v2.0.0 delivers:
 
 ## Next
 
-These improvements are planned after release v2.0.0. They will be published
+These improvements are planned. They will be published
 as new versions of the methods concerned, so that data already published stay
 reproducible.
 
@@ -85,8 +71,8 @@ reproducible.
 | OPDI v0.0.2 (later updates) | January 2026 to `r cfg$refresh_label` | January 2022 to `r format(cfg$coverage$end, "%B %Y")` | New months were added to the same release until `r cfg$refresh_label`. The release is no longer extended. |
 | OPDI `r cfg$release` | `r rel$value_or_tba(cfg$release_date)` | `r if (v2_current) sub("^from ", "", rel$coverage_text(cfg)) else paste("from", rel$day_text(cfg$release_coverage$start), "(planned)")` | Daily files, worldwide; see [Releases](data/releases.qmd). |
 
-The files of release v0.0.2 are available for download in the
-[Release v0.0.2 section](data/releases.qmd#release-v002) of Releases.
+The files of the earlier release are available for download on
+[Releases](data/releases.qmd#release-v002).
 
 ## Contact
 
