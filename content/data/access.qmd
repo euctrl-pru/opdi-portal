@@ -1,6 +1,6 @@
 ---
 title: "Data Access"
-description: "Where the OPDI files are, and how to query or read them with Trino SQL, Python, R and DuckDB, with examples for common tasks."
+description: "Where the OPDI tables and daily files are, and how to query or read them."
 ---
 
 ```{r setup}
@@ -8,24 +8,10 @@ description: "Where the OPDI files are, and how to query or read them with Trino
 source("../../R/portal_config.R")
 cfg <- portal_cfg
 rel <- portal_release
-v2_current <- rel$is_current(cfg)
 ```
 
-Tables, files and four example tasks in Trino SQL, Python, R and DuckDB, for
-release `r cfg$release`. Columns: [Data dictionary](dictionary.qmd).
-
-```{r status}
-#| results: asis
-#| echo: false
-if (!v2_current) {
-  cat(
-    "::: {.callout-note appearance=\"simple\"}\n",
-    "Release ", cfg$release, " is the upcoming release: its tables and files are being ",
-    "produced. The data available today are those of release ", cfg$current_release,
-    ", described on [Release ", cfg$previous_release, "](releases.qmd#release-v002).\n",
-    ":::\n", sep = "")
-}
-```
+Tables and files of the OPDI data, and how to query or read them. Columns:
+[Data dictionary](dictionary.qmd).
 
 ## Which way to use {#where-the-data-are}
 
@@ -33,7 +19,7 @@ if (!v2_current) {
 |---|---|---|
 | [Trino](#trino) | Run SQL on the files, nothing to download. Suits most questions: the flights of one airport, one flight, counts over many days. | On request ([Getting access](#getting-access)) |
 | Trino file browser | Browse and download the daily files in a web page. | `r rel$link_or_tba(cfg$access$browser_url)` |
-| Download | Read the daily files with [Python](#python), [R](#r), [DuckDB](#duckdb) or any Parquet tool. Suits repeated reads of the same days, or tools without a database connection. | `r rel$link_or_tba(cfg$access$download_url)` |
+| Download | Read the daily files with any Parquet tool. Suits repeated reads of the same days, or tools without a database connection. | `r rel$link_or_tba(cfg$access$download_url)` |
 
 ## Trino {#trino}
 
@@ -60,32 +46,16 @@ cat("```sql\nUSE ", rel$trino_prefix(cfg), ";\n```\n", sep = "")
 The examples use short table names.
 `r if (!isTRUE(cfg$access$trino_names_final)) "The catalog and schema names shown here are placeholders until the tables are announced." else ""`
 
-### Tables and views
+### Tables
 
 | Name | Kind | One row per | Columns |
 |---|---|---|---|
 | `flight_list` | table | flight | the [flight list columns](dictionary.qmd#flight-list) |
 | `flight_events` | table | event | the [event columns](dictionary.qmd#flight-events), the [measurement columns](dictionary.qmd#measurements) and the flight list columns |
 | `flight_index` | table | flight | the [flight index columns](dictionary.qmd#flight-index-and-catalogue): which daily file holds a flight |
-| `events` | view | event | the events alone |
-| `measurements` | view | measured value | the measurements as rows |
-| `flight_list_v0` | view | flight | the flight list |
-
-A **view** is a stored query that looks like a table. The three views have the
-layout of release v0.0.2, for code written for it
-([old and new names](releases.qmd#moving-from-v0.0.2)). Two things differ:
-
-- Identifiers are text, not the 64-bit integers of v0.0.2, so rows cannot be
-  joined to v0.0.2 files by identifier.
-- `version` holds the version of each method, not "v0.0.2".
-
-In `measurements`, every event has a row for the distance flown and one for
-the time passed, even when empty, as in v0.0.2. Other types (holding and point
-merge) have a row only when they have a value.
 
 **Filter on `dof` (the date of flight) whenever you can.** Each daily file
-holds one date, so Trino skips the files of other days. Take the `flight_id`
-in the examples as a format only; use a real one from the flight list.
+holds one date, so Trino skips the files of other days.
 
 ### Example: flights between two airports on a day
 
@@ -104,103 +74,12 @@ ORDER BY atot;
 `atot` and `aldt` (take-off and landing times) are empty when the take-off or
 landing was not detected.
 
-### Example: all events of one flight in time order
-
-```sql
-SELECT event_time, type, altitude_ft, distance_flown_nm, time_passed_s, info
-FROM flight_events
-WHERE dof = DATE '2026-06-14'
-  AND flight_id = '3f9a0c1d2b4e5f60_1781412334'
-ORDER BY event_time;
-```
-
-`info` holds extra details as JSON text; its fields, by event type, are in the
-[Data dictionary](dictionary.qmd#info-fields).
-
-### Example: holding time per destination airport on a day
-
-A **holding pattern** is a loop that an aircraft flies while it waits for
-permission to continue, most often before landing. It is published as a
-`holding-start` and a `holding-end` event; its duration in seconds is
-`holding_duration_s` on `holding-end`.
-
-```sql
-SELECT ades,
-       count(*)                       AS holdings,
-       count(DISTINCT flight_id)      AS flights,
-       sum(holding_duration_s) / 60.0 AS holding_minutes
-FROM flight_events
-WHERE dof = DATE '2026-06-14'
-  AND type = 'holding-end'
-GROUP BY ades
-ORDER BY holding_minutes DESC;
-```
-
-Each holding pattern is counted under the flight's destination (`ades`),
-wherever flown; unknown destinations fall under an empty `ades`.
-
-### Example: time and distance between FIR crossings
-
-A **flight information region (FIR)** is an area of airspace in which one
-service provider gives flight information. OPDI publishes a `xing-fir` event
-each time a flight passes from one region to another. No column holds the time
-spent in a region, but two consecutive crossings of one flight give it, when
-the region entered at the first (`fir_to` in `info`) is the region left at the
-second (`fir_from`): the differences of `time_passed_s` and
-`distance_flown_nm` are the time and distance flown in it.
-
-```sql
-WITH crossings AS (
-    SELECT flight_id,
-           json_extract_scalar(info, '$.fir_to') AS fir,
-           time_passed_s,
-           distance_flown_nm,
-           lead(json_extract_scalar(info, '$.fir_from'))
-               OVER (PARTITION BY flight_id ORDER BY event_time) AS next_fir_from,
-           lead(time_passed_s)
-               OVER (PARTITION BY flight_id ORDER BY event_time) AS next_time_s,
-           lead(distance_flown_nm)
-               OVER (PARTITION BY flight_id ORDER BY event_time) AS next_distance_nm
-    FROM flight_events
-    WHERE dof = DATE '2026-06-14'
-      AND type = 'xing-fir'
-)
-SELECT fir,
-       count(*)                                  AS visits,
-       sum(next_time_s - time_passed_s) / 60.0   AS minutes,
-       sum(next_distance_nm - distance_flown_nm) AS distance_nm
-FROM crossings
-WHERE next_fir_from = fir
-GROUP BY fir
-ORDER BY minutes DESC;
-```
-
-What this does **not** count:
-
-- the region a flight is in before its first crossing and after its last one,
-  because no event marks where it enters or leaves there;
-- a visit cut by a reception gap, when the next crossing seen does not leave
-  the region the previous one entered.
-
-The result is a lower bound. See [FIR crossings](../limitations.qmd#lim-fir)
-for the limits of the crossings themselves.
-
-### Example: the measurements in the shape of release v0.0.2
-
-```sql
-SELECT e.type AS event_type, m.type, m.value, m.version
-FROM measurements AS m
-JOIN events AS e ON e.id = m.event_id
-WHERE e.flight_id = '3f9a0c1d2b4e5f60_1781412334'
-ORDER BY e.event_time;
-```
-
 ## Files
 
 ### Where the files are
 
-The files of release `r cfg$release` are in one published folder, at the
-public download address above or in the file browser.
+The files are in one published folder, at the public download address above
+or in the file browser.
 
 ```
 <published folder>/
@@ -210,183 +89,10 @@ public download address above or in the file browser.
     catalogue.parquet                             one row per published day
 ```
 
-A worldwide day is about 7 MB of flight list and about 410 MB of flight
+A worldwide day is about 16 MB of flight list and about 430 MB of flight
 events. To find a known flight, read the month's flight index first: its
 column `file` names the flight list file, and the events file of the same day
 holds its events.
-
-### Python
-
-The OPDI package has a small reader, `opdi.published`, that needs Python 3.10
-or later, pandas, pyarrow and (for the views) DuckDB. `opdi[reader]` also
-installs PySpark, but the reader does not start Spark. Install it from the
-OPDI repository:
-
-```bash
-pip install "opdi[reader] @ git+https://github.com/euctrl-pru/opdi"
-```
-
-The base address is a web address, an S3 address (a cloud-storage folder
-reached with Amazon's S3 protocol, written `s3://bucket/folder`) or a local
-folder that holds `flight_list/` and `flight_events/`. Give it with `base=`, or
-set `OPDI_PUBLISHED_URL` once.
-
-```python
-import json
-from datetime import date
-
-from opdi import published
-
-day = date(2026, 6, 14)
-base = "/data/opdi"  # the folder that holds flight_list/ and flight_events/
-
-# 1. Flights from London Heathrow (EGLL) to Paris Charles de Gaulle (LFPG)
-flights = published.read_flight_list(day, base=base)
-pairs = flights[(flights["adep"] == "EGLL") & (flights["ades"] == "LFPG")]
-print(pairs[["flight_id", "flt_id", "typecode", "atot", "aldt"]].sort_values("atot"))
-
-# 2. All events of one flight, in time order
-events = published.read_flight_events(day, base=base)
-one = events[events["flight_id"] == "3f9a0c1d2b4e5f60_1781412334"]
-print(one.sort_values("event_time")[
-    ["event_time", "type", "altitude_ft", "distance_flown_nm", "time_passed_s", "info"]
-])
-
-# 3. Holding time per destination airport
-holds = published.read_flight_events(day, base=base, types=["holding-end"])
-per_airport = (
-    holds.groupby("ades")
-    .agg(holdings=("event_id", "size"), flights=("flight_id", "nunique"),
-         minutes=("holding_duration_s", "sum"))
-    .assign(minutes=lambda t: t["minutes"] / 60)
-    .sort_values("minutes", ascending=False)
-)
-print(per_airport)
-
-# 4. Time and distance between two FIR crossings, per region entered
-fir = published.read_flight_events(day, base=base, types=["xing-fir"])
-fir = fir.sort_values(["flight_id", "event_time"])
-fir["fir_from"] = fir["info"].map(lambda s: json.loads(s)["fir_from"])
-fir["fir_to"] = fir["info"].map(lambda s: json.loads(s)["fir_to"])
-following = fir.groupby("flight_id")[["fir_from", "time_passed_s", "distance_flown_nm"]].shift(-1)
-spans = fir.assign(
-    minutes=(following["time_passed_s"] - fir["time_passed_s"]) / 60,
-    distance_nm=following["distance_flown_nm"] - fir["distance_flown_nm"],
-)[following["fir_from"] == fir["fir_to"]]
-print(spans.groupby("fir_to")[["minutes", "distance_nm"]].sum())
-```
-
-Both readers also take an end date
-(`read_flight_events(date(2026, 6, 1), date(2026, 6, 7), base=base)` reads a
-week) and a list of columns (`columns=[...]`), which is much faster; a day of
-events has several million rows (see [Tips](#tips)). The v0.0.2 shapes are one
-call away:
-
-```python
-old_events = published.as_events(events)              # id, flight_id, type, ..., altitude, info
-old_measurements = published.as_measurements(events)  # id, event_id, type, value, version
-old_flights = published.as_flight_list_v0(flights)    # id, icao24, flt_id, dof, adep, ...
-```
-
-### R
-
-With [arrow](https://arrow.apache.org/docs/r/) and dplyr, on downloaded files:
-
-```r
-library(arrow)
-library(dplyr)
-
-# The folder that holds flight_list/ and flight_events/
-base <- "/data/opdi"
-
-# 1. Flights from London Heathrow (EGLL) to Paris Charles de Gaulle (LFPG)
-flights <- read_parquet(file.path(base, "flight_list", "flight_list_20260614.parquet"))
-flights |>
-  filter(adep == "EGLL", ades == "LFPG") |>
-  select(flight_id, flt_id, typecode, atot, aldt) |>
-  arrange(atot)
-
-# All days of flight events as one dataset; filters are applied while reading
-events <- open_dataset(file.path(base, "flight_events"))
-
-# 2. All events of one flight, in time order
-events |>
-  filter(dof == as.Date("2026-06-14"), flight_id == "3f9a0c1d2b4e5f60_1781412334") |>
-  select(event_time, type, altitude_ft, distance_flown_nm, time_passed_s, info) |>
-  arrange(event_time) |>
-  collect()
-
-# 3. Holding time per destination airport
-events |>
-  filter(dof == as.Date("2026-06-14"), type == "holding-end") |>
-  group_by(ades) |>
-  summarise(holdings = n(), minutes = sum(holding_duration_s, na.rm = TRUE) / 60) |>
-  arrange(desc(minutes)) |>
-  collect()
-
-# 4. Time and distance between two FIR crossings, per region entered
-fir <- events |>
-  filter(dof == as.Date("2026-06-14"), type == "xing-fir") |>
-  select(flight_id, event_time, info, time_passed_s, distance_flown_nm) |>
-  collect()
-details <- lapply(fir$info, jsonlite::fromJSON)
-fir$fir_from <- vapply(details, function(x) x$fir_from, character(1))
-fir$fir_to <- vapply(details, function(x) x$fir_to, character(1))
-fir |>
-  arrange(flight_id, event_time) |>
-  group_by(flight_id) |>
-  mutate(next_from = lead(fir_from),
-         next_time_s = lead(time_passed_s),
-         next_distance_nm = lead(distance_flown_nm)) |>
-  ungroup() |>
-  filter(next_from == fir_to) |>
-  group_by(fir = fir_to) |>
-  summarise(visits = n(),
-            minutes = sum(next_time_s - time_passed_s) / 60,
-            distance_nm = sum(next_distance_nm - distance_flown_nm)) |>
-  arrange(desc(minutes))
-```
-
-### DuckDB
-
-DuckDB is a database that runs inside a program or on the command line and
-reads Parquet files directly, also over `https://` and `s3://`. The SQL is as
-for Trino, except that the table is a file and the JSON function is
-`json_extract_string`:
-
-```sql
--- 1. Flights from London Heathrow to Paris Charles de Gaulle
-SELECT flight_id, flt_id, typecode, atot, aldt
-FROM read_parquet('/data/opdi/flight_list/flight_list_20260614.parquet')
-WHERE adep = 'EGLL' AND ades = 'LFPG'
-ORDER BY atot;
-
--- Crossings into each FIR, over every downloaded day
-SELECT json_extract_string(info, '$.fir_to') AS fir, count(*) AS crossings
-FROM read_parquet('/data/opdi/flight_events/flight_events_*.parquet')
-WHERE type = 'xing-fir'
-GROUP BY fir
-ORDER BY crossings DESC;
-```
-
-From Python, the reader creates DuckDB views over the files, named like the
-tables and views in Trino, so a query written for one runs on the other:
-
-```python
-import duckdb
-from datetime import date
-from opdi import published
-
-con = duckdb.connect()
-con.execute(published.duckdb_views(base="/data/opdi", start=date(2026, 6, 14)))
-con.sql("SELECT type, count(*) AS n FROM flight_events GROUP BY type ORDER BY n DESC")
-```
-
-The views are `flight_list`, `flight_events`, `flight_index` (when the folder
-holds `index/`), `events`, `measurements` and `flight_list_v0`, as in Trino.
-
-`duckdb_views` also takes an end date (`end=`). Without `start`, it reads every
-file in a local or S3 folder.
 
 ## Tips
 
