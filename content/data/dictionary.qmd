@@ -368,7 +368,7 @@ The measurement columns have no version column of their own:
 ## Identifiers and joins {#identifiers}
 
 - `flight_id` (a flight): The identifier of its track: the first 16 characters of the SHA-256 hash of the aircraft address, an underscore, and the time of the track's first position in seconds since 1970-01-01 (Unix time), for example `3f9a0c1d2b4e5f60_1781412334`. The flights of a track that holds several end in `-L1`, `-L2` and so on.
-- `event_id` (an event): 32 hexadecimal characters, computed from the flight, the event type, the time and the version of the event. The same event gets the same identifier when a day is processed again.
+- `event_id` (an event): The `flight_id`, `-E` and the number of the event within the flight in time order, for example `3f9a0c1d2b4e5f60_1781412334-E0007`. The number can change between releases of the data, when a release finds more or fewer events in a flight. An event whose flight is not in the flight list has 32 hexadecimal characters instead.
 - `icao24` (an aircraft's transponder): Six hexadecimal characters, for example `4ca123`.
 - `flt_id` (the call sign): As broadcast, for example `DLH123`.
 

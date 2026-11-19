@@ -24,9 +24,9 @@
 | `aobt` | timestamp | UTC | Actual off-block time: when the aircraft started to move away from its parking position. Taken from the flight's earliest AOBT event. NULL when it was not detected, which is common because it needs reception on the ground. |
 | `aibt` | timestamp | UTC | Actual in-block time: when the aircraft stopped at its parking position after landing. Taken from the flight's latest AIBT event. NULL when it was not detected, which is common because it needs reception on the ground. |
 | `rwy_dep` | string |  | Runway used for take-off, for example 25R. Taken from the same event as atot. |
-| `rwy_dep_bearing_deg` | double | degrees | True bearing of the centre line of the take-off runway, in degrees clockwise from north. It describes the runway, not the heading of the aircraft. |
+| `rwy_dep_bearing_deg` | double | degrees | True bearing of the centre line of the take-off runway, in degrees clockwise from north. It describes the runway, not the heading of the aircraft. Rounded to 3 decimals. |
 | `rwy_arr` | string |  | Runway used for landing, for example 07L. Taken from the same event as aldt. |
-| `rwy_arr_bearing_deg` | double | degrees | True bearing of the centre line of the landing runway, in degrees clockwise from north. It describes the runway, not the heading of the aircraft. |
+| `rwy_arr_bearing_deg` | double | degrees | True bearing of the centre line of the landing runway, in degrees clockwise from north. It describes the runway, not the heading of the aircraft. Rounded to 3 decimals. |
 | `stnd_dep` | string |  | Parking position (stand) the flight left from, with the name it has in OpenStreetMap. NULL when it was not detected. |
 | `stnd_arr` | string |  | Parking position (stand) the flight arrived at, with the name it has in OpenStreetMap. NULL when it was not detected. |
 | `c40_arr` | timestamp | UTC | Time when the arriving flight last crossed, inbound, a circle of 40 nautical miles (NM) radius around the destination airport. NULL when no such crossing was detected. |
