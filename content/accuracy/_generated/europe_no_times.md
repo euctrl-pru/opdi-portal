@@ -3,7 +3,7 @@
 | Rank | ICAO | Airport | OPDI departures | OPDI arrivals | Arrivals in the records with an `ades` |
 |---|---|---|---|---|---|
 | 48 | `LGIR` | Heraklion International Nikos Kazantzakis Airport | 159 | 0 | 0.2 % low |
-| 50 | `LIRN` | Naples International Airport | 455 | 13 | 0.7 % low |
+| 50 | `LIRN` | Naples International Airport | 455 | 13 | 0.2 % low |
 | 55 | `LICC` | Catania-Fontanarossa Airport | 411 | 429 | 98.1 % high |
 | 56 | `LATI` | Tirana International Airport Mother Teresa | 81 | 0 | 0.0 % low |
 | 65 | `LTAC` | Esenboğa International Airport | 1 | 7 | 5.4 % low |

@@ -104,8 +104,8 @@ at the departure and destination airports of the flight list only.
 2. At least 4 reports must remain: they are the initial climb or the final
    descent.
 3. **Runway.** The candidate runways are those whose direction is within 10°
-   of the median ground track of these reports; the one whose centre line is
-   nearest to their median position wins.
+   of the median ground track of these reports; the one with the smallest
+   median distance of these reports from its centre line wins.
 4. Only reports at most 0.5 NM from that runway's extended centre line count.
    For a landing, a report on the ground (flagged, or slower than 50 kt) must
    follow when the track continues for more than 120 s.
@@ -180,9 +180,7 @@ from the earliest `ATOT` at the departure airport; `aldt` and `rwy_arr`,
   reception on the ground at the airport.
 - **Runway use**: count take-offs and landings per runway direction and hour
   from `info.runway`, for example to see when an airport changes direction.
-- **Time in the air**: `ALDT` minus `ATOT`. A track that holds several
-  flights has one of each per airport it visits: pair them by
-  `info.apt_icao` and time.
+- **Time in the air**: `ALDT` minus `ATOT` of the same flight.
 
 ## Limitations
 

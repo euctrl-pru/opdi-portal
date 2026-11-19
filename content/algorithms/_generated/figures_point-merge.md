@@ -3,7 +3,7 @@
 | What | Kind | Value | Out of | Label | Compared with |
 |---|---|---|---|---|---|
 | pms-leg-entry events, per day | count | 617 |  |  | OPDI flight events |
-| pms-merge-point events, per day | count | 3,873 |  |  | OPDI flight events |
+| pms-merge-point events, per day | count | 3,869 |  |  | OPDI flight events |
 
 : Three days together (10, 14 and 17 June 2026). "Out of" is the number of flights, records or compared values the share is computed over, to four significant figures. {.striped}
 

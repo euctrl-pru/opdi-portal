@@ -2,9 +2,9 @@
 
 | What | Kind | Value | Out of | Label | Compared with |
 |---|---|---|---|---|---|
-| Flights with a top-of-climb | availability | 91.5 % | 517,300 | high | OPDI flight events |
-| top-of-climb events, per day | count | 158,100 |  |  | OPDI flight events |
-| top-of-descent events, per day | count | 158,100 |  |  | OPDI flight events |
+| Flights with a top-of-climb | availability | 91.0 % | 520,100 | high | OPDI flight events |
+| top-of-climb events, per day | count | 157,800 |  |  | OPDI flight events |
+| top-of-descent events, per day | count | 157,800 |  |  | OPDI flight events |
 
 : Three days together (10, 14 and 17 June 2026). "Out of" is the number of flights, records or compared values the share is computed over, to four significant figures. {.striped}
 

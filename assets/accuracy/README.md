@@ -3,8 +3,8 @@
 Made by `benchmarks/airport_accuracy.py` in the `opdi` repository (branch
 `industrialisation`) from three processed days: Wednesday 10 June,
 Sunday 14 June and Wednesday 17 June 2026, worldwide, with the default
-settings of the pipeline (174,997, 161,867 and 180,479 flight-list rows;
-6.42, 6.06 and 6.63 million events). `_manifest.json` gives, for each
+settings of the pipeline (175,931, 162,751 and 181,427 flight-list rows,
+one per flight; 6.43, 6.07 and 6.64 million events). `_manifest.json` gives, for each
 file, the command, the commit, the inputs and their row counts. The tables
 were made with
 
@@ -50,6 +50,23 @@ A record is matched to an OPDI flight on the aircraft address (the
 transponder's 24-bit code), the call sign and the airport, the nearest within
 6 hours. Records without an aircraft address cannot be matched and are not
 counted.
+
+**Flight rows.** The flight list has one row per flight. A track that lands,
+stays at least five minutes on the ground and takes off again holds several
+flights and has one row for each (`tracks_divided.csv` gives their number
+per day). Every count "among OPDI's flights" is a count of such rows, each
+event is counted under the flight it belongs to, and each record is compared
+with one flight row only: the one nearest to it in time.
+
+**The runway of a record.** A record's runway is compared only when it is a
+runway of its airport in the OurAirports table the pipeline uses. A value
+that names no runway of the airport is treated as no runway: the records of
+Bergen (ENBR), Stavanger (ENZV) and Trondheim (ENVA) give runway `01` for
+every movement, those of Zagreb (LDZA) give `04R` and `22L` where the table
+has one runway `04`/`22`, and a few records elsewhere give `NA` or `01`. A number without a side (`31`) is compared with the
+airport's only open runway of that number (`31L`) when there is exactly one.
+These records still count for the times; for the runway items they are not
+reference movements.
 A movement of a flight whose OPDI row belongs to the day before (for
 example a landing just after midnight) counts as not found, so availability
 against a reference is slightly low at the ends of each day.
@@ -159,11 +176,10 @@ time less than 10 s or less than a fifth of its middle value.
 ### offblock_causes.csv
 
 Why an off-block or in-block time is missing or wrong. Made by
-`benchmarks/offblock_causes.py` in the `opdi` repository (branch `offblock`):
+`benchmarks/offblock_causes.py` in the `opdi` repository (branch `industrialisation`):
 
-    python benchmarks/offblock_causes.py extract --day 2026-06-14 --root <run> --tracks <cleaned tracks>
-    python benchmarks/offblock_causes.py extract --day 2026-06-10 --root <day>     # and 17 June
-    python benchmarks/offblock_causes.py tables --out <this folder> --changed <extract of the changed run>
+    python benchmarks/offblock_causes.py extract --day 2026-06-14 --root <day> --tracks <cleaned tracks>   # and 10, 17 June
+    python benchmarks/offblock_causes.py tables --out <this folder> --before <extract of the run without the push-back start>
 
 One row per `day`, `item` (`off-block`, `in-block`), `method` and `scope`:
 `all airports`, the airports of each class of stand reception, and each of
@@ -193,19 +209,24 @@ OpenSky's state vectors repeat the last state, without position, for about
 300 s after the last message.
 
 `read_from` says how exact a row is. `reports`: the position reports of the
-day were read (14 June) and every cause is told apart. `flight list`: only
-the first and last position of each flight were read (10, 14 and 17 June,
+day were read (all three days) and every cause is told apart. `flight list`:
+only the first and last position of each flight were read (the three days,
 and `3 days` together); the three causes after `not_received_at_the_time`
 are then one, `received_but_no_opdi_time`, and "received" means "has a
-position". The two readings of 14 June differ by up to 4 points between
+position". The two readings of a day differ by up to 4 points between
 neighbouring causes for that reason.
 
-`method`: `current` is the default settings of the branch
-`industrialisation`. `push-back start` (14 June, `reports`) is the same day
-with the settings `off_block_at_start_of_push_back` and
-`off_block_names_where_first_seen` of the branch `offblock`, which move an
-off-block time back to the start of a slow push-back; the in-block rows are
-the same under both.
+`method`: `current` is the default settings of the pipeline, in which an
+off-block time is moved back to the start of a slow push-back (setting
+`off_block_at_start_of_push_back`). `without push-back start` (14 June,
+`reports`) is the same day processed without that setting; the in-block
+rows are the same under both. With the setting, the off-block times within
+60 s of the record on 14 June go from 39.8% to 48.4% of the times that have
+a record, and the median difference from 104 s to 64 s.
+
+A record's flight is one flight row; for a track that holds several
+flights, "the first report of the flight" is the first report after the
+division from the flight before.
 
 `stands` classes an airport by its arrivals on 14 June, which keep the
 transponder on until they are parked: `received` when at least 50% of the
@@ -221,6 +242,31 @@ recorded in-block time), and among those records only
 `pct_within_60s_when_received_at_stand` and
 `median_abs_diff_s_when_received_at_stand`: what the method achieves when
 the data exist.
+
+### offblock_first_seen_on.csv
+
+The accuracy of the off-block times by where the aircraft was first received
+on the ground, which the off-block event says in `info.first_seen_on`. Made
+by the same `tables` command as `offblock_causes.csv`. One row per `day`
+(and `3 days` together) and `first_seen_on`: `stand`, `apron`, `taxiway`,
+`other`, `not given` (the event has no value: the track holds the landing
+before this departure, or passes no part of an airport layout) and `all`.
+Counted are the off-block times that have an airport record:
+`off_block_times`, `pct_within_60s`, `median_abs_diff_s`; and among them
+those received at the stand (a received report before the recorded off-block
+time): `n_received_at_stand`, `pct_within_60s_when_received_at_stand`,
+`median_abs_diff_s_when_received_at_stand`. An aircraft first received on a
+taxiway had left its stand before its transponder was received, so its
+off-block time is the start of the taxi: 9.6% of those times are within 60 s
+of the record over the three days, against 67.4% of those first received on
+a stand.
+
+### tracks_divided.csv
+
+Per day: `tracks` (the tracks of the day), `tracks_divided_into_flights`
+(those that hold several flights), `flights_of_divided_tracks` (the flight
+rows of those tracks) and `flight_rows` (the rows of the flight list, one per
+flight).
 
 ## Label rules
 

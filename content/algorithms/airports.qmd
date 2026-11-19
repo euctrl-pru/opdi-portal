@@ -75,8 +75,12 @@ arriving aircraft is often lost by the receivers before it lands.
     comes after every departure event, and lies within 30 NM of the last
     report with a position. A runway-window time (`info.method` = `legacy`)
     never replaces an airport.
-13. The source columns say how each airport was decided: `aerodrome` (from the
-    trajectory), `runway_event` (from step 12), `out_of_area` or
+13. On a track that holds several flights (see
+    [Tracks and flight identity](tracks.qmd#flights-of-a-track)), the
+    airports of a stop are those of its landing and its take-off, with the
+    source `runway_event`.
+14. The source columns say how each airport was decided: `aerodrome` (from the
+    trajectory), `runway_event` (from steps 12 and 13), `out_of_area` or
     `undetermined` (no airport, as for an overflight).
 
 `OOA` (out of area) is written only in data built for the European area: it
@@ -108,8 +112,7 @@ The same columns are repeated on every row of the flight events file.
 ## Limitations
 
 Small airfields and heliports are never named; an arrival lost far from its
-destination gets no `ades`; a track holding several flights names only its
-first and last airports. See
+destination gets no `ades`. See
 [Limitations: airports](../limitations.qmd#lim-airports).
 
 ## Availability and accuracy

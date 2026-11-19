@@ -2,13 +2,13 @@
 
 | What | Kind | Value | Out of | Label | Compared with |
 |---|---|---|---|---|---|
-| Departures with an AOBT | availability | 17.5 % | 363,000 | low | OPDI flight events |
-| Recorded off-blocks with an AOBT | availability | 35.0 % | 57,340 | low | airport operator records (Europe) |
-| AOBT within 60 s of the record | accuracy | 40.3 % | 20,080 | limited | airport operator records (Europe) |
-| AOBT: median difference from the record | accuracy | 99 s | 20,080 |  | airport operator records (Europe) |
-| Arrivals with an AIBT | availability | 19.2 % | 331,100 | low | OPDI flight events |
+| Departures with an AOBT | availability | 17.6 % | 365,500 | low | OPDI flight events |
+| Recorded off-blocks with an AOBT | availability | 35.1 % | 57,340 | low | airport operator records (Europe) |
+| AOBT within 60 s of the record | accuracy | 48.6 % | 20,100 | limited | airport operator records (Europe) |
+| AOBT: median difference from the record | accuracy | 64 s | 20,100 |  | airport operator records (Europe) |
+| Arrivals with an AIBT | availability | 19.4 % | 333,200 | low | OPDI flight events |
 | Recorded in-blocks with an AIBT | availability | 33.4 % | 57,550 | low | airport operator records (Europe) |
-| AIBT within 60 s of the record | accuracy | 72.0 % | 19,230 | fair | airport operator records (Europe) |
+| AIBT within 60 s of the record | accuracy | 72.1 % | 19,230 | fair | airport operator records (Europe) |
 | AIBT: median difference from the record | accuracy | 34 s | 19,230 |  | airport operator records (Europe) |
 | AOBT naming the recorded stand | accuracy | 61.9 % | 14,740 | fair | airport operator records (Europe) |
 | AIBT naming the recorded stand | accuracy | 74.1 % | 14,220 | fair | airport operator records (Europe) |

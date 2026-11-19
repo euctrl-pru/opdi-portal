@@ -1,12 +1,13 @@
 ---
 title: "Tracks and flight identity"
-description: "How OPDI groups the position reports of one aircraft into tracks, one per flight, and gives each its identifier (flight_id), aircraft address, call sign and date of flight."
+description: "How OPDI groups the position reports of one aircraft into tracks, divides a track that holds several flights, and gives each flight its identifier (flight_id), aircraft address, call sign and date of flight."
 ---
 
 ## In one sentence
 
-A **track** is the run of position reports of one aircraft that OPDI treats
-as one flight; each track is one row of the flight list, identified by
+A **track** is the run of position reports of one aircraft that belong
+together; a track is one flight, or is divided into its flights when it
+holds several, and each flight is one row of the flight list, identified by
 `flight_id`.
 
 ## What it needs
@@ -56,14 +57,33 @@ as one flight; each track is one row of the flight list, identified by
    the gap, because position and altitude arrive in separate messages. A gap
    kept inside a track stays empty: no position is invented, and the event
    detectors work on each piece between gaps.
-6. **Name the track.** `flight_id` is the first 16 characters of the SHA-256
-   hash of the ICAO address, an underscore, and the time of the track's first
-   report in seconds since 1970-01-01 (Unix time).
+6. **Name the track.** The track identifier is the first 16 characters of
+   the SHA-256 hash of the ICAO address, an underscore, and the time of the
+   track's first report in seconds since 1970-01-01 (Unix time). A track with
+   one flight keeps it as its `flight_id`.
 7. **Date and call sign.** `dof` is the date of the track's first report: a
    track belongs to the day it starts, with all its reports even when it ends
    the next day. A day's run reads 11 hours of the previous day, so a gap near
    midnight is decided in the same way on both days. `flt_id` is the call sign
    the track broadcast most often, without the spaces OpenSky pads it with.
+
+### The flights of a track {#flights-of-a-track}
+
+8. **Several flights.** A track that contains a landing followed at least
+   five minutes later by a take-off (`ALDT`, then `ATOT`) holds several
+   flights, and the flight list has one row for each. A touch-and-go, a
+   go-around and a rejected take-off do not divide a track.
+9. **Where the track is divided.** At the in-block time (`AIBT`) after the
+   landing; without one, at the midpoint between the landing and the
+   take-off, or one second before the off-block time (`AOBT`) if that is
+   earlier.
+10. **Each flight** has its own airports, times, runways, stands and
+    distance-circle crossings, and each event is published under the flight
+    during which it happened.
+11. **Names.** The flights of such a track are named `<track id>-L1`,
+    `<track id>-L2` and so on, in time order. All of them have the `dof` of
+    the track and are in the files of the day on which the track was first
+    seen.
 
 ## Based on
 
@@ -77,11 +97,12 @@ as one flight; each track is one row of the flight list, identified by
 ## What is published
 
 Flight list columns `flight_id`, `icao24`, `flt_id` and `dof`. The same
-`flight_id` is on every event of the track in the flight events file.
+`flight_id` is on every event of the flight in the flight events file.
 
 ## Use cases
 
 - **Join the two files**: `flight_id` links each event to its flight-list row.
+- **Join flights to tracks**: remove the ending `-L<number>` from `flight_id`.
 - **Join with other data**: `icao24` with the date and the call sign, for
   example with aircraft registries or airline schedules (the call sign is
   often the airline code plus a flight number).
@@ -90,9 +111,9 @@ Flight list columns `flight_id`, `icao24`, `flt_id` and `dof`. The same
 
 ## Limitations
 
-A track can hold several flights (a turnaround under one call sign with
-continuous ground reception) or only part of one (reception lost), and
-placeholder addresses can merge aircraft. See
+A track can hold only part of a flight (reception lost), training circuits
+with full stops at one airport stay one row, and placeholder addresses can
+merge aircraft. See
 [Limitations: tracks](../limitations.qmd#lim-tracks).
 
 ## Availability and accuracy

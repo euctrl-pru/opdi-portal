@@ -2,7 +2,7 @@
 
 | What | Kind | Value | Out of | Label | Compared with |
 |---|---|---|---|---|---|
-| first_seen events (one per track), per day | count | 173,800 |  |  | OPDI flight events |
+| first_seen events (one per track), per day | count | 172,400 |  |  | OPDI flight events |
 
 : Three days together (10, 14 and 17 June 2026). "Out of" is the number of flights, records or compared values the share is computed over, to four significant figures. {.striped}
 

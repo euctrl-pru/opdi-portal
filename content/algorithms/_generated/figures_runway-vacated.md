@@ -2,7 +2,7 @@
 
 | What | Kind | Value | Out of | Label | Compared with |
 |---|---|---|---|---|---|
-| Arrivals with a runway-vacated | availability | 31.0 % | 331,100 | low | OPDI flight events |
+| Arrivals with a runway-vacated | availability | 31.4 % | 333,200 | low | OPDI flight events |
 | Recorded landings with a runway-vacated | availability | 49.6 % | 57,550 | low | airport operator records (Europe) |
 | Median time from the recorded landing | timing | 39 s | 28,530 |  | airport operator records (Europe) |
 

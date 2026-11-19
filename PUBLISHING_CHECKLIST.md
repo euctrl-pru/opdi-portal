@@ -79,15 +79,15 @@ published before every value is known.
   again, run `python tools/gen_accuracy_tables.py` and
   `python tools/gen_item_figures.py`, then read the prose of
   `content/accuracy/airports.qmd` ("Patterns") again: it names airports.
-- [ ] **Airports that look wrong in the accuracy tables.** Decide whether to
-  investigate before publishing: (1) ten of the 100 busiest European airports
-  (`LGIR`, `LIRN`, `LICC`, `LATI`, `LTAC`, `LTBJ`, `GCTS`, `LEBB`, `LGKR`,
-  `LUKK`) have no take-off or landing time on any of the three days, and at
-  most of them OPDI rarely names the airport as destination; (2) at `ENBR`,
-  `ENZV` and `ENVA` no runway agrees with the records although the times do,
-  which suggests different runway names; (3) at `LMML` most take-off times
-  and runways disagree with the records. The pages state these as facts and
-  give no cause.
+- [ ] **Airports named on the accuracy pages.** Read these statements of
+  `content/accuracy/airports.qmd` again when the tables are staged again:
+  (1) ten of the 100 busiest European airports (`LGIR`, `LIRN`, `LICC`,
+  `LATI`, `LTAC`, `LTBJ`, `GCTS`, `LEBB`, `LGKR`, `LUKK`) have no take-off or
+  landing time on any of the three days, because the OpenSky data hold no
+  reports near the ground there; (2) at `ENBR`, `ENZV` and `ENVA` the airport
+  records hold the placeholder runway `01`, so the runway has no reference;
+  (3) at `LMML` the runway and the take-off time of the records disagree with
+  the aircraft's own track for most of the day.
 
 ## 3. Decisions
 
