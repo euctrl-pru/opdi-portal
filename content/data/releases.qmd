@@ -123,12 +123,12 @@ therefore more often one row, with both airports.
   before any event is detected (see
   [Trajectory cleaning](../algorithms/cleaning.qmd)).
 - **Documented and checked methods**: each has a page in
-  [Algorithms](../algorithms/index.qmd) on how it works, what it was compared
+  [OPDI Algorithms](../algorithms/index.qmd) on how it works, what it was compared
   with, how accurate it is and where it fails.
   [Data quality](../accuracy/index.qmd) gives how often every
   item exists and how close it is to the records, overall and per airport.
 - **Trino**: the files can be queried with SQL on the OpenSky Network's Trino
-  instance, without downloading them (see [Access](access.qmd)).
+  instance, without downloading them (see [Data Access](access.qmd)).
 
 ## Changes in meaning
 
@@ -177,7 +177,7 @@ They have the same names in Trino and in DuckDB.
 | Flight events (without measurements) | `events` | `published.as_events(events)` |
 | Measurements (one row per value) | `measurements` | `published.as_measurements(events)` |
 
-[Access](access.qmd) shows how to use them. The views change the shape, not
+[Data Access](access.qmd) shows how to use them. The views change the shape, not
 the content: rows follow the methods of release v2.0.0. Identifiers are text
 and do not match the 64-bit integer identifiers of release v0.0.2, so rows
 cannot be joined to v0.0.2 files by identifier. The column `version` holds the
@@ -438,7 +438,7 @@ One file per ten days, over the same periods as the flight events.
 ### How release v0.0.2 was computed
 
 An earlier version of the OPDI software produced release `r version`. Its
-methods differ from those in [Algorithms](../algorithms/index.qmd), which
+methods differ from those in [OPDI Algorithms](../algorithms/index.qmd), which
 apply to release `r cfg$release`.
 
 #### Flights and their identifiers
