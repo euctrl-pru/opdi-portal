@@ -1,0 +1,2625 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.7.29">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="description" content="How each published OPDI item is computed: every event type, every measurement and every column group of the flight list, each with its own page.">
+
+<title>Algorithms – OPDI</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+</style>
+
+
+<script src="../../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../../site_libs/quarto-nav/headroom.min.js"></script>
+<script src="../../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../../">
+<script src="../../site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="../../site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="../../site_libs/quarto-html/popper.min.js"></script>
+<script src="../../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../../site_libs/quarto-html/quarto-syntax-highlighting-0815c480559380816a4d1ea211a47e91.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="../../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../../site_libs/bootstrap/bootstrap-43f3719592dba936979dd507688b4ba0.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<script src="../../site_libs/quarto-contrib/iconify-3.0.0/iconify-icon.min.js"></script>
+<script id="quarto-search-options" type="application/json">{
+  "location": "navbar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "end",
+  "type": "overlay",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+<style>
+  .navbar-logo {
+    max-height: 60px;
+  }
+</style>
+<!-- Matomo -->
+<script>
+  var _paq = window._paq = window._paq || [];
+  _paq.push(['trackPageView']);
+  _paq.push(['enableLinkTracking']);
+  (function() {
+    var u="//stats.eurocontrol.int/";
+    _paq.push(['setTrackerUrl', u+'matomo.php']);
+    _paq.push(['setSiteId', '26']);
+    var d=document, g=d.createElement('script'), s=d.getElementsByTagName('script')[0];
+    g.async=true; g.src=u+'matomo.js'; s.parentNode.insertBefore(g,s);
+  })();
+</script>
+<!-- End Matomo Code -->
+
+
+<link rel="stylesheet" href="../../assets/css/styles.css">
+</head>
+
+<body class="nav-sidebar floating nav-fixed quarto-light">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+    <nav class="navbar navbar-expand-lg " data-bs-theme="dark">
+      <div class="navbar-container container-fluid">
+      <div class="navbar-brand-container mx-auto">
+    <a href="../../index.html" class="navbar-brand navbar-brand-logo">
+    <img src="../../assets/logos/eurocontrol-standard-rgb.png" alt="" class="navbar-logo">
+    </a>
+    <a class="navbar-brand" href="../../index.html">
+    <span class="navbar-title">Open Performance Data Initiative</span>
+    </a>
+  </div>
+            <div id="quarto-search" class="" title="Search"></div>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" role="menu" aria-expanded="false" aria-label="Toggle navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+  <span class="navbar-toggler-icon"></span>
+</button>
+          <div class="collapse navbar-collapse" id="navbarCollapse">
+            <ul class="navbar-nav navbar-nav-scroll ms-auto">
+  <li class="nav-item">
+    <a class="nav-link" href="https://ansperformance.eu/"> 
+<span class="menu-text">Home</span></a>
+  </li>  
+  <li class="nav-item dropdown ">
+    <a class="nav-link dropdown-toggle" href="#" id="nav-menu-performance-areas" role="link" data-bs-toggle="dropdown" aria-expanded="false">
+ <span class="menu-text">Performance areas</span>
+    </a>
+    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="nav-menu-performance-areas">    
+        <li>
+    <a class="dropdown-item" href="https://www.eurocontrol.int/Economics/BalancedScorecard.html">
+ <span class="dropdown-text"><iconify-icon role="img" inline="" icon="fa6-solid:th" aria-label="Icon th from fa6-solid Iconify.design set." title="Icon th from fa6-solid Iconify.design set."></iconify-icon>&nbsp;Balanced scorecard</span></a>
+  </li>  
+        <li>
+    <a class="dropdown-item" href="https://ansperformance.eu/traffic/">
+ <span class="dropdown-text"><iconify-icon role="img" inline="" icon="fa6-solid:plane-departure" aria-label="Icon plane-departure from fa6-solid Iconify.design set." title="Icon plane-departure from fa6-solid Iconify.design set."></iconify-icon>&nbsp;Traffic</span></a>
+  </li>  
+        <li>
+    <a class="dropdown-item" href="https://www.eurocontrol.int/Economics/DailyTrafficVariation-States.html">
+ <span class="dropdown-text">&nbsp;&nbsp;&nbsp;&nbsp;<span style="font-weight: normal">Daily traffic dashboard</span></span></a>
+  </li>  
+        <li>
+    <a class="dropdown-item" href="https://www.eurocontrol.int/ServiceUnits/Dashboard/EnRouteMainDashboard.html">
+ <span class="dropdown-text">&nbsp;&nbsp;&nbsp;<span style="font-weight: normal">Service units</span></span></a>
+  </li>  
+        <li>
+    <a class="dropdown-item" href="https://ansperformance.eu/traffic/statfor/">
+ <span class="dropdown-text">&nbsp;&nbsp;&nbsp;<span style="font-weight: normal">Traffic forecast</span></span></a>
+  </li>  
+        <li>
+    <a class="dropdown-item" href="https://ansperformance.eu/traffic/punctuality/">
+ <span class="dropdown-text"><iconify-icon role="img" inline="" icon="fa6-solid:calendar" aria-label="Icon calendar from fa6-solid Iconify.design set." title="Icon calendar from fa6-solid Iconify.design set."></iconify-icon>&nbsp;Punctuality</span></a>
+  </li>  
+        <li>
+    <a class="dropdown-item" href="https://www.eurocontrol.int/Economics/DailyPunctuality-States.html">
+ <span class="dropdown-text">&nbsp;&nbsp;&nbsp;&nbsp;<span style="font-weight: normal">Daily punctuality dashboard</span></span></a>
+  </li>  
+        <li>
+    <a class="dropdown-item" href="https://ansperformance.eu/traffic/punctuality/#eurocontrol-area-network-view-1">
+ <span class="dropdown-text">&nbsp;&nbsp;&nbsp;<span style="font-weight: normal">Network punctuality</span></span></a>
+  </li>  
+        <li>
+    <a class="dropdown-item" href="https://ansperformance.eu/traffic/punctuality/#state-view-1">
+ <span class="dropdown-text">&nbsp;&nbsp;&nbsp;<span style="font-weight: normal">State &amp; airport punctuality</span></span></a>
+  </li>  
+        <li>
+    <a class="dropdown-item" href="https://ansperformance.eu/capacity/">
+ <span class="dropdown-text"><iconify-icon role="img" inline="" icon="fa6-solid:clock" aria-label="Icon clock from fa6-solid Iconify.design set." title="Icon clock from fa6-solid Iconify.design set."></iconify-icon>&nbsp;En-route &amp; airport delays</span></a>
+  </li>  
+        <li>
+    <a class="dropdown-item" href="https://www.eurocontrol.int/Economics/DailyDelay-States.html">
+ <span class="dropdown-text">&nbsp;&nbsp;&nbsp;&nbsp;<span style="font-weight: normal">Daily ATFM delays dashboard</span></span></a>
+  </li>  
+        <li>
+    <a class="dropdown-item" href="https://ansperformance.eu/capacity/atfm_ert/">
+ <span class="dropdown-text">&nbsp;&nbsp;&nbsp;<span style="font-weight: normal">En-route ATFM delays</span></span></a>
+  </li>  
+        <li>
+    <a class="dropdown-item" href="https://ansperformance.eu/capacity/atfm_apt/">
+ <span class="dropdown-text">&nbsp;&nbsp;&nbsp;<span style="font-weight: normal">Airport ATFM delays</span></span></a>
+  </li>  
+        <li>
+    <a class="dropdown-item" href="https://ansperformance.eu/capacity/tot_dly">
+ <span class="dropdown-text">&nbsp;&nbsp;&nbsp;<span style="font-weight: normal">All-causes delays</span></span></a>
+  </li>  
+        <li>
+    <a class="dropdown-item" href="https://ansperformance.eu/efficiency/">
+ <span class="dropdown-text"><iconify-icon role="img" inline="" icon="fa6-solid:leaf" aria-label="Icon leaf from fa6-solid Iconify.design set." title="Icon leaf from fa6-solid Iconify.design set."></iconify-icon>&nbsp;Efficiency &amp; environment</span></a>
+  </li>  
+        <li>
+    <a class="dropdown-item" href="https://ansperformance.eu/efficiency/emissions/">
+ <span class="dropdown-text">&nbsp;&nbsp;&nbsp;<span style="font-weight: normal">CO<sub>2</sub> emissions</span></span></a>
+  </li>  
+        <li>
+    <a class="dropdown-item" href="https://ansperformance.eu/efficiency/hfe/">
+ <span class="dropdown-text">&nbsp;&nbsp;&nbsp;<span style="font-weight: normal">Horizontal flight efficiency</span></span></a>
+  </li>  
+        <li>
+    <a class="dropdown-item" href="https://ansperformance.eu/efficiency/vfe/">
+ <span class="dropdown-text">&nbsp;&nbsp;&nbsp;<span style="font-weight: normal">Vertical flight efficiency</span></span></a>
+  </li>  
+        <li>
+    <a class="dropdown-item" href="https://ansperformance.eu/efficiency/asma/">
+ <span class="dropdown-text">&nbsp;&nbsp;&nbsp;<span style="font-weight: normal">Terminal holdings</span></span></a>
+  </li>  
+        <li>
+    <a class="dropdown-item" href="https://ansperformance.eu/efficiency/taxiout/">
+ <span class="dropdown-text">&nbsp;&nbsp;&nbsp;<span style="font-weight: normal">Taxi-out</span></span></a>
+  </li>  
+        <li>
+    <a class="dropdown-item" href="https://ansperformance.eu/efficiency/taxiin/">
+ <span class="dropdown-text">&nbsp;&nbsp;&nbsp;<span style="font-weight: normal">Taxi-in</span></span></a>
+  </li>  
+        <li>
+    <a class="dropdown-item" href="https://ansperformance.eu/economics/">
+ <span class="dropdown-text"><iconify-icon role="img" inline="" icon="fa6-solid:euro-sign" aria-label="Icon euro-sign from fa6-solid Iconify.design set." title="Icon euro-sign from fa6-solid Iconify.design set."></iconify-icon>&nbsp;Economics</span></a>
+  </li>  
+        <li>
+    <a class="dropdown-item" href="https://ansperformance.eu/economics/ace-overview/">
+ <span class="dropdown-text">&nbsp;&nbsp;&nbsp;<span style="font-weight: normal">ATM cost-effectiveness (ACE)</span></span></a>
+  </li>  
+        <li>
+    <a class="dropdown-item" href="https://www.eurocontrol.int/ServiceUnits/Dashboard/EnRouteUnitRates.html">
+ <span class="dropdown-text">&nbsp;&nbsp;&nbsp;<span style="font-weight: normal">Unit rates and costs</span></span></a>
+  </li>  
+        <li>
+    <a class="dropdown-item" href="https://www.eurocontrol.int/ServiceUnits/Dashboard/EnRouteMainDashboard.html">
+ <span class="dropdown-text">&nbsp;&nbsp;&nbsp;<span style="font-weight: normal">Service units</span></span></a>
+  </li>  
+        <li>
+    <a class="dropdown-item" href="https://ansperformance.eu/economics/finance/">
+ <span class="dropdown-text">&nbsp;&nbsp;&nbsp;<span style="font-weight: normal">ANSPs financial dashboard</span></span></a>
+  </li>  
+        <li>
+    <a class="dropdown-item" href="https://ansperformance.eu/economics/cba/">
+ <span class="dropdown-text">&nbsp;&nbsp;&nbsp;<span style="font-weight: normal">Standard Inputs for Economic Analyses</span></span></a>
+  </li>  
+    </ul>
+  </li>
+  <li class="nav-item dropdown ">
+    <a class="nav-link dropdown-toggle" href="#" id="nav-menu-stakeholder-views" role="link" data-bs-toggle="dropdown" aria-expanded="false">
+ <span class="menu-text">Stakeholder views</span>
+    </a>
+    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="nav-menu-stakeholder-views">    
+        <li>
+    <a class="dropdown-item" href="https://ansperformance.eu/dashboard/stakeholder/airport/">
+ <span class="dropdown-text"><iconify-icon role="img" inline="" icon="fa6-solid:plane-arrival" aria-label="Icon plane-arrival from fa6-solid Iconify.design set." title="Icon plane-arrival from fa6-solid Iconify.design set."></iconify-icon>&nbsp;Airports</span></a>
+  </li>  
+        <li>
+    <a class="dropdown-item" href="https://ansperformance.eu/dashboard/stakeholder/ansp/">
+ <span class="dropdown-text"><iconify-icon role="img" inline="" icon="fa6-solid:compass" aria-label="Icon compass from fa6-solid Iconify.design set." title="Icon compass from fa6-solid Iconify.design set."></iconify-icon>&nbsp;Air navigation service provider</span></a>
+  </li>  
+        <li>
+    <a class="dropdown-item" href="https://ansperformance.eu/dashboard/stakeholder/state/">
+ <span class="dropdown-text"><iconify-icon role="img" inline="" icon="fa6-solid:globe" aria-label="Icon globe from fa6-solid Iconify.design set." title="Icon globe from fa6-solid Iconify.design set."></iconify-icon>&nbsp;States</span></a>
+  </li>  
+    </ul>
+  </li>
+  <li class="nav-item">
+    <a class="nav-link" href="https://ansperformance.eu/data/"> 
+<span class="menu-text">Data</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="https://ansperformance.eu/publications/"> 
+<span class="menu-text">Publications</span></a>
+  </li>  
+  <li class="nav-item dropdown ">
+    <a class="nav-link dropdown-toggle" href="#" id="nav-menu-reference" role="link" data-bs-toggle="dropdown" aria-expanded="false">
+ <span class="menu-text">Reference</span>
+    </a>
+    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="nav-menu-reference">    
+        <li>
+    <a class="dropdown-item" href="https://ansperformance.eu/definition/">
+ <span class="dropdown-text"><iconify-icon role="img" inline="" icon="fa6-solid:marker" aria-label="Icon marker from fa6-solid Iconify.design set." title="Icon marker from fa6-solid Iconify.design set."></iconify-icon>&nbsp;Definitions</span></a>
+  </li>  
+        <li>
+    <a class="dropdown-item" href="https://ansperformance.eu/methodology/">
+ <span class="dropdown-text"><iconify-icon role="img" inline="" icon="fa6-solid:wrench" aria-label="Icon wrench from fa6-solid Iconify.design set." title="Icon wrench from fa6-solid Iconify.design set."></iconify-icon>&nbsp;Methodology</span></a>
+  </li>  
+        <li>
+    <a class="dropdown-item" href="https://ansperformance.eu/acronym/">
+ <span class="dropdown-text"><iconify-icon role="img" inline="" icon="fa6-solid:quote-left" aria-label="Icon quote-left from fa6-solid Iconify.design set." title="Icon quote-left from fa6-solid Iconify.design set."></iconify-icon>&nbsp;Acronyms</span></a>
+  </li>  
+        <li>
+    <a class="dropdown-item" href="https://ansperformance.eu/bibliography/">
+ <span class="dropdown-text"><iconify-icon role="img" inline="" icon="fa6-solid:book" aria-label="Icon book from fa6-solid Iconify.design set." title="Icon book from fa6-solid Iconify.design set."></iconify-icon>&nbsp;Bibliography</span></a>
+  </li>  
+    </ul>
+  </li>
+  <li class="nav-item dropdown ">
+    <a class="nav-link dropdown-toggle" href="#" id="nav-menu-links" role="link" data-bs-toggle="dropdown" aria-expanded="false">
+ <span class="menu-text">Links</span>
+    </a>
+    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="nav-menu-links">    
+        <li>
+    <a class="dropdown-item" href="https://www.eurocontrol.int/">
+ <span class="dropdown-text">EUROCONTROL <i class="fas fa-xs fa-external-link-alt"></i></span></a>
+  </li>  
+        <li>
+    <a class="dropdown-item" href="https://www.eurocontrol.int/prudata/dashboard/">
+ <span class="dropdown-text">Single European Sky (SES) portal <i class="fas fa-xs fa-external-link-alt"></i></span></a>
+  </li>  
+        <li>
+    <a class="dropdown-item" href="https://www4.icao.int/ganpportal/">
+ <span class="dropdown-text">ICAO GANP <i class="fas fa-xs fa-external-link-alt"></i></span></a>
+  </li>  
+        <li>
+    <a class="dropdown-item" href="https://ext.eurocontrol.int/connectivity_web/from">
+ <span class="dropdown-text">Connectivity dashboard <i class="fas fa-xs fa-external-link-alt"></i></span></a>
+  </li>  
+        <li>
+    <a class="dropdown-item" href="https://ansperformance.eu/transformation/">
+ <span class="dropdown-text">PRC Transformation Strategy</span></a>
+  </li>  
+        <li>
+    <a class="dropdown-item" href="https://opdi.aero">
+ <span class="dropdown-text">PRC Open Performance Data Initiative</span></a>
+  </li>  
+    </ul>
+  </li>
+  <li class="nav-item dropdown ">
+    <a class="nav-link dropdown-toggle" href="#" id="nav-menu-about" role="link" data-bs-toggle="dropdown" aria-expanded="false">
+ <span class="menu-text">About</span>
+    </a>
+    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="nav-menu-about">    
+        <li>
+    <a class="dropdown-item" href="https://ansperformance.eu/about/prc/">
+ <span class="dropdown-text">About the PRC</span></a>
+  </li>  
+        <li>
+    <a class="dropdown-item" href="https://ansperformance.eu/about/aiu/">
+ <span class="dropdown-text">About the AIU</span></a>
+  </li>  
+        <li>
+    <a class="dropdown-item" href="https://ansperformance.eu/about/us/">
+ <span class="dropdown-text">About the PRU</span></a>
+  </li>  
+        <li>
+    <a class="dropdown-item" href="https://ansperformance.eu/post/">
+ <span class="dropdown-text">Release notes</span></a>
+  </li>  
+        <li>
+    <a class="dropdown-item" href="https://ansperformance.eu/about/disclaimer/">
+ <span class="dropdown-text">Disclaimer</span></a>
+  </li>  
+    </ul>
+  </li>
+</ul>
+          </div> <!-- /navcollapse -->
+            <div class="quarto-navbar-tools">
+</div>
+      </div> <!-- /container-fluid -->
+    </nav>
+  <nav class="quarto-secondary-nav">
+    <div class="container-fluid d-flex">
+      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+        <i class="bi bi-layout-text-sidebar-reverse"></i>
+      </button>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../../content/data/index.html">OPDI Data</a></li><li class="breadcrumb-item"><a href="../../content/algorithms/index.html">Algorithms</a></li><li class="breadcrumb-item"><a href="../../content/algorithms/index.html">Overview</a></li></ol></nav>
+        <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
+        </a>
+    </div>
+  </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
+<!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation floating overflow-auto">
+    <div class="sidebar-menu-container"> 
+    <ul class="list-unstyled mt-1">
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Home</span></a>
+  </div>
+</li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true">
+ <span class="menu-text">OPDI Data</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-1" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../content/data/index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Overview</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../content/data/access.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Access</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../content/data/dictionary.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Data dictionary</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../content/data/releases.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Releases</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../content/data-preview.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Data preview</span></a>
+  </div>
+</li>
+          <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true">
+ <span class="menu-text">Algorithms</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth2 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../content/algorithms/index.html" class="sidebar-item-text sidebar-link active">
+ <span class="menu-text">Overview</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../content/algorithms/processing-steps.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Processing steps</span></a>
+  </div>
+</li>
+          <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="false">
+ <span class="menu-text">Flight list</span></a>
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="false" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-3" class="collapse list-unstyled sidebar-section depth3 ">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../content/algorithms/tracks.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Tracks and flight identity</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../content/algorithms/cleaning.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Cleaning of position reports</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../content/algorithms/airports.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Departure and destination airports</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../content/algorithms/aircraft.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Aircraft details</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../content/algorithms/first-last-seen.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">First seen and last seen</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../content/algorithms/flight-list-milestones.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Milestone columns</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../content/algorithms/movements.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Counting movements</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+          <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" role="navigation" aria-expanded="false">
+ <span class="menu-text">Runway and stands</span></a>
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" role="navigation" aria-expanded="false" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-4" class="collapse list-unstyled sidebar-section depth3 ">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../content/algorithms/take-off-landing.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Take-off and landing times</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../content/algorithms/line-up-take-off-roll.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Line-up and take-off roll</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../content/algorithms/xing-runway-threshold.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Runway threshold crossing</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../content/algorithms/runway-vacated.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Runway vacated</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../content/algorithms/go-around.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Go-around</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../content/algorithms/runway-crossings.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Runway crossings</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../content/algorithms/block-times.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Off-block and in-block times</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../content/algorithms/surface-events.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Airport surface events</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+          <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" role="navigation" aria-expanded="false">
+ <span class="menu-text">Vertical profile</span></a>
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" role="navigation" aria-expanded="false" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-5" class="collapse list-unstyled sidebar-section depth3 ">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../content/algorithms/tops.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Top of climb and top of descent</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../content/algorithms/level-segments.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Level segments</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../content/algorithms/level-offs.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Level-offs</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../content/algorithms/flight-level-crossings.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Flight-level crossings</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+          <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-6" role="navigation" aria-expanded="false">
+ <span class="menu-text">Airspace and terminal area</span></a>
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-6" role="navigation" aria-expanded="false" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-6" class="collapse list-unstyled sidebar-section depth3 ">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../content/algorithms/distance-rings.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Distance circle crossings</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../content/algorithms/fir-crossings.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">FIR crossings</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../content/algorithms/holding.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Holding patterns</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../content/algorithms/point-merge.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Point merge</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+          <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-7" role="navigation" aria-expanded="false">
+ <span class="menu-text">Measurements</span></a>
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-7" role="navigation" aria-expanded="false" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-7" class="collapse list-unstyled sidebar-section depth3 ">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../content/algorithms/distance-flown.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Distance flown</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../content/algorithms/time-passed.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Time passed</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+      </ul>
+  </li>
+          <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-8" role="navigation" aria-expanded="false">
+ <span class="menu-text">Data quality</span></a>
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-8" role="navigation" aria-expanded="false" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-8" class="collapse list-unstyled sidebar-section depth2 ">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../content/accuracy/index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Overview</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../content/limitations.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Limitations</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../content/accuracy/airports.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Airports</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+      </ul>
+  </li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../content/data-challenges.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">PRC Data Challenges</span></a>
+  </div>
+</li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-9" role="navigation" aria-expanded="false">
+ <span class="menu-text">OPDI Sensors</span></a>
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-9" role="navigation" aria-expanded="false" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-9" class="collapse list-unstyled sidebar-section depth1 ">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../content/sensors.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Deployment</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../content/sensors-impact.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Impact</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../content/sensors-expansion.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Where Next</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../content/sensors-contribute.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Extend the Network</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../content/sensors-data.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Access Sensor Data</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../content/resources.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Resources</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../content/roadmap.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Roadmap</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../content/about.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">About</span></a>
+  </div>
+</li>
+    </ul>
+    </div>
+</nav>
+<div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#the-data-model" id="toc-the-data-model" class="nav-link active" data-scroll-target="#the-data-model">The data model</a></li>
+  <li><a href="#milestones-of-a-flight" id="toc-milestones-of-a-flight" class="nav-link" data-scroll-target="#milestones-of-a-flight">Milestones of a flight</a></li>
+  <li><a href="#flight-list" id="toc-flight-list" class="nav-link" data-scroll-target="#flight-list">Flight list</a></li>
+  <li><a href="#flight-events" id="toc-flight-events" class="nav-link" data-scroll-target="#flight-events">Flight events</a>
+  <ul class="collapse">
+  <li><a href="#runway" id="toc-runway" class="nav-link" data-scroll-target="#runway">Runway</a></li>
+  <li><a href="#stands-and-airport-surface" id="toc-stands-and-airport-surface" class="nav-link" data-scroll-target="#stands-and-airport-surface">Stands and airport surface</a></li>
+  <li><a href="#vertical-profile" id="toc-vertical-profile" class="nav-link" data-scroll-target="#vertical-profile">Vertical profile</a></li>
+  <li><a href="#airspace-and-terminal-area" id="toc-airspace-and-terminal-area" class="nav-link" data-scroll-target="#airspace-and-terminal-area">Airspace and terminal area</a></li>
+  <li><a href="#track-limits" id="toc-track-limits" class="nav-link" data-scroll-target="#track-limits">Track limits</a></li>
+  </ul></li>
+  <li><a href="#measurements" id="toc-measurements" class="nav-link" data-scroll-target="#measurements">Measurements</a></li>
+  <li><a href="#labels-at-a-glance" id="toc-labels-at-a-glance" class="nav-link" data-scroll-target="#labels-at-a-glance">Availability and accuracy at a glance</a></li>
+  <li><a href="#start-from-a-question" id="toc-start-from-a-question" class="nav-link" data-scroll-target="#start-from-a-question">Start from a question</a></li>
+  <li><a href="#acronyms_HEADER_LOA" id="toc-acronyms_HEADER_LOA" class="nav-link" data-scroll-target="#acronyms_HEADER_LOA">List of Acronyms</a></li>
+  </ul>
+</nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../../content/data/index.html">OPDI Data</a></li><li class="breadcrumb-item"><a href="../../content/algorithms/index.html">Algorithms</a></li><li class="breadcrumb-item"><a href="../../content/algorithms/index.html">Overview</a></li></ol></nav>
+<div class="quarto-title">
+<h1 class="title">Algorithms</h1>
+</div>
+
+<div>
+  <div class="description">
+    How each published OPDI item is computed: every event type, every measurement and every column group of the flight list, each with its own page.
+  </div>
+</div>
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<p>The Open Performance Data Initiative (OPDI) publishes, for each day, a <strong>flight list</strong> (one row per flight) and a <strong>flight events</strong> file (one row per event, a moment of a flight such as the take-off, with measurements such as the distance flown so far). Both are computed from the position reports of aircraft received by the <a href="https://opensky-network.org/">OpenSky Network</a>.</p>
+<p>This section explains how each item is computed. There is one page per item, or per pair of items that are two ends of one thing (a start and an end). Every page has the same eight sections:</p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>Section</th>
+<th>What it says</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>In one sentence</td>
+<td>What the item is.</td>
+</tr>
+<tr class="even">
+<td>What it needs</td>
+<td>The reports and other items it is computed from.</td>
+</tr>
+<tr class="odd">
+<td>How it is computed</td>
+<td>The method, step by step, with every threshold and its unit.</td>
+</tr>
+<tr class="even">
+<td>Based on</td>
+<td>The tool or method it comes from, or “Developed for OPDI”.</td>
+</tr>
+<tr class="odd">
+<td>What is published</td>
+<td>The event types or columns, and the fields of <code>info</code>.</td>
+</tr>
+<tr class="even">
+<td>Use cases</td>
+<td>A few things the item can be used for.</td>
+</tr>
+<tr class="odd">
+<td>Limitations</td>
+<td>Its main limits, with a link to <a href="../../content/limitations.html">Limitations</a>.</td>
+</tr>
+<tr class="even">
+<td>Availability and accuracy</td>
+<td>How often it exists, and how close it is to the records, with a link to <a href="../../content/accuracy/index.html">Data quality</a>.</td>
+</tr>
+</tbody>
+</table>
+<p><a href="../../content/algorithms/processing-steps.html">Processing steps</a> shows the whole chain from the OpenSky archive to the published files. Units follow aviation use: altitudes in feet (ft), distances in nautical miles (NM, 1 NM = 1,852 m), speeds in knots (kt), vertical rates in feet per minute, times in UTC. Every column and <code>info</code> field is listed in the <a href="../../content/data/dictionary.html">Data dictionary</a>.</p>
+<p><strong>Availability and accuracy are kept apart.</strong> Availability says how often an item exists; accuracy says how close it is to an independent record when it exists. The column “Compared with” below says which records each item is compared with, where any exist, and the <a href="#labels-at-a-glance">labels at a glance</a> give, for every item, how often it exists and how close it is to the records.</p>
+<section id="the-data-model" class="level2">
+<h2 class="anchored" data-anchor-id="the-data-model">The data model</h2>
+<p>OPDI describes a flight with three kinds of information.</p>
+<p><strong>Flight.</strong> One row of the flight list per track. It gives the flight’s identifier (<code>flight_id</code>), the aircraft address and call sign, the date of flight, the departure and destination airports, data about the aircraft from the OpenSky aircraft database, and the main milestones of the flight, such as the take-off and landing times and runways. A milestone column is empty when the event behind it was not detected.</p>
+<p><strong>Event.</strong> A moment in a flight, such as the take-off, the top of climb or the crossing of a flight level. Every event has:</p>
+<ul>
+<li>the flight it belongs to (<code>flight_id</code>);</li>
+<li>a position: longitude and latitude in degrees, and an altitude in feet. The coordinates use WGS 84, the reference system of GPS. The position is empty for the block times;</li>
+<li>a time (<code>event_time</code>, in UTC);</li>
+<li>a <strong>type</strong>, for example <code>top-of-climb</code> or <code>xing-fir</code>;</li>
+<li>a <strong>source</strong>, the origin of the position data (<code>OSN</code> for the OpenSky Network);</li>
+<li>a <strong>version</strong>, which names the method that produced that event type. A method that changes gets a new version, so released data stay reproducible;</li>
+<li><strong>info</strong>: extra details as JSON text, for example the runway of a take-off or the two regions of a crossing from one flight information region (FIR) to the next. A FIR is an area of airspace in which one service provider gives information to flights.</li>
+</ul>
+<p>Some things are not instants but periods, for example a level flight segment or a holding pattern. They are published as a <strong>pair of events</strong>, one at the start and one at the end (<code>level-start</code> and <code>level-end</code>, <code>holding-start</code> and <code>holding-end</code>).</p>
+<p><strong>Measurement.</strong> A number attached to an event, published as a column of the event’s row. Two are given for nearly every event: the distance flown since the start of the track (<code>distance_flown_nm</code>, in nautical miles) and the time passed since the track’s <code>first_seen</code> (<code>time_passed_s</code>, in seconds). Some event families add their own, for example the time spent in a holding pattern. Because the measurements are cumulative, subtracting the values of two events of one flight gives the distance and time between them.</p>
+<p>Units follow aviation use: altitudes in feet (ft), distances in nautical miles (NM, 1 NM = 1,852 m), speeds in knots (kt, nautical miles per hour), vertical rates in feet per minute and times in UTC.</p>
+</section>
+<section id="milestones-of-a-flight" class="level2">
+<h2 class="anchored" data-anchor-id="milestones-of-a-flight">Milestones of a flight</h2>
+<p>Airports, airlines and air traffic control describe a flight, from one stand to the next, by a sequence of moments. <a href="#fig-flight-phases" class="quarto-xref">Figure&nbsp;1</a> shows them, numbered T00 to T25, with the phases of flight between them. The Performance Review Unit (PRU) made this numbering for this diagram only. It has no official status, and it is not the numbering of airport collaborative decision making (A-CDM): the <a href="../../content/resources.html#ref-acdm-manual">A-CDM Implementation Manual</a> numbers its own 16 milestones 1 to 16, of which OPDI publishes four: landing (6), in-block (7), off-block (15) and take-off (16). Several moments of the figure are published by OPDI as event types:</p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>Number</th>
+<th>A-CDM milestone</th>
+<th>Moment</th>
+<th>OPDI event type</th>
+<th>Page</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>T04</td>
+<td>15</td>
+<td>Off-block: the aircraft leaves its stand</td>
+<td><code>AOBT</code></td>
+<td><a href="../../content/algorithms/block-times.html">Off-block and in-block times</a></td>
+</tr>
+<tr class="even">
+<td>T06</td>
+<td>none</td>
+<td>The aircraft enters the runway to take off</td>
+<td><code>line-up</code></td>
+<td><a href="../../content/algorithms/line-up-take-off-roll.html">Line-up and take-off roll</a></td>
+</tr>
+<tr class="odd">
+<td>T07</td>
+<td>none</td>
+<td>Start of the take-off roll</td>
+<td><code>take-off-roll</code></td>
+<td><a href="../../content/algorithms/line-up-take-off-roll.html">Line-up and take-off roll</a></td>
+</tr>
+<tr class="even">
+<td>T08</td>
+<td>16</td>
+<td>Take-off: the wheels leave the runway</td>
+<td><code>ATOT</code></td>
+<td><a href="../../content/algorithms/take-off-landing.html">Take-off and landing times</a></td>
+</tr>
+<tr class="odd">
+<td>T12</td>
+<td>none</td>
+<td>Top of climb</td>
+<td><code>top-of-climb</code></td>
+<td><a href="../../content/algorithms/tops.html">Top of climb and top of descent</a></td>
+</tr>
+<tr class="even">
+<td>T13</td>
+<td>none</td>
+<td>Top of descent</td>
+<td><code>top-of-descent</code></td>
+<td><a href="../../content/algorithms/tops.html">Top of climb and top of descent</a></td>
+</tr>
+<tr class="odd">
+<td>T16</td>
+<td>none</td>
+<td>The aircraft passes over the runway threshold</td>
+<td><code>xing-runway-threshold</code></td>
+<td><a href="../../content/algorithms/xing-runway-threshold.html">Runway threshold crossing</a></td>
+</tr>
+<tr class="even">
+<td>T17</td>
+<td>6</td>
+<td>Touchdown</td>
+<td><code>ALDT</code></td>
+<td><a href="../../content/algorithms/take-off-landing.html">Take-off and landing times</a></td>
+</tr>
+<tr class="odd">
+<td>T19</td>
+<td>none</td>
+<td>The aircraft leaves the runway</td>
+<td><code>runway-vacated</code></td>
+<td><a href="../../content/algorithms/runway-vacated.html">Runway vacated</a></td>
+</tr>
+<tr class="even">
+<td>T21</td>
+<td>7</td>
+<td>In-block: the aircraft stops at its stand</td>
+<td><code>AIBT</code></td>
+<td><a href="../../content/algorithms/block-times.html">Off-block and in-block times</a></td>
+</tr>
+</tbody>
+</table>
+<div id="fig-flight-phases" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-flight-phases-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="../../assets/img/aircraft_state_diagram.png" class="img-fluid figure-img" style="width:100.0%">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-flight-phases-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;1: Phases of a flight (boxes) and the moments between them (T labels, a numbering made by the PRU for this diagram only). Simplified.
+</figcaption>
+</figure>
+</div>
+<p>The time between two milestones measures one part of the flight. For example, the time from <code>AOBT</code> to <code>ATOT</code> is the taxi-out time, from <code>ALDT</code> to <code>AIBT</code> the taxi-in time, and from <code>ATOT</code> to <code>ALDT</code> the time in the air. OPDI also publishes moments that have no label in the diagram, such as the crossing of a flight level, of a distance ring or of a flight information region, the start and end of a holding pattern, a go-around and a runway crossing. All event types are listed in the <a href="../../content/data/dictionary.html#event-types">Data dictionary</a>.</p>
+</section>
+<section id="flight-list" class="level2">
+<h2 class="anchored" data-anchor-id="flight-list">Flight list</h2>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>Item</th>
+<th>Columns</th>
+<th>In one line</th>
+<th>Compared with</th>
+<th>Limits</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><a href="../../content/algorithms/tracks.html">Tracks and flight identity</a></td>
+<td><code>flight_id</code>, <code>icao24</code>, <code>flt_id</code>, <code>dof</code></td>
+<td>Which position reports make one flight, and its identifier.</td>
+<td>Network Manager flight records</td>
+<td><a href="../../content/limitations.html#lim-tracks">Tracks</a></td>
+</tr>
+<tr class="even">
+<td><a href="../../content/algorithms/cleaning.html">Cleaning of position reports</a></td>
+<td>none (applies to every item)</td>
+<td>Repeated, impossible and isolated values are emptied before anything is computed.</td>
+<td>Not an item of its own</td>
+<td><a href="../../content/limitations.html#lim-tracks">Tracks</a></td>
+</tr>
+<tr class="odd">
+<td><a href="../../content/algorithms/airports.html">Departure and destination airports</a></td>
+<td><code>adep</code>, <code>ades</code>, <code>adep_p</code>, <code>ades_p</code>, <code>adep_source</code>, <code>ades_source</code></td>
+<td>The airports the flight left from and flew to, from the trajectory alone.</td>
+<td>Network Manager flight records</td>
+<td><a href="../../content/limitations.html#lim-airports">Airports</a></td>
+</tr>
+<tr class="even">
+<td><a href="../../content/algorithms/aircraft.html">Aircraft details</a></td>
+<td><code>registration</code>, <code>model</code>, <code>typecode</code>, <code>icao_aircraft_class</code>, <code>icao_operator</code></td>
+<td>Looked up by aircraft address in the OpenSky aircraft database.</td>
+<td>Network Manager flight records (type)</td>
+<td><a href="../../content/limitations.html#lim-aircraft">Aircraft</a></td>
+</tr>
+<tr class="odd">
+<td><a href="../../content/algorithms/first-last-seen.html">First seen and last seen</a></td>
+<td><code>first_seen</code>, <code>last_seen</code>, <code>track_duration_min</code></td>
+<td>First and last time the aircraft was heard.</td>
+<td>Not validated</td>
+<td><a href="../../content/limitations.html#lim-first-last-seen">First and last seen</a></td>
+</tr>
+<tr class="even">
+<td><a href="../../content/algorithms/flight-list-milestones.html">Milestone columns</a></td>
+<td><code>atot</code>, <code>aldt</code>, <code>aobt</code>, <code>aibt</code>, <code>rwy_dep</code>, <code>rwy_dep_bearing_deg</code>, <code>rwy_arr</code>, <code>rwy_arr_bearing_deg</code>, <code>stnd_dep</code>, <code>stnd_arr</code>, <code>c40_arr</code>, <code>c50_arr</code>, <code>c60_arr</code>, <code>c100_arr</code>, <code>c110_arr</code>, <code>c120_arr</code>, <code>c40_dep</code>, <code>c50_dep</code>, <code>c60_dep</code>, <code>c100_dep</code>, <code>c110_dep</code>, <code>c120_dep</code></td>
+<td>The main events of the flight on its row.</td>
+<td>Airport operator records</td>
+<td><a href="../../content/limitations.html#lim-flight-list-milestones">Milestone columns</a></td>
+</tr>
+<tr class="odd">
+<td><a href="../../content/algorithms/movements.html">Counting movements</a></td>
+<td><code>superseded_dep</code>, <code>superseded_arr</code>, <code>movement_dep</code>, <code>movement_arr</code></td>
+<td>Which rows count as a departure or an arrival.</td>
+<td>Not validated</td>
+<td><a href="../../content/limitations.html#lim-flight-list-milestones">Milestone columns</a></td>
+</tr>
+<tr class="even">
+<td>Versions</td>
+<td><code>version</code>, <code>release</code></td>
+<td>The version of the method and the name of the release; no algorithm. See the <a href="../../content/data/dictionary.html#versions">Data dictionary</a>.</td>
+<td></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="flight-events" class="level2">
+<h2 class="anchored" data-anchor-id="flight-events">Flight events</h2>
+<section id="runway" class="level3">
+<h3 class="anchored" data-anchor-id="runway">Runway</h3>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>Event type</th>
+<th>In one line</th>
+<th>Algorithm</th>
+<th>Compared with</th>
+<th>Limits</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>ATOT</code></td>
+<td>Actual take-off time: the wheels leave the runway.</td>
+<td><a href="../../content/algorithms/take-off-landing.html">Take-off and landing times</a></td>
+<td>Airport operator records</td>
+<td><a href="../../content/limitations.html#lim-take-off-landing">Take-off and landing</a></td>
+</tr>
+<tr class="even">
+<td><code>ALDT</code></td>
+<td>Actual landing time: the wheels touch the runway.</td>
+<td><a href="../../content/algorithms/take-off-landing.html">Take-off and landing times</a></td>
+<td>Airport operator records</td>
+<td><a href="../../content/limitations.html#lim-take-off-landing">Take-off and landing</a></td>
+</tr>
+<tr class="odd">
+<td><code>line-up</code></td>
+<td>A departing aircraft enters the runway.</td>
+<td><a href="../../content/algorithms/line-up-take-off-roll.html">Line-up and take-off roll</a></td>
+<td>Not validated (time to the recorded take-off)</td>
+<td><a href="../../content/limitations.html#lim-runway">Runway events</a></td>
+</tr>
+<tr class="even">
+<td><code>take-off-roll</code></td>
+<td>The aircraft starts its take-off run.</td>
+<td><a href="../../content/algorithms/line-up-take-off-roll.html">Line-up and take-off roll</a></td>
+<td>Not validated (time to the recorded take-off)</td>
+<td><a href="../../content/limitations.html#lim-runway">Runway events</a></td>
+</tr>
+<tr class="odd">
+<td><code>xing-runway-threshold</code></td>
+<td>A landing aircraft passes over the runway threshold.</td>
+<td><a href="../../content/algorithms/xing-runway-threshold.html">Runway threshold crossing</a></td>
+<td>Recorded landing time</td>
+<td><a href="../../content/limitations.html#lim-runway">Runway events</a></td>
+</tr>
+<tr class="even">
+<td><code>runway-vacated</code></td>
+<td>An arriving aircraft leaves the runway.</td>
+<td><a href="../../content/algorithms/runway-vacated.html">Runway vacated</a></td>
+<td>Not validated (time from the recorded landing)</td>
+<td><a href="../../content/limitations.html#lim-runway">Runway events</a></td>
+</tr>
+<tr class="odd">
+<td><code>go-around</code></td>
+<td>An approach given up and flown again.</td>
+<td><a href="../../content/algorithms/go-around.html">Go-around</a></td>
+<td>Not validated</td>
+<td><a href="../../content/limitations.html#lim-runway">Runway events</a></td>
+</tr>
+<tr class="even">
+<td><code>runway-crossing-entry</code></td>
+<td>A taxiing aircraft enters a runway to cross it.</td>
+<td><a href="../../content/algorithms/runway-crossings.html">Runway crossings</a></td>
+<td>Not validated</td>
+<td><a href="../../content/limitations.html#lim-runway">Runway events</a></td>
+</tr>
+<tr class="odd">
+<td><code>runway-crossing-vacated</code></td>
+<td>The same aircraft leaves the runway on the other side.</td>
+<td><a href="../../content/algorithms/runway-crossings.html">Runway crossings</a></td>
+<td>Not validated</td>
+<td><a href="../../content/limitations.html#lim-runway">Runway events</a></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="stands-and-airport-surface" class="level3">
+<h3 class="anchored" data-anchor-id="stands-and-airport-surface">Stands and airport surface</h3>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>Event type</th>
+<th>In one line</th>
+<th>Algorithm</th>
+<th>Compared with</th>
+<th>Limits</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>AOBT</code></td>
+<td>Actual off-block time: the aircraft leaves its stand.</td>
+<td><a href="../../content/algorithms/block-times.html">Off-block and in-block times</a></td>
+<td>Airport operator records</td>
+<td><a href="../../content/limitations.html#lim-block-times">Block times</a></td>
+</tr>
+<tr class="even">
+<td><code>AIBT</code></td>
+<td>Actual in-block time: the aircraft stops at its stand.</td>
+<td><a href="../../content/algorithms/block-times.html">Off-block and in-block times</a></td>
+<td>Airport operator records</td>
+<td><a href="../../content/limitations.html#lim-block-times">Block times</a></td>
+</tr>
+<tr class="odd">
+<td><code>entry-{element}</code></td>
+<td>The aircraft enters a taxiway, apron, stand (<code>parking_position</code>), threshold area, hangar or de-icing pad (<code>deicing_pad</code>).</td>
+<td><a href="../../content/algorithms/surface-events.html">Airport surface events</a></td>
+<td>Stands: recorded block times</td>
+<td><a href="../../content/limitations.html#lim-surface">Airport surface</a></td>
+</tr>
+<tr class="even">
+<td><code>exit-{element}</code></td>
+<td>The aircraft leaves that area.</td>
+<td><a href="../../content/algorithms/surface-events.html">Airport surface events</a></td>
+<td>Stands: recorded block times</td>
+<td><a href="../../content/limitations.html#lim-surface">Airport surface</a></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="vertical-profile" class="level3">
+<h3 class="anchored" data-anchor-id="vertical-profile">Vertical profile</h3>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>Event type</th>
+<th>In one line</th>
+<th>Algorithm</th>
+<th>Compared with</th>
+<th>Limits</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>top-of-climb</code></td>
+<td>End of the climb to cruise.</td>
+<td><a href="../../content/algorithms/tops.html">Top of climb and top of descent</a></td>
+<td>Not validated</td>
+<td><a href="../../content/limitations.html#lim-vertical">Vertical profile</a></td>
+</tr>
+<tr class="even">
+<td><code>top-of-descent</code></td>
+<td>Start of the final descent.</td>
+<td><a href="../../content/algorithms/tops.html">Top of climb and top of descent</a></td>
+<td>Not validated</td>
+<td><a href="../../content/limitations.html#lim-vertical">Vertical profile</a></td>
+</tr>
+<tr class="odd">
+<td><code>level-start</code></td>
+<td>Start of a period of level flight, cruise included.</td>
+<td><a href="../../content/algorithms/level-segments.html">Level segments</a></td>
+<td>Not validated</td>
+<td><a href="../../content/limitations.html#lim-vertical">Vertical profile</a></td>
+</tr>
+<tr class="even">
+<td><code>level-end</code></td>
+<td>End of that period.</td>
+<td><a href="../../content/algorithms/level-segments.html">Level segments</a></td>
+<td>Not validated</td>
+<td><a href="../../content/limitations.html#lim-vertical">Vertical profile</a></td>
+</tr>
+<tr class="odd">
+<td><code>level-off-climb-start</code></td>
+<td>Start of a level-off during the climb.</td>
+<td><a href="../../content/algorithms/level-offs.html">Level-offs</a></td>
+<td>Not validated</td>
+<td><a href="../../content/limitations.html#lim-vertical">Vertical profile</a></td>
+</tr>
+<tr class="even">
+<td><code>level-off-climb-end</code></td>
+<td>End of that level-off.</td>
+<td><a href="../../content/algorithms/level-offs.html">Level-offs</a></td>
+<td>Not validated</td>
+<td><a href="../../content/limitations.html#lim-vertical">Vertical profile</a></td>
+</tr>
+<tr class="odd">
+<td><code>level-off-descent-start</code></td>
+<td>Start of a level-off during the descent.</td>
+<td><a href="../../content/algorithms/level-offs.html">Level-offs</a></td>
+<td>Not validated</td>
+<td><a href="../../content/limitations.html#lim-vertical">Vertical profile</a></td>
+</tr>
+<tr class="even">
+<td><code>level-off-descent-end</code></td>
+<td>End of that level-off.</td>
+<td><a href="../../content/algorithms/level-offs.html">Level-offs</a></td>
+<td>Not validated</td>
+<td><a href="../../content/limitations.html#lim-vertical">Vertical profile</a></td>
+</tr>
+<tr class="odd">
+<td><code>xing-fl{level}</code></td>
+<td>A crossing of flight level 50, 70, 100 or 245 (<code>xing-fl50</code> to <code>xing-fl245</code>).</td>
+<td><a href="../../content/algorithms/flight-level-crossings.html">Flight-level crossings</a></td>
+<td>Not validated</td>
+<td><a href="../../content/limitations.html#lim-vertical">Vertical profile</a></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="airspace-and-terminal-area" class="level3">
+<h3 class="anchored" data-anchor-id="airspace-and-terminal-area">Airspace and terminal area</h3>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>Event type</th>
+<th>In one line</th>
+<th>Algorithm</th>
+<th>Compared with</th>
+<th>Limits</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>xing-{radius}nm</code></td>
+<td>A crossing of a circle of 40, 50, 60, 100, 110 or 120 NM around the departure or destination airport.</td>
+<td><a href="../../content/algorithms/distance-rings.html">Distance circle crossings</a></td>
+<td>Airport operator records (40 and 100 NM)</td>
+<td><a href="../../content/limitations.html#lim-rings">Distance circles</a></td>
+</tr>
+<tr class="even">
+<td><code>xing-fir</code></td>
+<td>A passage from one flight information region to another.</td>
+<td><a href="../../content/algorithms/fir-crossings.html">FIR crossings</a></td>
+<td>Exact region boundaries</td>
+<td><a href="../../content/limitations.html#lim-fir">FIR crossings</a></td>
+</tr>
+<tr class="odd">
+<td><code>holding-start</code></td>
+<td>First report of a holding pattern.</td>
+<td><a href="../../content/algorithms/holding.html">Holding patterns</a></td>
+<td>Hand-corrected labels</td>
+<td><a href="../../content/limitations.html#lim-holding">Holding</a></td>
+</tr>
+<tr class="even">
+<td><code>holding-end</code></td>
+<td>Last report of the holding pattern.</td>
+<td><a href="../../content/algorithms/holding.html">Holding patterns</a></td>
+<td>Hand-corrected labels</td>
+<td><a href="../../content/limitations.html#lim-holding">Holding</a></td>
+</tr>
+<tr class="odd">
+<td><code>pms-leg-entry</code></td>
+<td>Start of a point merge sequencing leg.</td>
+<td><a href="../../content/algorithms/point-merge.html">Point merge</a></td>
+<td>Not validated</td>
+<td><a href="../../content/limitations.html#lim-point-merge">Point merge</a></td>
+</tr>
+<tr class="even">
+<td><code>pms-leg-exit</code></td>
+<td>End of the leg, towards the merge point.</td>
+<td><a href="../../content/algorithms/point-merge.html">Point merge</a></td>
+<td>Not validated</td>
+<td><a href="../../content/limitations.html#lim-point-merge">Point merge</a></td>
+</tr>
+<tr class="odd">
+<td><code>pms-merge-point</code></td>
+<td>Closest passage of a merge point.</td>
+<td><a href="../../content/algorithms/point-merge.html">Point merge</a></td>
+<td>Not validated</td>
+<td><a href="../../content/limitations.html#lim-point-merge">Point merge</a></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="track-limits" class="level3">
+<h3 class="anchored" data-anchor-id="track-limits">Track limits</h3>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>Event type</th>
+<th>In one line</th>
+<th>Algorithm</th>
+<th>Compared with</th>
+<th>Limits</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>first_seen</code></td>
+<td>First time the aircraft of the track was heard.</td>
+<td><a href="../../content/algorithms/first-last-seen.html">First seen and last seen</a></td>
+<td>Not validated</td>
+<td><a href="../../content/limitations.html#lim-first-last-seen">First and last seen</a></td>
+</tr>
+<tr class="even">
+<td><code>last_seen</code></td>
+<td>Last time it was heard.</td>
+<td><a href="../../content/algorithms/first-last-seen.html">First seen and last seen</a></td>
+<td>Not validated</td>
+<td><a href="../../content/limitations.html#lim-first-last-seen">First and last seen</a></td>
+</tr>
+</tbody>
+</table>
+<p>The plausibility checks remove, before publication, the events that the track clearly contradicts.</p>
+</section>
+</section>
+<section id="measurements" class="level2">
+<h2 class="anchored" data-anchor-id="measurements">Measurements</h2>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>Measurement</th>
+<th>In one line</th>
+<th>Algorithm</th>
+<th>Compared with</th>
+<th>Limits</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>distance_flown_nm</code></td>
+<td>Distance flown from the start of the track to the event.</td>
+<td><a href="../../content/algorithms/distance-flown.html">Distance flown</a></td>
+<td>Network Manager route length</td>
+<td><a href="../../content/limitations.html#lim-measurements">Measurements</a></td>
+</tr>
+<tr class="even">
+<td><code>time_passed_s</code></td>
+<td>Time from <code>first_seen</code> to the event.</td>
+<td><a href="../../content/algorithms/time-passed.html">Time passed</a></td>
+<td>Exact by definition</td>
+<td><a href="../../content/limitations.html#lim-measurements">Measurements</a></td>
+</tr>
+<tr class="odd">
+<td><code>holding_duration_s</code></td>
+<td>Time in a holding pattern (on <code>holding-end</code>).</td>
+<td><a href="../../content/algorithms/holding.html">Holding patterns</a></td>
+<td>Not validated</td>
+<td><a href="../../content/limitations.html#lim-holding">Holding</a></td>
+</tr>
+<tr class="even">
+<td><code>holding_distance_nm</code></td>
+<td>Distance flown in it.</td>
+<td><a href="../../content/algorithms/holding.html">Holding patterns</a></td>
+<td>Not validated</td>
+<td><a href="../../content/limitations.html#lim-holding">Holding</a></td>
+</tr>
+<tr class="odd">
+<td><code>holding_circuits</code></td>
+<td>Number of loops flown.</td>
+<td><a href="../../content/algorithms/holding.html">Holding patterns</a></td>
+<td>Not validated</td>
+<td><a href="../../content/limitations.html#lim-holding">Holding</a></td>
+</tr>
+<tr class="even">
+<td><code>pms_leg_time_s</code></td>
+<td>Time on a point merge leg (on <code>pms-leg-exit</code>).</td>
+<td><a href="../../content/algorithms/point-merge.html">Point merge</a></td>
+<td>Not validated</td>
+<td><a href="../../content/limitations.html#lim-point-merge">Point merge</a></td>
+</tr>
+<tr class="odd">
+<td><code>pms_leg_distance_nm</code></td>
+<td>Distance flown along the leg.</td>
+<td><a href="../../content/algorithms/point-merge.html">Point merge</a></td>
+<td>Not validated</td>
+<td><a href="../../content/limitations.html#lim-point-merge">Point merge</a></td>
+</tr>
+<tr class="even">
+<td><code>pms_direct_to_distance_nm</code></td>
+<td>Distance to the merge point when the aircraft left the leg.</td>
+<td><a href="../../content/algorithms/point-merge.html">Point merge</a></td>
+<td>Not validated</td>
+<td><a href="../../content/limitations.html#lim-point-merge">Point merge</a></td>
+</tr>
+</tbody>
+</table>
+<p>The availability and accuracy of each item, overall and per airport, with their labels, are on <a href="../../content/accuracy/index.html">Data quality</a>.</p>
+</section>
+<section id="labels-at-a-glance" class="level2">
+<h2 class="anchored" data-anchor-id="labels-at-a-glance">Availability and accuracy at a glance</h2>
+<p>The labels of every item over the three days measured. Availability: <code>high</code>, <code>partial</code> or <code>low</code>; accuracy: <code>good</code>, <code>fair</code>, <code>limited</code>, <code>too few compared</code> (mostly missing where the records could check it) or <code>no reference</code>. The rules, the numbers behind every label and the figures per airport are on <a href="../../content/accuracy/index.html">Data quality</a>.</p>
+<!-- Written by tools/gen_accuracy_tables.py from assets/accuracy/; do not edit. -->
+<table class="table-striped table-hover caption-top table">
+<caption>Labels of every item, the three days together. The numbers behind them are on Data quality.</caption>
+<thead>
+<tr class="header">
+<th>Item</th>
+<th>Availability among OPDI’s flights</th>
+<th>Reference</th>
+<th>Availability against the reference</th>
+<th>Accuracy</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><a href="../../content/algorithms/first-last-seen.html"><code>first_seen</code> (flight list)</a></td>
+<td>high</td>
+<td>none</td>
+<td></td>
+<td>no reference</td>
+</tr>
+<tr class="even">
+<td><a href="../../content/algorithms/first-last-seen.html"><code>last_seen</code> (flight list)</a></td>
+<td>high</td>
+<td>none</td>
+<td></td>
+<td>no reference</td>
+</tr>
+<tr class="odd">
+<td><a href="../../content/algorithms/first-last-seen.html"><code>first_seen</code></a></td>
+<td>high</td>
+<td>none</td>
+<td></td>
+<td>no reference</td>
+</tr>
+<tr class="even">
+<td><a href="../../content/algorithms/first-last-seen.html"><code>last_seen</code></a></td>
+<td>high</td>
+<td>none</td>
+<td></td>
+<td>no reference</td>
+</tr>
+<tr class="odd">
+<td><a href="../../content/algorithms/airports.html"><code>adep</code> (flight list)</a></td>
+<td>partial</td>
+<td>Network Manager</td>
+<td>high</td>
+<td>good</td>
+</tr>
+<tr class="even">
+<td><a href="../../content/algorithms/airports.html"><code>ades</code> (flight list)</a></td>
+<td>partial</td>
+<td>Network Manager</td>
+<td>partial</td>
+<td>good</td>
+</tr>
+<tr class="odd">
+<td><a href="../../content/algorithms/aircraft.html"><code>typecode</code> (flight list)</a></td>
+<td>high</td>
+<td>Network Manager</td>
+<td>high</td>
+<td>good</td>
+</tr>
+<tr class="even">
+<td><a href="../../content/algorithms/take-off-landing.html"><code>ATOT</code></a></td>
+<td>partial</td>
+<td>airport records</td>
+<td>high</td>
+<td>good</td>
+</tr>
+<tr class="odd">
+<td><a href="../../content/algorithms/take-off-landing.html"><code>ATOT</code></a></td>
+<td>partial</td>
+<td>Network Manager</td>
+<td>low</td>
+<td>good</td>
+</tr>
+<tr class="even">
+<td><a href="../../content/algorithms/take-off-landing.html"><code>ATOT</code> with <code>info.method</code> = <code>acdm</code></a></td>
+<td>low</td>
+<td>airport records</td>
+<td>low</td>
+<td>good</td>
+</tr>
+<tr class="odd">
+<td><a href="../../content/algorithms/take-off-landing.html"><code>ATOT</code> with <code>info.method</code> = <code>legacy</code></a></td>
+<td>low</td>
+<td>airport records</td>
+<td>low</td>
+<td>good</td>
+</tr>
+<tr class="even">
+<td><a href="../../content/algorithms/take-off-landing.html"><code>ATOT</code> runway (<code>info.runway</code>)</a></td>
+<td></td>
+<td>airport records</td>
+<td>high</td>
+<td>good</td>
+</tr>
+<tr class="odd">
+<td><a href="../../content/algorithms/take-off-landing.html"><code>ALDT</code></a></td>
+<td>partial</td>
+<td>airport records</td>
+<td>high</td>
+<td>good</td>
+</tr>
+<tr class="even">
+<td><a href="../../content/algorithms/take-off-landing.html"><code>ALDT</code></a></td>
+<td>partial</td>
+<td>Network Manager</td>
+<td>low</td>
+<td>good</td>
+</tr>
+<tr class="odd">
+<td><a href="../../content/algorithms/take-off-landing.html"><code>ALDT</code> with <code>info.method</code> = <code>acdm</code></a></td>
+<td>low</td>
+<td>airport records</td>
+<td>partial</td>
+<td>good</td>
+</tr>
+<tr class="even">
+<td><a href="../../content/algorithms/take-off-landing.html"><code>ALDT</code> with <code>info.method</code> = <code>legacy</code></a></td>
+<td>low</td>
+<td>airport records</td>
+<td>low</td>
+<td>good</td>
+</tr>
+<tr class="odd">
+<td><a href="../../content/algorithms/take-off-landing.html"><code>ALDT</code> runway (<code>info.runway</code>)</a></td>
+<td></td>
+<td>airport records</td>
+<td>high</td>
+<td>good</td>
+</tr>
+<tr class="even">
+<td><a href="../../content/algorithms/flight-list-milestones.html"><code>atot</code> (flight list)</a></td>
+<td>partial</td>
+<td>airport records</td>
+<td>high</td>
+<td>good</td>
+</tr>
+<tr class="odd">
+<td><a href="../../content/algorithms/flight-list-milestones.html"><code>atot</code> (flight list)</a></td>
+<td>partial</td>
+<td>Network Manager</td>
+<td>low</td>
+<td>good</td>
+</tr>
+<tr class="even">
+<td><a href="../../content/algorithms/flight-list-milestones.html"><code>aldt</code> (flight list)</a></td>
+<td>partial</td>
+<td>airport records</td>
+<td>high</td>
+<td>good</td>
+</tr>
+<tr class="odd">
+<td><a href="../../content/algorithms/flight-list-milestones.html"><code>aldt</code> (flight list)</a></td>
+<td>partial</td>
+<td>Network Manager</td>
+<td>low</td>
+<td>good</td>
+</tr>
+<tr class="even">
+<td><a href="../../content/algorithms/flight-list-milestones.html"><code>rwy_dep</code> (flight list)</a></td>
+<td>partial</td>
+<td>airport records</td>
+<td>high</td>
+<td>good</td>
+</tr>
+<tr class="odd">
+<td><a href="../../content/algorithms/flight-list-milestones.html"><code>rwy_arr</code> (flight list)</a></td>
+<td>partial</td>
+<td>airport records</td>
+<td>high</td>
+<td>good</td>
+</tr>
+<tr class="even">
+<td><a href="../../content/algorithms/line-up-take-off-roll.html"><code>line-up</code></a></td>
+<td>low</td>
+<td>airport records</td>
+<td>low</td>
+<td>fair</td>
+</tr>
+<tr class="odd">
+<td><a href="../../content/algorithms/line-up-take-off-roll.html"><code>take-off-roll</code></a></td>
+<td>low</td>
+<td>airport records</td>
+<td>low</td>
+<td>good</td>
+</tr>
+<tr class="even">
+<td><a href="../../content/algorithms/xing-runway-threshold.html"><code>xing-runway-threshold</code></a></td>
+<td>low</td>
+<td>airport records</td>
+<td>low</td>
+<td>good</td>
+</tr>
+<tr class="odd">
+<td><a href="../../content/algorithms/runway-vacated.html"><code>runway-vacated</code></a></td>
+<td>low</td>
+<td>airport records</td>
+<td>low</td>
+<td>fair</td>
+</tr>
+<tr class="even">
+<td><a href="../../content/algorithms/go-around.html"><code>go-around</code></a></td>
+<td>low</td>
+<td>none</td>
+<td></td>
+<td>no reference</td>
+</tr>
+<tr class="odd">
+<td><a href="../../content/algorithms/runway-crossings.html"><code>runway-crossing-entry</code></a></td>
+<td>low</td>
+<td>none</td>
+<td></td>
+<td>no reference</td>
+</tr>
+<tr class="even">
+<td><a href="../../content/algorithms/runway-crossings.html"><code>runway-crossing-vacated</code></a></td>
+<td>low</td>
+<td>none</td>
+<td></td>
+<td>no reference</td>
+</tr>
+<tr class="odd">
+<td><a href="../../content/algorithms/block-times.html"><code>AOBT</code></a></td>
+<td>low</td>
+<td>airport records</td>
+<td>low</td>
+<td>limited</td>
+</tr>
+<tr class="even">
+<td><a href="../../content/algorithms/block-times.html"><code>AOBT</code> stand (<code>info.stand</code>)</a></td>
+<td></td>
+<td>airport records</td>
+<td>low</td>
+<td>fair</td>
+</tr>
+<tr class="odd">
+<td><a href="../../content/algorithms/block-times.html"><code>AIBT</code></a></td>
+<td>low</td>
+<td>airport records</td>
+<td>low</td>
+<td>fair</td>
+</tr>
+<tr class="even">
+<td><a href="../../content/algorithms/block-times.html"><code>AIBT</code> stand (<code>info.stand</code>)</a></td>
+<td></td>
+<td>airport records</td>
+<td>low</td>
+<td>fair</td>
+</tr>
+<tr class="odd">
+<td><a href="../../content/algorithms/flight-list-milestones.html"><code>aobt</code> (flight list)</a></td>
+<td>low</td>
+<td>airport records</td>
+<td>low</td>
+<td>limited</td>
+</tr>
+<tr class="even">
+<td><a href="../../content/algorithms/flight-list-milestones.html"><code>aibt</code> (flight list)</a></td>
+<td>low</td>
+<td>airport records</td>
+<td>low</td>
+<td>fair</td>
+</tr>
+<tr class="odd">
+<td><a href="../../content/algorithms/flight-list-milestones.html"><code>stnd_dep</code> (flight list)</a></td>
+<td>low</td>
+<td>airport records</td>
+<td>low</td>
+<td>fair</td>
+</tr>
+<tr class="even">
+<td><a href="../../content/algorithms/flight-list-milestones.html"><code>stnd_arr</code> (flight list)</a></td>
+<td>low</td>
+<td>airport records</td>
+<td>low</td>
+<td>fair</td>
+</tr>
+<tr class="odd">
+<td><a href="../../content/algorithms/surface-events.html"><code>entry-parking_position</code></a></td>
+<td>low</td>
+<td>airport records</td>
+<td>low</td>
+<td>fair</td>
+</tr>
+<tr class="even">
+<td><a href="../../content/algorithms/surface-events.html"><code>exit-parking_position</code></a></td>
+<td>low</td>
+<td>airport records</td>
+<td>low</td>
+<td>limited</td>
+</tr>
+<tr class="odd">
+<td><a href="../../content/algorithms/surface-events.html"><code>entry-apron</code></a></td>
+<td>low</td>
+<td>none</td>
+<td></td>
+<td>no reference</td>
+</tr>
+<tr class="even">
+<td><a href="../../content/algorithms/surface-events.html"><code>exit-apron</code></a></td>
+<td>low</td>
+<td>none</td>
+<td></td>
+<td>no reference</td>
+</tr>
+<tr class="odd">
+<td><a href="../../content/algorithms/surface-events.html"><code>entry-taxiway</code></a></td>
+<td>low</td>
+<td>none</td>
+<td></td>
+<td>no reference</td>
+</tr>
+<tr class="even">
+<td><a href="../../content/algorithms/surface-events.html"><code>exit-taxiway</code></a></td>
+<td>low</td>
+<td>none</td>
+<td></td>
+<td>no reference</td>
+</tr>
+<tr class="odd">
+<td><a href="../../content/algorithms/surface-events.html"><code>entry-threshold</code></a></td>
+<td>low</td>
+<td>none</td>
+<td></td>
+<td>no reference</td>
+</tr>
+<tr class="even">
+<td><a href="../../content/algorithms/surface-events.html"><code>exit-threshold</code></a></td>
+<td>low</td>
+<td>none</td>
+<td></td>
+<td>no reference</td>
+</tr>
+<tr class="odd">
+<td><a href="../../content/algorithms/surface-events.html"><code>entry-deicing_pad</code></a></td>
+<td>low</td>
+<td>none</td>
+<td></td>
+<td>no reference</td>
+</tr>
+<tr class="even">
+<td><a href="../../content/algorithms/surface-events.html"><code>exit-deicing_pad</code></a></td>
+<td>low</td>
+<td>none</td>
+<td></td>
+<td>no reference</td>
+</tr>
+<tr class="odd">
+<td><a href="../../content/algorithms/surface-events.html"><code>entry-hangar</code></a></td>
+<td>low</td>
+<td>none</td>
+<td></td>
+<td>no reference</td>
+</tr>
+<tr class="even">
+<td><a href="../../content/algorithms/surface-events.html"><code>exit-hangar</code></a></td>
+<td>low</td>
+<td>none</td>
+<td></td>
+<td>no reference</td>
+</tr>
+<tr class="odd">
+<td><a href="../../content/algorithms/tops.html"><code>top-of-climb</code></a></td>
+<td>high</td>
+<td>none</td>
+<td></td>
+<td>no reference</td>
+</tr>
+<tr class="even">
+<td><a href="../../content/algorithms/tops.html"><code>top-of-descent</code></a></td>
+<td>high</td>
+<td>none</td>
+<td></td>
+<td>no reference</td>
+</tr>
+<tr class="odd">
+<td><a href="../../content/algorithms/level-segments.html"><code>level-start</code></a></td>
+<td>high</td>
+<td>none</td>
+<td></td>
+<td>no reference</td>
+</tr>
+<tr class="even">
+<td><a href="../../content/algorithms/level-segments.html"><code>level-end</code></a></td>
+<td>high</td>
+<td>none</td>
+<td></td>
+<td>no reference</td>
+</tr>
+<tr class="odd">
+<td><a href="../../content/algorithms/level-offs.html"><code>level-off-climb-start</code></a></td>
+<td>low</td>
+<td>none</td>
+<td></td>
+<td>no reference</td>
+</tr>
+<tr class="even">
+<td><a href="../../content/algorithms/level-offs.html"><code>level-off-climb-end</code></a></td>
+<td>low</td>
+<td>none</td>
+<td></td>
+<td>no reference</td>
+</tr>
+<tr class="odd">
+<td><a href="../../content/algorithms/level-offs.html"><code>level-off-descent-start</code></a></td>
+<td>low</td>
+<td>none</td>
+<td></td>
+<td>no reference</td>
+</tr>
+<tr class="even">
+<td><a href="../../content/algorithms/level-offs.html"><code>level-off-descent-end</code></a></td>
+<td>low</td>
+<td>none</td>
+<td></td>
+<td>no reference</td>
+</tr>
+<tr class="odd">
+<td><a href="../../content/algorithms/flight-level-crossings.html"><code>xing-fl50</code></a></td>
+<td>partial</td>
+<td>none</td>
+<td></td>
+<td>no reference</td>
+</tr>
+<tr class="even">
+<td><a href="../../content/algorithms/flight-level-crossings.html"><code>xing-fl70</code></a></td>
+<td>partial</td>
+<td>none</td>
+<td></td>
+<td>no reference</td>
+</tr>
+<tr class="odd">
+<td><a href="../../content/algorithms/flight-level-crossings.html"><code>xing-fl100</code></a></td>
+<td>partial</td>
+<td>none</td>
+<td></td>
+<td>no reference</td>
+</tr>
+<tr class="even">
+<td><a href="../../content/algorithms/flight-level-crossings.html"><code>xing-fl245</code></a></td>
+<td>low</td>
+<td>none</td>
+<td></td>
+<td>no reference</td>
+</tr>
+<tr class="odd">
+<td><a href="../../content/algorithms/distance-rings.html"><code>xing-40nm</code>, inbound</a></td>
+<td>partial</td>
+<td>airport records</td>
+<td>high</td>
+<td>good</td>
+</tr>
+<tr class="even">
+<td><a href="../../content/algorithms/distance-rings.html"><code>xing-40nm</code>, outbound</a></td>
+<td>partial</td>
+<td>airport records</td>
+<td>high</td>
+<td>good</td>
+</tr>
+<tr class="odd">
+<td><a href="../../content/algorithms/distance-rings.html"><code>xing-50nm</code>, inbound</a></td>
+<td>partial</td>
+<td>none</td>
+<td></td>
+<td>no reference</td>
+</tr>
+<tr class="even">
+<td><a href="../../content/algorithms/distance-rings.html"><code>xing-50nm</code>, outbound</a></td>
+<td>partial</td>
+<td>none</td>
+<td></td>
+<td>no reference</td>
+</tr>
+<tr class="odd">
+<td><a href="../../content/algorithms/distance-rings.html"><code>xing-60nm</code>, inbound</a></td>
+<td>partial</td>
+<td>none</td>
+<td></td>
+<td>no reference</td>
+</tr>
+<tr class="even">
+<td><a href="../../content/algorithms/distance-rings.html"><code>xing-60nm</code>, outbound</a></td>
+<td>partial</td>
+<td>none</td>
+<td></td>
+<td>no reference</td>
+</tr>
+<tr class="odd">
+<td><a href="../../content/algorithms/distance-rings.html"><code>xing-100nm</code>, inbound</a></td>
+<td>partial</td>
+<td>airport records</td>
+<td>high</td>
+<td>good</td>
+</tr>
+<tr class="even">
+<td><a href="../../content/algorithms/distance-rings.html"><code>xing-100nm</code>, outbound</a></td>
+<td>partial</td>
+<td>airport records</td>
+<td>high</td>
+<td>good</td>
+</tr>
+<tr class="odd">
+<td><a href="../../content/algorithms/distance-rings.html"><code>xing-110nm</code>, inbound</a></td>
+<td>partial</td>
+<td>none</td>
+<td></td>
+<td>no reference</td>
+</tr>
+<tr class="even">
+<td><a href="../../content/algorithms/distance-rings.html"><code>xing-110nm</code>, outbound</a></td>
+<td>partial</td>
+<td>none</td>
+<td></td>
+<td>no reference</td>
+</tr>
+<tr class="odd">
+<td><a href="../../content/algorithms/distance-rings.html"><code>xing-120nm</code>, inbound</a></td>
+<td>partial</td>
+<td>none</td>
+<td></td>
+<td>no reference</td>
+</tr>
+<tr class="even">
+<td><a href="../../content/algorithms/distance-rings.html"><code>xing-120nm</code>, outbound</a></td>
+<td>partial</td>
+<td>none</td>
+<td></td>
+<td>no reference</td>
+</tr>
+<tr class="odd">
+<td><a href="../../content/algorithms/distance-rings.html"><code>c40_arr</code> (flight list)</a></td>
+<td>partial</td>
+<td>airport records</td>
+<td>high</td>
+<td>good</td>
+</tr>
+<tr class="even">
+<td><a href="../../content/algorithms/distance-rings.html"><code>c40_dep</code> (flight list)</a></td>
+<td>partial</td>
+<td>airport records</td>
+<td>high</td>
+<td>good</td>
+</tr>
+<tr class="odd">
+<td><a href="../../content/algorithms/distance-rings.html"><code>c50_arr</code> (flight list)</a></td>
+<td>partial</td>
+<td>none</td>
+<td></td>
+<td>no reference</td>
+</tr>
+<tr class="even">
+<td><a href="../../content/algorithms/distance-rings.html"><code>c50_dep</code> (flight list)</a></td>
+<td>partial</td>
+<td>none</td>
+<td></td>
+<td>no reference</td>
+</tr>
+<tr class="odd">
+<td><a href="../../content/algorithms/distance-rings.html"><code>c60_arr</code> (flight list)</a></td>
+<td>partial</td>
+<td>none</td>
+<td></td>
+<td>no reference</td>
+</tr>
+<tr class="even">
+<td><a href="../../content/algorithms/distance-rings.html"><code>c60_dep</code> (flight list)</a></td>
+<td>partial</td>
+<td>none</td>
+<td></td>
+<td>no reference</td>
+</tr>
+<tr class="odd">
+<td><a href="../../content/algorithms/distance-rings.html"><code>c100_arr</code> (flight list)</a></td>
+<td>partial</td>
+<td>airport records</td>
+<td>high</td>
+<td>good</td>
+</tr>
+<tr class="even">
+<td><a href="../../content/algorithms/distance-rings.html"><code>c100_dep</code> (flight list)</a></td>
+<td>partial</td>
+<td>airport records</td>
+<td>high</td>
+<td>good</td>
+</tr>
+<tr class="odd">
+<td><a href="../../content/algorithms/distance-rings.html"><code>c110_arr</code> (flight list)</a></td>
+<td>partial</td>
+<td>none</td>
+<td></td>
+<td>no reference</td>
+</tr>
+<tr class="even">
+<td><a href="../../content/algorithms/distance-rings.html"><code>c110_dep</code> (flight list)</a></td>
+<td>partial</td>
+<td>none</td>
+<td></td>
+<td>no reference</td>
+</tr>
+<tr class="odd">
+<td><a href="../../content/algorithms/distance-rings.html"><code>c120_arr</code> (flight list)</a></td>
+<td>partial</td>
+<td>none</td>
+<td></td>
+<td>no reference</td>
+</tr>
+<tr class="even">
+<td><a href="../../content/algorithms/distance-rings.html"><code>c120_dep</code> (flight list)</a></td>
+<td>partial</td>
+<td>none</td>
+<td></td>
+<td>no reference</td>
+</tr>
+<tr class="odd">
+<td><a href="../../content/algorithms/fir-crossings.html"><code>xing-fir</code></a></td>
+<td>low</td>
+<td>none</td>
+<td></td>
+<td>no reference</td>
+</tr>
+<tr class="even">
+<td><a href="../../content/algorithms/holding.html"><code>holding-start</code></a></td>
+<td>low</td>
+<td>none</td>
+<td></td>
+<td>no reference</td>
+</tr>
+<tr class="odd">
+<td><a href="../../content/algorithms/holding.html"><code>holding-end</code></a></td>
+<td>low</td>
+<td>none</td>
+<td></td>
+<td>no reference</td>
+</tr>
+<tr class="even">
+<td><a href="../../content/algorithms/holding.html"><code>holding_duration_s</code></a></td>
+<td>low</td>
+<td>none</td>
+<td></td>
+<td>no reference</td>
+</tr>
+<tr class="odd">
+<td><a href="../../content/algorithms/holding.html"><code>holding_distance_nm</code></a></td>
+<td>low</td>
+<td>none</td>
+<td></td>
+<td>no reference</td>
+</tr>
+<tr class="even">
+<td><a href="../../content/algorithms/holding.html"><code>holding_circuits</code></a></td>
+<td>low</td>
+<td>none</td>
+<td></td>
+<td>no reference</td>
+</tr>
+<tr class="odd">
+<td><a href="../../content/algorithms/point-merge.html"><code>pms-leg-entry</code></a></td>
+<td>low</td>
+<td>none</td>
+<td></td>
+<td>no reference</td>
+</tr>
+<tr class="even">
+<td><a href="../../content/algorithms/point-merge.html"><code>pms-leg-exit</code></a></td>
+<td>low</td>
+<td>none</td>
+<td></td>
+<td>no reference</td>
+</tr>
+<tr class="odd">
+<td><a href="../../content/algorithms/point-merge.html"><code>pms-merge-point</code></a></td>
+<td>low</td>
+<td>none</td>
+<td></td>
+<td>no reference</td>
+</tr>
+<tr class="even">
+<td><a href="../../content/algorithms/point-merge.html"><code>pms_leg_time_s</code></a></td>
+<td>low</td>
+<td>none</td>
+<td></td>
+<td>no reference</td>
+</tr>
+<tr class="odd">
+<td><a href="../../content/algorithms/point-merge.html"><code>pms_leg_distance_nm</code></a></td>
+<td>low</td>
+<td>none</td>
+<td></td>
+<td>no reference</td>
+</tr>
+<tr class="even">
+<td><a href="../../content/algorithms/point-merge.html"><code>pms_direct_to_distance_nm</code></a></td>
+<td>low</td>
+<td>none</td>
+<td></td>
+<td>no reference</td>
+</tr>
+<tr class="odd">
+<td><a href="../../content/algorithms/distance-flown.html"><code>distance_flown_nm</code></a></td>
+<td>high</td>
+<td>Network Manager</td>
+<td>high</td>
+<td>good</td>
+</tr>
+<tr class="even">
+<td><a href="../../content/algorithms/time-passed.html"><code>time_passed_s</code></a></td>
+<td>high</td>
+<td>none</td>
+<td></td>
+<td>no reference</td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="start-from-a-question" class="level2">
+<h2 class="anchored" data-anchor-id="start-from-a-question">Start from a question</h2>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>Question</th>
+<th>Items used</th>
+<th>Page</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>How long do departures taxi out at an airport?</td>
+<td><code>AOBT</code>, <code>ATOT</code></td>
+<td><a href="../../content/algorithms/block-times.html#use-cases">Off-block and in-block times</a></td>
+</tr>
+<tr class="even">
+<td>How long do arrivals taxi in?</td>
+<td><code>ALDT</code>, <code>AIBT</code></td>
+<td><a href="../../content/algorithms/block-times.html#use-cases">Off-block and in-block times</a></td>
+</tr>
+<tr class="odd">
+<td>How is each runway used, hour by hour?</td>
+<td><code>ATOT</code>, <code>ALDT</code> (<code>info.runway</code>)</td>
+<td><a href="../../content/algorithms/take-off-landing.html#use-cases">Take-off and landing times</a></td>
+</tr>
+<tr class="even">
+<td>How long do arrivals occupy the runway?</td>
+<td><code>ALDT</code>, <code>runway-vacated</code></td>
+<td><a href="../../content/algorithms/runway-vacated.html#use-cases">Runway vacated</a></td>
+</tr>
+<tr class="odd">
+<td>How long do departures wait on the runway?</td>
+<td><code>line-up</code>, <code>ATOT</code></td>
+<td><a href="../../content/algorithms/line-up-take-off-roll.html#use-cases">Line-up and take-off roll</a></td>
+</tr>
+<tr class="even">
+<td>What is the landing rate over the threshold?</td>
+<td><code>xing-runway-threshold</code></td>
+<td><a href="../../content/algorithms/xing-runway-threshold.html#use-cases">Runway threshold crossing</a></td>
+</tr>
+<tr class="odd">
+<td>How often are approaches given up?</td>
+<td><code>go-around</code>, <code>ALDT</code></td>
+<td><a href="../../content/algorithms/go-around.html#use-cases">Go-around</a></td>
+</tr>
+<tr class="even">
+<td>How much time do arrivals spend in the last 40 NM?</td>
+<td><code>c40_arr</code>, <code>aldt</code></td>
+<td><a href="../../content/algorithms/distance-rings.html#use-cases">Distance circle crossings</a></td>
+</tr>
+<tr class="odd">
+<td>How much do arrivals hold before landing?</td>
+<td><code>holding_duration_s</code>, <code>info.context</code></td>
+<td><a href="../../content/algorithms/holding.html#use-cases">Holding patterns</a></td>
+</tr>
+<tr class="even">
+<td>How much delay is absorbed on point merge legs?</td>
+<td><code>pms_leg_time_s</code></td>
+<td><a href="../../content/algorithms/point-merge.html#use-cases">Point merge</a></td>
+</tr>
+<tr class="odd">
+<td>How much do flights level off in climb and descent?</td>
+<td>level-off events, <code>info.duration_s</code></td>
+<td><a href="../../content/algorithms/level-offs.html#use-cases">Level-offs</a></td>
+</tr>
+<tr class="even">
+<td>How long is the climb to cruise?</td>
+<td><code>ATOT</code>, <code>top-of-climb</code>, <code>xing-fl100</code></td>
+<td><a href="../../content/algorithms/tops.html#use-cases">Top of climb and top of descent</a></td>
+</tr>
+<tr class="odd">
+<td>How far do flights fly in each region?</td>
+<td><code>xing-fir</code>, <code>distance_flown_nm</code></td>
+<td><a href="../../content/algorithms/fir-crossings.html#use-cases">FIR crossings</a></td>
+</tr>
+<tr class="even">
+<td>Which taxi routes are used?</td>
+<td><code>entry-taxiway</code></td>
+<td><a href="../../content/algorithms/surface-events.html#use-cases">Airport surface events</a></td>
+</tr>
+<tr class="odd">
+<td>How many departures and arrivals did an airport have?</td>
+<td><code>movement_dep</code>, <code>movement_arr</code></td>
+<td><a href="../../content/algorithms/movements.html#use-cases">Counting movements</a></td>
+</tr>
+<tr class="even">
+<td>Which airport pairs are flown, by which aircraft types?</td>
+<td><code>adep</code>, <code>ades</code>, <code>typecode</code></td>
+<td><a href="../../content/algorithms/airports.html#use-cases">Departure and destination airports</a></td>
+</tr>
+</tbody>
+</table>
+
+
+</section>
+<section id="acronyms_HEADER_LOA" class="level1 loa">
+<h1 class="loa">List of Acronyms</h1>
+<dl>
+</dl>
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+        const codeEl = trigger.previousElementSibling.cloneNode(true);
+        for (const childEl of codeEl.children) {
+          if (isCodeAnnotation(childEl)) {
+            childEl.remove();
+          }
+        }
+        return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp('/' + window.location.host + '/');
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+</div> <!-- /content -->
+
+
+
+
+</body></html>
