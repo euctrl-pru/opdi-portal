@@ -6,83 +6,54 @@ aliases:
   - /content/data.html
 ---
 
-```{r setup}
-#| include: false
-source("../../R/portal_config.R")
-cfg <- portal_cfg
-rel <- portal_release
-v2_current <- rel$is_current(cfg)
-```
-
-What the Open Performance Data Initiative (OPDI) publishes, how the files are
-organised and which release to use. The table lists the other pages.
-
-```{r status}
-#| results: asis
-#| echo: false
-if (v2_current) {
-  cat(
-    "::: {.callout-note appearance=\"simple\"}\n",
-    "**Current release: ", cfg$release, ".** It covers the days ",
-    rel$coverage_text(cfg), ". The previous release, ", cfg$previous_release,
-    ", stays available: see [Release ", cfg$previous_release, "](releases.qmd#release-v002).\n",
-    ":::\n", sep = "")
-} else {
-  cat(
-    "::: {.callout-note appearance=\"simple\"}\n",
-    "**Release ", cfg$release, " is the upcoming release.** This section describes it. ",
-    "Its files are being produced, starting with the days from ",
-    rel$day_text(cfg$release_coverage$start), " onwards. Until they are available, use ",
-    "release ", cfg$current_release, ", which covers ",
-    portal_labels$month_range(cfg$coverage$start, cfg$coverage$end),
-    ": see [Release ", cfg$previous_release, "](releases.qmd#release-v002).\n",
-    ":::\n", sep = "")
-}
-```
+What the Open Performance Data Initiative (OPDI) publishes and how the files
+are organised. The table lists the other pages.
 
 ## Pages
 
 | Page | What you find there |
 |---|---|
-| [Data Access](access.qmd) | Where the data are: Trino (SQL on the files, nothing to download) and the daily files, read with Python, R, DuckDB or any Parquet tool. |
+| [Data Access](access.qmd) | Where the data can be accessed and how. |
 | [Data dictionary](dictionary.qmd) | What every column, event type and `info` field means; how tables join. |
-| [Releases](releases.qmd) | What changed in release `r cfg$release` since `r cfg$previous_release`, and how to move between them; at the end, the [Release v0.0.2](releases.qmd#release-v002) section, with its monthly and ten-day files and how it was computed. |
-| [Data preview](../data-preview.qmd) | Charts made from the data. |
-| [Limitations](../limitations.qmd) | When the data as a whole, and each item, are missing or wrong. |
-| [Data quality](../accuracy/index.qmd) | How often each item exists and how close it is to the records, overall and at the 100 busiest airports in Europe and worldwide ([Airports](../accuracy/airports.qmd)). |
+| [Data quality](../accuracy/index.qmd) | An overview of the data quality, incl. availability and accuracy. Benchmarking is done using EUROCONTROL data. Per airport: [Airports](../accuracy/airports.qmd). |
+| [Limitations](../limitations.qmd) | An overview of which limitations apply to the flight list, flight events and measurements. |
+| [Data preview](../data-preview.qmd) | A preview of what is included in the OPDI data and what can be done with it. |
+| [OPDI Algorithms](../algorithms/index.qmd) | How each item is computed. |
+| [Releases](releases.qmd) | Release information. |
+: {tbl-colwidths="[25,75]"}
 
 ## What is published
 
-OPDI starts from the position reports that aircraft broadcast by radio,
+OPDI starts from the position reports that aircraft broadcast by ADS-B,
 received by the [OpenSky Network](https://opensky-network.org/), a network of
 ground receivers run by volunteers, universities and other organisations. OPDI
 groups the reports of one aircraft into flights and describes each flight in
 two ways.
 
-- The **flight list** has one row per flight: the aircraft, call sign,
+- The **flight list** has one row per flight, also for flights for which no
+  departure or destination airport could be named: the aircraft, call sign,
   departure and destination airports, first and last time seen, and main
   times, such as take-off and landing, and the runways used.
 - The **flight events** have one row per event. An **event** is a moment in a
   flight with a time and a position, for example the take-off, the top of
   climb, the crossing of a flight level or the entry into a holding pattern.
   Each row also carries the **measurements** taken at that event, for example
-  the distance flown since the start of the flight, and the columns of its
-  flight, so one row stands alone.
+  the distance flown since the start of the flight.
 
 Columns are listed on the [Data dictionary](dictionary.qmd); how each is
 computed is explained in [OPDI Algorithms](../algorithms/index.qmd).
 
 ## Daily files
 
-Release `r cfg$release` has two files per day:
+The data is published in daily files:
 
 | File | One row per | Size of one day |
 |---|---|---|
 | `flight_list/flight_list_YYYYMMDD.parquet` | flight | about 16 MB |
 | `flight_events/flight_events_YYYYMMDD.parquet` | event | about 430 MB |
 
-`YYYYMMDD` is the date, for example `20260614`. The sizes were measured on
-14 June 2026: 161,881 flights and 6,692,084 events worldwide.
+`YYYYMMDD` is the date, for example `20260614`. A day holds about
+160,000 flights and 6.7 million events worldwide.
 
 The files are in **Parquet**, a format that stores data by column and that most
 tools read: Python (pandas, pyarrow, polars), R (arrow), DuckDB, Spark and
@@ -109,18 +80,10 @@ landing, then a take-off at least five minutes later) has one row for each
 flight, all in the files of the day on which the track was first seen (see
 [Tracks and flight identity](../algorithms/tracks.qmd#flights-of-a-track)).
 
-A few events belong to a track with no row in the flight list (3,338 of
-6,691,769 events, or 0.05%, on 14 June 2026). The flight list holds
-only tracks for which a departure or a destination airport could be named
-(see [Departure and destination airports](../algorithms/airports.qmd)); these
-tracks had neither. Their events are published in the file of the day their
-track started, with empty flight columns.
-
 ## Coverage
 
-Release `r cfg$release` `r if (v2_current) "covers" else "will cover"` the
-whole world: every flight that the OpenSky Network received. Release `r cfg$previous_release` covered a box around Europe
-only. Reception depends on where receivers are and is thin over the oceans and near
+The data cover the whole world: every flight that the OpenSky Network received.
+Reception depends on where receivers are and is thin over the oceans and near
 the ground at many airports; see [Limitations](../limitations.qmd#ads-b-reception).
 
 ## Contact
